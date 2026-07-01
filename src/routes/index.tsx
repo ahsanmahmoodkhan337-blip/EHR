@@ -491,6 +491,8 @@ function Home() {
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const { currentRole } = usePipeline();
+  const [activeStage, setActiveStage] = useState("intake-vitals");
+  const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["intake-vitals"]));
 
   // Check login on mount
   useEffect(() => {
@@ -513,11 +515,6 @@ function Home() {
     return <PublicLandingPage />;
   }
 
-  // Workflow stage state
-  const [activeStage, setActiveStage] = useState("intake-vitals");
-  const [completedStages, setCompletedStages] = useState<Set<string>>(
-    new Set(["intake-vitals"])
-  );
   const toggleStageComplete = (stageId: string) => {
     const updated = new Set(completedStages);
     if (updated.has(stageId)) {
