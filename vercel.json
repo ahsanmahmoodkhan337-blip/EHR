@@ -1,3 +1,5 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+  "buildCommand": "npm run build && node gen.mjs",
+  "outputDirectory": "dist/client",
+  "installCommand": "npm install"
 }
