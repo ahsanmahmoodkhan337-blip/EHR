@@ -14,7 +14,7 @@
  * healthcare students practice navigating real-world EHR workflows.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, ArrowRight, CheckCircle2 } from "lucide-react";
 
@@ -37,7 +37,7 @@ import {
   WorkspacePanel,
   useWorkspaceTabs,
 } from "../components/TabsEpic/WorkspaceTabs";
-import { DailySchedule } from "../components/TabsEpic/DailySchedule";
+import { DailySchedule, type Appointment, PLACEHOLDER_APPOINTMENTS } from "../components/TabsEpic/DailySchedule";
 import { InBasket } from "../components/TabsEpic/InBasket";
 import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
 import { ChartSearch } from "../components/TabsEpic/ChartSearch";
@@ -58,6 +58,37 @@ export const Route = createFileRoute("/")({
     </PatientProvider>
   ),
 });
+
+// ─── Per-Patient Session Data Store ──────────────────────────────
+// Preserves each patient's scribe/vitals/shared data when switching
+
+interface PatientSessionData {
+  soapNote: SoapNoteData;
+  submittedToCoding: boolean;
+  completedStages: string[];
+  editableVitals: {
+    bloodPressure: string;
+    heartRate: string;
+    temperature: string;
+    respiratoryRate: string;
+    oxygenSaturation: string;
+  };
+  editablePatientData: {
+    chiefComplaint: string;
+    problems: string[];
+    medications: { id: string; name: string; dosage: string; frequency: string }[];
+    allergies: string[];
+    pcp: string;
+    insurance: string;
+  };
+  sharedImmunizations: string[];
+  sharedLabs: string[];
+  sharedReferrals: string[];
+  sharedOrders: string[];
+  sharedImaging: string[];
+  displayName: string | undefined;
+  activeStage: string;
+}
 
 // ─── Tab Content Components ────────────────────────────────────────
 
@@ -999,7 +1030,7 @@ function Home() {
   const [selectedPatientId, setSelectedPatientId] = useState(patients[0]?.id ?? "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole } = usePipeline();
+  const { currentRole, submitToCoding, setRole, paRecords } = usePipeline();
   const [activeStage, setActiveStage] = useState("intake-vitals");
   const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["intake-vitals"]));
 
@@ -1039,10 +1070,67 @@ function Home() {
   const [sharedOrders, setSharedOrders] = useState<string[]>([]);
   const [sharedImaging, setSharedImaging] = useState<string[]>([]);
 
-  // When selected patient changes, reset editable data to match
-  useEffect(() => {
-    const p = patients.find(pp => pp.id === selectedPatientId) || patients[0];
-    if (p) {
+  // Lifted appointments state for persistence across tab switches (Bug 2 fix)
+  const [appointments, setAppointments] = useState<Appointment[]>(PLACEHOLDER_APPOINTMENTS);
+  // Override display name for right panel header when showing placeholder patient (e.g. new appointment)
+  const [displayName, setDisplayName] = useState<string | undefined>(undefined);
+
+  // Per-patient session data store — preserves work when switching patients
+  const patientDataStore = useRef<Record<string, PatientSessionData>>({});
+
+  /**
+   * Save the current patient's session data into the store.
+   * Call this BEFORE switching to a different patient.
+   */
+  function saveCurrentSession() {
+    if (!selectedPatientId) return;
+    const stages: string[] = [];
+    completedStages.forEach(s => stages.push(s));
+    patientDataStore.current[selectedPatientId] = {
+      soapNote: { ...soapNote },
+      submittedToCoding,
+      completedStages: stages,
+      editableVitals: { ...editableVitals },
+      editablePatientData: {
+        ...editablePatientData,
+        problems: [...editablePatientData.problems],
+        medications: editablePatientData.medications.map(m => ({ ...m })),
+        allergies: [...editablePatientData.allergies],
+      },
+      sharedImmunizations: [...sharedImmunizations],
+      sharedLabs: [...sharedLabs],
+      sharedReferrals: [...sharedReferrals],
+      sharedOrders: [...sharedOrders],
+      sharedImaging: [...sharedImaging],
+      displayName,
+      activeStage,
+    };
+  }
+
+  /**
+   * Load a patient's saved session data into the live state.
+   * Called in useEffect when selectedPatientId changes.
+   * Falls back to mock patient data or defaults if no saved session.
+   */
+  function loadPatientSession(patientId: string) {
+    const saved = patientDataStore.current[patientId];
+    const p = patients.find(pp => pp.id === patientId) || patients[0];
+
+    if (saved) {
+      setSoapNote(saved.soapNote);
+      setSubmittedToCoding(saved.submittedToCoding);
+      setCompletedStages(new Set(saved.completedStages));
+      setActiveStage(saved.activeStage);
+      setEditableVitals(saved.editableVitals);
+      setEditablePatientData(saved.editablePatientData);
+      setSharedImmunizations(saved.sharedImmunizations);
+      setSharedLabs(saved.sharedLabs);
+      setSharedReferrals(saved.sharedReferrals);
+      setSharedOrders(saved.sharedOrders);
+      setSharedImaging(saved.sharedImaging);
+      setDisplayName(saved.displayName);
+    } else if (p) {
+      // First time visiting this patient — initialize from mock data
       setEditablePatientData({
         chiefComplaint: p.chiefComplaint ?? "",
         problems: [...(p.problems ?? [])],
@@ -1051,7 +1139,42 @@ function Home() {
         pcp: p.primaryCareProvider ?? "",
         insurance: p.insurance ?? "",
       });
+      setEditableVitals({
+        bloodPressure: p.vitals.bloodPressure ?? "120/80",
+        heartRate: p.vitals.heartRate?.toString() ?? "72",
+        temperature: p.vitals.temperature?.toString() ?? "98.6",
+        respiratoryRate: p.vitals.respiratoryRate?.toString() ?? "16",
+        oxygenSaturation: p.vitals.oxygenSaturation?.toString() ?? "98",
+      });
+      setSharedImmunizations([]);
+      setSharedLabs([]);
+      setSharedReferrals([]);
+      setSharedOrders([]);
+      setSharedImaging([]);
+      setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
+      setSubmittedToCoding(false);
+      setDisplayName(undefined);
+      setActiveStage("intake-vitals");
+      setCompletedStages(new Set(["intake-vitals"]));
     }
+  }
+
+  // When selected patient changes, load that patient's session data
+  useEffect(() => {
+    const p = patients.find(pp => pp.id === selectedPatientId);
+    if (!p) {
+      // Handle case where patient not found (e.g. custom appointment mapped to placeholder)
+      setSharedImmunizations([]);
+      setSharedLabs([]);
+      setSharedReferrals([]);
+      setSharedOrders([]);
+      setSharedImaging([]);
+      setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
+      setSubmittedToCoding(false);
+      return;
+    }
+    // If we have saved data for this patient, restore it; otherwise initialize from mock
+    loadPatientSession(selectedPatientId);
   }, [selectedPatientId]);
 
   // Check login on mount
@@ -1124,7 +1247,7 @@ function Home() {
         <Header
           businessName={businessName}
           selectedPatientId={selectedPatientId}
-          onPatientSelect={setSelectedPatientId}
+          onPatientSelect={(id) => { saveCurrentSession(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("intake-vitals"); }}
           showRightPanel={showRightPanel}
           onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
           selectedPatientName={
@@ -1147,7 +1270,7 @@ function Home() {
         ) : undefined
       }
       rightPanel={
-        <RightPaneleCW patient={selectedPatient ?? null} editableVitals={editableVitals} editablePatientData={editablePatientData} sharedImmunizations={sharedImmunizations} sharedLabs={sharedLabs} sharedReferrals={sharedReferrals} sharedOrders={sharedOrders} sharedImaging={sharedImaging} soapNote={soapNote} />
+        <RightPaneleCW patient={selectedPatient ?? null} displayName={displayName} editableVitals={editableVitals} editablePatientData={editablePatientData} sharedImmunizations={sharedImmunizations} sharedLabs={sharedLabs} sharedReferrals={sharedReferrals} sharedOrders={sharedOrders} sharedImaging={sharedImaging} soapNote={soapNote} paRecords={paRecords} />
       }
       showRightPanel={showRightPanel}
       footer={
@@ -1212,15 +1335,48 @@ function Home() {
           <>
             {/* ─── Daily Schedule ─── */}
             <WorkspacePanel id="schedule" activeWorkspace={activeWorkspace}>
-              <DailySchedule onSelectPatient={(name) => {
-                const match = patients.find(p => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase());
-                if (match) {
-                  setSelectedPatientId(match.id);
-                  setRole("scribe");
-                  setActiveWorkspace("chart");
-                  setActiveStage("intake-vitals");
-                }
-              }} />
+              <DailySchedule
+                appointments={appointments}
+                setAppointments={setAppointments}
+                onSelectPatient={(name) => {
+                  saveCurrentSession();
+                  const match = patients.find(p => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase());
+                  if (match) {
+                    setSelectedPatientId(match.id);
+                    setRole("scribe");
+                    setActiveWorkspace("chart");
+                    setActiveStage("intake-vitals");
+                    setDisplayName(undefined);
+                    setEditablePatientData(prev => ({
+                      ...prev,
+                      chiefComplaint: match.chiefComplaint,
+                    }));
+                  } else {
+                    // For custom / new patients not in the mock database,
+                    // select the first patient and show the appointment name as chief complaint
+                    if (patients.length > 0) {
+                      setSelectedPatientId(patients[0].id);
+                      setRole("scribe");
+                      setActiveWorkspace("chart");
+                      setActiveStage("intake-vitals");
+                      setDisplayName(name);
+                      setEditablePatientData(prev => ({
+                        ...prev,
+                        chiefComplaint: `Visit for: ${name} — ${(() => {
+                          const apt = appointments.find(a => a.patientName.toLowerCase() === name.toLowerCase());
+                          return apt?.notes || apt?.type || "New patient appointment";
+                        })()}`,
+                        problems: [...prev.problems],
+                      }));
+                      // Show a brief toast notification
+                      const toast = document.createElement("div");
+                      toast.className = "fixed top-4 right-4 z-50 rounded-lg bg-sky-600 px-4 py-2 text-sm text-white shadow-lg animate-bounce";
+                      toast.textContent = `✓ Starting visit for ${name} — opened placeholder chart`;
+                      document.body.appendChild(toast);
+                      setTimeout(() => toast.remove(), 3000);
+                    }
+                  }
+                }} />
             </WorkspacePanel>
 
             {/* ─── Patient Chart Review ─── */}

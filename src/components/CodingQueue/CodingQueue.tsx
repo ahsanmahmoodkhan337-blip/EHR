@@ -58,7 +58,7 @@ const CONVENTIONS = [
 // ─── Component ────────────────────────────────────────────────────
 
 export function CodingQueue() {
-  const { state, submitToBilling, getRoleLabel } = usePipeline();
+  const { state, submitToBilling, setRole } = usePipeline();
 
   // Code search state
   const [icdQuery, setIcdQuery] = useState("");
@@ -78,6 +78,9 @@ export function CodingQueue() {
   // Quiz
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
   const [quizFeedback, setQuizFeedback] = useState<string | null>(null);
+
+  // Submission state
+  const [submitted, setSubmitted] = useState(false);
 
   // Search results
   const icdResults = useMemo(() => searchICD10(icdQuery), [icdQuery]);
@@ -124,6 +127,7 @@ export function CodingQueue() {
         selectedICDs.map((c) => c.code),
         selectedCPTs.map((c) => c.code)
       );
+      setSubmitted(true);
     }
   };
 
@@ -350,17 +354,47 @@ export function CodingQueue() {
               </div>
             )}
 
-            {/* Submit to Billing */}
-            {selectedICDs.length > 0 && selectedCPTs.length > 0 && (
-              <button
-                onClick={handleSubmitToBilling}
-                className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Submit Coded Encounter to Billing ({selectedICDs.length} ICD-10, {selectedCPTs.length} CPT)
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            )}
+            {/* Submit to Billing — or Success View */}
+            {submitted ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="rounded-full bg-green-100 p-4">
+                  <CheckCircle2 className="h-10 w-10 text-green-600" />
+                </div>
+                <h3 className="mt-4 text-lg font-bold text-slate-800">Codes Submitted to Billing!</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  The coded encounter has been sent to the Medical Biller for claim processing.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3 justify-center">
+                  <div className="rounded-lg bg-green-50 border border-green-200 p-2">
+                    <p className="text-[10px] font-medium text-green-700">ICD-10 Codes ({selectedICDs.length})</p>
+                    <p className="text-xs text-green-600">{selectedICDs.map(c => c.code).join(", ")}</p>
+                  </div>
+                  <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-2">
+                    <p className="text-[10px] font-medium text-indigo-700">CPT Codes ({selectedCPTs.length})</p>
+                    <p className="text-xs text-indigo-600">{selectedCPTs.map(c => c.code).join(", ")}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setRole("biller")}
+                  className="mt-4 flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  Switch to Biller Role
+                </button>
+              </div>
+            ) : (<>
+              {/* Existing submit button */}
+              {selectedICDs.length > 0 && selectedCPTs.length > 0 && (
+                <button
+                  onClick={handleSubmitToBilling}
+                  className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Submit Coded Encounter to Billing ({selectedICDs.length} ICD-10, {selectedCPTs.length} CPT)
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </>)}
           </div>
 
           {/* ─── Right Sidebar: E/M Calculator ─── */}

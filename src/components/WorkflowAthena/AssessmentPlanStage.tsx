@@ -70,7 +70,7 @@ const MACRO_CATEGORIES: MacroCategory[] = [
 
 // ─── SOAP Note Data ───────────────────────────────────────────────
 
-interface SoapNoteData {
+export interface SoapNoteData {
   subjective: string;
   objective: string;
   assessment: string;
@@ -81,28 +81,44 @@ interface SoapNoteData {
 
 interface AssessmentPlanStageProps {
   patientName?: string;
+  note?: SoapNoteData;
+  onNoteChange?: (note: SoapNoteData) => void;
 }
 
-export function AssessmentPlanStage({ patientName }: AssessmentPlanStageProps) {
-  const [note, setNote] = useState<SoapNoteData>({
+export function AssessmentPlanStage({ patientName, note, onNoteChange }: AssessmentPlanStageProps) {
+  const [showMacros, setShowMacros] = useState(true);
+  const [activeMacroCategory, setActiveMacroCategory] = useState(0);
+  const [lastInserted, setLastInserted] = useState("");
+
+  // Use lifted note if provided, otherwise use local fallback state
+  const [localFallback, setLocalFallback] = useState<SoapNoteData>({
     subjective: "",
     objective: "",
     assessment: "",
     plan: "",
   });
-  const [showMacros, setShowMacros] = useState(true);
-  const [activeMacroCategory, setActiveMacroCategory] = useState(0);
-  const [lastInserted, setLastInserted] = useState("");
+
+  const currentNote = note ?? localFallback;
+
+  const updateNote = (updated: SoapNoteData) => {
+    if (onNoteChange) {
+      onNoteChange(updated);
+    } else {
+      setLocalFallback(updated);
+    }
+  };
 
   const updateField = (field: keyof SoapNoteData, value: string) => {
-    setNote((prev) => ({ ...prev, [field]: value }));
+    const updated = { ...currentNote, [field]: value };
+    updateNote(updated);
   };
 
   const insertMacro = (text: string, field: keyof SoapNoteData) => {
-    setNote((prev) => ({
-      ...prev,
-      [field]: prev[field] + (prev[field] ? "\n\n" : "") + text,
-    }));
+    const updated = {
+      ...currentNote,
+      [field]: currentNote[field] + (currentNote[field] ? "\n\n" : "") + text,
+    };
+    updateNote(updated);
     setLastInserted(text);
     setTimeout(() => setLastInserted(""), 2000);
   };
@@ -149,7 +165,7 @@ export function AssessmentPlanStage({ patientName }: AssessmentPlanStageProps) {
               )}
             </div>
             <textarea
-              value={note.subjective}
+              value={currentNote.subjective}
               onChange={(e) => updateField("subjective", e.target.value)}
               placeholder="Patient's report of symptoms, chief complaint, HPI, review of systems..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
@@ -173,7 +189,7 @@ export function AssessmentPlanStage({ patientName }: AssessmentPlanStageProps) {
               )}
             </div>
             <textarea
-              value={note.objective}
+              value={currentNote.objective}
               onChange={(e) => updateField("objective", e.target.value)}
               placeholder="Vital signs, physical exam findings, lab results, imaging..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
@@ -197,7 +213,7 @@ export function AssessmentPlanStage({ patientName }: AssessmentPlanStageProps) {
               )}
             </div>
             <textarea
-              value={note.assessment}
+              value={currentNote.assessment}
               onChange={(e) => updateField("assessment", e.target.value)}
               placeholder="Diagnoses, differentials, clinical impression, problem list updates..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
@@ -221,7 +237,7 @@ export function AssessmentPlanStage({ patientName }: AssessmentPlanStageProps) {
               )}
             </div>
             <textarea
-              value={note.plan}
+              value={currentNote.plan}
               onChange={(e) => updateField("plan", e.target.value)}
               placeholder="Medication changes, orders, referrals, follow-up plan, patient education..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"

@@ -5,7 +5,7 @@
 // Inspired by: Epic Resolute Hospital Billing AR Workbench
 // ──────────────────────────────────────────────────────────────────────
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Phone,
   PhoneCall,
@@ -28,6 +28,9 @@ import {
   XCircle,
   ClipboardList,
   Building2,
+  Play,
+  Square,
+  Volume2,
 } from "lucide-react";
 import { usePipeline, type DeniedClaim, type ARCallRecord } from "../../store/pipelineStore";
 import {
@@ -49,12 +52,76 @@ export default function ARVoiceSimulator() {
     assignDenial,
     addCallRecord,
     getClaimsByAging,
+    arCalls,
   } = pipeline;
 
   const [activeTab, setActiveTab] = useState<TabView>("ledger");
   const [selectedBucket, setSelectedBucket] = useState<string>("0-30");
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
   const [accentMode, setAccentMode] = useState(false);
+
+  // ── Speech Synthesis (American Accent Audio) ──
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingText, setSpeakingText] = useState("");
+  const [voicesLoaded, setVoicesLoaded] = useState(false);
+
+  useEffect(() => {
+    // Load voices — they may not be available immediately
+    const loadVoices = () => {
+      if (window.speechSynthesis.getVoices().length > 0) {
+        setVoicesLoaded(true);
+      }
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
+
+  const getAmericanVoice = (): SpeechSynthesisVoice | null => {
+    const voices = window.speechSynthesis.getVoices();
+    // Prefer a voice with "en-US" lang
+    const american = voices.find((v) => v.lang.startsWith("en-US"));
+    return american || voices.find((v) => v.lang.startsWith("en")) || null;
+  };
+
+  const speak = (text: string) => {
+    // Cancel any current speech
+    window.speechSynthesis.cancel();
+    if (!text.trim()) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.9; // Slightly slower for learners
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    const voice = getAmericanVoice();
+    if (voice) utterance.voice = voice;
+
+    setIsSpeaking(true);
+    setSpeakingText(text);
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setSpeakingText("");
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setSpeakingText("");
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+    setSpeakingText("");
+  };
+
+  const isCurrentlyPlaying = (text: string) => isSpeaking && speakingText === text;
 
   // Appeal letter state
   const [selectedAppeal, setSelectedAppeal] = useState(APPEAL_TEMPLATES[0].id);
@@ -135,7 +202,7 @@ export default function ARVoiceSimulator() {
           <h2 className="text-sm font-bold text-slate-800">AR Voice Specialist</h2>
           <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-medium text-sky-700">Stage 5</span>
           <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-            {state.arCalls.length} Calls
+            {arCalls.length} Calls
           </span>
         </div>
         <button
@@ -363,13 +430,35 @@ export default function ARVoiceSimulator() {
                             className="flex items-center gap-1 rounded bg-slate-600 px-2 py-1 text-[9px] font-medium text-white hover:bg-slate-500">
                             <XCircle className="h-2.5 w-2.5" /> Write Off
                           </button>
+                          {/* Read claim audio button */}
+                          <button
+                            onClick={() => {
+                              const text = `Claim ${claim.id.slice(-8)}. Patient: ${claim.patientName || "Unknown"}. Amount: ${claim.amount.toFixed(2)} dollars. Reason: ${claim.reason}. Status: ${claim.resolutionStatus.replace("-", " ")}.`;
+                              if (isCurrentlyPlaying(text)) {
+                                stopSpeaking();
+                              } else {
+                                speak(text);
+                              }
+                            }}
+                            className={`flex items-center gap-1 rounded px-2 py-1 text-[9px] font-medium transition-colors ${
+                              isCurrentlyPlaying(`Claim ${claim.id.slice(-8)}.`)
+                                ? "bg-red-100 text-red-700 animate-pulse"
+                                : "bg-sky-100 text-sky-700 hover:bg-sky-200"
+                            }`}
+                          >
+                            {isCurrentlyPlaying(`Claim ${claim.id.slice(-8)}.`) ? (
+                              <><Square className="h-2.5 w-2.5" /> Stop</>
+                            ) : (
+                              <><Volume2 className="h-2.5 w-2.5" /> Read Claim</>
+                            )}
+                          </button>
                         </div>
 
                         {/* Call history */}
-                        {state.arCalls.filter((c) => c.claimId === claim.id).length > 0 && (
+                        {arCalls.filter((c) => c.claimId === claim.id).length > 0 && (
                           <div className="mt-2 rounded bg-slate-50 p-2">
                             <p className="mb-1 text-[9px] font-medium text-slate-500">Call History</p>
-                            {state.arCalls.filter((c) => c.claimId === claim.id).slice(0, 3).map((call) => (
+                            {arCalls.filter((c) => c.claimId === claim.id).slice(0, 3).map((call) => (
                               <div key={call.id} className="flex items-center justify-between py-0.5 text-[9px]">
                                 <span className="text-slate-600">{call.outcome.replace(/-/g, " ")}</span>
                                 <span className="text-slate-400">{Math.floor(call.duration / 60)}m {call.duration % 60}s</span>
@@ -396,6 +485,35 @@ export default function ARVoiceSimulator() {
                   enunciation of claim numbers, dollar amounts, and denial codes. Use the Call Scripts tab for
                   full dialogues to practice.
                 </p>
+                {currentClaims.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const claim = currentClaims[0];
+                        const text = `Sample claim. Claim number ${claim.id.slice(-8)}. Patient: ${claim.patientName || "Unknown"}. Amount: ${claim.amount.toFixed(2)} dollars. Reason: ${claim.reason}.`;
+                        if (isCurrentlyPlaying(text)) {
+                          stopSpeaking();
+                        } else {
+                          speak(text);
+                        }
+                      }}
+                      className={`flex items-center gap-1 rounded px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
+                        isCurrentlyPlaying(`Sample claim.`)
+                          ? "bg-red-100 text-red-700 animate-pulse"
+                          : "bg-green-600 text-white hover:bg-green-500"
+                      }`}
+                    >
+                      {isCurrentlyPlaying(`Sample claim.`) ? (
+                        <><Square className="h-3.5 w-3.5" /> Stop Playback</>
+                      ) : (
+                        <><Play className="h-3.5 w-3.5" /> Hear Sample Claim</>
+                      )}
+                    </button>
+                    {isCurrentlyPlaying(`Sample claim.`) && (
+                      <span className="text-[9px] text-green-600 animate-pulse">🔊 Playing...</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -426,7 +544,30 @@ export default function ARVoiceSimulator() {
 
                 {/* Opening */}
                 <div className="mb-3 rounded-lg border border-sky-100 bg-sky-50 p-3">
-                  <p className="text-[10px] font-semibold text-sky-700">Opening Statement</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold text-sky-700">Opening Statement</p>
+                    <button
+                      onClick={() => {
+                        if (isCurrentlyPlaying(BUCKET_SCRIPTS[scriptBucket].opening)) {
+                          stopSpeaking();
+                        } else {
+                          speak(BUCKET_SCRIPTS[scriptBucket].opening);
+                        }
+                      }}
+                      className={`flex items-center gap-1 rounded px-2 py-1 text-[9px] font-medium transition-colors ${
+                        isCurrentlyPlaying(BUCKET_SCRIPTS[scriptBucket].opening)
+                          ? "bg-red-100 text-red-700 animate-pulse"
+                          : "bg-sky-100 text-sky-700 hover:bg-sky-200"
+                      }`}
+                      title={voicesLoaded ? "Play audio in American English" : "Loading voices..."}
+                    >
+                      {isCurrentlyPlaying(BUCKET_SCRIPTS[scriptBucket].opening) ? (
+                        <><Square className="h-3 w-3" /> Stop</>
+                      ) : (
+                        <><Volume2 className="h-3 w-3" /> Play Audio</>
+                      )}
+                    </button>
+                  </div>
                   <p className="mt-1 text-[10px] text-sky-600 leading-relaxed">{BUCKET_SCRIPTS[scriptBucket].opening}</p>
                 </div>
 
@@ -467,6 +608,31 @@ export default function ARVoiceSimulator() {
                   Focus on: clear enunciation, natural pausing at commas, stress on claim numbers and amounts.
                   Replace [bracketed] text with realistic values. Practice the questions in different orders.
                 </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (isCurrentlyPlaying(BUCKET_SCRIPTS[scriptBucket].opening)) {
+                        stopSpeaking();
+                      } else {
+                        speak(BUCKET_SCRIPTS[scriptBucket].opening);
+                      }
+                    }}
+                    className={`flex items-center gap-1 rounded px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
+                      isCurrentlyPlaying(BUCKET_SCRIPTS[scriptBucket].opening)
+                        ? "bg-red-100 text-red-700 animate-pulse"
+                        : "bg-green-600 text-white hover:bg-green-500"
+                    }`}
+                  >
+                    {isCurrentlyPlaying(BUCKET_SCRIPTS[scriptBucket].opening) ? (
+                      <><Square className="h-3.5 w-3.5" /> Stop Playback</>
+                    ) : (
+                      <><Play className="h-3.5 w-3.5" /> Hear American Accent</>
+                    )}
+                  </button>
+                  {isCurrentlyPlaying(BUCKET_SCRIPTS[scriptBucket].opening) && (
+                    <span className="text-[9px] text-green-600 animate-pulse">🔊 Playing...</span>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -601,10 +767,33 @@ export default function ARVoiceSimulator() {
 
               {/* Script */}
               <div className="mb-3 rounded-lg border border-sky-100 bg-sky-50 p-3">
-                <p className="mb-1 text-[10px] font-semibold text-sky-700">
-                  <Phone className="mr-1 inline h-3 w-3" />
-                  What to Say
-                </p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-semibold text-sky-700">
+                    <Phone className="mr-1 inline h-3 w-3" />
+                    What to Say
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (isCurrentlyPlaying(AR_SCENARIOS[selectedScenario].script)) {
+                        stopSpeaking();
+                      } else {
+                        speak(AR_SCENARIOS[selectedScenario].script);
+                      }
+                    }}
+                    className={`flex items-center gap-1 rounded px-2 py-1 text-[9px] font-medium transition-colors ${
+                      isCurrentlyPlaying(AR_SCENARIOS[selectedScenario].script)
+                        ? "bg-red-100 text-red-700 animate-pulse"
+                        : "bg-sky-100 text-sky-700 hover:bg-sky-200"
+                    }`}
+                    title="Play scenario script in American English"
+                  >
+                    {isCurrentlyPlaying(AR_SCENARIOS[selectedScenario].script) ? (
+                      <><Square className="h-3 w-3" /> Stop</>
+                    ) : (
+                      <><Volume2 className="h-3 w-3" /> Play Audio</>
+                    )}
+                  </button>
+                </div>
                 <p className="text-[10px] text-sky-600 leading-relaxed">{AR_SCENARIOS[selectedScenario].script}</p>
               </div>
 
@@ -634,15 +823,40 @@ export default function ARVoiceSimulator() {
               <div className="rounded-lg border border-green-200 bg-green-50 p-3">
                 <p className="text-[10px] font-medium text-green-700">
                   <Mic className="mr-1 inline h-3 w-3" />
-              Read the script out loud with a professional American accent. Focus on: "thirty" vs "thirteen" ($30 vs $13),
-                "ninety" vs "nineteen" ($90 vs $19), and "fourteen" / "forty" clarity.
+                  Read the script out loud with a professional American accent. Focus on: "thirty" vs "thirteen" ($30 vs $13),
+                  "ninety" vs "nineteen" ($90 vs $19), and "fourteen" / "forty" clarity.
                 </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (isCurrentlyPlaying(AR_SCENARIOS[selectedScenario].script)) {
+                        stopSpeaking();
+                      } else {
+                        speak(AR_SCENARIOS[selectedScenario].script);
+                      }
+                    }}
+                    className={`flex items-center gap-1 rounded px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
+                      isCurrentlyPlaying(AR_SCENARIOS[selectedScenario].script)
+                        ? "bg-red-100 text-red-700 animate-pulse"
+                        : "bg-green-600 text-white hover:bg-green-500"
+                    }`}
+                  >
+                    {isCurrentlyPlaying(AR_SCENARIOS[selectedScenario].script) ? (
+                      <><Square className="h-3.5 w-3.5" /> Stop Playback</>
+                    ) : (
+                      <><Play className="h-3.5 w-3.5" /> Hear American Accent</>
+                    )}
+                  </button>
+                  {isCurrentlyPlaying(AR_SCENARIOS[selectedScenario].script) && (
+                    <span className="text-[9px] text-green-600 animate-pulse">🔊 Playing...</span>
+                  )}
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* ═══ TAB: CARRIER INFO ═══ */}
+        {/* ═══ TAB: CARRIER INFO ��══ */}
         {activeTab === "carriers" && (
           <div className="space-y-4">
             <p className="text-xs font-semibold text-slate-700">Insurance Carrier Directory</p>

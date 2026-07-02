@@ -17,16 +17,15 @@ import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search
 import { usePipeline } from "../../store/pipelineStore";
 import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";
 
+type BillingTab = "form" | "scrubber" | "denials" | "references";
+
 export function BillingLedger() {
-  const { state, submitClaim, handleDenial, setRole } = usePipeline();
+  const { state, submitClaim, handleDenial, setRole, paRecords } = usePipeline();
 
   const [payer, setPayer] = useState("Medicare");
   const [posCode, setPosCode] = useState("11");
   const [submitted, setSubmitted] = useState(false);
-  const [showForm, setShowForm] = useState(true);
-  const [showDenialRef, setShowDenialRef] = useState(false);
-  const [showPosRef, setShowPosRef] = useState(false);
-  const [showRevenueRef, setShowRevenueRef] = useState(false);
+  const [activeTab, setActiveTab] = useState<BillingTab>("form");
   const [needsPriorAuth, setNeedsPriorAuth] = useState(false);
 
   // Claim scrubber state
@@ -51,7 +50,7 @@ export function BillingLedger() {
 
   const simulateDenial = () => {
     handleDenial("CO-16 — Claim lacks information");
-    setShowDenialRef(true);
+    setActiveTab("denials");
   };
 
   // Calculate estimated payment
@@ -101,23 +100,16 @@ export function BillingLedger() {
             {/* Tab navigation */}
             <div className="flex gap-1 border-b border-slate-200 pb-2 mb-4">
               {[
-                { key: "form", label: "CMS-1500 Form" },
-                { key: "scrubber", label: "Claim Scrubber" },
-                { key: "denials", label: "Denial Codes" },
-                { key: "references", label: "References" },
+                { key: "form" as BillingTab, label: "CMS-1500 Form" },
+                { key: "scrubber" as BillingTab, label: "Claim Scrubber" },
+                { key: "denials" as BillingTab, label: "Denial Codes" },
+                { key: "references" as BillingTab, label: "References" },
               ].map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => {
-                    setShowForm(tab.key === "form");
-                    setShowDenialRef(tab.key === "denials");
-                    setShowPosRef(tab.key === "references");
-                    setShowRevenueRef(tab.key === "references");
-                  }}
+                  onClick={() => setActiveTab(tab.key)}
                   className={`px-3 py-1.5 text-[10px] font-medium rounded-t-lg transition-colors ${
-                    (tab.key === "form" && showForm) || (tab.key === "scrubber" && !showForm && !showDenialRef && !showPosRef)
-                    || (tab.key === "denials" && showDenialRef)
-                    || (tab.key === "references" && (showPosRef || showRevenueRef))
+                    activeTab === tab.key
                       ? "bg-violet-50 text-violet-700 border-b-2 border-violet-500"
                       : "text-slate-400 hover:text-slate-600"
                   }`}
@@ -128,7 +120,7 @@ export function BillingLedger() {
             </div>
 
             {/* CMS-1500 Form */}
-            {showForm && (
+            {activeTab === "form" && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="h-4 w-4 text-violet-500" />
@@ -185,6 +177,45 @@ export function BillingLedger() {
                     <input type="checkbox" id="needsPA" checked={needsPriorAuth} onChange={e => setNeedsPriorAuth(e.target.checked)} className="accent-violet-500" />
                     <label htmlFor="needsPA" className="text-[10px] text-slate-600">This encounter requires <strong>Prior Authorization</strong></label>
                   </div>
+                  {/* PA Status indicator */}
+                  {(() => {
+                    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || "P001"));
+                    const approvedPa = patientPaRecords.find((r) => r.status === "approved");
+                    const pendingPa = patientPaRecords.find((r) => r.status === "submitted" || r.status === "in-progress" || r.status === "pending");
+                    const hasPaRecords = patientPaRecords.length > 0;
+                    if (hasPaRecords) {
+                      return (
+                        <div className={`mt-2 rounded-lg p-2 border ${approvedPa ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
+                          <p className={`text-[10px] font-medium ${approvedPa ? "text-green-700" : "text-amber-700"}`}>
+                            {approvedPa ? (
+                              <><CheckCircle2 className="inline h-3 w-3 mr-1" /> Prior Authorization Approved — proceed with billing</>
+                            ) : (
+                              <><AlertTriangle className="inline h-3 w-3 mr-1" /> PA {pendingPa ? `"${pendingPa.status}" — awaiting approval` : "submitted — awaiting decision"}</>
+                            )}
+                          </p>
+                          {approvedPa?.authEndDate && (() => {
+                            const end = new Date(approvedPa.authEndDate);
+                            const daysLeft = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                            return daysLeft <= 14 ? (
+                              <p className="text-[9px] text-amber-600 mt-0.5 flex items-center gap-1">
+                                <AlertTriangle className="h-2.5 w-2.5" /> Auth expires in {daysLeft} day{daysLeft !== 1 ? "s" : ""}
+                              </p>
+                            ) : (
+                              <p className="text-[9px] text-green-600 mt-0.5">Auth valid until {end.toLocaleDateString()}</p>
+                            );
+                          })()}
+                        </div>
+                      );
+                    }
+                    if (needsPriorAuth) {
+                      return (
+                        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2">
+                          <p className="text-[10px] text-amber-700">⚠ Requires Prior Authorization. Complete Stage 4 before submitting.</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {/* Actions */}
@@ -221,7 +252,7 @@ export function BillingLedger() {
             )}
 
             {/* Denial Code Reference */}
-            {showDenialRef && (
+            {activeTab === "denials" && (
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <BookOpen className="h-3.5 w-3.5" /> Denial Code Reference — Educational
@@ -243,7 +274,7 @@ export function BillingLedger() {
             )}
 
             {/* References */}
-            {(showPosRef || showRevenueRef) && (
+            {activeTab === "references" && (
               <div className="space-y-4">
                 <div>
                   <p className="text-xs font-semibold text-slate-700 mb-2">Place of Service (POS) Codes</p>

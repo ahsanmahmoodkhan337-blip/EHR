@@ -33,9 +33,23 @@ const COLOR_MAP: Record<string, { bg: string; text: string; ring: string; dot: s
 };
 
 export function WorkflowTracker({ encounterId }: WorkflowTrackerProps) {
-  const { state } = usePipeline();
-  const currentRole = state.currentRole;
-  const stage = encounterId ? state.stages[encounterId] : undefined;
+  const { state, currentRole, getRoleLabel } = usePipeline();
+
+  // Map pipeline status to completed stages
+  const isStageCompleted = (stageKey: string): boolean => {
+    switch (stageKey) {
+      case "charted":
+        return ["charted", "coded", "billed", "paid", "denied"].includes(state.status);
+      case "coded":
+        return ["coded", "billed", "paid", "denied"].includes(state.status);
+      case "billed":
+        return ["billed", "paid", "denied"].includes(state.status);
+      case "priorAuth":
+        return state.status === "paid";
+      default:
+        return false;
+    }
+  };
 
   // Determine which stage index is current based on role
   const roleStageIndex: Record<string, number> = {
@@ -51,9 +65,9 @@ export function WorkflowTracker({ encounterId }: WorkflowTrackerProps) {
     <div className="border-b border-slate-200 bg-white px-4 py-3">
       <div className="flex items-center justify-center gap-1 sm:gap-2">
         {STAGES.map((s, i) => {
-          const isCompleted = stage?.[s.key] ?? false;
-          const isCurrent = i === currentStageIndex;
-          const isFuture = i > currentStageIndex;
+          const isCompleted = isStageCompleted(s.key);
+          const isCurrent = i === currentStageIndex && !isCompleted;
+          const isFuture = !isCompleted && !isCurrent && i > currentStageIndex;
           const colors = COLOR_MAP[s.color];
 
           return (
@@ -92,19 +106,19 @@ export function WorkflowTracker({ encounterId }: WorkflowTrackerProps) {
         <ArrowRight className="h-3.5 w-3.5 text-slate-300" />
 
         {/* ─── 5th Stage: Claim Status ─── */}
-        {stage?.claimStatus === "paid" ? (
+        {state.status === "paid" ? (
           <div className="flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 ring-1 ring-green-400">
             <CheckCircle2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Paid</span>
             <span className="inline sm:hidden">✅</span>
           </div>
-        ) : stage?.claimStatus === "denied" ? (
+        ) : state.status === "denied" ? (
           <div className="flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 ring-1 ring-red-400">
             <AlertCircle className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Denied</span>
             <span className="inline sm:hidden">❌</span>
           </div>
-        ) : stage?.claimStatus === "reprocessed" ? (
+        ) : state.status === "reprocessed" ? (
           <div className="flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-700 ring-1 ring-amber-400">
             <RefreshCw className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Reprocessed</span>
@@ -120,7 +134,7 @@ export function WorkflowTracker({ encounterId }: WorkflowTrackerProps) {
 
       {/* Role indicator label */}
       <div className="mt-2 text-center text-[10px] font-medium uppercase tracking-wider text-slate-400">
-        Current Role: {state.getRoleLabel(state.currentRole)}
+        Current Role: {getRoleLabel(currentRole)}
       </div>
     </div>
   );

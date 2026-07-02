@@ -8,13 +8,17 @@
  * signature workflow, compliance checks, and locking in a later task.
  */
 
-import { Lock, Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Lock, Shield, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import type { SoapNoteData } from "./AssessmentPlanStage";
 
 interface SignLockStageProps {
   patientName?: string;
+  note?: SoapNoteData;
+  onSignAndLock?: () => void;
+  isSubmitting?: boolean;
 }
 
-export function SignLockStage({ patientName }: SignLockStageProps) {
+export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting }: SignLockStageProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -35,9 +39,9 @@ export function SignLockStage({ patientName }: SignLockStageProps) {
         <div className="space-y-2">
           {[
             { label: "Vital signs recorded", done: true },
-            { label: "HPI documented", done: true },
-            { label: "Review of Systems completed", done: false },
-            { label: "Assessment & Plan documented", done: false },
+            { label: "HPI documented", done: !!note?.subjective },
+            { label: "Review of Systems completed", done: !!note?.objective },
+            { label: "Assessment & Plan documented", done: !!(note?.assessment || note?.plan) },
             { label: "Orders placed", done: false },
             { label: "Patient instructions provided", done: false },
             { label: "Follow-up scheduled", done: false },
@@ -73,22 +77,32 @@ export function SignLockStage({ patientName }: SignLockStageProps) {
       {/* Sign & Lock button */}
       <div className="rounded-lg border border-slate-200 bg-white p-6 text-center">
         <Lock className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-        <h4 className="text-base font-semibold text-slate-700">Ready to Sign?</h4>
+        <h4 className="text-base font-semibold text-slate-700">{isSubmitting ? "Submitting..." : "Ready to Sign?"}</h4>
         <p className="mt-1 text-sm text-slate-500">
           Review all documentation before signing and locking the encounter note.
         </p>
         <div className="mt-4 flex items-center justify-center gap-3">
           <button
-            disabled
-            className="flex items-center gap-2 rounded-lg bg-slate-300 px-5 py-2.5 text-sm font-medium text-white cursor-not-allowed"
+            onClick={onSignAndLock}
+            disabled={isSubmitting}
+            className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
+              isSubmitting
+                ? "bg-blue-400 text-white cursor-wait"
+                : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md"
+            }`}
           >
-            <Lock className="h-4 w-4" />
-            Sign & Lock Note
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Lock className="h-4 w-4" />
+            )}
+            {isSubmitting ? "Signing & Locking..." : "Sign & Lock Note"}
           </button>
         </div>
         <p className="mt-2 text-xs text-slate-400">
-          Sign & Lock functionality will be available in a future update.
-          Complete all workflow stages to enable.
+          {isSubmitting
+            ? "Processing your clinical note submission..."
+            : "Complete all workflow stages, then sign and lock to submit the encounter."}
         </p>
       </div>
     </div>

@@ -52,6 +52,24 @@ export interface ARCallRecord {
   notes?: string;
 }
 
+/** Prior Authorization record with lifecycle tracking */
+export interface PARecordStore {
+  id: string;
+  patientId: string;
+  procedure: string;
+  insuranceName: string;
+  paProcessor: string;
+  authStartDate: string;
+  authEndDate: string;
+  nextRefillDate: string;
+  submissionMethod: string;
+  submittedBy: string;
+  submittedAt: string;
+  status: string; // matches PA_STATUS_FLOW key
+  verificationStatus: "not-verified" | "verified" | "failed";
+  verificationResult: string;
+}
+
 // ─── Context ───────────────────────────────────────────────────────
 
 interface PipelineContextValue {
@@ -71,6 +89,10 @@ interface PipelineContextValue {
   addCallRecord: (record: ARCallRecord) => void;
   assignDenial: (claimId: string, agent: string) => void;
   getClaimsByAging: () => Record<string, DeniedClaim[]>;
+  // PA lifecycle
+  paRecords: PARecordStore[];
+  addPARecord: (record: PARecordStore) => void;
+  updatePAStatus: (id: string, status: string) => void;
 }
 
 const PipelineContext = createContext<PipelineContextValue | null>(null);
@@ -115,6 +137,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   const [currentRole, setCurrentRole] = useState<Role>("scribe");
   const [deniedClaims, setDeniedClaims] = useState<DeniedClaim[]>([]);
   const [arCalls, setArCalls] = useState<ARCallRecord[]>([]);
+  const [paRecords, setPaRecords] = useState<PARecordStore[]>([]);
 
   const setRole = (role: Role) => {
     setCurrentRole(role);
@@ -218,6 +241,26 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     return buckets;
   };
 
+  // PA lifecycle functions
+  const addPARecord = (record: PARecordStore) => {
+    setPaRecords((prev) => {
+      // Replace existing record for same patient/procedure, or add new
+      const existing = prev.findIndex((r) => r.patientId === record.patientId && r.id === record.id);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = record;
+        return updated;
+      }
+      return [...prev, record];
+    });
+  };
+
+  const updatePAStatus = (id: string, status: string) => {
+    setPaRecords((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status } : r))
+    );
+  };
+
   const getRoleLabel = (role: Role) => ROLE_LABELS[role] ?? role;
 
   return (
@@ -238,6 +281,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         addCallRecord,
         assignDenial,
         getClaimsByAging,
+        paRecords,
+        addPARecord,
+        updatePAStatus,
       }}
     >
       {children}

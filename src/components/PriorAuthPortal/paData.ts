@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────────────
 // Prior Auth Portal — paData.ts
-// Insurance criteria, step therapy, documentation requirements per procedure
-// Inspired by: DrChrono Prior Auth workflows + Epic PA Hub
+// Full PA data structures: procedures, criteria, statuses, records
+// Inspired by: CoverMyMeds + DrChrono PA workflows
 // ──────────────────────────────────────────────────────────────────────
 
 export interface PACriterion {
@@ -19,29 +19,148 @@ export interface PAStepTherapy {
 }
 
 export interface PAProcedureData {
-  /** Display name */
   label: string;
-  /** Associated CPT codes */
   cptCodes: string[];
-  /** Associated ICD-10 ranges */
   icdRanges: string[];
-  /** Criteria checklist items */
   criteria: PACriterion[];
-  /** Step therapy requirements (if applicable) */
   stepTherapy?: PAStepTherapy[];
-  /** Documentation the provider should attach */
   requiredDocs: string[];
-  /** Typical turnaround time */
   typicalTimeline: string;
-  /** Auto-auth threshold (some payers auto-approve under this $) */
   autoAuthThreshold?: number;
-  /** Common denial reasons for this procedure */
   commonDenialReasons: string[];
-  /** Medical necessity letter template sections */
   letterTemplateSections: string[];
 }
 
 export type ProcedureKey = "mri" | "ct" | "knee-replacement" | "cardiac-cath" | "infusion-therapy" | "sleep-study" | "biologic";
+
+/** Exact owner-specified PA status flow */
+export const PA_STATUS_FLOW = [
+  { key: "ordered", label: "Ordered/Prescribed", icon: "📋", color: "text-slate-600", bgColor: "bg-slate-100" },
+  { key: "submitted", label: "Submitted", icon: "📤", color: "text-amber-600", bgColor: "bg-amber-50" },
+  { key: "in-progress", label: "In Progress (1 day)", icon: "⏳", color: "text-blue-600", bgColor: "bg-blue-50" },
+  { key: "pending", label: "Pending", icon: "⏸️", color: "text-orange-600", bgColor: "bg-orange-50" },
+  { key: "info-required", label: "Info/Documents Required", icon: "📎", color: "text-yellow-600", bgColor: "bg-yellow-50" },
+  { key: "approved", label: "Approved", icon: "✅", color: "text-green-600", bgColor: "bg-green-50" },
+  { key: "denied", label: "Denied", icon: "❌", color: "text-red-600", bgColor: "bg-red-50" },
+  { key: "closed", label: "Closed", icon: "🔒", color: "text-slate-500", bgColor: "bg-slate-100" },
+  { key: "appeal", label: "Appeal", icon: "⚡", color: "text-purple-600", bgColor: "bg-purple-50" },
+  { key: "next-followup", label: "Next Follow-Up Date", icon: "📅", color: "text-cyan-600", bgColor: "bg-cyan-50" },
+  { key: "completed", label: "Completed (After billing)", icon: "🏁", color: "text-emerald-600", bgColor: "bg-emerald-50" },
+];
+
+/** Convenience lookup: status key → label/color */
+export const PA_STATUS_LABELS: Record<string, { label: string; icon: string; color: string; bgColor: string }> = {};
+PA_STATUS_FLOW.forEach((s) => {
+  PA_STATUS_LABELS[s.key] = { label: s.label, icon: s.icon, color: s.color, bgColor: s.bgColor };
+});
+
+/** Convenience type for queue items (alias for PARecord) */
+export type PAQueueItem = PARecord;
+
+/** Timeline steps for the 11-step flow (used in status tracking) */
+export const PA_TIMELINE_STEPS = PA_STATUS_FLOW.map((s) => ({
+  key: s.key,
+  label: s.label,
+  description: `Status: ${s.label} — ${s.key === "ordered" ? "Awaiting submission" : s.key === "submitted" ? "Awaiting payer response" : s.key === "in-progress" ? "Payer reviewing" : s.key === "pending" ? "Awaiting decision" : s.key === "info-required" ? "Documents requested" : s.key === "approved" ? "Authorization granted" : s.key === "denied" ? "Authorization denied" : s.key === "closed" ? "Case closed" : s.key === "appeal" ? "Appeal in progress" : s.key === "next-followup" ? "Follow-up scheduled" : "Completed"}`,
+}));
+
+/** Full PA record with owner-specified fields */
+export interface PARecord {
+  id: string;
+  patientName: string;
+  procedure: string;
+  /** Insurance name */
+  insuranceName: string;
+  /** Name of PA Processor at the insurance */
+  paProcessor: string;
+  /** Authorization start date */
+  authStartDate: string;
+  /** Authorization end date (alert 2 weeks before expiry) */
+  authEndDate: string;
+  /** Next refill date (alert 1 week before) */
+  nextRefillDate: string;
+  /** Method of submission */
+  submissionMethod: string;
+  /** Name of user who submitted */
+  submittedBy: string;
+  /** Time & date of PA submission */
+  submittedAt: string;
+  /** Status from PA_STATUS_FLOW */
+  status: string;
+  urgency: "routine" | "urgent" | "emergent";
+  assignedTo?: string;
+}
+
+/** Simulated PA records for the queue */
+export const PA_RECORDS: PARecord[] = [
+  {
+    id: "PA-001", patientName: "John Smith", procedure: "MRI Lumbar Spine",
+    insuranceName: "Blue Cross Blue Shield", paProcessor: "Karen Miller",
+    authStartDate: "2026-07-01", authEndDate: "2026-10-01", nextRefillDate: "2026-09-01",
+    submissionMethod: "Electronic PA", submittedBy: "Dr. Sarah Chen", submittedAt: "2026-07-01T09:30:00Z",
+    status: "submitted", urgency: "routine"
+  },
+  {
+    id: "PA-002", patientName: "Sarah Johnson", procedure: "Total Knee Arthroplasty",
+    insuranceName: "Medicare", paProcessor: "Medicare Part B",
+    authStartDate: "2026-06-25", authEndDate: "2026-09-25", nextRefillDate: "2026-09-01",
+    submissionMethod: "EHR", submittedBy: "Dr. Michael Patel", submittedAt: "2026-06-25T14:15:00Z",
+    status: "in-progress", urgency: "routine"
+  },
+  {
+    id: "PA-003", patientName: "Mike Chen", procedure: "Cardiac Catheterization",
+    insuranceName: "United Healthcare", paProcessor: "UHC Clinical Review",
+    authStartDate: "2026-06-20", authEndDate: "2026-09-20", nextRefillDate: "2026-08-20",
+    submissionMethod: "Online Payer Portal", submittedBy: "Dr. James Wilson", submittedAt: "2026-06-20T11:00:00Z",
+    status: "approved", urgency: "urgent"
+  },
+  {
+    id: "PA-004", patientName: "Emily Davis", procedure: "Remicade Infusion",
+    insuranceName: "Aetna", paProcessor: "Aetna Specialty Pharmacy",
+    authStartDate: "2026-06-15", authEndDate: "2026-09-15", nextRefillDate: "2026-07-15",
+    submissionMethod: "Fax", submittedBy: "Dr. Lisa Wong", submittedAt: "2026-06-15T16:45:00Z",
+    status: "denied", urgency: "routine"
+  },
+  {
+    id: "PA-005", patientName: "Robert Wilson", procedure: "Sleep Study (Home)",
+    insuranceName: "Cigna", paProcessor: "Cigna Medical Review",
+    authStartDate: "2026-06-30", authEndDate: "2026-09-30", nextRefillDate: "2026-08-30",
+    submissionMethod: "EHR", submittedBy: "Dr. Sarah Chen", submittedAt: "2026-06-30T08:00:00Z",
+    status: "ordered", urgency: "routine"
+  },
+  {
+    id: "PA-006", patientName: "Maria Garcia", procedure: "Biologic Therapy (Humira)",
+    insuranceName: "United Healthcare", paProcessor: "UHC Specialty Pharmacy",
+    authStartDate: "2026-06-10", authEndDate: "2026-08-10", nextRefillDate: "2026-07-10",
+    submissionMethod: "Electronic PA", submittedBy: "Dr. Karen Thompson", submittedAt: "2026-06-10T10:30:00Z",
+    status: "info-required", urgency: "urgent"
+  },
+  {
+    id: "PA-007", patientName: "David Kim", procedure: "CT Chest",
+    insuranceName: "Medicaid", paProcessor: "Medicaid State Review",
+    authStartDate: "2026-06-28", authEndDate: "2026-09-28", nextRefillDate: "2026-09-01",
+    submissionMethod: "Mail", submittedBy: "Dr. Michael Patel", submittedAt: "2026-06-28T13:00:00Z",
+    status: "pending", urgency: "routine"
+  },
+  {
+    id: "PA-008", patientName: "Lisa Brown", procedure: "Infusion Therapy (Entyvio)",
+    insuranceName: "Aetna", paProcessor: "Aetna Clinical Review",
+    authStartDate: "2026-05-01", authEndDate: "2026-07-28", nextRefillDate: "2026-07-14",
+    submissionMethod: "Online Payer Portal", submittedBy: "Dr. Lisa Wong", submittedAt: "2026-05-01T09:00:00Z",
+    status: "next-followup", urgency: "routine"
+  },
+];
+
+/** Sample PA queue for the dashboard (references PA_RECORDS — defined above) */
+export const SAMPLE_PA_QUEUE: PAQueueItem[] = PA_RECORDS;
+export const SUBMISSION_METHODS = [
+  "EHR",
+  "Fax",
+  "Electronic PA",
+  "Mail",
+  "Online Payer Portal",
+  "Verbal",
+];
 
 export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
   "mri": {
@@ -55,28 +174,11 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { id: "mri-4", text: "Focal neurologic deficit on exam", required: false, typicalEvidence: "Sensorimotor exam findings" },
       { id: "mri-5", text: "Failed prior imaging (X-ray / CT inconclusive)", required: false, typicalEvidence: "Prior imaging reports" },
     ],
-    requiredDocs: [
-      "History & Physical (H&P) note",
-      "Progress notes documenting failed conservative therapy",
-      "Prior imaging reports (X-ray / CT)",
-      "Pain assessment scale documentation",
-      "Physical exam findings"
-    ],
+    requiredDocs: ["History & Physical (H&P) note", "Progress notes documenting failed conservative therapy", "Prior imaging reports (X-ray / CT)", "Pain assessment scale documentation", "Physical exam findings"],
     typicalTimeline: "5–10 business days",
     autoAuthThreshold: 1500,
-    commonDenialReasons: [
-      "CO-50: No prior conservative treatment documented",
-      "CO-180: Pain scale not documented",
-      "CO-119: Non-formulary imaging (prefer CT first)"
-    ],
-    letterTemplateSections: [
-      "Patient demographics and insurance information",
-      "Diagnosis and ICD-10 code",
-      "Clinical history: onset, duration, prior treatments tried",
-      "Physical exam findings relevant to the study",
-      "Why this imaging modality is necessary (vs alternatives)",
-      "Risk of not performing the study (delayed diagnosis, progression)"
-    ]
+    commonDenialReasons: ["CO-50: No prior conservative treatment documented", "CO-180: Pain scale not documented", "CO-119: Non-formulary imaging (prefer CT first)"],
+    letterTemplateSections: ["Patient demographics and insurance information", "Diagnosis and ICD-10 code", "Clinical history: onset, duration, prior treatments tried", "Physical exam findings relevant to the study", "Why this imaging modality is necessary (vs alternatives)", "Risk of not performing the study (delayed diagnosis, progression)"]
   },
   "ct": {
     label: "CT Chest / Abdomen / Pelvis",
@@ -89,27 +191,10 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { id: "ct-4", text: "Suspected malignancy based on labs or exam", required: false, typicalEvidence: "Lab results, exam findings" },
       { id: "ct-5", text: "Follow-up of known lesion (size/stability check)", required: true, typicalEvidence: "Prior CT report for comparison" },
     ],
-    requiredDocs: [
-      "Ordering physician note with indication",
-      "Prior imaging reports (X-ray, US, or prior CT)",
-      "Relevant lab values (CBC, LFTs, tumor markers)",
-      "Progress notes with symptom duration",
-      "If follow-up: comparison report"
-    ],
+    requiredDocs: ["Ordering physician note with indication", "Prior imaging reports (X-ray, US, or prior CT)", "Relevant lab values (CBC, LFTs, tumor markers)", "Progress notes with symptom duration", "If follow-up: comparison report"],
     typicalTimeline: "3–7 business days",
-    commonDenialReasons: [
-      "CO-16: Lack of prior imaging to justify CT",
-      "CO-97: Routine screening without specific indication",
-      "CO-119: Prefer lower-dose imaging (X-ray/US first)"
-    ],
-    letterTemplateSections: [
-      "Patient demographics and insurance information",
-      "Specific clinical indication for the study",
-      "Prior imaging results and why they are inconclusive",
-      "Signs/symptoms documented (hemoptysis, weight loss, etc.)",
-      "Relevant lab values supporting the need",
-      "Differential diagnosis being investigated"
-    ]
+    commonDenialReasons: ["CO-16: Lack of prior imaging to justify CT", "CO-97: Routine screening without specific indication", "CO-119: Prefer lower-dose imaging (X-ray/US first)"],
+    letterTemplateSections: ["Patient demographics and insurance information", "Specific clinical indication for the study", "Prior imaging results and why they are inconclusive", "Signs/symptoms documented (hemoptysis, weight loss, etc.)", "Relevant lab values supporting the need", "Differential diagnosis being investigated"]
   },
   "knee-replacement": {
     label: "Total Knee Arthroplasty (TKA)",
@@ -128,29 +213,11 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { step: 2, requirement: "NSAIDs / pain management trial", typicalDuration: "4–8 weeks", alternatives: ["Topical analgesics"] },
       { step: 3, requirement: "Intra-articular steroid or viscosupplementation injection", typicalDuration: "1–3 injections", alternatives: ["Gel injections (Synvisc, Euflexxa)"] },
     ],
-    requiredDocs: [
-      "X-ray report with Kellgren-Lawrence grade",
-      "Surgical clearance from PCP / cardiologist",
-      "PT notes documenting failed conservative therapy",
-      "Injection records (dates, type, response)",
-      "Functional assessment questionnaire (KOOS / WOMAC)",
-      "HbA1c (if diabetic), nicotine screen"
-    ],
+    requiredDocs: ["X-ray report with Kellgren-Lawrence grade", "Surgical clearance from PCP / cardiologist", "PT notes documenting failed conservative therapy", "Injection records (dates, type, response)", "Functional assessment questionnaire (KOOS / WOMAC)", "HbA1c (if diabetic), nicotine screen"],
     typicalTimeline: "2–6 weeks (often requires step therapy completion)",
     autoAuthThreshold: 50000,
-    commonDenialReasons: [
-      "CO-50: Conservative therapy not documented",
-      "CO-180: BMI criteria not met",
-      "PR-2: Smoking cessation not documented (nicotine-positive)"
-    ],
-    letterTemplateSections: [
-      "Patient demographics, insurance, and surgeon details",
-      "Diagnosis and severity (OA grade, functional limitation)",
-      "Documentation of failed conservative management (PT, injections)",
-      "Comorbidities and surgical risk assessment",
-      "BMI, smoking status, and optimization steps taken",
-      "Expected outcome: pain relief, functional improvement, QoL gain"
-    ]
+    commonDenialReasons: ["CO-50: Conservative therapy not documented", "CO-180: BMI criteria not met", "PR-2: Smoking cessation not documented (nicotine-positive)"],
+    letterTemplateSections: ["Patient demographics, insurance, and surgeon details", "Diagnosis and severity (OA grade, functional limitation)", "Documentation of failed conservative management (PT, injections)", "Comorbidities and surgical risk assessment", "BMI, smoking status, and optimization steps taken", "Expected outcome: pain relief, functional improvement, QoL gain"]
   },
   "cardiac-cath": {
     label: "Cardiac Catheterization / Coronary Angiogram",
@@ -164,30 +231,11 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { id: "cath-5", text: "Failed medical management (anti-anginal therapy)", required: false, typicalEvidence: "Medication list, cardiology notes" },
       { id: "cath-6", text: "High-risk CAD based on risk calculators (ASCVD >20%)", required: false, typicalEvidence: "Risk assessment in chart" },
     ],
-    requiredDocs: [
-      "Cardiology consultation note",
-      "Stress test report (with METs, Duke treadmill score)",
-      "Echocardiogram report (EF, wall motion)",
-      "ECG showing ischemia or prior MI",
-      "Troponin / cardiac enzyme results",
-      "Medication list (anti-anginal, antiplatelet)",
-      "ASCVD risk score calculation"
-    ],
+    requiredDocs: ["Cardiology consultation note", "Stress test report (with METs, Duke treadmill score)", "Echocardiogram report (EF, wall motion)", "ECG showing ischemia or prior MI", "Troponin / cardiac enzyme results", "Medication list (anti-anginal, antiplatelet)", "ASCVD risk score calculation"],
     typicalTimeline: "3–10 business days (urgent cases expedited)",
     autoAuthThreshold: 30000,
-    commonDenialReasons: [
-      "CO-16: Abnormal cardiac imaging not documented",
-      "CO-50: Medical management not attempted first",
-      "CO-119: Prefer CT coronary angiography (non-invasive first)"
-    ],
-    letterTemplateSections: [
-      "Patient demographics and insurance information",
-      "Cardiac diagnosis and symptoms (CCS class, angina type)",
-      "Non-invasive test results (stress test, echo, ECG) with details",
-      "Risk calculation (ASCVD, TIMI, GRACE scores)",
-      "Medications tried and response",
-      "Justification for invasive vs. non-invasive approach"
-    ]
+    commonDenialReasons: ["CO-16: Abnormal cardiac imaging not documented", "CO-50: Medical management not attempted first", "CO-119: Prefer CT coronary angiography (non-invasive first)"],
+    letterTemplateSections: ["Patient demographics and insurance information", "Cardiac diagnosis and symptoms (CCS class, angina type)", "Non-invasive test results (stress test, echo, ECG) with details", "Risk calculation (ASCVD, TIMI, GRACE scores)", "Medications tried and response", "Justification for invasive vs. non-invasive approach"]
   },
   "infusion-therapy": {
     label: "Infusion Therapy (Remicade / Entyvio / Ocrevus)",
@@ -206,30 +254,10 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { step: 2, requirement: "Trial of steroids (if appropriate for disease)", typicalDuration: "4–8 weeks", alternatives: ["Budesonide (for Crohn's)", "IV methylprednisolone (for MS)"] },
       { step: 3, requirement: "Consider preferred biologic on formulary first (if applicable)", typicalDuration: "N/A — formulary check", alternatives: ["Humira", "Enbrel", "Tysabri"] },
     ],
-    requiredDocs: [
-      "Specialist consultation note (GI, Rheum, Neuro)",
-      "Disease activity scores (DAS28, HBI, EDSS, etc.)",
-      "Treatment history: DMARDs, steroids, other biologics tried",
-      "TB screening (Quantiferon Gold / PPD) with date",
-      "Hepatitis B/C serology",
-      "Infection screen: CBC, LFTs, renal function",
-      "Medication list with dosing history"
-    ],
+    requiredDocs: ["Specialist consultation note (GI, Rheum, Neuro)", "Disease activity scores (DAS28, HBI, EDSS, etc.)", "Treatment history: DMARDs, steroids, other biologics tried", "TB screening (Quantiferon Gold / PPD) with date", "Hepatitis B/C serology", "Infection screen: CBC, LFTs, renal function", "Medication list with dosing history"],
     typicalTimeline: "7–14 business days (first dose); 3–5 days (reauthorization)",
-    commonDenialReasons: [
-      "CO-50: Conventional DMARDs not tried first",
-      "CO-180: Disease activity not documented",
-      "PR-1: TB/HepB screening missing"
-    ],
-    letterTemplateSections: [
-      "Patient demographics, insurance, and prescribing specialist",
-      "Diagnosis and disease duration",
-      "Previous therapies tried (conventional DMARDs, steroids) and why they failed",
-      "Disease activity scores with dates",
-      "Screening results (TB, HepB, HepC) — negative status confirmed",
-      "Why this specific biologic is indicated (vs. alternatives on formulary)",
-      "Infusion schedule and monitoring plan"
-    ]
+    commonDenialReasons: ["CO-50: Conventional DMARDs not tried first", "CO-180: Disease activity not documented", "PR-1: TB/HepB screening missing"],
+    letterTemplateSections: ["Patient demographics, insurance, and prescribing specialist", "Diagnosis and disease duration", "Previous therapies tried (conventional DMARDs, steroids) and why they failed", "Disease activity scores with dates", "Screening results (TB, HepB, HepC) — negative status confirmed", "Why this specific biologic is indicated (vs. alternatives on formulary)", "Infusion schedule and monitoring plan"]
   },
   "sleep-study": {
     label: "Sleep Study (Polysomnography / Home Sleep Test)",
@@ -242,29 +270,11 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { id: "sleep-4", text: "BMI > 30 with snoring and fatigue", required: false, typicalEvidence: "Anthropometrics, sleep questionnaire" },
       { id: "sleep-5", text: "Hypertension (HTN) resistant to treatment", required: false, typicalEvidence: "BP logs, medication list" },
     ],
-    requiredDocs: [
-      "Sleep history questionnaire (STOP-BANG / Epworth)",
-      "Progress notes documenting sleep symptoms",
-      "BMI / neck circumference measurement",
-      "Bed partner report of apneas (if available)",
-      "BP readings (if HTN present)",
-      "Medication list (especially sedatives, stimulants)"
-    ],
+    requiredDocs: ["Sleep history questionnaire (STOP-BANG / Epworth)", "Progress notes documenting sleep symptoms", "BMI / neck circumference measurement", "Bed partner report of apneas (if available)", "BP readings (if HTN present)", "Medication list (especially sedatives, stimulants)"],
     typicalTimeline: "2–4 weeks (home test); 4–8 weeks (in-lab PSG)",
     autoAuthThreshold: 2000,
-    commonDenialReasons: [
-      "CO-50: Screening questionnaire not documented",
-      "CO-180: Prefer home sleep test over in-lab study",
-      "CO-119: Mild OSA — lifestyle modification recommended first"
-    ],
-    letterTemplateSections: [
-      "Patient demographics and insurance information",
-      "Sleep-related symptoms and duration",
-      "STOP-BANG and Epworth Sleepiness Scale scores",
-      "Comorbidities (HTN, obesity, diabetes) and their relationship to sleep",
-      "Why this specific sleep study type is appropriate",
-      "Risk of untreated sleep apnea (cardiovascular, accident risk)"
-    ]
+    commonDenialReasons: ["CO-50: Screening questionnaire not documented", "CO-180: Prefer home sleep test over in-lab study", "CO-119: Mild OSA — lifestyle modification recommended first"],
+    letterTemplateSections: ["Patient demographics and insurance information", "Sleep-related symptoms and duration", "STOP-BANG and Epworth Sleepiness Scale scores", "Comorbidities (HTN, obesity, diabetes) and their relationship to sleep", "Why this specific sleep study type is appropriate", "Risk of untreated sleep apnea (cardiovascular, accident risk)"]
   },
   "biologic": {
     label: "Biologic Therapy (Humira / Enbrel / Stelara)",
@@ -282,68 +292,10 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { step: 1, requirement: "Trial of topical therapy (for psoriasis) or conventional DMARD (for RA/IBD)", typicalDuration: "3–6 months", alternatives: ["Phototherapy (psoriasis)", "5-ASA (IBD)"] },
       { step: 2, requirement: "Trial of preferred biologic on formulary", typicalDuration: "3–6 months", alternatives: ["Adalimumab biosimilar", "Infliximab"] },
     ],
-    requiredDocs: [
-      "Specialist consultation note",
-      "Diagnostic report (biopsy, imaging, endoscopy)",
-      "Treatment history — all prior therapies with dates and outcomes",
-      "Disease activity scores (PASI, DAS28, CDAI, etc.)",
-      "TB screening (Quantiferon Gold) — negative result",
-      "Hepatitis B/C serology — negative",
-      "Recent labs (CBC, CMP, CRP/ESR)",
-      "Prior authorization history (if reauthorization)"
-    ],
+    requiredDocs: ["Specialist consultation note", "Diagnostic report (biopsy, imaging, endoscopy)", "Treatment history — all prior therapies with dates and outcomes", "Disease activity scores (PASI, DAS28, CDAI, etc.)", "TB screening (Quantiferon Gold) — negative result", "Hepatitis B/C serology — negative", "Recent labs (CBC, CMP, CRP/ESR)", "Prior authorization history (if reauthorization)"],
     typicalTimeline: "7–14 business days (new); 5–7 days (reauthorization)",
-    commonDenialReasons: [
-      "CO-50: Step therapy not completed",
-      "CO-180: Disease severity not documented with validated score",
-      "PR-1: TB / HepB screening missing or outdated (>1 year)",
-      "CO-119: Prefer biosimilar over brand biologic"
-    ],
-    letterTemplateSections: [
-      "Patient demographics, insurance, prescribing specialist",
-      "Confirmed diagnosis with supporting evidence (biopsy, imaging)",
-      "Complete treatment history: topicals → DMARDs → prior biologics",
-      "Disease activity scores (PASI, DAS28, CDAI) with dates",
-      "Screening results: TB negative, HepB/C negative",
-      "Why this biologic is medically necessary (vs. alternatives)",
-      "Monitoring plan (labs, follow-up schedule, infection surveillance)"
-    ]
-  }
-};
-
-/** Payer-specific criteria variations */
-export interface PayerCriteriaOverride {
-  payerName: string;
-  additionalCriteria: Partial<PACriterion>[];
-  autoAuthThresholdModifier: number; // multiplier
-  notes: string;
-}
-
-export const PAYER_OVERRIDES: Record<string, PayerCriteriaOverride> = {
-  "medicare": {
-    payerName: "Medicare",
-    additionalCriteria: [
-      { id: "mc-1", text: "Medicare LCD (Local Coverage Determination) criteria met", required: true, typicalEvidence: "LCD checklist in chart" }
-    ],
-    autoAuthThresholdModifier: 1.2,
-    notes: "Medicare does NOT require prior auth for most imaging but does for biologics and TKA"
-  },
-  "medicaid": {
-    payerName: "Medicaid",
-    additionalCriteria: [
-      { id: "md-1", text: "State-specific prior auth form completed", required: true, typicalEvidence: "State PA form" },
-      { id: "md-2", text: "Preferred drug list (PDL) followed for biologics", required: true, typicalEvidence: "PDL check" }
-    ],
-    autoAuthThresholdModifier: 0.8,
-    notes: "Medicaid often requires step therapy and has stricter criteria"
-  },
-  "bcbs": {
-    payerName: "Blue Cross Blue Shield",
-    additionalCriteria: [
-      { id: "bc-1", text: "BCBS medical policy criteria met", required: true, typicalEvidence: "Medical policy number referenced" }
-    ],
-    autoAuthThresholdModifier: 1.0,
-    notes: "BCBS plans vary by state — check local medical policy"
+    commonDenialReasons: ["CO-50: Step therapy not completed", "CO-180: Disease severity not documented with validated score", "PR-1: TB / HepB screening missing or outdated (>1 year)", "CO-119: Prefer biosimilar over brand biologic"],
+    letterTemplateSections: ["Patient demographics, insurance, prescribing specialist", "Confirmed diagnosis with supporting evidence (biopsy, imaging)", "Complete treatment history: topicals → DMARDs → prior biologics", "Disease activity scores (PASI, DAS28, CDAI) with dates", "Screening results: TB negative, HepB/C negative", "Why this biologic is medically necessary (vs. alternatives)", "Monitoring plan (labs, follow-up schedule, infection surveillance)"]
   }
 };
 
@@ -357,44 +309,4 @@ export const PA_COMMON_ERRORS = [
   { field: "Payer Policy", error: "Procedure not on payer's approved list", fix: "Request single-case agreement or appeal with medical necessity letter" },
   { field: "Step Therapy", error: "Step therapy not completed before requesting advanced therapy", fix: "Document all prior step therapy attempts and failures" },
   { field: "Supporting Docs", error: "Missing required attachments (lab, imaging, notes)", fix: "Use clinical documentation mapper checklist before submitting" }
-];
-
-/** Status labels */
-export const PA_STATUS_LABELS: Record<string, { label: string; color: string; bgColor: string }> = {
-  "draft": { label: "Draft", color: "text-slate-600", bgColor: "bg-slate-100" },
-  "initiated": { label: "Initiated", color: "text-blue-600", bgColor: "bg-blue-50" },
-  "submitted": { label: "Submitted", color: "text-amber-600", bgColor: "bg-amber-50" },
-  "under-review": { label: "Under Review", color: "text-purple-600", bgColor: "bg-purple-50" },
-  "decision-pending": { label: "Decision Pending", color: "text-orange-600", bgColor: "bg-orange-50" },
-  "approved": { label: "Approved", color: "text-green-600", bgColor: "bg-green-50" },
-  "denied": { label: "Denied", color: "text-red-600", bgColor: "bg-red-50" },
-};
-
-/** Timeline steps */
-export const PA_TIMELINE_STEPS = [
-  { key: "initiated", label: "Initiated", description: "PA request created" },
-  { key: "documents-submitted", label: "Documents Submitted", description: "Clinical docs attached and sent" },
-  { key: "under-review", label: "Under Review", description: "Payer reviewing submitted documents" },
-  { key: "decision-pending", label: "Decision Pending", description: "Final determination in progress" },
-  { key: "decision", label: "Approved / Denied", description: "Payer decision rendered" },
-];
-
-/** Sample PA queue items */
-export interface PAQueueItem {
-  id: string;
-  patientName: string;
-  procedure: string;
-  payer: string;
-  status: string;
-  submittedAt: string;
-  urgency: "routine" | "urgent" | "emergent";
-  assignedTo?: string;
-}
-
-export const SAMPLE_PA_QUEUE: PAQueueItem[] = [
-  { id: "PA-001", patientName: "John Smith", procedure: "MRI Lumbar Spine", payer: "Blue Cross", status: "submitted", submittedAt: "2026-06-28", urgency: "routine" },
-  { id: "PA-002", patientName: "Sarah Johnson", procedure: "Total Knee Arthroplasty", payer: "Medicare", status: "under-review", submittedAt: "2026-06-25", urgency: "routine" },
-  { id: "PA-003", patientName: "Mike Chen", procedure: "Cardiac Catheterization", payer: "United Healthcare", status: "approved", submittedAt: "2026-06-20", urgency: "urgent" },
-  { id: "PA-004", patientName: "Emily Davis", procedure: "Remicade Infusion", payer: "Aetna", status: "denied", submittedAt: "2026-06-15", urgency: "routine" },
-  { id: "PA-005", patientName: "Robert Wilson", procedure: "Sleep Study (Home)", payer: "Cigna", status: "draft", submittedAt: "2026-06-30", urgency: "routine" },
 ];

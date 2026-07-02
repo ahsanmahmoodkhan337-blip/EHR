@@ -10,7 +10,8 @@
  */
 
 import { useState } from "react";
-import { Stethoscope, FileText, Search, CheckCircle2, XCircle } from "lucide-react";
+import { Stethoscope, FileText, CheckCircle2, XCircle } from "lucide-react";
+import type { SoapNoteData } from "./AssessmentPlanStage";
 
 // ─── ROS System Definitions ────────────────────────────────────────
 
@@ -107,14 +108,29 @@ const ROS_SYSTEMS: RosSystem[] = [
 
 interface ExamROSStageProps {
   patientName?: string;
+  note?: SoapNoteData;
+  onNoteChange?: (note: SoapNoteData) => void;
 }
 
-export function ExamROSStage({ patientName }: ExamROSStageProps) {
+export function ExamROSStage({ patientName, note, onNoteChange }: ExamROSStageProps) {
   const [rosState, setRosState] = useState<Record<string, boolean | null>>({});
-  const [examNotes, setExamNotes] = useState("");
+  const [examNotes, setExamNotes] = useState(note?.objective ?? "");
 
   const setStatus = (itemId: string, status: boolean | null) => {
-    setRosState((prev) => ({ ...prev, [itemId]: status }));
+    setRosState((prev) => {
+      const updated = { ...prev, [itemId]: status };
+      // Push objective changes up to parent on every ROS change
+      if (onNoteChange && note) {
+        const abnormalItems = Object.entries(updated)
+          .filter(([, v]) => v === false)
+          .map(([id]) => id);
+        const rosSummary = abnormalItems.length > 0
+          ? `Abnormal ROS findings: ${abnormalItems.join(", ")}. `
+          : "All systems reviewed and normal. ";
+        onNoteChange({ ...note, objective: rosSummary + examNotes });
+      }
+      return updated;
+    });
   };
 
   const markAllNormal = () => {
@@ -125,6 +141,10 @@ export function ExamROSStage({ patientName }: ExamROSStageProps) {
       });
     });
     setRosState(allNormal);
+    // Push to parent
+    if (onNoteChange && note) {
+      onNoteChange({ ...note, objective: "All systems reviewed and normal. " + examNotes });
+    }
   };
 
   const getStatusIcon = (status: boolean | null) => {
@@ -230,7 +250,19 @@ export function ExamROSStage({ patientName }: ExamROSStageProps) {
         </div>
         <textarea
           value={examNotes}
-          onChange={(e) => setExamNotes(e.target.value)}
+          onChange={(e) => {
+            const newVal = e.target.value;
+            setExamNotes(newVal);
+            if (onNoteChange && note) {
+              const abnormalItems = Object.entries(rosState)
+                .filter(([, v]) => v === false)
+                .map(([id]) => id);
+              const rosSummary = abnormalItems.length > 0
+                ? `Abnormal ROS findings: ${abnormalItems.join(", ")}. `
+                : "All systems reviewed and normal. ";
+              onNoteChange({ ...note, objective: rosSummary + newVal });
+            }
+          }}
           placeholder="Document physical exam findings here...\n\nExample:\n- General: Alert and oriented, in no acute distress\n- HEENT: Normocephalic, mucous membranes moist\n- CV: Regular rate and rhythm, no murmurs\n- Resp: Clear to auscultation bilaterally\n- Abd: Soft, non-tender, non-distended\n- MSK: Full range of motion all extremities\n- Neuro: CN II-XII intact, strength 5/5 all groups"
           className="min-h-[180px] w-full resize-y rounded-lg border border-slate-200 p-3 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
         />
