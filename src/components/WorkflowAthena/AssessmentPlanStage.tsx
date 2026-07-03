@@ -9,7 +9,7 @@
  * replicates that pattern for rapid clinical documentation.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ClipboardCheck,
   FileText,

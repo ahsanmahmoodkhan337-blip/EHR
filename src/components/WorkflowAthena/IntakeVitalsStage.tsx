@@ -9,22 +9,33 @@
  *
  * This component provides input fields for standard vital signs:
  * BP, HR, Temp, RR, O2 Sat, Weight, Height, Pain score.
- * Values are stored in local state and synced to the global
- * patient store on save.
+ * Values are synced to the parent via editableVitals/onVitalsChange
+ * so the RightPaneleCW always reflects the latest values.
  */
 
 import { useState, useEffect } from "react";
 import { Activity, Heart, Thermometer, Wind, Droplets, Weight, Ruler, AlertCircle } from "lucide-react";
 import { usePatientStore, type Patient } from "../../store/patientStore";
 
-interface IntakeVitalsStageProps {
-  patientId: string;
+interface EditableVitals {
+  bloodPressure: string;
+  heartRate: string;
+  temperature: string;
+  respiratoryRate: string;
+  oxygenSaturation: string;
 }
 
-export function IntakeVitalsStage({ patientId }: IntakeVitalsStageProps) {
+interface IntakeVitalsStageProps {
+  patientId: string;
+  editableVitals?: EditableVitals;
+  onVitalsChange?: (v: EditableVitals) => void;
+}
+
+export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }: IntakeVitalsStageProps) {
   const { getPatientById } = usePatientStore();
   const patient = getPatientById(patientId);
 
+  // Local vitals state — initialised from editableVitals (lifted) or patient store
   const [vitals, setVitals] = useState({
     bloodPressureSystolic: 120,
     bloodPressureDiastolic: 80,
@@ -39,9 +50,22 @@ export function IntakeVitalsStage({ patientId }: IntakeVitalsStageProps) {
 
   const [saved, setSaved] = useState(false);
 
-  // Load from patient store when patient changes
+  // Sync local vitals when editableVitals or patient changes from outside
   useEffect(() => {
-    if (patient) {
+    if (editableVitals) {
+      const bp = editableVitals.bloodPressure.split("/");
+      setVitals({
+        bloodPressureSystolic: parseInt(bp[0]) || 120,
+        bloodPressureDiastolic: parseInt(bp[1]) || 80,
+        heartRate: parseInt(editableVitals.heartRate) || 72,
+        temperature: parseFloat(editableVitals.temperature) || 98.6,
+        respiratoryRate: parseInt(editableVitals.respiratoryRate) || 16,
+        oxygenSaturation: parseInt(editableVitals.oxygenSaturation) || 98,
+        weight: 70,
+        height: 170,
+        painScore: 0,
+      });
+    } else if (patient) {
       const bp = patient.vitals.bloodPressure.split("/");
       setVitals({
         bloodPressureSystolic: parseInt(bp[0]) || 120,
@@ -55,7 +79,20 @@ export function IntakeVitalsStage({ patientId }: IntakeVitalsStageProps) {
         painScore: 0,
       });
     }
-  }, [patient]);
+  }, [editableVitals, patient]);
+
+  // Propagate local vitals changes up to parent whenever they change
+  useEffect(() => {
+    if (onVitalsChange) {
+      onVitalsChange({
+        bloodPressure: `${vitals.bloodPressureSystolic}/${vitals.bloodPressureDiastolic}`,
+        heartRate: vitals.heartRate.toString(),
+        temperature: vitals.temperature.toString(),
+        respiratoryRate: vitals.respiratoryRate.toString(),
+        oxygenSaturation: vitals.oxygenSaturation.toString(),
+      });
+    }
+  }, [vitals, onVitalsChange]);
 
   const handleSave = () => {
     setSaved(true);

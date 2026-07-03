@@ -11,7 +11,7 @@
  * OLDCARTS expandable template.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageSquare, ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
 import type { SoapNoteData } from "./AssessmentPlanStage";
 
@@ -25,6 +25,13 @@ interface HPIStageProps {
 export function HPIStage({ patientName, chiefComplaint, note, onNoteChange }: HPIStageProps) {
   const [hpiText, setHpiText] = useState(note?.subjective ?? "");
   const [showTemplate, setShowTemplate] = useState(false);
+
+  // Sync local state when note prop changes externally (e.g. patient switch, session restore)
+  useEffect(() => {
+    if (note && note.subjective !== undefined) {
+      setHpiText(note.subjective);
+    }
+  }, [note?.subjective]);
 
   const oldcartsFields = [
     { label: "Onset", placeholder: "When did the symptoms begin?" },

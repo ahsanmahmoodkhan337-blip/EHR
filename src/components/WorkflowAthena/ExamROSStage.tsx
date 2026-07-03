@@ -9,7 +9,7 @@
  * free-text exam notes.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Stethoscope, FileText, CheckCircle2, XCircle } from "lucide-react";
 import type { SoapNoteData } from "./AssessmentPlanStage";
 
@@ -115,6 +115,13 @@ interface ExamROSStageProps {
 export function ExamROSStage({ patientName, note, onNoteChange }: ExamROSStageProps) {
   const [rosState, setRosState] = useState<Record<string, boolean | null>>({});
   const [examNotes, setExamNotes] = useState(note?.objective ?? "");
+
+  // Sync local examNotes when note prop changes externally (patient switch, session restore)
+  useEffect(() => {
+    if (note && note.objective !== undefined) {
+      setExamNotes(note.objective);
+    }
+  }, [note?.objective]);
 
   const setStatus = (itemId: string, status: boolean | null) => {
     setRosState((prev) => {

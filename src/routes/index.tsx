@@ -1418,7 +1418,7 @@ function Home() {
                   </div>
                   <div className="flex-1 overflow-y-auto p-4">
                     {activeStage === "intake-vitals" && (
-                      <IntakeVitalsStage patientId={selectedPatientId} />
+                      <IntakeVitalsStage patientId={selectedPatientId} editableVitals={editableVitals} onVitalsChange={setEditableVitals} />
                     )}
                     {activeStage === "hpi" && (
                       <HPIStage
