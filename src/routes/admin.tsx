@@ -35,6 +35,9 @@ import {
   getSessionTimeoutMinutes,
   setSessionTimeoutMinutes,
   type AccessRequest,
+  getSubscriptionStatus,
+  getDaysRemaining,
+  calculateEndDate,
 } from "../store/accessStore";
 import {
   getAllPins,
@@ -64,6 +67,8 @@ function AdminPage() {
   const [pinSaved, setPinSaved] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState(getSessionTimeoutMinutes());
   const [timeoutSaved, setTimeoutSaved] = useState(false);
+  const [durationModal, setDurationModal] = useState<{ id: string; duration: string } | null>(null);
+  const [subscriptionDurations, setSubscriptionDurations] = useState<Record<string, string>>({});
 
   // Load data from localStorage
   useEffect(() => {
@@ -85,8 +90,18 @@ function AdminPage() {
     }
   };
 
-  const handleApprove = (id: string) => {
+  const handleApprove = (id: string, duration: string) => {
+    // Calculate end date and store it
+    const endDate = calculateEndDate(duration);
+    const requests = getAccessRequests();
+    const idx = requests.findIndex((r) => r.id === id);
+    if (idx >= 0) {
+      requests[idx].subscriptionEndDate = endDate;
+      requests[idx].durationLabel = duration;
+      localStorage.setItem("hh_access_requests", JSON.stringify(requests));
+    }
     updateRequestStatus(id, "approved");
+    setDurationModal(null);
     setRefreshKey((k) => k + 1);
   };
 
@@ -219,7 +234,7 @@ function AdminPage() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => handleApprove(req.id)}
+                      onClick={() => setDurationModal({ id: req.id, duration: "1 month" })}
                       className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-500"
                     >
                       <CheckCircle2 className="h-3 w-3" />
@@ -239,6 +254,45 @@ function AdminPage() {
           )}
         </div>
 
+        {/* ─── Subscription Duration Modal ─── */}
+        {durationModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-sm rounded-xl border border-slate-600 bg-slate-800 p-6 shadow-2xl">
+              <h3 className="text-sm font-bold text-white mb-4">Select Subscription Duration</h3>
+              <div className="space-y-2">
+                {["1 month", "3 months", "6 months", "1 year"].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => handleApprove(durationModal.id, d)}
+                    className={`w-full rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors ${
+                      durationModal.duration === d
+                        ? "border-green-500 bg-green-900/30 text-green-300"
+                        : "border-slate-600 text-slate-300 hover:border-slate-500"
+                    }`}
+                    onMouseEnter={() => setDurationModal({ ...durationModal, duration: d })}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => handleApprove(durationModal.id, durationModal.duration)}
+                  className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-xs font-medium text-white hover:bg-green-500"
+                >
+                  Approve with {durationModal.duration}
+                </button>
+                <button
+                  onClick={() => setDurationModal(null)}
+                  className="rounded-lg bg-slate-700 px-4 py-2 text-xs font-medium text-slate-300 hover:bg-slate-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Recent Activity */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* Approved */}
@@ -251,12 +305,26 @@ function AdminPage() {
               <div className="p-4 text-center text-xs text-slate-500">None</div>
             ) : (
               <div className="divide-y divide-slate-700">
-                {approvedRequests.slice(0, 5).map((req) => (
-                  <div key={req.id} className="px-4 py-2">
-                    <p className="text-xs text-white">{req.fullName}</p>
-                    <p className="text-[10px] text-slate-400">{req.phone}</p>
-                  </div>
-                ))}
+                {approvedRequests.slice(0, 10).map((req) => {
+                  const status = getSubscriptionStatus(req.phone);
+                  const days = getDaysRemaining(req.phone);
+                  const statusColor = status === "expired" ? "text-red-400" : status === "expiring-soon" ? "text-amber-400" : "text-green-400";
+                  const statusLabel = status === "no-expiry" ? "No expiry" : status === "expired" ? "Expired" : status === "expiring-soon" ? `${days}d left` : `${days}d left`;
+                  return (
+                    <div key={req.id} className="px-4 py-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-white">{req.fullName}</p>
+                          <p className="text-[10px] text-slate-400">{req.phone}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-[10px] font-medium ${statusColor}`}>{statusLabel}</p>
+                          {req.durationLabel && <p className="text-[9px] text-slate-500">{req.durationLabel}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

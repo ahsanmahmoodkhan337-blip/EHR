@@ -24,6 +24,8 @@ export interface AccessRequest {
   transactionId: string;
   submittedAt: string;
   status: "pending" | "approved" | "rejected";
+  subscriptionEndDate?: string; // ISO date string
+  durationLabel?: string; // "1 month", "3 months", "6 months", "1 year", "Custom"
 }
 
 // ─── Access Requests ──────────────────────────────────────────────
@@ -147,4 +149,53 @@ export function checkSessionExpired(): boolean {
 export function clearSession(): void {
   localStorage.removeItem(LOGGED_IN_PHONE_KEY);
   localStorage.removeItem(SESSION_START_KEY);
+}
+
+// ─── Subscription Expiry ────────────────────────────────────────────
+
+export function getSubscriptionEndDate(phone: string): string | null {
+  const requests = getAccessRequests();
+  const req = requests.find((r) => r.phone === phone && r.status === "approved");
+  return req?.subscriptionEndDate ?? null;
+}
+
+export function getDurationLabel(phone: string): string | null {
+  const requests = getAccessRequests();
+  const req = requests.find((r) => r.phone === phone && r.status === "approved");
+  return req?.durationLabel ?? null;
+}
+
+export function getDaysRemaining(phone: string): number {
+  const endDateStr = getSubscriptionEndDate(phone);
+  if (!endDateStr) return Infinity; // No expiry = unlimited
+  const endDate = new Date(endDateStr);
+  const now = new Date();
+  const diffMs = endDate.getTime() - now.getTime();
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
+export function isSubscriptionExpired(phone: string): boolean {
+  const days = getDaysRemaining(phone);
+  if (days === Infinity) return false; // No expiry set
+  return days <= 0;
+}
+
+export function getSubscriptionStatus(phone: string): "active" | "expiring-soon" | "expired" | "no-expiry" {
+  const days = getDaysRemaining(phone);
+  if (days === Infinity) return "no-expiry";
+  if (days <= 0) return "expired";
+  if (days <= 30) return "expiring-soon";
+  return "active";
+}
+
+export function calculateEndDate(durationLabel: string): string {
+  const now = new Date();
+  switch (durationLabel) {
+    case "1 month": now.setMonth(now.getMonth() + 1); break;
+    case "3 months": now.setMonth(now.getMonth() + 3); break;
+    case "6 months": now.setMonth(now.getMonth() + 6); break;
+    case "1 year": now.setFullYear(now.getFullYear() + 1); break;
+    default: now.setMonth(now.getMonth() + 1); // Default to 1 month
+  }
+  return now.toISOString();
 }

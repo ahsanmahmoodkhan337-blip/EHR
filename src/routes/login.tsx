@@ -19,6 +19,10 @@ import {
   getAccessRequests,
   setLoggedInPhone,
   type AccessRequest,
+  isSubscriptionExpired,
+  getSubscriptionStatus,
+  getDaysRemaining,
+  getDurationLabel,
 } from "../store/accessStore";
 
 export const Route = createFileRoute("/login")({
@@ -33,6 +37,7 @@ function LoginPage() {
   const [requestInfo, setRequestInfo] = useState<AccessRequest | null>(null);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [studentName, setStudentName] = useState("");
+  const [expiryWarning, setExpiryWarning] = useState<string | null>(null);
 
   const handleLogin = () => {
     const cleaned = phone.trim();
@@ -45,7 +50,23 @@ function LoginPage() {
 
     // Check if approved
     if (isPhoneApproved(cleaned)) {
+      // Check subscription expiry
+      if (isSubscriptionExpired(cleaned)) {
+        setStatus("denied");
+        setExpiryWarning("Your subscription has expired. Please renew via WhatsApp at +92 335 0340888.");
+        return;
+      }
+
       setLoggedInPhone(cleaned);
+
+      // Show expiry warning if < 30 days
+      const days = getDaysRemaining(cleaned);
+      if (days < 30 && days !== Infinity) {
+        setExpiryWarning(`Your subscription expires in ${days} day${days === 1 ? "" : "s"}. Please renew via WhatsApp.`);
+      } else {
+        setExpiryWarning(null);
+      }
+
       // Prompt for name if not set yet
       if (!localStorage.getItem("hh_student_name")) {
         setShowNamePrompt(true);
@@ -150,17 +171,34 @@ function LoginPage() {
               <AlertCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
               <h3 className="font-medium text-red-800">Access Denied</h3>
               <p className="mt-1 text-sm text-red-600">
-                No account found for this phone number. Please submit an access request first.
+                {expiryWarning || "No account found for this phone number. Please submit an access request first."}
               </p>
-              <Link
-                to="/access"
-                className="mt-3 inline-block rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500"
-              >
-                Request Access
-              </Link>
+              {!expiryWarning && (
+                <Link
+                  to="/access"
+                  className="mt-3 inline-block rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500"
+                >
+                  Request Access
+                </Link>
+              )}
+              {expiryWarning && (
+                <a
+                  href="https://wa.me/923350340888"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-block rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500"
+                >
+                  Renew via WhatsApp
+                </a>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
+              {expiryWarning && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center">
+                  <p className="text-xs font-medium text-amber-700">{expiryWarning}</p>
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">
                   Phone Number (Login ID)
