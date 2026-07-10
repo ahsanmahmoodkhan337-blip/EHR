@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from "react";
 import { Zap, Star, Award, Medal, Trophy, ChevronDown, ChevronUp, Sparkles, CheckCircle2, Target, Flame } from "lucide-react";
+import { LeaderboardPanel } from "./LeaderboardPanel";
 
 const BADGES = [
   { id: "modifier-master", label: "Modifier Master", icon: <Award className="h-3.5 w-3.5" />, unlocked: false },
@@ -218,6 +219,29 @@ export function GamificationHeader({ xp = 0, streak = 0, level = 1 }: Gamificati
             </div>
           </div>
         )}
+      </div>
+
+      {/* Leaderboard */}
+      <div className="relative">
+        <button
+          onClick={() => {
+            const panel = document.getElementById("leaderboard-panel");
+            if (panel) {
+              panel.classList.toggle("hidden");
+              panel.dispatchEvent(new Event("open-leaderboard", { bubbles: true }));
+            }
+          }}
+          className="flex items-center gap-1 rounded-lg bg-indigo-50 px-2 py-1 text-[10px] font-medium text-indigo-600 hover:bg-indigo-100 transition-colors"
+        >
+          <Trophy className="h-3 w-3" />
+          <span>Leaderboard</span>
+        </button>
+      </div>
+    </div>
+
+      {/* Leaderboard Panel */}
+      <div id="leaderboard-panel" className="hidden">
+        <LeaderboardPanel />
       </div>
     </div>
   );

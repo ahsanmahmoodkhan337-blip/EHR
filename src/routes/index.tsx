@@ -1420,7 +1420,7 @@ function Home() {
         <div className="flex flex-1 flex-col overflow-hidden">
           {currentRole === "coder" && (
             <StagePinGate role="coder" roleLabel="Medical Coder">
-              <CodingQueue />
+              <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
             </StagePinGate>
           )}
           {currentRole === "biller" && (
@@ -1576,7 +1576,7 @@ function Home() {
                     {activeStage === "hpi" && (
                       <HPIStage
                         patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
-                        chiefComplaint={selectedPatient.chiefComplaint}
+                        chiefComplaint={editablePatientData.chiefComplaint || selectedPatient.chiefComplaint}
                         note={soapNote}
                         onNoteChange={setSoapNote}
                       />

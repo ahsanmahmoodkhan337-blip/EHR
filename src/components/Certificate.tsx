@@ -1,9 +1,8 @@
 /**
  * Certificate — Completion Certificate Generator
  *
- * When the pipeline completes (all stages done), shows a
- * "Generate Certificate" button. Opens a styled certificate
- * preview with student name, date, completed modules, and score.
+ * Shows the student's name (from localStorage), not the patient's name.
+ * Only appears when the pipeline is fully complete.
  * Uses window.print() for printing.
  *
  * Inspiration: AAPC/CPC course completion certificates

@@ -17,6 +17,29 @@ import { ICD10_CODES, searchICD10, type ICD10Code } from "./icd10Data";
 import { CPT_CODES, searchCPT, type CPTCode } from "./cptData";
 import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
 import { scoreCoder, updateStageScore, getStudentName } from "../../utils/scoring";
+import { type SoapNoteData } from "../WorkflowAthena/AssessmentPlanStage";
+
+// ─── PA Trigger Codes & Keywords ────────────────────────────────────
+
+const PA_ICD_CODES = [
+  "C50", "C61", "M17.11", "I21.0", "I50.9", "J44.1", "K35.80", "N63.01", "E11.40",
+  "C25", "C34", "C56", "C61", "C64", "C67", "M16.11", "M17.11", "M25.561",
+  "I25.10", "I48.91", "I50.22", "I50.32", "N18.30", "E11.40", "E11.41",
+];
+
+const PA_KEYWORDS = [
+  "surgery", "procedure", "MRI", "CT scan", "biopsy", "replacement",
+  "transplant", "cath lab", "stent", "implant", "arthroplasty",
+  "endoscopy", "colonoscopy", "bypass", "laparoscopic", "arthroscopic",
+  "catheter", "pacemaker", "defibrillator", "graft", "resection",
+];
+
+const PA_MEDICATIONS = [
+  "humira", "enbrel", "stelara", "xeljanz", "orencia", "actemra",
+  "rituxan", "insulin", "eliquis", "xarelto", "cosentyx", "taltz",
+  "skyrizi", "rinvoq", "dupixent", "entyvio", "avastin", "herceptin",
+  "keytruda", "opdivo", "ibrance", "imatinib", "lenalidomide",
+];
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -58,7 +81,12 @@ const CONVENTIONS = [
 
 // ─── Component ────────────────────────────────────────────────────
 
-export function CodingQueue() {
+interface CodingQueueProps {
+  soapNote?: SoapNoteData;
+  medications?: { id: string; name: string; dosage: string; frequency: string }[];
+}
+
+export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
   const { state, submitToBilling, setRole } = usePipeline();
 
   // Code search state
@@ -99,6 +127,7 @@ export function CodingQueue() {
   // PA auto-route interstitial
   const [showPAInterstitial, setShowPAInterstitial] = useState(false);
   const [hasPACodes, setHasPACodes] = useState(false);
+  const [paTriggerReasons, setPaTriggerReasons] = useState<string[]>([]);
 
   // Code details panel (D3: Code Lookup)
   const [selectedCodeDetails, setSelectedCodeDetails] = useState<ICD10Code | CPTCode | null>(null);
@@ -209,12 +238,46 @@ export function CodingQueue() {
       setCodingScore(score);
       updateStageScore(getStudentName(), "coder", score);
 
-      // Check if any codes need Prior Authorization
-      const paNeededCodes = Object.keys(PA_PROCEDURES);
-      const detectedPA = selectedCPTs.some(c => paNeededCodes.includes(c.code));
+      // Enhanced PA detection — check multiple sources
+      const paReasons: string[] = [];
+
+      // 1. Check CPT codes (existing)
+      const cptNeedsPA = selectedCPTs.some(c => Object.keys(PA_PROCEDURES).includes(c.code));
+      if (cptNeedsPA) {
+        const paCpts = selectedCPTs.filter(c => Object.keys(PA_PROCEDURES).includes(c.code));
+        paReasons.push(`CPT codes: ${paCpts.map(c => c.code).join(", ")}`);
+      }
+
+      // 2. Check ICD codes for PA-triggering diagnoses
+      const icdNeedsPA = selectedICDs.some(icd => PA_ICD_CODES.some(pc => icd.code.startsWith(pc)));
+      if (icdNeedsPA) {
+        const paIcds = selectedICDs.filter(icd => PA_ICD_CODES.some(pc => icd.code.startsWith(pc)));
+        paReasons.push(`Diagnosis codes: ${paIcds.map(c => c.code).join(", ")}`);
+      }
+
+      // 3. Check Scribe note for procedure keywords
+      const scribeText = soapNote
+        ? [soapNote.subjective, soapNote.objective, soapNote.assessment, soapNote.plan].filter(Boolean).join(" ").toLowerCase()
+        : "";
+      const matchedKeywords = PA_KEYWORDS.filter(kw => scribeText.includes(kw));
+      if (matchedKeywords.length > 0) {
+        paReasons.push(`Note mentions: ${matchedKeywords.slice(0, 4).join(", ")}`);
+      }
+
+      // 4. Check medications
+      const matchedMeds = (medications || []).filter(m =>
+        PA_MEDICATIONS.some(pm => m.name.toLowerCase().includes(pm))
+      );
+      if (matchedMeds.length > 0) {
+        paReasons.push(`Medications: ${matchedMeds.map(m => m.name).join(", ")}`);
+      }
+
+      const detectedPA = paReasons.length > 0;
       setHasPACodes(detectedPA);
+      setPaTriggerReasons(paReasons);
+
       if (detectedPA) {
-        // Show interstitial — don't submit yet
+        // Show interstitial with reasons
         setShowPAInterstitial(true);
       } else {
         // No PA needed — submit and go to Biller
@@ -608,15 +671,19 @@ export function CodingQueue() {
                       </div>
                       <div className="p-4 space-y-3">
                         <p className="text-xs text-slate-600">
-                          One or more of the selected CPT codes require <strong>Prior Authorization</strong> before billing.
+                          One or more items require <strong>Prior Authorization</strong> before billing.
                         </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {selectedCPTs.filter(c => Object.keys(PA_PROCEDURES).includes(c.code)).map(c => (
-                            <span key={c.code} className="rounded bg-amber-100 px-2 py-1 text-[10px] font-mono font-medium text-amber-700">
-                              {c.code} — {c.description}
-                            </span>
-                          ))}
-                        </div>
+                        {paTriggerReasons.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-medium text-slate-500">Triggered by:</p>
+                            {paTriggerReasons.map((reason, i) => (
+                              <div key={i} className="flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1.5 text-[10px] text-amber-700">
+                                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
+                                <span>{reason}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <p className="text-[10px] text-slate-500">
                           Would you like to proceed to Prior Authorization or skip to Billing?
                         </p>
