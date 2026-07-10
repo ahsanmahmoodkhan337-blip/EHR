@@ -30,6 +30,10 @@ import {
   Upload,
   Paperclip,
   Loader2,
+  PhoneCall,
+  MessageSquare,
+  Plus,
+  FileDown,
 } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
@@ -46,8 +50,9 @@ import {
   type PAQueueItem,
   type PARecord,
 } from "./paData";
+import { exportPAFormPDF } from "../../utils/pdfExport";
 
-type TabView = "queue" | "insurance" | "form" | "criteria" | "docs" | "step-therapy" | "letter" | "errors";
+type TabView = "queue" | "insurance" | "form" | "criteria" | "docs" | "step-therapy" | "letter" | "followup" | "errors";
 
 // CoverMyMeds brand colors
 const CMM_PRIMARY = "bg-[#4A1D96]";
@@ -73,7 +78,7 @@ interface DocAttachment {
 }
 
 export default function PriorAuthPortal() {
-  const { state, submitPA, addPARecord } = usePipeline();
+  const { state, submitPA, addPARecord, setRole } = usePipeline();
   const { getPatientById } = usePatientStore();
 
   // Get the first patient from the pipeline state or the first mock patient
@@ -136,6 +141,16 @@ export default function PriorAuthPortal() {
   const [insuranceVerified, setInsuranceVerified] = useState<boolean | null>(null);
   const [verificationResult, setVerificationResult] = useState<string>("");
   const [verifyingInsurance, setVerifyingInsurance] = useState(false);
+
+  // ── NEW: Follow-up tracking state ──
+  const [followupDate, setFollowupDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [followupTracking, setFollowupTracking] = useState("");
+  const [followupRep, setFollowupRep] = useState("");
+  const [followupNotes, setFollowupNotes] = useState("");
+  const [followupSubmitted, setFollowupSubmitted] = useState(false);
+  const { addFollowUp, caseStates } = usePatientStore();
+  const patientCase = patientId ? caseStates[patientId] : undefined;
+  const patientFollowups = patientCase?.followups ?? [];
 
   // ── NEW: Auth date alerts computed ──
   const alerts = useMemo(() => {
@@ -226,6 +241,7 @@ export default function PriorAuthPortal() {
       authEndDate: paRecord.authEndDate,
     });
     setSubmitted(true);
+    setRole("biller");
   };
 
   // Filtered queue
@@ -250,6 +266,7 @@ export default function PriorAuthPortal() {
     { key: "docs", label: "Documents", icon: <Paperclip className="h-3.5 w-3.5" /> },
     { key: "step-therapy", label: "Step Therapy", icon: <ArrowRight className="h-3.5 w-3.5" /> },
     { key: "letter", label: "Letter", icon: <BookOpen className="h-3.5 w-3.5" /> },
+    { key: "followup", label: "Followup", icon: <PhoneCall className="h-3.5 w-3.5" /> },
     { key: "errors", label: "Errors", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
   ];
 
@@ -908,10 +925,11 @@ export default function PriorAuthPortal() {
                 </div>
 
                 {/* CoverMyMeds-style submit button */}
+                <div className="flex gap-2">
                 <button
                   onClick={handleSubmit}
                   disabled={!procedure}
-                  className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium text-white transition-colors ${
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium text-white transition-colors ${
                     procedure
                       ? `${CMM_PRIMARY} ${CMM_PRIMARY_HOVER}`
                       : "bg-slate-300 cursor-not-allowed"
@@ -921,6 +939,27 @@ export default function PriorAuthPortal() {
                   Submit e-PA Request to {payer}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
+                <button
+                  onClick={() => {
+                    exportPAFormPDF({
+                      patientName: patient ? `${patient.firstName} ${patient.lastName}` : "Unknown",
+                      procedure: PA_PROCEDURES[procedure as ProcedureKey]?.label || procedure || "N/A",
+                      diagnosis: state.icdCodes?.join(", ") || "N/A",
+                      clinicalIndication: selectedIndication || "N/A",
+                      status: "Pending — Ready for Submission",
+                    });
+                  }}
+                  disabled={!procedure}
+                  className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-xs font-medium transition-colors ${
+                    procedure
+                      ? "border-purple-300 text-purple-700 hover:bg-purple-50"
+                      : "border-slate-200 text-slate-400 cursor-not-allowed"
+                  }`}
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  PA Form PDF
+                </button>
+                </div>
 
                 {/* Pre-submit checklist */}
                 {procedure && (
@@ -1482,6 +1521,155 @@ export default function PriorAuthPortal() {
                   <li>• Keep it concise — one page is ideal</li>
                 </ul>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB: FOLLOW-UP TRACKING ─── */}
+        {activeTab === "followup" && (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-purple-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <PhoneCall className="h-4 w-4 text-purple-600" />
+                <p className="text-xs font-semibold text-slate-700">PA Follow-up Tracker</p>
+                <span className="ml-auto rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+                  {patientFollowups.length} call{patientFollowups.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+
+              {/* New Follow-up Form */}
+              {!followupSubmitted && (
+                <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 p-3">
+                  <p className="text-[10px] font-semibold text-purple-700 mb-3 flex items-center gap-1">
+                    <Plus className="h-3 w-3" />
+                    Log New Follow-up Call
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="mb-1 block text-[10px] font-medium text-slate-500">Follow-up Date</label>
+                      <input
+                        type="date"
+                        value={followupDate}
+                        onChange={(e) => setFollowupDate(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-medium text-slate-500">Tracking Number</label>
+                      <input
+                        type="text"
+                        value={followupTracking}
+                        onChange={(e) => setFollowupTracking(e.target.value)}
+                        placeholder="e.g. PA-2026-07-001"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-medium text-slate-500">Call Representative Name</label>
+                      <input
+                        type="text"
+                        value={followupRep}
+                        onChange={(e) => setFollowupRep(e.target.value)}
+                        placeholder="e.g. Sarah from Cigna"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400"
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <label className="mb-1 block text-[10px] font-medium text-slate-500">Call Notes</label>
+                    <textarea
+                      value={followupNotes}
+                      onChange={(e) => setFollowupNotes(e.target.value)}
+                      placeholder="Document what was discussed, next steps, promised callbacks..."
+                      rows={2}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400 resize-none"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!followupDate) return;
+                      const entry = {
+                        date: followupDate,
+                        trackingNumber: followupTracking || "—",
+                        repName: followupRep || "—",
+                        notes: followupNotes || "—",
+                      };
+                      addFollowUp(patientId, entry);
+                      setFollowupSubmitted(true);
+                      setTimeout(() => {
+                        setFollowupSubmitted(false);
+                        setFollowupTracking("");
+                        setFollowupRep("");
+                        setFollowupNotes("");
+                      }, 2000);
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2 text-xs font-medium text-white hover:bg-purple-500 transition-colors"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Log Follow-up
+                  </button>
+                  {followupSubmitted && (
+                    <p className="mt-2 text-[10px] text-green-600 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Follow-up logged successfully!
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Follow-up Timeline */}
+              <div>
+                <p className="text-[10px] font-semibold text-slate-600 mb-2 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Recent Follow-up Calls ({patientFollowups.length})
+                </p>
+                {patientFollowups.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center">
+                    <PhoneCall className="mx-auto h-6 w-6 text-slate-300" />
+                    <p className="mt-1 text-[11px] text-slate-400">No follow-up calls logged yet</p>
+                    <p className="text-[10px] text-slate-300">Use the form above to log your first PA follow-up call</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {[...patientFollowups].reverse().map((entry, i) => (
+                      <div key={i} className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-medium text-slate-700 flex items-center gap-1">
+                            <PhoneCall className="h-3 w-3 text-purple-500" />
+                            {new Date(entry.date).toLocaleDateString()}
+                          </span>
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
+                            {entry.trackingNumber}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 mb-1">
+                          <User className="h-3 w-3" />
+                          <span>{entry.repName}</span>
+                        </div>
+                        {entry.notes && entry.notes !== "—" && (
+                          <p className="text-[10px] text-slate-600 bg-white rounded px-2 py-1 border border-slate-100">
+                            {entry.notes}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Educational note */}
+            <div className="rounded-lg border border-purple-100 bg-purple-50 p-3">
+              <p className="text-[10px] font-medium text-purple-700">
+                <PhoneCall className="mr-1 inline h-3 w-3" />
+                Why Track PA Follow-ups?
+              </p>
+              <p className="mt-1 text-[10px] text-purple-600">
+                Prior authorization follow-up calls are critical to ensuring timely processing. Industry benchmarks
+                show that 30% of PAs require at least one follow-up call. Logging each interaction — including
+                tracking number, representative name, and notes — creates an audit trail and helps identify
+                payer-specific delays.
+              </p>
             </div>
           </div>
         )}

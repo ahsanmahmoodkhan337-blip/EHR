@@ -31,6 +31,8 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState<"idle" | "pending" | "denied" | "approved">("idle");
   const [requestInfo, setRequestInfo] = useState<AccessRequest | null>(null);
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [studentName, setStudentName] = useState("");
 
   const handleLogin = () => {
     const cleaned = phone.trim();
@@ -44,6 +46,11 @@ function LoginPage() {
     // Check if approved
     if (isPhoneApproved(cleaned)) {
       setLoggedInPhone(cleaned);
+      // Prompt for name if not set yet
+      if (!localStorage.getItem("hh_student_name")) {
+        setShowNamePrompt(true);
+        return;
+      }
       navigate({ to: "/" });
       return;
     }
@@ -63,6 +70,13 @@ function LoginPage() {
 
     // No request found at all
     setStatus("denied");
+  };
+
+  const handleSaveName = () => {
+    if (studentName.trim()) {
+      localStorage.setItem("hh_student_name", studentName.trim());
+      navigate({ to: "/" });
+    }
   };
 
   return (
@@ -95,6 +109,41 @@ function LoginPage() {
               <p className="mt-3 text-xs text-amber-500">
                 Submitted: {new Date(requestInfo.submittedAt).toLocaleDateString()}
               </p>
+            </div>
+          ) : showNamePrompt ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-center">
+                <h3 className="font-medium text-indigo-800">Welcome! What's your name?</h3>
+                <p className="mt-1 text-sm text-indigo-600">
+                  This will appear on your completion certificate.
+                </p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">
+                  Your Full Name
+                </label>
+                <input
+                  type="text"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveName(); }}
+                  placeholder="e.g. Muhammad Ali"
+                  className="w-full rounded-lg border border-slate-200 py-2.5 px-3 text-sm text-slate-700 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                  autoFocus
+                />
+              </div>
+              <button
+                onClick={handleSaveName}
+                disabled={!studentName.trim()}
+                className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white transition-colors ${
+                  studentName.trim()
+                    ? "bg-indigo-600 hover:bg-indigo-700"
+                    : "bg-slate-300 cursor-not-allowed"
+                }`}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Save & Enter EHR
+              </button>
             </div>
           ) : status === "denied" ? (
             <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">

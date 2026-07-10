@@ -28,6 +28,7 @@ import {
   XCircle,
   ClipboardList,
   Building2,
+  Save,
   Play,
   Square,
   Volume2,
@@ -903,9 +904,156 @@ export default function ARVoiceSimulator() {
             </div>
           </div>
         )}
+
+        {/* Complete Pipeline — marks all stages as done */}
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => {
+              pipeline.completePipeline();
+            }}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 shadow-sm transition-colors"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Complete Pipeline — Generate Certificate
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
 // (exported above)
+
+// ─── Claim Appeal Letter Generator ───────────────────────────────
+
+const CARC_CODES = [
+  { code: "CO-16", description: "Claim lacks information needed for adjudication" },
+  { code: "CO-50", description: "Non-covered service because this is not deemed a medical necessity" },
+  { code: "CO-119", description: "Benefit maximum has been reached" },
+  { code: "CO-97", description: "The benefit for this service is included in the payment for another service" },
+  { code: "PR-1", description: "Deductible amount has not been met" },
+  { code: "PR-2", description: "Co-insurance amount" },
+  { code: "OA-23", description: "Procedure code is inconsistent with the diagnosis code" },
+  { code: "OA-100", description: "Missing prior authorization" },
+];
+
+const APPEAL_REASONS = [
+  { id: "med-necessary", label: "Service was medically necessary", text: "The denied service was medically necessary for the patient's condition. The clinical documentation supports the medical necessity, and the procedure was appropriate given the patient's diagnosis and clinical presentation." },
+  { id: "coding-correct", label: "Coding was correct and supported", text: "The submitted ICD-10 and CPT codes accurately reflect the patient's diagnosis and the services rendered. The coding is supported by the clinical documentation in the medical record." },
+  { id: "pa-obtained", label: "Prior authorization was obtained", text: "Prior authorization was obtained prior to the service being rendered. The authorization number and approval documentation are attached for reference." },
+  { id: "modifier-needed", label: "Modifier should have been appended", text: "The appropriate modifier should have been appended to the procedure code to indicate the circumstances of the service. We request reprocessing with the correct modifier." },
+  { id: "timely-filing", label: "Claim was filed within timely filing limit", text: "The claim was submitted within the timely filing limits specified by the payer. The submission date and confirmation are available upon request." },
+];
+
+export function AppealLetterGenerator() {
+  const [carcCode, setCarcCode] = useState("");
+  const [selectedReason, setSelectedReason] = useState<string[]>([]);
+  const [generated, setGenerated] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const carc = CARC_CODES.find(c => c.code === carcCode);
+  const reasons = APPEAL_REASONS.filter(r => selectedReason.includes(r.id));
+
+  const letterParts = [
+    `Re: Appeal of Claim Denial — ${carcCode || "[CARC Code]"}`,
+    carc?.description ? `Denial Reason: ${carc.description}` : "",
+    "",
+    "Dear Appeals Department,",
+    "",
+    "This letter is a formal request for appeal of the above-referenced claim denial.",
+    ...reasons.map(r => r.text),
+    "",
+    "We respectfully request that you review the attached documentation and reprocess this claim accordingly.",
+    "",
+    "Sincerely,",
+    "Healthcare Hustlers Billing Department",
+    new Date().toLocaleDateString(),
+  ].filter(Boolean).join("\n");
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(letterParts).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleGenerate = () => {
+    if (!carcCode || selectedReason.length === 0) return;
+    setGenerated(true);
+  };
+
+  return (
+    <div className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-3">
+        <FileText className="h-4 w-4 text-rose-600" />
+        <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300">Claim Appeal Letter Generator</h3>
+      </div>
+
+      {!generated ? (
+        <div className="space-y-3">
+          {/* CARC Code Select */}
+          <div>
+            <label className="mb-1 block text-[10px] font-medium text-slate-500">CARC Denial Code</label>
+            <select value={carcCode} onChange={e => setCarcCode(e.target.value)} className="w-full rounded-lg border border-slate-200 dark:border-slate-600 px-3 py-2 text-[10px] outline-none focus:border-rose-400 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+              <option value="">Select a denial code...</option>
+              {CARC_CODES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.description}</option>)}
+            </select>
+          </div>
+
+          {/* Appeal Reason Select */}
+          <div>
+            <label className="mb-1 block text-[10px] font-medium text-slate-500">Appeal Rationale</label>
+            <div className="space-y-1">
+              {APPEAL_REASONS.map(r => (
+                <label key={r.id} className={`flex items-start gap-2 rounded-lg border p-2 cursor-pointer text-[10px] ${
+                  selectedReason.includes(r.id) ? "border-rose-200 bg-rose-50 dark:bg-rose-900/20 dark:border-rose-700" : "border-slate-100 dark:border-slate-700"
+                }`}>
+                  <input type="checkbox" checked={selectedReason.includes(r.id)} onChange={() => setSelectedReason(prev => prev.includes(r.id) ? prev.filter(x => x !== r.id) : [...prev, r.id])} className="mt-0.5 h-3 w-3 accent-rose-500" />
+                  <div>
+                    <p className="font-medium text-slate-700 dark:text-slate-300">{r.label}</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">{r.text.slice(0, 100)}...</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={handleGenerate}
+            disabled={!carcCode || selectedReason.length === 0}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-xs font-medium text-white hover:bg-rose-500 disabled:bg-slate-300 disabled:cursor-not-allowed"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Generate Appeal Letter
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3 animate-slide-in">
+          <div className="rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 p-3 whitespace-pre-wrap text-[10px] text-slate-700 dark:text-slate-300 font-mono leading-relaxed">
+            {letterParts}
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-indigo-500">
+              {copied ? <CheckCircle2 className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+              {copied ? "Copied!" : "Copy to Clipboard"}
+            </button>
+            <button onClick={handleSave} className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-emerald-500">
+              {saved ? <CheckCircle2 className="h-3 w-3" /> : <Save className="h-3 w-3" />}
+              {saved ? "Saved!" : "Save & Log"}
+            </button>
+            <button onClick={() => setGenerated(false)} className="rounded-lg border border-slate-200 dark:border-slate-600 px-3 py-1.5 text-[10px] font-medium text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700">
+              Edit
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

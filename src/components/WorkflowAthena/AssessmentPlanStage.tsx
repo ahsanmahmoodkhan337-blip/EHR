@@ -9,7 +9,7 @@
  * replicates that pattern for rapid clinical documentation.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ClipboardCheck,
   FileText,
@@ -18,7 +18,11 @@ import {
   Lightbulb,
   Plus,
   ChevronRight,
+  Search,
+  X,
 } from "lucide-react";
+import { ICD10_CODES, searchICD10 } from "../CodingQueue/icd10Data";
+import type { ICD10Code } from "../CodingQueue/icd10Data";
 
 // ─── One-Click Macros ──────────────────────────────────────────────
 
@@ -75,6 +79,7 @@ export interface SoapNoteData {
   objective: string;
   assessment: string;
   plan: string;
+  selectedICDs?: ICD10Code[];
 }
 
 // ─── Component ─────────────────────────────────────────────────────
@@ -218,6 +223,27 @@ export function AssessmentPlanStage({ patientName, note, onNoteChange }: Assessm
               placeholder="Diagnoses, differentials, clinical impression, problem list updates..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />
+
+            {/* ICD-10 Code Search & Selection */}
+            <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50/30 p-2.5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Search className="h-3 w-3 text-amber-600" />
+                <span className="text-[10px] font-semibold text-amber-700">ICD-10 Diagnosis Codes</span>
+                <span className="text-[9px] text-amber-500">(attach codes to assessment)</span>
+              </div>
+              <ICDSearchField
+                selectedICDs={currentNote.selectedICDs ?? []}
+                onSelect={(code) => {
+                  const existing = currentNote.selectedICDs ?? [];
+                  if (!existing.find(c => c.code === code.code)) {
+                    updateNote({ ...currentNote, selectedICDs: [...existing, code] });
+                  }
+                }}
+                onRemove={(code) => {
+                  updateNote({ ...currentNote, selectedICDs: (currentNote.selectedICDs ?? []).filter(c => c.code !== code.code) });
+                }}
+              />
+            </div>
           </div>
 
           {/* Plan */}
@@ -308,6 +334,86 @@ export function AssessmentPlanStage({ patientName, note, onNoteChange }: Assessm
           </aside>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── ICD-10 Search Autocomplete Component ───────────────────────────
+
+interface ICDSearchFieldProps {
+  selectedICDs: ICD10Code[];
+  onSelect: (code: ICD10Code) => void;
+  onRemove: (code: ICD10Code) => void;
+}
+
+function ICDSearchField({ selectedICDs, onSelect, onRemove }: ICDSearchFieldProps) {
+  const [query, setQuery] = useState("");
+
+  const results = useMemo(() => {
+    if (!query.trim()) return [];
+    const q = query.toLowerCase();
+    return ICD10_CODES.filter(c =>
+      c.code.toLowerCase().includes(q) ||
+      c.description.toLowerCase().includes(q) ||
+      c.category.toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [query]);
+
+  return (
+    <div>
+      <div className="relative">
+        <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search ICD-10 by code or description..."
+          className="w-full rounded-md border border-slate-200 py-1.5 pl-7 pr-3 text-[10px] outline-none focus:border-amber-400"
+        />
+      </div>
+      {query && results.length > 0 && (
+        <div className="mt-1 max-h-32 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-sm">
+          {results.map((code) => {
+            const alreadySelected = selectedICDs.some(c => c.code === code.code);
+            return (
+              <button
+                key={code.code}
+                onClick={() => {
+                  if (!alreadySelected) onSelect(code);
+                  setQuery("");
+                }}
+                disabled={alreadySelected}
+                className={`flex w-full items-center justify-between px-2 py-1.5 text-left text-[10px] border-b border-slate-50 last:border-0 ${
+                  alreadySelected ? "text-slate-300 cursor-not-allowed" : "hover:bg-amber-50 text-slate-700"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="font-mono font-semibold text-amber-700 shrink-0">{code.code}</span>
+                  <span className="truncate">{code.description}</span>
+                </div>
+                <span className="text-[9px] text-slate-400 shrink-0 ml-1">{code.chapter}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {query && results.length === 0 && (
+        <p className="mt-1 text-[9px] text-slate-400">No matching ICD-10 codes found</p>
+      )}
+      {/* Selected codes as removable tags */}
+      {selectedICDs.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {selectedICDs.map((code) => (
+            <span key={code.code} className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-800">
+              <span className="font-mono">{code.code}</span>
+              <span className="max-w-[120px] truncate">{code.description}</span>
+              <button onClick={() => onRemove(code)} className="text-amber-500 hover:text-amber-700">
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

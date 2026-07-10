@@ -61,6 +61,28 @@
 /*  Utility / Component Layer — Custom clinical UI classes            */
 /* ------------------------------------------------------------------ */
 @layer components {
+
+  /* ── Animations ── */
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .animate-slide-in { animation: slideIn 0.3s ease-out; }
+  .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+  .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+
+  /* Dark mode base transition */
+  html { transition: background-color 0.3s, color 0.3s; }
+  body * { transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+
   /* Data card — used for patient info, lab results, medication lists */
   .clinical-card {
     @apply rounded-lg border border-slate-200 bg-white p-4 shadow-sm;

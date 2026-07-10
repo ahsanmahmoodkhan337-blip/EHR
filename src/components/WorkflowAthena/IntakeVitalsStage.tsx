@@ -50,49 +50,44 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
 
   const [saved, setSaved] = useState(false);
 
-  // Sync local vitals when editableVitals or patient changes from outside
-  useEffect(() => {
-    if (editableVitals) {
-      const bp = editableVitals.bloodPressure.split("/");
-      setVitals({
-        bloodPressureSystolic: parseInt(bp[0]) || 120,
-        bloodPressureDiastolic: parseInt(bp[1]) || 80,
-        heartRate: parseInt(editableVitals.heartRate) || 72,
-        temperature: parseFloat(editableVitals.temperature) || 98.6,
-        respiratoryRate: parseInt(editableVitals.respiratoryRate) || 16,
-        oxygenSaturation: parseInt(editableVitals.oxygenSaturation) || 98,
-        weight: 70,
-        height: 170,
-        painScore: 0,
-      });
-    } else if (patient) {
-      const bp = patient.vitals.bloodPressure.split("/");
-      setVitals({
-        bloodPressureSystolic: parseInt(bp[0]) || 120,
-        bloodPressureDiastolic: parseInt(bp[1]) || 80,
-        heartRate: patient.vitals.heartRate,
-        temperature: patient.vitals.temperature,
-        respiratoryRate: patient.vitals.respiratoryRate,
-        oxygenSaturation: patient.vitals.oxygenSaturation,
-        weight: 70,
-        height: 170,
-        painScore: 0,
-      });
-    }
-  }, [editableVitals, patient]);
+  // Sync from patient store when patient changes (initial load only)
+        useEffect(() => {
+          if (patient) {
+            const bp = patient.vitals.bloodPressure.split("/");
+            setVitals(prev => {
+              // Only set if not controlled by parent
+              if (editableVitals) return prev;
+              return {
+                ...prev,
+                bloodPressureSystolic: parseInt(bp[0]) || 120,
+                bloodPressureDiastolic: parseInt(bp[1]) || 80,
+                heartRate: patient.vitals.heartRate,
+                temperature: patient.vitals.temperature,
+                respiratoryRate: patient.vitals.respiratoryRate,
+                oxygenSaturation: patient.vitals.oxygenSaturation,
+              };
+            });
+          }
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [patient?.id]);
 
-  // Propagate local vitals changes up to parent whenever they change
-  useEffect(() => {
-    if (onVitalsChange) {
-      onVitalsChange({
-        bloodPressure: `${vitals.bloodPressureSystolic}/${vitals.bloodPressureDiastolic}`,
-        heartRate: vitals.heartRate.toString(),
-        temperature: vitals.temperature.toString(),
-        respiratoryRate: vitals.respiratoryRate.toString(),
-        oxygenSaturation: vitals.oxygenSaturation.toString(),
-      });
-    }
-  }, [vitals, onVitalsChange]);
+        // Sync local -> parent on each keystroke (only when parent controls)
+        const handleVitalChange = (key: string, value: number) => {
+          setVitals(prev => {
+            const next = { ...prev, [key]: value };
+            // Propagate to parent immediately
+            if (onVitalsChange) {
+              onVitalsChange({
+                bloodPressure: `${next.bloodPressureSystolic}/${next.bloodPressureDiastolic}`,
+                heartRate: next.heartRate.toString(),
+                temperature: next.temperature.toString(),
+                respiratoryRate: next.respiratoryRate.toString(),
+                oxygenSaturation: next.oxygenSaturation.toString(),
+              });
+            }
+            return next;
+          });
+        };
 
   const handleSave = () => {
     setSaved(true);
@@ -132,7 +127,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
             <input
               type="number"
               value={vitals.bloodPressureSystolic}
-              onChange={(e) => setVitals({ ...vitals, bloodPressureSystolic: parseInt(e.target.value) || 0 })}
+              onChange={(e) => handleVitalChange("bloodPressureSystolic", parseInt(e.target.value) || 0)}
               className="w-20 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
               placeholder="SYS"
             />
@@ -140,7 +135,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
             <input
               type="number"
               value={vitals.bloodPressureDiastolic}
-              onChange={(e) => setVitals({ ...vitals, bloodPressureDiastolic: parseInt(e.target.value) || 0 })}
+              onChange={(e) => handleVitalChange("bloodPressureDiastolic", parseInt(e.target.value) || 0)}
               className="w-20 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
               placeholder="DIA"
             />
@@ -158,7 +153,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
             <input
               type="number"
               value={vitals.heartRate}
-              onChange={(e) => setVitals({ ...vitals, heartRate: parseInt(e.target.value) || 0 })}
+              onChange={(e) => handleVitalChange("heartRate", parseInt(e.target.value) || 0)}
               className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
             />
             <span className="text-xs text-slate-400">bpm</span>
@@ -176,7 +171,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               type="number"
               step="0.1"
               value={vitals.temperature}
-              onChange={(e) => setVitals({ ...vitals, temperature: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => handleVitalChange("temperature", parseFloat(e.target.value) || 0)}
               className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
             />
             <span className="text-xs text-slate-400">°F</span>
@@ -193,7 +188,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
             <input
               type="number"
               value={vitals.respiratoryRate}
-              onChange={(e) => setVitals({ ...vitals, respiratoryRate: parseInt(e.target.value) || 0 })}
+              onChange={(e) => handleVitalChange("respiratoryRate", parseInt(e.target.value) || 0)}
               className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
             />
             <span className="text-xs text-slate-400">/min</span>
@@ -210,7 +205,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
             <input
               type="number"
               value={vitals.oxygenSaturation}
-              onChange={(e) => setVitals({ ...vitals, oxygenSaturation: parseInt(e.target.value) || 0 })}
+              onChange={(e) => handleVitalChange("oxygenSaturation", parseInt(e.target.value) || 0)}
               className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
             />
             <span className="text-xs text-slate-400">%</span>
@@ -229,7 +224,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               min="0"
               max="10"
               value={vitals.painScore}
-              onChange={(e) => setVitals({ ...vitals, painScore: parseInt(e.target.value) })}
+              onChange={(e) => handleVitalChange("painScore", parseInt(e.target.value))}
               className="w-28 accent-blue-600"
             />
             <span className="min-w-[2rem] text-sm font-bold text-slate-700">
@@ -252,7 +247,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               type="number"
               step="0.1"
               value={vitals.weight}
-              onChange={(e) => setVitals({ ...vitals, weight: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => handleVitalChange("weight", parseFloat(e.target.value) || 0)}
               className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
             />
             <span className="text-xs text-slate-400">kg</span>
@@ -270,7 +265,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               type="number"
               step="0.1"
               value={vitals.height}
-              onChange={(e) => setVitals({ ...vitals, height: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => handleVitalChange("height", parseFloat(e.target.value) || 0)}
               className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
             />
             <span className="text-xs text-slate-400">cm</span>

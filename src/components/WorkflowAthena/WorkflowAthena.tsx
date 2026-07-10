@@ -29,6 +29,8 @@ import {
   Search,
   Stethoscope,
   Lock,
+  User,
+  FileCheck,
 } from "lucide-react";
 
 // ─── Stage Definition ──────────────────────────────────────────────
@@ -42,6 +44,20 @@ export interface WorkflowStage {
 }
 
 const DEFAULT_STAGES: WorkflowStage[] = [
+  {
+    id: "registration",
+    label: "Registration",
+    description: "Patient intake, identity & insurance verification",
+    icon: <User className="h-5 w-5" />,
+    required: true,
+  },
+  {
+    id: "eligibility",
+    label: "Eligibility & Prior Auth",
+    description: "270/271 inquiry & PA submission",
+    icon: <FileCheck className="h-5 w-5" />,
+    required: true,
+  },
   {
     id: "intake-vitals",
     label: "Intake / Vitals",

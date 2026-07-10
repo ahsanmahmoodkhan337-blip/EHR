@@ -13,20 +13,30 @@
  */
 
 import { useState } from "react";
-import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info } from "lucide-react";
+import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info, Route, FileDown } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
+import { usePatientStore, type RoutingNote } from "../../store/patientStore";
 import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";
+import { exportCMS1500PDF } from "../../utils/pdfExport";
 
 type BillingTab = "form" | "scrubber" | "denials" | "references";
 
 export function BillingLedger() {
   const { state, submitClaim, handleDenial, setRole, paRecords } = usePipeline();
+  const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog } = usePatientStore();
+  const patientId = state.encounterId || "P001";
+  const cs = caseStates[patientId];
 
   const [payer, setPayer] = useState("Medicare");
   const [posCode, setPosCode] = useState("11");
   const [submitted, setSubmitted] = useState(false);
   const [activeTab, setActiveTab] = useState<BillingTab>("form");
   const [needsPriorAuth, setNeedsPriorAuth] = useState(false);
+  const [showRoutingModal, setShowRoutingModal] = useState(false);
+  const [routingMemo, setRoutingMemo] = useState("");
+  const [isTransmitting, setIsTransmitting] = useState(false);
+  const [transmitProgress, setTransmitProgress] = useState(0);
+  const [transmitResult, setTransmitResult] = useState<"paid" | "denied" | null>(null);
 
   // Claim scrubber state
   const [scrubResults, setScrubResults] = useState<{ check: string; pass: boolean; note: string }[] | null>(null);
@@ -86,6 +96,23 @@ export function BillingLedger() {
             <div className="mt-6 flex justify-center gap-3">
               <button onClick={() => setSubmitted(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                 Back to Billing
+              </button>
+              <button
+                onClick={() => {
+                  exportCMS1500PDF({
+                    patientName: state?.patientId || "Unknown",
+                    dob: "N/A",
+                    insurance: state?.icdCodes?.join(", ") || "N/A",
+                    diagnosisCodes: state?.icdCodes || [],
+                    procedureCodes: state?.cptCodes || [],
+                    charges: 0,
+                    status: "Submitted — Paid",
+                  });
+                }}
+                className="flex items-center gap-2 rounded-lg border border-purple-300 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors"
+              >
+                <FileDown className="h-4 w-4" />
+                Download CMS-1500 as PDF
               </button>
               <button onClick={() => setRole("prior-auth")} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500">
                 Proceed to Prior Auth
@@ -219,7 +246,7 @@ export function BillingLedger() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <button onClick={handleSubmit} className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-violet-500">
                     <Send className="h-3.5 w-3.5" /> Submit Claim (Path A — Paid)
                   </button>
@@ -227,9 +254,97 @@ export function BillingLedger() {
                     <AlertTriangle className="h-3.5 w-3.5" /> Simulate Denial (Path B)
                   </button>
                   <button onClick={runScrubber} className="flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-xs font-medium text-sky-700 hover:bg-sky-100">
-                    <Search className="h-3.5 w-3.5" /> Run Claim Scrubber
+                    <Search className="h-3.5 w-3.5" /> Run Clearinghouse Scrubber
                   </button>
+                  {/* Phase 3: Transmit 837P */}
+                  <button onClick={() => {
+                    setIsTransmitting(true);
+                    setTransmitProgress(0);
+                    const interval = setInterval(() => {
+                      setTransmitProgress(p => {
+                        if (p >= 100) {
+                          clearInterval(interval);
+                          const missingMod25 = state.cptCodes.length > 1 && !cs?.modifier25Applied;
+                          setTransmitResult(missingMod25 ? "denied" : "paid");
+                          if (missingMod25) {
+                            setBillingStatus(patientId, "DRAFT");
+                            addAuditLog(patientId, { timestamp: new Date().toISOString(), role: "biller", message: "837P transmitted — Modifier 25 missing, claim denied", status: "error" });
+                          } else {
+                            setBillingStatus(patientId, "CLEARED_AND_SENT");
+                            addAuditLog(patientId, { timestamp: new Date().toISOString(), role: "biller", message: "837P transmitted successfully — claim paid", status: "success" });
+                          }
+                          setIsTransmitting(false);
+                          return 100;
+                        }
+                        return p + 5;
+                      });
+                    }, 100);
+                  }} className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50" disabled={isTransmitting}>
+                    <Send className="h-3.5 w-3.5" /> Transmit 837P
+                  </button>
+                  {/* Phase 3: Route to PA */}
+                  {cs?.paStatus === "REQUIRED_MISSING" && (
+                    <button onClick={() => setShowRoutingModal(true)} className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                      <Route className="h-3.5 w-3.5" /> Route Claim to PA Specialist
+                    </button>
+                  )}
                 </div>
+
+                {/* Transmit Progress Bar */}
+                {isTransmitting && (
+                  <div className="mt-3">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                      <div className="h-full rounded-full bg-emerald-500 transition-all duration-200" style={{ width: `${transmitProgress}%` }} />
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-500">Transmitting 837P... {transmitProgress}%</p>
+                  </div>
+                )}
+
+                {/* Transmit Result */}
+                {transmitResult === "paid" && (
+                  <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                    <p className="flex items-center gap-1 text-xs font-medium text-emerald-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> 837P Transmitted — Claim Paid
+                    </p>
+                  </div>
+                )}
+                {transmitResult === "denied" && (
+                  <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3">
+                    <p className="flex items-center gap-1 text-xs font-medium text-rose-700">
+                      <XCircle className="h-3.5 w-3.5" /> Modifier 25 Missing — Claim Denied (CO-16)
+                    </p>
+                    <p className="mt-1 text-[10px] text-rose-600">Route to AR for remediation.</p>
+                  </div>
+                )}
+
+                {/* Phase 3: Routing Modal */}
+                {showRoutingModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+                      <h3 className="text-sm font-bold text-slate-800">Clearinghouse Exception</h3>
+                      <p className="mt-1 text-xs text-slate-500">Prior Authorization is required for CPT 78452. Route to PA specialist before submitting.</p>
+                      <div className="mt-4">
+                        <label className="text-[11px] font-medium text-slate-500">Internal Routing Instructions / Memo to PA Team</label>
+                        <textarea value={routingMemo} onChange={e => setRoutingMemo(e.target.value)}
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20"
+                          rows={3} placeholder="e.g. Patient has chest pain history — rush PA review" />
+                      </div>
+                      <div className="mt-4 flex justify-end gap-2">
+                        <button onClick={() => setShowRoutingModal(false)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+                        <button onClick={() => {
+                          addRoutingNote(patientId, { timestamp: new Date().toISOString(), fromRole: "biller", toRole: "prior-auth", noteText: routingMemo || "PA required — routing for approval" });
+                          setBillingStatus(patientId, "PENDING_PA_ROUTE");
+                          setPaStatus(patientId, "PENDING_REVIEW");
+                          addAuditLog(patientId, { timestamp: new Date().toISOString(), role: "biller", message: "Routed to PA Specialist — prior authorization required", status: "warning" });
+                          setShowRoutingModal(false);
+                          setRoutingMemo("");
+                        }} className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500">
+                          Route Claim to PA Specialist
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Scrubber results */}
                 {scrubResults && (

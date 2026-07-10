@@ -25,11 +25,15 @@ import {
   Eye,
   EyeOff,
   Save,
+  UserPlus,
+  Trash2,
 } from "lucide-react";
 import {
   getAccessRequests,
   updateRequestStatus,
   getApprovedPhones,
+  getSessionTimeoutMinutes,
+  setSessionTimeoutMinutes,
   type AccessRequest,
 } from "../store/accessStore";
 import {
@@ -58,6 +62,8 @@ function AdminPage() {
   const [editPinValue, setEditPinValue] = useState("");
   const [showPins, setShowPins] = useState(false);
   const [pinSaved, setPinSaved] = useState(false);
+  const [sessionTimeout, setSessionTimeout] = useState(getSessionTimeoutMinutes());
+  const [timeoutSaved, setTimeoutSaved] = useState(false);
 
   // Load data from localStorage
   useEffect(() => {
@@ -363,7 +369,74 @@ function AdminPage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center">
+        {/* ─── Session Timeout ─── */}
+        <div className="mt-6 rounded-xl border border-slate-700 bg-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-sky-400" />
+              <h2 className="text-sm font-semibold text-white">Session Timeout</h2>
+            </div>
+            {timeoutSaved && (
+              <span className="text-[10px] text-green-400">Saved!</span>
+            )}
+          </div>
+          <div className="p-4">
+            <p className="text-xs text-slate-400 mb-3">
+              Automatically revoke student credentials after a set period of inactivity.
+              Set to 0 to disable auto-logout.
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <label className="block text-[10px] font-medium text-slate-500 mb-1">Timeout Duration</label>
+                <select
+                  value={sessionTimeout}
+                  onChange={(e) => setSessionTimeout(parseInt(e.target.value))}
+                  className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white outline-none focus:border-sky-500"
+                >
+                  <option value="0">No timeout (disabled)</option>
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="120">2 hours</option>
+                  <option value="240">4 hours</option>
+                  <option value="480">8 hours</option>
+                  <option value="1440">24 hours</option>
+                </select>
+              </div>
+              <button
+                onClick={() => {
+                  setSessionTimeoutMinutes(sessionTimeout);
+                  setRefreshKey((k) => k + 1);
+                }}
+                className="mt-5 flex items-center gap-1 rounded-lg bg-sky-600 px-4 py-2 text-xs font-medium text-white hover:bg-sky-500"
+              >
+                <Save className="h-3.5 w-3.5" />
+                Apply
+              </button>
+            </div>
+            {sessionTimeout > 0 && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-sky-900/30 px-3 py-2">
+                <Clock className="h-3.5 w-3.5 text-sky-400" />
+                <p className="text-[10px] text-sky-300">
+                  Students will be automatically logged out after <strong>{sessionTimeout} minutes</strong> of inactivity.
+                  Their session resets each time they log in.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Scenario Builder */}
+      <div className="mt-6 rounded-xl border border-slate-700 bg-slate-800 p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <UserPlus className="h-4 w-4 text-sky-400" />
+          <h3 className="text-xs font-bold text-slate-200">Scenario Builder</h3>
+          <span className="rounded-full bg-indigo-900/50 px-2 py-0.5 text-[9px] font-medium text-indigo-300">Create Custom Patient</span>
+        </div>
+        <ScenarioBuilder />
+      </div>
+
+      <div className="mt-6 text-center">
           <Link to="/" className="text-xs text-slate-500 underline hover:text-slate-300">
             Back to home
           </Link>
@@ -371,6 +444,156 @@ function AdminPage() {
       </div>
 
       <WhatsAppFloat />
+    </div>
+  );
+}
+
+// ─── Scenario Builder Component ──────────────────────────────────
+
+interface CustomPatient {
+  id: string;
+  firstName: string;
+  lastName: string;
+  age: number;
+  gender: string;
+  chiefComplaint: string;
+  problems: string[];
+  medications: string[];
+  insurance: string;
+  vitals: { bp: string; hr: string; temp: string; rr: string; o2: string };
+}
+
+function ScenarioBuilder() {
+  const [patients, setPatients] = useState<CustomPatient[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("hh_custom_patients") || "[]");
+    } catch { return []; }
+  });
+  const [form, setForm] = useState<CustomPatient>({
+    id: `CP-${Date.now()}`,
+    firstName: "", lastName: "", age: 35, gender: "Male",
+    chiefComplaint: "", problems: [], medications: [], insurance: "",
+    vitals: { bp: "120/80", hr: "72", temp: "98.6", rr: "16", o2: "98" },
+  });
+  const [problemInput, setProblemInput] = useState("");
+  const [medInput, setMedInput] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  const savePatient = () => {
+    if (!form.firstName.trim()) return;
+    const newPatient = { ...form, id: `CP-${Date.now()}` };
+    const updated = [...patients, newPatient];
+    setPatients(updated);
+    localStorage.setItem("hh_custom_patients", JSON.stringify(updated));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    setForm({ id: `CP-${Date.now()}`, firstName: "", lastName: "", age: 35, gender: "Male", chiefComplaint: "", problems: [], medications: [], insurance: "", vitals: { bp: "120/80", hr: "72", temp: "98.6", rr: "16", o2: "98" } });
+  };
+
+  const deletePatient = (id: string) => {
+    const updated = patients.filter(p => p.id !== id);
+    setPatients(updated);
+    localStorage.setItem("hh_custom_patients", JSON.stringify(updated));
+  };
+
+  const updateField = (field: string, value: any) => setForm({ ...form, [field]: value });
+  const updateVital = (field: string, value: string) => setForm({ ...form, vitals: { ...form.vitals, [field]: value } });
+
+  return (
+    <div className="space-y-3">
+      {/* Form */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div>
+          <label className="mb-1 block text-[9px] font-medium text-slate-400">First Name</label>
+          <input type="text" value={form.firstName} onChange={e => updateField("firstName", e.target.value)} placeholder="Jane" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-sky-400" />
+        </div>
+        <div>
+          <label className="mb-1 block text-[9px] font-medium text-slate-400">Last Name</label>
+          <input type="text" value={form.lastName} onChange={e => updateField("lastName", e.target.value)} placeholder="Doe" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-sky-400" />
+        </div>
+        <div>
+          <label className="mb-1 block text-[9px] font-medium text-slate-400">Age</label>
+          <input type="number" value={form.age} onChange={e => updateField("age", parseInt(e.target.value) || 0)} min={0} max={120} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-sky-400" />
+        </div>
+        <div>
+          <label className="mb-1 block text-[9px] font-medium text-slate-400">Gender</label>
+          <select value={form.gender} onChange={e => updateField("gender", e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-sky-400">
+            <option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="mb-1 block text-[9px] font-medium text-slate-400">Chief Complaint</label>
+          <input type="text" value={form.chiefComplaint} onChange={e => updateField("chiefComplaint", e.target.value)} placeholder="Chest pain and shortness of breath" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-sky-400" />
+        </div>
+        <div>
+          <label className="mb-1 block text-[9px] font-medium text-slate-400">Insurance</label>
+          <input type="text" value={form.insurance} onChange={e => updateField("insurance", e.target.value)} placeholder="Blue Cross PPO" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-sky-400" />
+        </div>
+      </div>
+      {/* Vitals */}
+      <div className="grid grid-cols-5 gap-2">
+        {["bp", "hr", "temp", "rr", "o2"].map(v => (
+          <div key={v}>
+            <label className="mb-1 block text-[9px] font-medium text-slate-400 uppercase">{v}</label>
+            <input type="text" value={(form.vitals as any)[v]} onChange={e => updateVital(v, e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-sky-400" />
+          </div>
+        ))}
+      </div>
+      {/* Problems */}
+      <div>
+        <label className="mb-1 block text-[9px] font-medium text-slate-400">Problems</label>
+        <div className="flex gap-1 mb-1">
+          <input type="text" value={problemInput} onChange={e => setProblemInput(e.target.value)} placeholder="e.g. Essential hypertension (I10)" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-sky-400" />
+          <button onClick={() => { if (problemInput.trim()) { updateField("problems", [...form.problems, problemInput.trim()]); setProblemInput(""); } }} className="rounded bg-sky-600 px-2 py-1 text-[10px] text-white">Add</button>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {form.problems.map((p, i) => (
+            <span key={i} className="inline-flex items-center gap-1 rounded bg-sky-900/50 px-1.5 py-0.5 text-[9px] text-sky-300">
+              {p}
+              <button onClick={() => updateField("problems", form.problems.filter((_, j) => j !== i))} className="text-sky-400 hover:text-red-400">×</button>
+            </span>
+          ))}
+        </div>
+      </div>
+      {/* Medications */}
+      <div>
+        <label className="mb-1 block text-[9px] font-medium text-slate-400">Medications</label>
+        <div className="flex gap-1 mb-1">
+          <input type="text" value={medInput} onChange={e => setMedInput(e.target.value)} placeholder="e.g. Lisinopril 10mg" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-sky-400" />
+          <button onClick={() => { if (medInput.trim()) { updateField("medications", [...form.medications, medInput.trim()]); setMedInput(""); } }} className="rounded bg-sky-600 px-2 py-1 text-[10px] text-white">Add</button>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {form.medications.map((m, i) => (
+            <span key={i} className="inline-flex items-center gap-1 rounded bg-emerald-900/50 px-1.5 py-0.5 text-[9px] text-emerald-300">
+              {m}
+              <button onClick={() => updateField("medications", form.medications.filter((_, j) => j !== i))} className="text-emerald-400 hover:text-red-400">×</button>
+            </span>
+          ))}
+        </div>
+      </div>
+      {/* Save */}
+      <div className="flex items-center gap-2">
+        <button onClick={savePatient} className="flex items-center gap-1 rounded-lg bg-sky-600 px-4 py-2 text-[10px] font-medium text-white hover:bg-sky-500">
+          <Save className="h-3 w-3" />
+          {saved ? "Saved!" : "Save Patient Scenario"}
+        </button>
+      </div>
+      {/* Saved patients list */}
+      {patients.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-slate-700">
+          <p className="text-[10px] font-medium text-slate-400 mb-2">Custom Patients ({patients.length})</p>
+          <div className="space-y-1">
+            {patients.map(p => (
+              <div key={p.id} className="flex items-center justify-between rounded bg-slate-700/50 px-2 py-1">
+                <span className="text-[10px] text-slate-300">{p.firstName} {p.lastName} — {p.chiefComplaint?.slice(0, 40)}</span>
+                <button onClick={() => deletePatient(p.id)} className="text-red-400 hover:text-red-300"><Trash2 className="h-3 w-3" /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

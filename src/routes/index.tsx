@@ -20,7 +20,8 @@ import { Activity, ArrowRight, CheckCircle2 } from "lucide-react";
 
 import { PatientProvider, usePatientStore } from "../store/patientStore";
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
-import { isLoggedIn } from "../store/accessStore";
+import { isLoggedIn, getLoggedInPhone, getAccessRequests } from "../store/accessStore";
+import { checkSessionExpired, clearSession, setSessionStart } from "../store/accessStore";
 import { PA_PROCEDURES, type ProcedureKey } from "../components/PriorAuthPortal/paData";
 import { WorkflowTracker } from "../components/WorkflowTracker";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
@@ -28,6 +29,8 @@ import { Header } from "../components/TabsEpic/Header";
 import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
 import { WorkflowAthena } from "../components/WorkflowAthena/WorkflowAthena";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
+import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
+import { EligibilityStage } from "../components/WorkflowAthena/EligibilityStage";
 import { HPIStage } from "../components/WorkflowAthena/HPIStage";
 import { ExamROSStage } from "../components/WorkflowAthena/ExamROSStage";
 import { AssessmentPlanStage, type SoapNoteData } from "../components/WorkflowAthena/AssessmentPlanStage";
@@ -47,16 +50,24 @@ import { StagePinGate } from "../components/StagePinGate";
 import { CodingQueue } from "../components/CodingQueue/CodingQueue";
 import { BillingLedger } from "../components/BillingLedger/BillingLedger";
 import PriorAuthPortal from "../components/PriorAuthPortal/PriorAuthPortal";
+import { GamificationHeader } from "../components/GamificationHeader";
+import { WorklistPanel } from "../components/WorklistPanel";
+import { FinancialLedger } from "../components/FinancialLedger";
+import { ToastProvider, useToast } from "../components/Toast";
+import { Skeleton } from "../components/Skeleton";
+import { Certificate } from "../components/Certificate";
 
 // ─── Route ──────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/")({
   component: () => (
-    <PatientProvider>
-      <PipelineProvider>
-        <Home />
-      </PipelineProvider>
-    </PatientProvider>
+    <ToastProvider>
+      <PatientProvider>
+        <PipelineProvider>
+          <Home />
+        </PipelineProvider>
+      </PatientProvider>
+    </ToastProvider>
   ),
 });
 
@@ -522,8 +533,35 @@ function SummaryTab({
 
 function MedicationsTab({ patientId }: { patientId: string }) {
   const { getPatientById } = usePatientStore();
+  const pipeline = usePipeline();
   const patient = getPatientById(patientId);
+  const isScribe = pipeline.currentRole === "scribe";
+
+  const [medications, setMedications] = useState(patient?.medications ?? []);
+  const [medName, setMedName] = useState("");
+  const [medDosage, setMedDosage] = useState("");
+  const [medFreq, setMedFreq] = useState("");
+
   if (!patient) return null;
+
+  const addMedication = () => {
+    if (!medName.trim()) return;
+    setMedications([...medications, {
+      id: `med-${Date.now()}`,
+      name: medName.trim(),
+      dosage: medDosage || "—",
+      frequency: medFreq || "—",
+      route: "Oral",
+      status: "active" as const,
+      prescribedDate: new Date().toISOString().split("T")[0],
+      prescribedBy: patient.primaryCareProvider,
+    }]);
+    setMedName(""); setMedDosage(""); setMedFreq("");
+  };
+
+  const removeMedication = (id: string) => {
+    setMedications(medications.filter(m => m.id !== id));
+  };
 
   return (
     <div className="clinical-card">
@@ -537,10 +575,11 @@ function MedicationsTab({ patientId }: { patientId: string }) {
             <th>Route</th>
             <th>Status</th>
             <th>Prescribed</th>
+            {isScribe && <th></th>}
           </tr>
         </thead>
         <tbody>
-          {patient.medications.map((med) => (
+          {medications.map((med) => (
             <tr key={med.id}>
               <td className="font-medium">{med.name}</td>
               <td>{med.dosage}</td>
@@ -560,10 +599,25 @@ function MedicationsTab({ patientId }: { patientId: string }) {
               <td className="text-xs text-slate-500">
                 {new Date(med.prescribedDate).toLocaleDateString()}
               </td>
+              {isScribe && (
+                <td>
+                  <button onClick={() => removeMedication(med.id)} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
+      {isScribe && (
+        <div className="mt-3 space-y-1.5 rounded border border-dashed border-slate-300 p-2">
+          <div className="grid grid-cols-3 gap-1">
+            <input type="text" value={medName} onChange={e => setMedName(e.target.value)} placeholder="Medication name" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+            <input type="text" value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="Dosage (e.g. 10mg)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+            <input type="text" value={medFreq} onChange={e => setMedFreq(e.target.value)} placeholder="Frequency (e.g. BID)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+          </div>
+          <button onClick={addMedication} className="rounded bg-green-600 px-3 py-1 text-xs text-white hover:bg-green-700">+ Add Medication</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -894,7 +948,7 @@ function PublicLandingPage() {
             to="/access"
             className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-600"
           >
-            Enroll Now — $20
+            Enroll Now — 20$/ 5500 pkr
           </Link>
           <Link
             to="/login"
@@ -904,7 +958,7 @@ function PublicLandingPage() {
           </Link>
         </div>
         <p className="mt-4 text-center text-xs text-sky-600">
-          Note: $20 provides access to whole RCM
+          Note: 20$/ 5500 pkr provides access to whole RCM
         </p>
       </section>
 
@@ -917,7 +971,7 @@ function PublicLandingPage() {
 
         {/* Pipeline Flow Visual */}
         <div className="mb-8 flex items-center justify-center gap-1 overflow-x-auto rounded-xl bg-white p-4 shadow-sm">
-          {["📋 Scribe", "🔍 Coder", "💰 Biller", "📄 Prior Auth", "📞 AR Voice"].map((stage, i) => (
+          {["📋 Scribe", "🔍 Coder", "📄 Prior Auth", "💰 Biller", "📞 AR Voice"].map((stage, i) => (
             <div key={stage} className="flex items-center gap-1">
               <div className="whitespace-nowrap rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">
                 {stage}
@@ -947,19 +1001,19 @@ function PublicLandingPage() {
             },
             {
               stage: "STAGE 3",
-              title: "Biller — Claim Scrubbing",
-              desc: "Audit CMS-1500 claims for errors. Submit to clearinghouse and face real-world outcomes: get paid instantly or receive a denial code to resolve.",
-              icon: "💰",
-              color: "bg-violet-50 border-violet-200",
-              tag: "CMS-1500",
-            },
-            {
-              stage: "STAGE 4",
               title: "Prior Auth — Authorization Hub",
               desc: "Handle high-cost procedures requiring pre-approval. Map clinical documentation to insurance policy criteria and submit digital PA forms.",
               icon: "📄",
               color: "bg-purple-50 border-purple-200",
               tag: "PA Portal",
+            },
+            {
+              stage: "STAGE 4",
+              title: "Biller — Claim Scrubbing",
+              desc: "Audit CMS-1500 claims for errors. Submit to clearinghouse and face real-world outcomes: get paid instantly or receive a denial code to resolve.",
+              icon: "💰",
+              color: "bg-violet-50 border-violet-200",
+              tag: "CMS-1500",
             },
             {
               stage: "STAGE 5",
@@ -999,7 +1053,7 @@ function PublicLandingPage() {
           <h2 className="text-2xl font-bold text-slate-700">Get Started in 4 Steps</h2>
           <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-4">
             {[
-              { n: "1", title: "Pay $20", desc: "via Bank Islami, EasyPaisa, or PayPal" },
+              { n: "1", title: "Pay 20$/ 5500 pkr", desc: "via Bank Islami, EasyPaisa, or PayPal" },
               { n: "2", title: "Submit Request", desc: "Fill form with your transaction ID" },
               { n: "3", title: "Get Approved", desc: "Admin activates your account" },
               { n: "4", title: "Practice!", desc: "Log in with your phone number and start the pipeline" },
@@ -1028,15 +1082,22 @@ function PublicLandingPage() {
 
 function Home() {
   const businessName = "Healthcare Hustlers";
-  const { patients } = usePatientStore();
+  const { patients, caseStates } = usePatientStore();
   const { activeTab, setActiveTab } = useTabsEpic("summary");
   const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("chart");
   const [selectedPatientId, setSelectedPatientId] = useState(patients[0]?.id ?? "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, paRecords } = usePipeline();
-  const [activeStage, setActiveStage] = useState("intake-vitals");
-  const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["intake-vitals"]));
+  const { currentRole, submitToCoding, setRole, paRecords, state: pipelineState } = usePipeline();
+  const { addToast } = useToast();
+  const [activeStage, setActiveStage] = useState("registration");
+  const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["registration"]));
+  const [xp, setXp] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [examMode, setExamMode] = useState(false);
+  const [examTimeRemaining, setExamTimeRemaining] = useState(1800); // 30 min in seconds
+  const examTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // SOAP note state lifted from AssessmentPlanStage for pipeline submission
   const [soapNote, setSoapNote] = useState<SoapNoteData>({
@@ -1158,8 +1219,8 @@ function Home() {
       setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
       setSubmittedToCoding(false);
       setDisplayName(undefined);
-      setActiveStage("intake-vitals");
-      setCompletedStages(new Set(["intake-vitals"]));
+      setActiveStage("registration");
+      setCompletedStages(new Set(["registration"]));
     }
   }
 
@@ -1184,6 +1245,53 @@ function Home() {
   // Check login on mount
   useEffect(() => {
     setCheckingAuth(false);
+    // Record session start time for timeout tracking
+    setSessionStart();
+  }, []);
+
+  // Exam mode timer
+  useEffect(() => {
+    if (examMode) {
+      examTimerRef.current = setInterval(() => {
+        setExamTimeRemaining(prev => {
+          if (prev <= 1) {
+            if (examTimerRef.current) clearInterval(examTimerRef.current);
+            addToast({ type: "warning", title: "Exam Time Expired!", description: "Your 30-minute exam has ended. Your score will be calculated." });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (examTimerRef.current) {
+        clearInterval(examTimerRef.current);
+        examTimerRef.current = null;
+      }
+      setExamTimeRemaining(1800);
+    }
+    return () => {
+      if (examTimerRef.current) clearInterval(examTimerRef.current);
+    };
+  }, [examMode]);
+
+  const toggleExamMode = () => {
+    setExamMode(prev => !prev);
+    if (!examMode) {
+      addToast({ type: "info", title: "Exam Mode Started", description: "You have 30 minutes to complete the pipeline. Timer starts now!" });
+    }
+  };
+
+  // Poll session expiry every 10 seconds
+  useEffect(() => {
+    if (isLoggedIn()) {
+      const interval = setInterval(() => {
+        if (checkSessionExpired()) {
+          clearSession();
+          window.location.reload();
+        }
+      }, 10000);
+      return () => clearInterval(interval);
+    }
   }, []);
 
   // Show public landing page while checking or if not logged in
@@ -1220,6 +1328,7 @@ function Home() {
       submitToCoding(fullNote);
       setIsSubmittingNote(false);
       setSubmittedToCoding(true);
+      addToast({ type: "success", title: "Note Submitted to Coding!", description: "The clinical note has been signed, locked, and sent to the coding queue." });
       // Mark sign-lock as completed
       const updated = new Set(completedStages);
       updated.add("sign-lock");
@@ -1234,7 +1343,7 @@ function Home() {
     } else {
       updated.add(stageId);
       // Auto-advance to next stage
-      const stageOrder = ["intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"];
+      const stageOrder = ["registration", "eligibility", "intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"];
       const currentIdx = stageOrder.indexOf(stageId);
       if (currentIdx >= 0 && currentIdx < stageOrder.length - 1) {
         setActiveStage(stageOrder[currentIdx + 1]);
@@ -1248,33 +1357,53 @@ function Home() {
   return (
     <AppShell
       header={
-        <Header
-          businessName={businessName}
-          selectedPatientId={selectedPatientId}
-          onPatientSelect={(id) => { saveCurrentSession(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("intake-vitals"); }}
-          showRightPanel={showRightPanel}
-          onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
-          selectedPatientName={
-            selectedPatient
-              ? `${selectedPatient.lastName}, ${selectedPatient.firstName}`
-              : undefined
-          }
-        />
+        <>
+          <GamificationHeader xp={xp} streak={streak} level={level} />
+          <Header
+            businessName={businessName}
+            selectedPatientId={selectedPatientId}
+            onPatientSelect={(id) => { saveCurrentSession(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }}
+            showRightPanel={showRightPanel}
+            onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
+            selectedPatientName={
+              selectedPatient
+                ? `${selectedPatient.lastName}, ${selectedPatient.firstName}`
+                : undefined
+            }
+            examMode={examMode}
+            examTimeRemaining={examTimeRemaining}
+            onToggleExamMode={toggleExamMode}
+          />
+        </>
       }
       leftPanel={
-        selectedPatient && currentRole === "scribe" ? (
-          <div className="p-4">
-            <WorkflowAthena
-              activeStage={activeStage}
-              onStageSelect={setActiveStage}
-              completedStages={completedStages}
-              onToggleStageComplete={toggleStageComplete}
-            />
+        <div className="flex h-full flex-col">
+          <div className="border-b border-slate-100 px-4 py-3">
+            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { saveCurrentSession(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }} />
           </div>
-        ) : undefined
+          {selectedPatient && currentRole === "scribe" && (
+            <div className="flex-1 overflow-y-auto p-4">
+              <WorkflowAthena
+                activeStage={activeStage}
+                onStageSelect={setActiveStage}
+                completedStages={completedStages}
+                onToggleStageComplete={toggleStageComplete}
+              />
+            </div>
+          )}
+        </div>
       }
       rightPanel={
-        <RightPaneleCW patient={selectedPatient ?? null} displayName={displayName} editableVitals={editableVitals} editablePatientData={editablePatientData} sharedImmunizations={sharedImmunizations} sharedLabs={sharedLabs} sharedReferrals={sharedReferrals} sharedOrders={sharedOrders} sharedImaging={sharedImaging} soapNote={soapNote} paRecords={paRecords} />
+        <div className="flex h-full flex-col">
+          <div className="flex-1 overflow-y-auto">
+            <RightPaneleCW patient={selectedPatient ?? null} displayName={displayName} editableVitals={editableVitals} editablePatientData={editablePatientData} sharedImmunizations={sharedImmunizations} sharedLabs={sharedLabs} sharedReferrals={sharedReferrals} sharedOrders={sharedOrders} sharedImaging={sharedImaging} soapNote={soapNote} paRecords={paRecords} />
+          </div>
+          {currentRole !== "scribe" && (
+            <div className="border-t border-slate-100 p-3">
+              <FinancialLedger totalBilled={12500} totalCollected={8700} totalDenied={2400} daysInAR={32} />
+            </div>
+          )}
+        </div>
       }
       showRightPanel={showRightPanel}
       footer={
@@ -1308,6 +1437,22 @@ function Home() {
             <StagePinGate role="ar-voice" roleLabel="AR Voice Specialist">
               <ARVoiceSimulator />
             </StagePinGate>
+          )}
+          {pipelineState.stage === "complete" && (
+            <div className="flex flex-1 flex-col items-center justify-center p-8">
+              <div className="rounded-full bg-green-100 p-4">
+                <CheckCircle2 className="h-12 w-12 text-green-600" />
+              </div>
+              <h3 className="mt-4 text-xl font-bold text-slate-800">Pipeline Complete!</h3>
+              <p className="mt-2 text-sm text-slate-500">All stages have been completed. Great work!</p>
+              <div className="mt-6">
+                <Certificate
+                  studentName={localStorage.getItem("hh_student_name") || "Student"}
+                  completedModules={["Scribe", "Coder", "Prior Auth", "Biller", "AR Voice"]}
+                  score={92}
+                />
+              </div>
+            </div>
           )}
         </div>
       ) : (
@@ -1402,7 +1547,9 @@ function Home() {
                   <div className="border-b border-blue-100 bg-blue-50/50 px-4 py-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-blue-700">
-                        Workflow: {activeStage === "intake-vitals" ? "Intake / Vitals" :
+                        Workflow: {activeStage === "registration" ? "Patient Registration" :
+                              activeStage === "eligibility" ? "Eligibility & Prior Auth" :
+                            activeStage === "intake-vitals" ? "Intake / Vitals" :
                                     activeStage === "hpi" ? "History of Present Illness" :
                                     activeStage === "exam-ros" ? "Review of Systems" :
                                     activeStage === "assessment-plan" ? "Assessment & Plan" :
@@ -1416,7 +1563,13 @@ function Home() {
                       </button>
                     </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-4">
+                  <div className="flex-1 overflow-y-auto p-4 animate-slide-in" key={activeStage}>
+                    {activeStage === "registration" && (
+                      <RegistrationStage />
+                    )}
+                    {activeStage === "eligibility" && (
+                      <EligibilityStage />
+                    )}
                     {activeStage === "intake-vitals" && (
                       <IntakeVitalsStage patientId={selectedPatientId} editableVitals={editableVitals} onVitalsChange={setEditableVitals} />
                     )}
@@ -1547,11 +1700,31 @@ function Home() {
                         <p className="clinical-label mb-3">Problem List</p>
                         <div className="space-y-2">
                           {selectedPatient.problems.map((p, i) => (
-                            <div key={i} className="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
-                              {p}
+                            <div key={i} className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 p-3 text-sm">
+                              <span>{p}</span>
+                              {currentRole === "scribe" && (
+                                <button onClick={() => {
+                                  // Remove problem from editablePatientData
+                                  const updated = editablePatientData.problems.filter((_, j) => j !== i);
+                                  setEditablePatientData({ ...editablePatientData, problems: updated });
+                                }} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
+                              )}
                             </div>
                           ))}
                         </div>
+                        {currentRole === "scribe" && (
+                          <div className="mt-2 flex gap-1">
+                            <input
+                              type="text"
+                              value={newProblem}
+                              onChange={e => setNewProblem(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter" && newProblem.trim()) { setEditablePatientData({ ...editablePatientData, problems: [...editablePatientData.problems, newProblem.trim()] }); setNewProblem(""); }}}
+                              placeholder="+ Add new problem..."
+                              className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400"
+                            />
+                            <button onClick={() => { if (newProblem.trim()) { setEditablePatientData({ ...editablePatientData, problems: [...editablePatientData.problems, newProblem.trim()] }); setNewProblem(""); }}} className="rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600">Add</button>
+                          </div>
+                        )}
                       </div>
                     </TabPanel>
                     <TabPanel id="orders" activeTab={activeTab}>
@@ -1753,6 +1926,33 @@ function Home() {
       </div>
       </>
     )}
+      {/* ─── Activity Log Stream ─── */}
+      {selectedPatient && (
+        <div className="border-t border-slate-200 bg-white/80 backdrop-blur-sm">
+          <div className="px-4 py-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Activity Log</span>
+              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">{caseStates[selectedPatientId]?.auditLogs?.length ?? 0}</span>
+            </div>
+            <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
+              {(caseStates[selectedPatientId]?.auditLogs ?? []).length === 0 ? (
+                <p className="text-[10px] text-slate-400 italic">No activity recorded yet.</p>
+              ) : (
+                (caseStates[selectedPatientId]?.auditLogs ?? []).slice(-10).map((log, i) => (
+                  <div key={i} className={`shrink-0 rounded-lg border px-2 py-1 text-[9px] ${
+                    log.status === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
+                    log.status === "warning" ? "border-amber-200 bg-amber-50 text-amber-700" :
+                    log.status === "error" ? "border-rose-200 bg-rose-50 text-rose-700" :
+                    "border-slate-200 bg-slate-50 text-slate-600"
+                  }`}>
+                    <span className="font-medium">{log.role}</span>: {log.message}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

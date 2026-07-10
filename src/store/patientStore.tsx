@@ -10,7 +10,54 @@
  *   - DrChrono's appointment-based chronology
  */
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+
+// ─── Audit Log ────────────────────────────────────────────────────
+
+export interface AuditEntry {
+  timestamp: string;
+  role: string;
+  message: string;
+  status: "success" | "warning" | "error" | "info";
+}
+
+export type QueueStage =
+  | "QUEUE_REGISTRATION"
+  | "QUEUE_ELIGIBILITY"
+  | "QUEUE_SCRIBE"
+  | "QUEUE_CODER"
+  | "QUEUE_BILLER"
+  | "QUEUE_PA"
+  | "QUEUE_AR"
+  | "QUEUE_PAID";
+
+export interface CaseState {
+  patientId: string;
+  currentQueue: QueueStage;
+  auditLogs: AuditEntry[];
+  modifier25Applied: boolean;
+  // Phase 3: inter-departmental hand-off
+  billingStatus: "DRAFT" | "SCRUB_FAILED" | "PENDING_PA_ROUTE" | "READY_TO_SUBMIT" | "CLEARED_AND_SENT";
+  paStatus: "NOT_REQUIRED" | "REQUIRED_MISSING" | "PENDING_REVIEW" | "APPROVED";
+  arStatus: "NONE" | "DENIED_QUEUE" | "APPEAL_PENDING" | "RESOLVED";
+  routingNotes: RoutingNote[];
+  // PA follow-up tracking
+  followups: FollowUpEntry[];
+}
+
+export interface FollowUpEntry {
+  date: string;
+  trackingNumber: string;
+  repName: string;
+  notes: string;
+}
+
+export interface RoutingNote {
+  timestamp: string;
+  fromRole: string;
+  toRole: string;
+  noteText: string;
+}
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -741,6 +788,263 @@ const mockPatients: Patient[] = [
       "Rh-negative status (Z16.1)",
     ],
   },
+  // ─── Phase D: 10 New Patient Scenarios ────────────────────────────
+  {
+    id: "P006",
+    mrn: "MRN-2001",
+    firstName: "Olivia",
+    lastName: "Chen",
+    dateOfBirth: "1998-05-20",
+    age: 28,
+    gender: "Female",
+    phone: "(555) 111-2222",
+    email: "olivia.chen@email.com",
+    address: "100 Maple St, Springfield, IL 62701",
+    emergencyContact: { name: "Mark Chen", phone: "(555) 222-3333", relation: "Father" },
+    primaryCareProvider: "Dr. Lisa Wong, MD",
+    insurance: "Aetna PPO",
+    chiefComplaint: "Runny nose, sore throat, mild cough for 3 days",
+    vitals: { bloodPressure: "118/72", heartRate: 76, temperature: 99.8, respiratoryRate: 16, oxygenSaturation: 99, recordedAt: "2026-07-08T10:00:00Z" },
+    medications: [{ id: "MED015", name: "Ibuprofen", dosage: "400 mg", frequency: "q6h PRN", route: "Oral", status: "active", prescribedDate: "2026-07-08", prescribedBy: "Dr. Lisa Wong" }],
+    allergies: [{ id: "ALG008", allergen: "Amoxicillin", severity: "mild", reaction: "Rash", recordedDate: "2022-03-15" }],
+    labResults: [],
+    encounters: [{ id: "ENC012", date: "2026-07-08", type: "Office Visit - Acute", provider: "Dr. Lisa Wong, MD", diagnosis: "Acute upper respiratory infection (J06.9)", notes: "Patient reports 3-day history of rhinorrhea, sore throat, and mild cough. No fever. No dyspnea. Supportive care recommended.", department: "Internal Medicine" }],
+    problems: ["Acute URI (J06.9)"],
+  },
+  {
+    id: "P007",
+    mrn: "MRN-2002",
+    firstName: "Robert",
+    lastName: "Martinez",
+    dateOfBirth: "1981-11-12",
+    age: 45,
+    gender: "Male",
+    phone: "(555) 333-4444",
+    email: "robert.martinez@email.com",
+    address: "200 Oak Ave, Springfield, IL 62702",
+    emergencyContact: { name: "Linda Martinez", phone: "(555) 444-5555", relation: "Spouse" },
+    primaryCareProvider: "Dr. Sarah Chen, MD",
+    insurance: "Blue Cross Blue Shield HMO",
+    chiefComplaint: "Follow-up hypertension — BP readings elevated at home",
+    vitals: { bloodPressure: "152/94", heartRate: 82, temperature: 98.4, respiratoryRate: 18, oxygenSaturation: 97, recordedAt: "2026-07-08T11:30:00Z" },
+    medications: [
+      { id: "MED016", name: "Lisinopril", dosage: "10 mg", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2025-09-01", prescribedBy: "Dr. Sarah Chen" },
+      { id: "MED017", name: "Amlodipine", dosage: "5 mg", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2026-01-15", prescribedBy: "Dr. Sarah Chen" },
+    ],
+    allergies: [],
+    labResults: [{ id: "LAB017", testName: "Serum Creatinine", value: "1.1", referenceRange: "0.7-1.3", unit: "mg/dL", status: "normal", date: "2026-07-08" }],
+    encounters: [{ id: "ENC013", date: "2026-07-08", type: "Office Visit - Follow Up", provider: "Dr. Sarah Chen, MD", diagnosis: "Essential hypertension (I10)", notes: "Home BP readings 145-155/90-95. Today's office BP 152/94. Will increase lisinopril to 20mg daily. Continue amlodipine. Follow up in 4 weeks.", department: "Internal Medicine" }],
+    problems: ["Essential hypertension (I10)"],
+  },
+  {
+    id: "P008",
+    mrn: "MRN-2003",
+    firstName: "Harold",
+    lastName: "Thompson",
+    dateOfBirth: "1964-03-28",
+    age: 62,
+    gender: "Male",
+    phone: "(555) 555-6666",
+    email: "harold.thompson@email.com",
+    address: "300 Pine Rd, Springfield, IL 62703",
+    emergencyContact: { name: "Betty Thompson", phone: "(555) 666-7777", relation: "Spouse" },
+    primaryCareProvider: "Dr. Michael Patel, MD",
+    insurance: "Medicare Part B + Supplemental",
+    chiefComplaint: "Crushing chest pain radiating to left arm, started 2 hours ago",
+    vitals: { bloodPressure: "165/95", heartRate: 105, temperature: 98.2, respiratoryRate: 22, oxygenSaturation: 94, recordedAt: "2026-07-08T14:00:00Z" },
+    medications: [
+      { id: "MED018", name: "Aspirin", dosage: "81 mg", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2024-06-01", prescribedBy: "Dr. Michael Patel" },
+      { id: "MED019", name: "Atorvastatin", dosage: "40 mg", frequency: "Once daily at bedtime", route: "Oral", status: "active", prescribedDate: "2024-06-01", prescribedBy: "Dr. Michael Patel" },
+    ],
+    allergies: [{ id: "ALG009", allergen: "Sulfa Drugs", severity: "moderate", reaction: "Rash and fever", recordedDate: "2019-08-10" }],
+    labResults: [
+      { id: "LAB018", testName: "High-Sensitivity Troponin I", value: "0.85", referenceRange: "< 0.04", unit: "ng/mL", status: "critical", date: "2026-07-08" },
+      { id: "LAB019", testName: "ECG", value: "ST elevation in V1-V4", referenceRange: "Normal sinus", unit: "", status: "critical", date: "2026-07-08" },
+    ],
+    encounters: [{ id: "ENC014", date: "2026-07-08", type: "Emergency - Chest Pain", provider: "Dr. James Wilson, MD", diagnosis: "Acute anterior STEMI (I21.0)", notes: "Patient presents with acute onset crushing chest pain radiating to left arm with diaphoresis. ECG shows ST elevation in V1-V4. Troponin elevated. Activate cath lab stat.", department: "Emergency/Cardiology" }],
+    problems: ["Acute STEMI (I21.0)", "Coronary artery disease (I25.1)", "Hyperlipidemia (E78.5)"],
+  },
+  {
+    id: "P009",
+    mrn: "MRN-2004",
+    firstName: "Mia",
+    lastName: "Rodriguez",
+    dateOfBirth: "2021-04-05",
+    age: 5,
+    gender: "Female",
+    phone: "(555) 777-8888",
+    email: "parent.mia@email.com",
+    address: "400 Birch Ln, Springfield, IL 62704",
+    emergencyContact: { name: "Sofia Rodriguez", phone: "(555) 888-9999", relation: "Mother" },
+    primaryCareProvider: "Dr. Karen Thompson, MD",
+    insurance: "Cigna PPO",
+    chiefComplaint: "Ear pain and fever for 2 days",
+    vitals: { bloodPressure: "100/62", heartRate: 110, temperature: 101.8, respiratoryRate: 22, oxygenSaturation: 99, recordedAt: "2026-07-07T09:00:00Z" },
+    medications: [
+      { id: "MED020", name: "Acetaminophen", dosage: "200 mg", frequency: "q6h PRN fever", route: "Oral", status: "active", prescribedDate: "2026-07-06", prescribedBy: "Mother" },
+    ],
+    allergies: [],
+    labResults: [],
+    encounters: [{ id: "ENC015", date: "2026-07-07", type: "Office Visit - Acute", provider: "Dr. Karen Thompson, MD", diagnosis: "Acute suppurative otitis media (H66.4)", notes: "5-year-old female with 2-day history of right ear pain and fever to 102F. Tympanic membrane erythematous and bulging on right. Diagnosed with acute otitis media. Prescribed amoxicillin 400mg BID x 10 days.", department: "Pediatrics" }],
+    problems: ["Acute otitis media (H66.4)"],
+  },
+  {
+    id: "P010",
+    mrn: "MRN-2005",
+    firstName: "Eleanor",
+    lastName: "Hayes",
+    dateOfBirth: "1948-08-15",
+    age: 78,
+    gender: "Female",
+    phone: "(555) 999-0000",
+    email: "eleanor.hayes@email.com",
+    address: "500 Walnut St, Springfield, IL 62705",
+    emergencyContact: { name: "Thomas Hayes", phone: "(555) 000-1111", relation: "Son" },
+    primaryCareProvider: "Dr. Sarah Chen, MD",
+    insurance: "Medicare Advantage",
+    chiefComplaint: "Fell at home yesterday, increased confusion, diabetes out of control",
+    vitals: { bloodPressure: "148/78", heartRate: 98, temperature: 98.9, respiratoryRate: 20, oxygenSaturation: 95, recordedAt: "2026-07-07T15:00:00Z" },
+    medications: [
+      { id: "MED021", name: "Metformin", dosage: "500 mg", frequency: "Twice daily", route: "Oral", status: "active", prescribedDate: "2024-01-15", prescribedBy: "Dr. Sarah Chen" },
+      { id: "MED022", name: "Glipizide", dosage: "5 mg", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2024-06-01", prescribedBy: "Dr. Sarah Chen" },
+      { id: "MED023", name: "Gabapentin", dosage: "300 mg", frequency: "Three times daily", route: "Oral", status: "active", prescribedDate: "2025-03-10", prescribedBy: "Dr. Sarah Chen" },
+      { id: "MED024", name: "Vitamin D3", dosage: "1000 IU", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2025-01-01", prescribedBy: "Dr. Sarah Chen" },
+    ],
+    allergies: [{ id: "ALG010", allergen: "Ciprofloxacin", severity: "moderate", reaction: "Tendonitis", recordedDate: "2020-11-20" }],
+    labResults: [
+      { id: "LAB020", testName: "Hemoglobin A1C", value: "8.7", referenceRange: "< 5.7", unit: "%", status: "abnormal", date: "2026-07-07" },
+      { id: "LAB021", testName: "Glucose", value: "245", referenceRange: "70-140", unit: "mg/dL", status: "abnormal", date: "2026-07-07" },
+    ],
+    encounters: [{ id: "ENC016", date: "2026-07-07", type: "Office Visit - Follow Up", provider: "Dr. Sarah Chen, MD", diagnosis: "Type 2 diabetes with neuropathy (E11.40), Fall risk (Z91.81)", notes: "78yo F with poorly controlled DM2, diabetic neuropathy, recent fall. A1C 8.7%. Gait unsteady. Will increase metformin to 1000mg BID, start insulin if no improvement. Physical therapy referral for fall prevention.", department: "Internal Medicine" }],
+    problems: ["Type 2 diabetes with neuropathy (E11.40)", "Diabetic peripheral neuropathy (G63)", "Fall risk (Z91.81)", "Vitamin D deficiency (E55.9)"],
+  },
+  {
+    id: "P011",
+    mrn: "MRN-2006",
+    firstName: "James",
+    lastName: "Kowalski",
+    dateOfBirth: "1971-09-03",
+    age: 55,
+    gender: "Male",
+    phone: "(555) 111-3333",
+    email: "james.kowalski@email.com",
+    address: "600 Cedar Dr, Springfield, IL 62706",
+    emergencyContact: { name: "Anna Kowalski", phone: "(555) 444-6666", relation: "Spouse" },
+    primaryCareProvider: "Dr. Michael Patel, MD",
+    insurance: "United Healthcare PPO",
+    chiefComplaint: "Chronic right knee pain — wants to discuss total knee replacement",
+    vitals: { bloodPressure: "128/80", heartRate: 72, temperature: 98.4, respiratoryRate: 16, oxygenSaturation: 98, recordedAt: "2026-07-07T10:00:00Z" },
+    medications: [
+      { id: "MED025", name: "Naproxen", dosage: "500 mg", frequency: "Twice daily", route: "Oral", status: "active", prescribedDate: "2025-08-01", prescribedBy: "Dr. Michael Patel" },
+      { id: "MED026", name: "Acetaminophen", dosage: "1000 mg", frequency: "q6h PRN", route: "Oral", status: "active", prescribedDate: "2025-08-01", prescribedBy: "Dr. Michael Patel" },
+    ],
+    allergies: [],
+    labResults: [{ id: "LAB022", testName: "Right Knee X-ray", value: "Severe OA with bone-on-bone medial compartment", referenceRange: "Normal", unit: "", status: "abnormal", date: "2026-06-20" }],
+    encounters: [{ id: "ENC017", date: "2026-07-07", type: "Office Visit - Surgical Consult", provider: "Dr. Michael Patel, MD", diagnosis: "Primary osteoarthritis of right knee (M17.11)", notes: "55yo M with severe right knee OA refractory to conservative management. XR shows bone-on-bone changes. Discussed total knee arthroplasty. Patient wants to proceed. Prior auth required for planned 27447.", department: "Orthopedic Surgery" }],
+    problems: ["Primary OA right knee (M17.11)"],
+  },
+  {
+    id: "P012",
+    mrn: "MRN-2007",
+    firstName: "Alex",
+    lastName: "Rivera",
+    dateOfBirth: "1994-02-18",
+    age: 32,
+    gender: "Male",
+    phone: "(555) 222-4444",
+    email: "alex.rivera@email.com",
+    address: "700 Elm St, Springfield, IL 62707",
+    emergencyContact: { name: "Maria Rivera", phone: "(555) 555-7777", relation: "Mother" },
+    primaryCareProvider: "Dr. Karen Thompson, MD",
+    insurance: "Aetna HMO",
+    chiefComplaint: "Feeling overwhelmed, trouble sleeping, loss of interest in activities",
+    vitals: { bloodPressure: "122/78", heartRate: 80, temperature: 98.2, respiratoryRate: 16, oxygenSaturation: 99, recordedAt: "2026-07-06T13:00:00Z" },
+    medications: [
+      { id: "MED027", name: "Sertraline", dosage: "50 mg", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2026-04-01", prescribedBy: "Dr. Karen Thompson" },
+    ],
+    allergies: [],
+    labResults: [],
+    encounters: [{ id: "ENC018", date: "2026-07-06", type: "Office Visit - Follow Up", provider: "Dr. Karen Thompson, MD", diagnosis: "Generalized anxiety disorder (F41.1), Major depressive disorder, moderate (F32.1)", notes: "32yo M with worsening anxiety and depression. PHQ-9 score 18. Reports anhedonia, sleep disturbance, poor concentration. Continue sertraline 50mg. Increase to 100mg after 2 weeks. Referred to CBT.", department: "Psychiatry" }],
+    problems: ["Generalized anxiety disorder (F41.1)", "Major depressive disorder, moderate (F32.1)"],
+  },
+  {
+    id: "P013",
+    mrn: "MRN-2008",
+    firstName: "Beatrice",
+    lastName: "Okafor",
+    dateOfBirth: "1958-04-22",
+    age: 68,
+    gender: "Female",
+    phone: "(555) 333-5555",
+    email: "beatrice.okafor@email.com",
+    address: "800 Spruce Ave, Springfield, IL 62708",
+    emergencyContact: { name: "Chinwe Okafor", phone: "(555) 666-8888", relation: "Daughter" },
+    primaryCareProvider: "Dr. James Wilson, MD",
+    insurance: "Medicare Part B + Blue Cross Supplemental",
+    chiefComplaint: "Severe shortness of breath, wheezing, productive cough for 4 days",
+    vitals: { bloodPressure: "142/86", heartRate: 98, temperature: 100.4, respiratoryRate: 28, oxygenSaturation: 88, recordedAt: "2026-07-06T09:30:00Z" },
+    medications: [
+      { id: "MED028", name: "Tiotropium", dosage: "18 mcg", frequency: "Once daily", route: "Inhalation", status: "active", prescribedDate: "2025-11-01", prescribedBy: "Dr. James Wilson" },
+      { id: "MED029", name: "Fluticasone/Salmeterol", dosage: "250/50 mcg", frequency: "1 inhalation twice daily", route: "Inhalation", status: "active", prescribedDate: "2025-11-01", prescribedBy: "Dr. James Wilson" },
+      { id: "MED030", name: "Prednisone", dosage: "40 mg", frequency: "Once daily x 5 days", route: "Oral", status: "active", prescribedDate: "2026-07-06", prescribedBy: "Dr. James Wilson" },
+    ],
+    allergies: [{ id: "ALG011", allergen: "Penicillin", severity: "severe", reaction: "Anaphylaxis", recordedDate: "2010-05-10" }],
+    labResults: [
+      { id: "LAB023", testName: "ABG - pO2", value: "58", referenceRange: "80-100", unit: "mmHg", status: "critical", date: "2026-07-06" },
+      { id: "LAB024", testName: "Chest X-ray", value: "Hyperinflation, no consolidation", referenceRange: "Normal", unit: "", status: "abnormal", date: "2026-07-06" },
+    ],
+    encounters: [{ id: "ENC019", date: "2026-07-06", type: "Office Visit - Acute", provider: "Dr. James Wilson, MD", diagnosis: "COPD with acute exacerbation (J44.1)", notes: "68yo F with known COPD presents with 4-day worsening dyspnea, wheezing, purulent sputum. O2 sat 88% on RA. ABG shows hypoxemia. Started prednisone burst, antibiotics (doxycycline due to PCN allergy). Nebulizer treatments initiated.", department: "Pulmonary" }],
+    problems: ["COPD with acute exacerbation (J44.1)", "Chronic hypoxemic respiratory failure (J96.11)"],
+  },
+  {
+    id: "P014",
+    mrn: "MRN-2009",
+    firstName: "David",
+    lastName: "Kim",
+    dateOfBirth: "1991-07-30",
+    age: 35,
+    gender: "Male",
+    phone: "(555) 444-6666",
+    email: "david.kim@email.com",
+    address: "900 Maple Dr, Springfield, IL 62709",
+    emergencyContact: { name: "Eunice Kim", phone: "(555) 777-9999", relation: "Sister" },
+    primaryCareProvider: "Dr. Lisa Wong, MD",
+    insurance: "Cigna HMO",
+    chiefComplaint: "Severe right lower quadrant abdominal pain, nausea, fever for 12 hours",
+    vitals: { bloodPressure: "132/84", heartRate: 104, temperature: 101.2, respiratoryRate: 20, oxygenSaturation: 98, recordedAt: "2026-07-05T22:00:00Z" },
+    medications: [],
+    allergies: [{ id: "ALG012", allergen: "Codeine", severity: "moderate", reaction: "Nausea and vomiting", recordedDate: "2021-04-15" }],
+    labResults: [
+      { id: "LAB025", testName: "WBC Count", value: "15.2", referenceRange: "4.5-11.0", unit: "K/µL", status: "abnormal", date: "2026-07-05" },
+      { id: "LAB026", testName: "CT Abdomen/Pelvis", value: "Enlarged appendix 12mm with wall thickening and periappendiceal fat stranding", referenceRange: "Normal", unit: "", status: "abnormal", date: "2026-07-05" },
+    ],
+    encounters: [{ id: "ENC020", date: "2026-07-05", type: "Emergency - Abdominal Pain", provider: "Dr. James Wilson, MD", diagnosis: "Acute appendicitis with periappendicitis (K35.80)", notes: "35yo M with 12-hour history of RLQ pain, nausea, fever. WBC 15.2. CT confirms acute appendicitis. General surgery consulted. Planned for laparoscopic appendectomy (47562).", department: "Emergency/General Surgery" }],
+    problems: ["Acute appendicitis (K35.80)"],
+  },
+  {
+    id: "P015",
+    mrn: "MRN-2010",
+    firstName: "Fatima",
+    lastName: "Al-Rashid",
+    dateOfBirth: "1976-12-08",
+    age: 50,
+    gender: "Female",
+    phone: "(555) 555-8888",
+    email: "fatima.al-rashid@email.com",
+    address: "1000 Willow Ct, Springfield, IL 62710",
+    emergencyContact: { name: "Hassan Al-Rashid", phone: "(555) 888-0000", relation: "Spouse" },
+    primaryCareProvider: "Dr. Karen Thompson, MD",
+    insurance: "United Healthcare PPO",
+    chiefComplaint: "Found lump in right breast on self-exam 2 weeks ago",
+    vitals: { bloodPressure: "125/78", heartRate: 76, temperature: 98.4, respiratoryRate: 16, oxygenSaturation: 99, recordedAt: "2026-07-05T11:00:00Z" },
+    medications: [],
+    allergies: [],
+    labResults: [
+      { id: "LAB027", testName: "Diagnostic Mammogram + Ultrasound", value: "1.5cm spiculated mass, right breast, upper outer quadrant. BI-RADS 5", referenceRange: "BI-RADS 1-2", unit: "", status: "abnormal", date: "2026-07-03" },
+    ],
+    encounters: [{ id: "ENC021", date: "2026-07-05", type: "Office Visit - Diagnostic Results", provider: "Dr. Karen Thompson, MD", diagnosis: "Suspicious breast mass, right (N63.01)", notes: "50yo F with self-palpated right breast mass. Mammo/US shows BI-RADS 5 lesion. Discussed need for stereotactic core needle biopsy (19081). Patient agrees. Prior auth required. Will refer to surgical oncology.", department: "Breast Surgery/Oncology" }],
+    problems: ["Suspicious breast mass right (N63.01)", "Need for cancer screening (Z12.39)"],
+  },
 ];
 
 // ─── Context ───────────────────────────────────────────────────────
@@ -749,18 +1053,72 @@ interface PatientContextValue {
   patients: Patient[];
   getPatientById: (id: string) => Patient | undefined;
   getPatientByMrn: (mrn: string) => Patient | undefined;
+  caseStates: Record<string, CaseState>;
+  addAuditLog: (patientId: string, entry: AuditEntry) => void;
+  setQueueStage: (patientId: string, stage: QueueStage) => void;
+  setModifier25: (patientId: string, applied: boolean) => void;
+  setBillingStatus: (patientId: string, status: CaseState["billingStatus"]) => void;
+  setPaStatus: (patientId: string, status: CaseState["paStatus"]) => void;
+  setArStatus: (patientId: string, status: CaseState["arStatus"]) => void;
+  addRoutingNote: (patientId: string, note: RoutingNote) => void;
+  addFollowUp: (patientId: string, entry: FollowUpEntry) => void;
 }
+
+const DEFAULT_CASE = (patientId: string): CaseState => ({
+  patientId,
+  currentQueue: "QUEUE_REGISTRATION" as QueueStage,
+  auditLogs: [],
+  modifier25Applied: false,
+  billingStatus: "DRAFT",
+  paStatus: "NOT_REQUIRED",
+  arStatus: "NONE",
+  routingNotes: [],
+  followups: [],
+});
 
 const PatientContext = createContext<PatientContextValue | null>(null);
 
 export function PatientProvider({ children }: { children: ReactNode }) {
+  const [caseStates, setCaseStates] = useState<Record<string, CaseState>>({});
   const getPatientById = (id: string) => mockPatients.find((p) => p.id === id);
   const getPatientByMrn = (mrn: string) =>
     mockPatients.find((p) => p.mrn === mrn);
 
+  const updateCase = (patientId: string, updater: (cs: CaseState) => CaseState) => {
+    setCaseStates(prev => ({
+      ...prev,
+      [patientId]: updater(prev[patientId] || DEFAULT_CASE(patientId)),
+    }));
+  };
+
+  const addAuditLog = (patientId: string, entry: AuditEntry) => {
+    updateCase(patientId, cs => ({ ...cs, auditLogs: [...cs.auditLogs, entry] }));
+  };
+  const setQueueStage = (patientId: string, stage: QueueStage) => {
+    updateCase(patientId, cs => ({ ...cs, currentQueue: stage }));
+  };
+  const setModifier25 = (patientId: string, applied: boolean) => {
+    updateCase(patientId, cs => ({ ...cs, modifier25Applied: applied }));
+  };
+  const setBillingStatus = (patientId: string, status: CaseState["billingStatus"]) => {
+    updateCase(patientId, cs => ({ ...cs, billingStatus: status }));
+  };
+  const setPaStatus = (patientId: string, status: CaseState["paStatus"]) => {
+    updateCase(patientId, cs => ({ ...cs, paStatus: status }));
+  };
+  const setArStatus = (patientId: string, status: CaseState["arStatus"]) => {
+    updateCase(patientId, cs => ({ ...cs, arStatus: status }));
+  };
+  const addRoutingNote = (patientId: string, note: RoutingNote) => {
+    updateCase(patientId, cs => ({ ...cs, routingNotes: [...cs.routingNotes, note] }));
+  };
+  const addFollowUp = (patientId: string, entry: FollowUpEntry) => {
+    updateCase(patientId, cs => ({ ...cs, followups: [...cs.followups, entry] }));
+  };
+
   return (
     <PatientContext.Provider
-      value={{ patients: mockPatients, getPatientById, getPatientByMrn }}
+      value={{ patients: mockPatients, getPatientById, getPatientByMrn, caseStates, addAuditLog, setQueueStage, setModifier25, setBillingStatus, setPaStatus, setArStatus, addRoutingNote, addFollowUp }}
     >
       {children}
     </PatientContext.Provider>

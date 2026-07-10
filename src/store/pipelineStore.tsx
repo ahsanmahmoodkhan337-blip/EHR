@@ -2,7 +2,7 @@
  * Pipeline Store — RCM Pipeline State (React Context)
  *
  * Tracks the full RCM pipeline for each patient encounter through 5 stages:
- *   [Charted] → [Coded] → [Billed] → [Prior Auth] → [Paid/Denied/Reprocessed]
+ *   [Charted] → [Coded] → [Billed (Bill)] → [Prior Auth] → [Paid/Denied/Reprocessed]
  *
  * Roles: Scribe, Coder, Biller, Prior Auth, AR Voice Specialist
  *
@@ -81,6 +81,7 @@ interface PipelineContextValue {
   submitClaim: (claimData: Record<string, string>) => void;
   handleDenial: (denialCode: string) => void;
   submitPA: (paData: Record<string, string>) => void;
+  completePipeline: () => void;
   getRoleLabel: (role: Role) => string;
   // AR-specific
   deniedClaims: DeniedClaim[];
@@ -117,7 +118,7 @@ const ROLE_LABELS: Record<Role, string> = {
   "ar-voice": "AR Voice Specialist",
 };
 
-const STAGE_ORDER: Role[] = ["scribe", "coder", "biller", "prior-auth"];
+const STAGE_ORDER: Role[] = ["scribe", "coder", "prior-auth", "biller", "ar-voice"];
 
 // ─── Provider ──────────────────────────────────────────────────────
 
@@ -153,23 +154,34 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  // Auto-advance: Coder → Biller
+  // Auto-advance: Coder → Prior Auth (PA first)
   const submitToBilling = (icdCodes: string[], cptCodes: string[]) => {
     setPipeline((prev) => ({
       ...prev,
       icdCodes,
       cptCodes,
-      stage: "biller",
+      stage: "prior-auth",
       status: "coded",
     }));
   };
 
-  // Auto-advance: Biller → Prior Auth (or Paid/Denied)
+  // Auto-advance: Prior Auth → Biller
+  const submitPA = (paData: Record<string, string>) => {
+    setPipeline((prev) => ({
+      ...prev,
+      paData,
+      stage: "biller",
+      status: "paid",
+      denialInfo: null,
+    }));
+  };
+
+  // Auto-advance: Biller submits claim → AR Voice
   const submitClaim = (claimData: Record<string, string>) => {
     setPipeline((prev) => ({
       ...prev,
       claimData,
-      stage: "prior-auth",
+      stage: "ar-voice",
       status: "billed",
     }));
   };
@@ -196,13 +208,12 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Auto-advance: Prior Auth → complete (paid) or stays at prior-auth
-  const submitPA = (paData: Record<string, string>) => {
+  // Complete pipeline — called when all stages are done
+  const completePipeline = () => {
     setPipeline((prev) => ({
       ...prev,
-      paData,
+      stage: "complete",
       status: "paid",
-      denialInfo: null,
     }));
   };
 
@@ -274,6 +285,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         submitClaim,
         handleDenial,
         submitPA,
+        completePipeline,
         getRoleLabel,
         deniedClaims,
         arCalls,

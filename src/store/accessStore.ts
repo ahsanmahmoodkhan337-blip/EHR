@@ -10,6 +10,8 @@
 const ACCESS_REQUESTS_KEY = "hh_access_requests";
 const APPROVED_PHONES_KEY = "hh_approved_phones";
 const LOGGED_IN_PHONE_KEY = "hh_logged_in_phone";
+const SESSION_TIMEOUT_KEY = "hh_session_timeout";
+const SESSION_START_KEY = "hh_session_start";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -98,4 +100,51 @@ export function logout(): void {
 export function isLoggedIn(): boolean {
   const phone = getLoggedInPhone();
   return phone !== null && isPhoneApproved(phone);
+}
+
+// ─── Session Timeout ──────────────────────────────────────────────
+
+const SESSION_TIMEOUT_DEFAULT = 0; // 0 = no timeout
+
+export function getSessionTimeoutMinutes(): number {
+  try {
+    const raw = localStorage.getItem(SESSION_TIMEOUT_KEY);
+    return raw ? parseInt(raw, 10) : SESSION_TIMEOUT_DEFAULT;
+  } catch {
+    return SESSION_TIMEOUT_DEFAULT;
+  }
+}
+
+export function setSessionTimeoutMinutes(minutes: number): void {
+  localStorage.setItem(SESSION_TIMEOUT_KEY, minutes.toString());
+  // Reset session start when timeout is changed
+  if (minutes > 0) {
+    localStorage.setItem(SESSION_START_KEY, Date.now().toString());
+  } else {
+    localStorage.removeItem(SESSION_START_KEY);
+  }
+}
+
+export function setSessionStart(): void {
+  const timeout = getSessionTimeoutMinutes();
+  if (timeout > 0) {
+    localStorage.setItem(SESSION_START_KEY, Date.now().toString());
+  }
+}
+
+export function checkSessionExpired(): boolean {
+  const timeout = getSessionTimeoutMinutes();
+  if (timeout <= 0) return false; // No timeout configured
+
+  const startRaw = localStorage.getItem(SESSION_START_KEY);
+  if (!startRaw) return false;
+
+  const start = parseInt(startRaw, 10);
+  const elapsed = Date.now() - start;
+  return elapsed >= timeout * 60 * 1000;
+}
+
+export function clearSession(): void {
+  localStorage.removeItem(LOGGED_IN_PHONE_KEY);
+  localStorage.removeItem(SESSION_START_KEY);
 }

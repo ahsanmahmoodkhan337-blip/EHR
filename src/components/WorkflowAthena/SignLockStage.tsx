@@ -8,8 +8,9 @@
  * signature workflow, compliance checks, and locking in a later task.
  */
 
-import { Lock, Shield, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { Lock, Shield, AlertTriangle, CheckCircle2, Loader2, FileDown } from "lucide-react";
 import type { SoapNoteData } from "./AssessmentPlanStage";
+import { exportSOAPNotePDF } from "../../utils/pdfExport";
 
 interface SignLockStageProps {
   patientName?: string;
@@ -97,6 +98,27 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting }
               <Lock className="h-4 w-4" />
             )}
             {isSubmitting ? "Signing & Locking..." : "Sign & Lock Note"}
+          </button>
+          <button
+            onClick={() => {
+              if (!note) return;
+              exportSOAPNotePDF({
+                patientName: patientName || "Unknown Patient",
+                dob: "N/A",
+                mrn: "N/A",
+                date: new Date().toISOString().split("T")[0],
+                chiefComplaint: note.subjective?.split("\n")[0] || "N/A",
+                hpi: note.subjective || "N/A",
+                vitals: { bp: "N/A", hr: "N/A", temp: "N/A", rr: "N/A", o2: "N/A" },
+                exam: note.objective || "N/A",
+                assessment: note.assessment || "N/A",
+                plan: note.plan || "N/A",
+              });
+            }}
+            className="flex items-center gap-2 rounded-lg border border-blue-300 px-4 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+          >
+            <FileDown className="h-4 w-4" />
+            Download SOAP Note as PDF
           </button>
         </div>
         <p className="mt-2 text-xs text-slate-400">
