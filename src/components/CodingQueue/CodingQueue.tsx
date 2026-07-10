@@ -11,11 +11,12 @@
  */
 
 import { useState, useMemo } from "react";
-import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertCircle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, ExternalLink, Activity } from "lucide-react";
+import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertCircle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, ExternalLink, Activity, Star } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { ICD10_CODES, searchICD10, type ICD10Code } from "./icd10Data";
 import { CPT_CODES, searchCPT, type CPTCode } from "./cptData";
 import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
+import { scoreCoder, updateStageScore, getStudentName } from "../../utils/scoring";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ export function CodingQueue() {
 
   // Submission state
   const [submitted, setSubmitted] = useState(false);
+  const [codingScore, setCodingScore] = useState<number | null>(null);
   // PA auto-route interstitial
   const [showPAInterstitial, setShowPAInterstitial] = useState(false);
   const [hasPACodes, setHasPACodes] = useState(false);
@@ -197,6 +199,16 @@ export function CodingQueue() {
         selectedICDs.map((c) => c.code),
         selectedCPTs.map((c) => c.code)
       );
+      // Calculate coding score
+      const modifier25Applied = selectedCPTs.some(c => cptDataMap[c.code]?.modifiers.includes("25") ?? false);
+      const score = scoreCoder(
+        selectedICDs.map((c) => c.code),
+        selectedCPTs.map((c) => c.code),
+        modifier25Applied
+      );
+      setCodingScore(score);
+      updateStageScore(getStudentName(), "coder", score);
+
       // Check if any codes need Prior Authorization
       const paNeededCodes = Object.keys(PA_PROCEDURES);
       const detectedPA = selectedCPTs.some(c => paNeededCodes.includes(c.code));
@@ -771,6 +783,12 @@ export function CodingQueue() {
                 <p className="mt-2 text-sm text-slate-500">
                   The coded encounter has been sent to the Medical Biller for claim processing.
                 </p>
+                {codingScore !== null && (
+                  <div className="mt-2 flex items-center gap-1.5 text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5 text-xs">
+                    <Star className="h-3.5 w-3.5" />
+                    Coder Score: <strong>{codingScore}/25</strong>
+                  </div>
+                )}
                 <div className="mt-3 flex flex-wrap gap-3 justify-center">
                   <div className="rounded-lg bg-green-50 border border-green-200 p-2">
                     <p className="text-[10px] font-medium text-green-700">ICD-10 Codes ({selectedICDs.length})</p>

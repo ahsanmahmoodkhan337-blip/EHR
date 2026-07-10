@@ -13,11 +13,12 @@
  */
 
 import { useState } from "react";
-import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info, Route, FileDown } from "lucide-react";
+import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info, Route, FileDown, Star } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore, type RoutingNote } from "../../store/patientStore";
 import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";
 import { exportCMS1500PDF } from "../../utils/pdfExport";
+import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scoring";
 
 type BillingTab = "form" | "scrubber" | "denials" | "references";
 
@@ -30,6 +31,7 @@ export function BillingLedger() {
   const [payer, setPayer] = useState("Medicare");
   const [posCode, setPosCode] = useState("11");
   const [submitted, setSubmitted] = useState(false);
+  const [billingScore, setBillingScore] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<BillingTab>("form");
   const [needsPriorAuth, setNeedsPriorAuth] = useState(false);
   const [showRoutingModal, setShowRoutingModal] = useState(false);
@@ -56,6 +58,9 @@ export function BillingLedger() {
   const handleSubmit = () => {
     submitClaim({ payer, posCode, submittedAt: new Date().toISOString() });
     setSubmitted(true);
+    const score = scoreBiller(true, false, false);
+    setBillingScore(score);
+    updateStageScore(getStudentName(), "biller", score);
   };
 
   const simulateDenial = () => {
@@ -93,6 +98,12 @@ export function BillingLedger() {
                 ? ' This encounter may require Prior Authorization. Please proceed to the Prior Auth stage to verify.'
                 : ' No prior authorization is needed for this encounter. The claim has been processed.'}
             </p>
+            {billingScore !== null && (
+              <div className="mt-3 flex items-center justify-center gap-1.5 text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5 text-xs">
+                <Star className="h-3.5 w-3.5" />
+                Biller Score: <strong>{billingScore}/15</strong>
+              </div>
+            )}
             <div className="mt-6 flex justify-center gap-3">
               <button onClick={() => setSubmitted(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                 Back to Billing

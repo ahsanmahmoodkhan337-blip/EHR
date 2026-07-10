@@ -32,8 +32,10 @@ import {
   Play,
   Square,
   Volume2,
+  Star,
 } from "lucide-react";
 import { usePipeline, type DeniedClaim, type ARCallRecord } from "../../store/pipelineStore";
+import { scoreARVoice, updateStageScore, getStudentName } from "../../utils/scoring";
 import {
   INSURANCE_CARRIERS,
   APPEAL_TEMPLATES,
@@ -60,6 +62,7 @@ export default function ARVoiceSimulator() {
   const [selectedBucket, setSelectedBucket] = useState<string>("0-30");
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
   const [accentMode, setAccentMode] = useState(false);
+  const [arScore, setArScore] = useState<number | null>(null);
 
   // ── Speech Synthesis (American Accent Audio) ──
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -906,9 +909,18 @@ export default function ARVoiceSimulator() {
         )}
 
         {/* Complete Pipeline — marks all stages as done */}
+        {arScore !== null && (
+          <div className="mt-4 flex items-center justify-center gap-1.5 text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5 text-xs">
+            <Star className="h-3.5 w-3.5" />
+            AR Voice Score: <strong>{arScore}/5</strong>
+          </div>
+        )}
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => {
+              const score = scoreARVoice(true);
+              setArScore(score);
+              updateStageScore(getStudentName(), "arVoice", score);
               pipeline.completePipeline();
             }}
             className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 shadow-sm transition-colors"

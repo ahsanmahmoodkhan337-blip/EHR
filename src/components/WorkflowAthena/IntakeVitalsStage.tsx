@@ -71,6 +71,22 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
           // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [patient?.id]);
 
+        // Sync from parent's editableVitals when parent controls state
+        useEffect(() => {
+          if (editableVitals) {
+            const bp = editableVitals.bloodPressure.split("/");
+            setVitals(prev => ({
+              ...prev,
+              bloodPressureSystolic: parseInt(bp[0]) || prev.bloodPressureSystolic,
+              bloodPressureDiastolic: parseInt(bp[1]) || prev.bloodPressureDiastolic,
+              heartRate: parseInt(editableVitals.heartRate) || prev.heartRate,
+              temperature: parseFloat(editableVitals.temperature) || prev.temperature,
+              respiratoryRate: parseInt(editableVitals.respiratoryRate) || prev.respiratoryRate,
+              oxygenSaturation: parseInt(editableVitals.oxygenSaturation) || prev.oxygenSaturation,
+            }));
+          }
+        }, [editableVitals?.bloodPressure, editableVitals?.heartRate, editableVitals?.temperature, editableVitals?.respiratoryRate, editableVitals?.oxygenSaturation]);
+
         // Sync local -> parent on each keystroke (only when parent controls)
         const handleVitalChange = (key: string, value: number) => {
           setVitals(prev => {

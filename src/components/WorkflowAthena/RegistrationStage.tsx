@@ -10,7 +10,8 @@
  */
 
 import { useState } from "react";
-import { CreditCard, IdCard, AlertTriangle, CheckCircle2, XCircle, User, Calendar, Hash, Building } from "lucide-react";
+import { CreditCard, IdCard, AlertTriangle, CheckCircle2, XCircle, User, Calendar, Hash, Building, Star } from "lucide-react";
+import { scoreRegistration, updateStageScore, getStudentName } from "../../utils/scoring";
 
 export function RegistrationStage() {
   const [form, setForm] = useState({
@@ -40,8 +41,20 @@ export function RegistrationStage() {
     return Object.keys(errs).length === 0;
   };
 
+  const [registrationScore, setRegistrationScore] = useState<number | null>(null);
+
   const handleSubmit = () => {
     if (validate()) {
+      const score = scoreRegistration(
+        form.firstName,
+        form.lastName,
+        form.dob,
+        form.subscriberId,
+        form.groupNumber,
+        form.payerId
+      );
+      setRegistrationScore(score);
+      updateStageScore(getStudentName(), "registration", score);
       setSubmitted(true);
     }
   };
@@ -154,9 +167,20 @@ export function RegistrationStage() {
           </button>
         </div>
         {isComplete && (
-          <div className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-xs text-green-700">
-            <CheckCircle2 className="h-4 w-4" />
-            Patient identity and insurance verified successfully.
+          <div className="mt-3 flex flex-col gap-2 rounded-lg bg-green-50 p-3 text-xs text-green-700">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Patient identity and insurance verified successfully.
+            </div>
+            {registrationScore !== null && (
+              <div className="flex items-center gap-1.5 text-amber-700">
+                <Star className="h-3.5 w-3.5" />
+                Score: <strong>{registrationScore}/10</strong>
+                {registrationScore < 10 && (
+                  <span className="text-amber-500">— {registrationScore >= 5 ? "Good, but check the name mismatch!" : "Try again for a higher score"}</span>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
