@@ -1630,6 +1630,7 @@ function Home() {
                             Switch to Coder Role
                           </button>
                         </div>
+                        {/* NO CERTIFICATE HERE — Certificate only appears after full pipeline completion */}
                       </div>
                     )}
                   </div>

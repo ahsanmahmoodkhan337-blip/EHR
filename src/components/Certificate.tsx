@@ -27,9 +27,10 @@ const MODULE_ICONS: Record<string, string> = {
   "AR Voice": "📞",
 };
 
-export function Certificate({ studentName, completedModules, score, date }: CertificateProps) {
+export function Certificate({ studentName: propName, completedModules, score, date }: CertificateProps) {
   const [showCertificate, setShowCertificate] = useState(false);
-  const displayName = studentName || "Student";
+  const studentName = localStorage.getItem("hh_student_name") || propName || "Student";
+  const displayName = studentName;
   const displayDate = date || new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const displayScore = score ?? 92;
 
