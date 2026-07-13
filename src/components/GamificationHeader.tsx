@@ -10,7 +10,6 @@
 
 import { useState, useEffect } from "react";
 import { Zap, Star, Award, Medal, Trophy, ChevronDown, ChevronUp, Sparkles, CheckCircle2, Target, Flame } from "lucide-react";
-import { LeaderboardPanel } from "./LeaderboardPanel";
 
 const BADGES = [
   { id: "modifier-master", label: "Modifier Master", icon: <Award className="h-3.5 w-3.5" />, unlocked: false },
@@ -237,7 +236,6 @@ export function GamificationHeader({ xp = 0, streak = 0, level = 1 }: Gamificati
           <span>Leaderboard</span>
         </button>
       </div>
-    </div>
 
       {/* Leaderboard Panel */}
       <div id="leaderboard-panel" className="hidden">
