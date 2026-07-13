@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from "react";
 import { Zap, Star, Award, Medal, Trophy, ChevronDown, ChevronUp, Sparkles, CheckCircle2, Target, Flame } from "lucide-react";
+import { LeaderboardPanel } from "./LeaderboardPanel";
 
 const BADGES = [
   { id: "modifier-master", label: "Modifier Master", icon: <Award className="h-3.5 w-3.5" />, unlocked: false },
