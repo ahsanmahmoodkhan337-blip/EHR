@@ -1920,6 +1920,8 @@ function Home() {
             <WorkspacePanel id="note" activeWorkspace={activeWorkspace}>
               <ActiveProgressNote
                 patientName={selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : undefined}
+                soapNote={soapNote}
+                onNoteChange={setSoapNote}
               />
             </WorkspacePanel>
           </>

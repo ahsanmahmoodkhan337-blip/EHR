@@ -11,9 +11,12 @@
 
 import { useState } from "react";
 import { FileEdit, Save, Eye, History, CheckCircle2 } from "lucide-react";
+import { type SoapNoteData } from "../WorkflowAthena/AssessmentPlanStage";
 
 interface ActiveProgressNoteProps {
   patientName?: string;
+  soapNote?: SoapNoteData;
+  onNoteChange?: (note: SoapNoteData) => void;
 }
 
 interface SavedNote {
@@ -27,12 +30,48 @@ interface SavedNote {
   freeText: string;
 }
 
-export function ActiveProgressNote({ patientName }: ActiveProgressNoteProps) {
-  const [subjective, setSubjective] = useState("");
-  const [objective, setObjective] = useState("");
-  const [assessment, setAssessment] = useState("");
-  const [plan, setPlan] = useState("");
+export function ActiveProgressNote({ patientName, soapNote, onNoteChange }: ActiveProgressNoteProps) {
+  const [localSubjective, setLocalSubjective] = useState("");
+  const [localObjective, setLocalObjective] = useState("");
+  const [localAssessment, setLocalAssessment] = useState("");
+  const [localPlan, setLocalPlan] = useState("");
   const [freeText, setFreeText] = useState("");
+
+  // Use controlled props if provided, otherwise local state
+  const subjective = soapNote?.subjective ?? localSubjective;
+  const objective = soapNote?.objective ?? localObjective;
+  const assessment = soapNote?.assessment ?? localAssessment;
+  const plan = soapNote?.plan ?? localPlan;
+
+  const setSubjective = (v: string) => {
+    if (soapNote && onNoteChange) {
+      onNoteChange({ ...soapNote, subjective: v });
+    } else {
+      setLocalSubjective(v);
+    }
+  };
+  const setObjective = (v: string) => {
+    if (soapNote && onNoteChange) {
+      onNoteChange({ ...soapNote, objective: v });
+    } else {
+      setLocalObjective(v);
+    }
+  };
+  const setAssessment = (v: string) => {
+    if (soapNote && onNoteChange) {
+      onNoteChange({ ...soapNote, assessment: v });
+    } else {
+      setLocalAssessment(v);
+    }
+  };
+  const setPlan = (v: string) => {
+    if (soapNote && onNoteChange) {
+      onNoteChange({ ...soapNote, plan: v });
+    } else {
+      setLocalPlan(v);
+    }
+  };
+
   const [saved, setSaved] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [savedNotes, setSavedNotes] = useState<SavedNote[]>([]);
