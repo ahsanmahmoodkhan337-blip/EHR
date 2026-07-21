@@ -12,7 +12,7 @@
  * Inspiration: Epic Resolute Hospital Billing / AAPC CPB curriculum
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info, Route, FileDown, Star, Shield } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore, type RoutingNote } from "../../store/patientStore";
@@ -34,6 +34,14 @@ export function BillingLedger() {
   const [billingScore, setBillingScore] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<BillingTab>("form");
   const [needsPriorAuth, setNeedsPriorAuth] = useState(false);
+
+  // Auto-check the PA checkbox when PA records exist for this patient
+  useEffect(() => {
+    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || "P001"));
+    if (patientPaRecords.length > 0) {
+      setNeedsPriorAuth(true);
+    }
+  }, [paRecords, state.patientId]);
   const [showRoutingModal, setShowRoutingModal] = useState(false);
   const [routingMemo, setRoutingMemo] = useState("");
   const [isTransmitting, setIsTransmitting] = useState(false);
@@ -56,7 +64,9 @@ export function BillingLedger() {
   };
 
   const handleSubmit = () => {
-    if (needsPriorAuth) {
+    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || "P001"));
+    // Only redirect to PA if checkbox is ticked AND no PA has been submitted yet
+    if (needsPriorAuth && patientPaRecords.length === 0) {
       setRole("prior-auth");
       return;
     }
