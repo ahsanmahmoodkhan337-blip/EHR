@@ -186,8 +186,8 @@ export function BillingLedger() {
                 <FileDown className="h-4 w-4" />
                 Download CMS-1500 as PDF
               </button>
-              <button onClick={() => setRole("prior-auth")} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500">
-                Proceed to Prior Auth
+              <button onClick={() => setRole("ar-voice")} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500">
+                Proceed to AR Voice
               </button>
             </div>
           </div>
