@@ -1521,7 +1521,7 @@ function Home() {
                     setActiveStage("intake-vitals");
                     setDisplayName(name);
                     setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
-                    setEditableVitals({ bp: "", hr: "", temp: "", rr: "", o2: "" });
+                    setEditableVitals({ bloodPressure: "", heartRate: "", temperature: "", respiratoryRate: "", oxygenSaturation: "" });
                     setEditablePatientData({
                       chiefComplaint: apt?.notes || `Visit for: ${name} (${apt?.type || "New patient"})`,
                       problems: [],
