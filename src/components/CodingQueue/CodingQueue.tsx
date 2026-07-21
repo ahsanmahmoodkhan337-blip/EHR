@@ -239,10 +239,11 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
       // Enhanced PA detection — check multiple sources
       const paReasons: string[] = [];
 
-      // 1. Check CPT codes (existing)
-      const cptNeedsPA = selectedCPTs.some(c => Object.keys(PA_PROCEDURES).includes(c.code));
+      // 1. Check CPT codes — search inside each procedure's cptCodes array
+      const allPaCptCodes = Object.values(PA_PROCEDURES).flatMap(p => p.cptCodes);
+      const cptNeedsPA = selectedCPTs.some(c => allPaCptCodes.includes(c.code));
       if (cptNeedsPA) {
-        const paCpts = selectedCPTs.filter(c => Object.keys(PA_PROCEDURES).includes(c.code));
+        const paCpts = selectedCPTs.filter(c => allPaCptCodes.includes(c.code));
         paReasons.push(`CPT codes: ${paCpts.map(c => c.code).join(", ")}`);
       }
 
