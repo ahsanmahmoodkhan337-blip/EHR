@@ -52,6 +52,50 @@ export function BillingLedger() {
   // Claim scrubber state
   const [scrubResults, setScrubResults] = useState<{ check: string; pass: boolean; note: string }[] | null>(null);
 
+  // ── Editable CMS-1500 form field values ──
+  const genPolicyNum = () => "POL-" + Math.random().toString(36).slice(2, 10).toUpperCase();
+  const [cms1500, setCms1500] = useState<Record<string, string>>(() => ({
+    "1": payer,
+    "2": patient ? `${patient.firstName} ${patient.lastName}` : (state.patientId || ""),
+    "3": patient?.dob || "",
+    "4": "",
+    "5": patient?.address || "",
+    "6": "Self",
+    "9": "",
+    "11": genPolicyNum(),
+    "11c": patient?.insurance || "",
+    "14": new Date().toISOString().split("T")[0],
+    "17": "",
+    "17a": "",
+    "21": state.icdCodes.join(", "),
+    "23": "",
+    "24": state.cptCodes.join(", "),
+    "25": "XX-XXXXXXX",
+    "28": "",
+    "32": "Healthcare Hustlers Training Clinic",
+    "33": "Healthcare Hustlers EHR — Educational",
+  }));
+  const updateCmsField = (box: string, value: string) => setCms1500(prev => ({ ...prev, [box]: value }));
+
+  // Sync auto-fillable fields when patient/pipeline data changes
+  useEffect(() => {
+    setCms1500(prev => ({
+      ...prev,
+      "1": payer,
+      "2": patient ? `${patient.firstName} ${patient.lastName}` : prev["2"],
+      "3": patient?.dob || prev["3"],
+      "5": patient?.address || prev["5"],
+      "11c": patient?.insurance || prev["11c"],
+      "21": state.icdCodes.join(", "),
+      "24": state.cptCodes.join(", "),
+      "23": paRecords.filter(r => r.patientId === patientId).slice(-1)[0]?.id || prev["23"],
+    }));
+  }, [payer, patient, state.icdCodes, state.cptCodes, paRecords, patientId]);
+
+  const cmsEditableBlocks = CMS1500_BLOCKS.filter(b => 
+    ["1","2","3","4","5","6","9","11","11c","14","17","17a","21","23","24","25","28","32","33"].includes(b.box)
+  );
+
   const runScrubber = () => {
     const results = [
       { check: "ICD-10 code present", pass: state.icdCodes.length > 0, note: state.icdCodes.length > 0 ? `${state.icdCodes.length} code(s) found` : "No diagnosis codes entered" },
@@ -180,29 +224,50 @@ export function BillingLedger() {
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="h-4 w-4 text-violet-500" />
                   <span className="text-xs font-semibold text-slate-600">CMS-1500 Claim Form — Interactive Mockup</span>
-                  <span className="text-[10px] text-slate-400">(Click any box for details)</span>
+                  <span className="text-[10px] text-slate-400">(Fill each editable box below)</span>
                 </div>
 
-                {/* Form grid — key blocks */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {CMS1500_BLOCKS.slice(0, 12).map((block) => (
-                    <div
-                      key={block.box}
-                      className="group relative rounded-lg border border-slate-200 bg-white p-2 text-xs hover:border-violet-300 hover:bg-violet-50 transition-colors cursor-help"
-                    >
-                      <span className="font-mono text-[10px] text-violet-500 font-bold">Box {block.box}</span>
-                      <p className="mt-0.5 text-[10px] text-slate-600 truncate">{block.label}</p>
-                      {block.autoFilled && <span className="text-[8px] text-green-500">✓ auto-filled</span>}
-                      {/* Tooltip */}
-                      <div className="absolute left-0 top-full z-10 mt-1 hidden w-64 rounded-lg border border-slate-200 bg-white p-3 shadow-lg group-hover:block">
-                        <p className="text-[10px] font-semibold text-slate-700">Box {block.box}: {block.label}</p>
-                        <p className="mt-1 text-[10px] text-slate-500">{block.description}</p>
-                        {block.commonError && (
-                          <p className="mt-1 text-[9px] text-red-500">⚠️ {block.commonError}</p>
-                        )}
+                {/* Editable CMS-1500 Form Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {cmsEditableBlocks.map((block) => {
+                    const value = cms1500[block.box] || "";
+                    const isAutoFilled = block.autoFilled;
+                    return (
+                      <div key={block.box} className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-2.5 hover:border-violet-300 transition-colors">
+                        <span className="font-mono text-[10px] text-violet-500 font-bold min-w-[42px] pt-1">Box {block.box}</span>
+                        <div className="flex-1 min-w-0">
+                          <label className="text-[9px] text-slate-400 block truncate">{block.label}</label>
+                          {block.box === "1" ? (
+                            <select
+                              value={value}
+                              onChange={e => updateCmsField("1", e.target.value)}
+                              className="w-full rounded border border-slate-200 px-1.5 py-0.5 text-[10px] outline-none focus:border-violet-400 bg-white"
+                            >
+                              <option>Medicare</option><option>Medicaid</option><option>Blue Cross</option>
+                              <option>United Healthcare</option><option>Aetna</option><option>Cigna</option>
+                              <option>Other</option>
+                            </select>
+                          ) : (
+                            <input
+                              type={block.box === "3" || block.box === "14" ? "date" : "text"}
+                              value={block.box === "3" && value ? value : block.box === "14" ? value : value}
+                              onChange={e => updateCmsField(block.box, e.target.value)}
+                              readOnly={isAutoFilled}
+                              className={`w-full rounded border px-1.5 py-0.5 text-[10px] outline-none focus:border-violet-400 ${
+                                isAutoFilled ? "bg-slate-50 text-slate-500 border-slate-100 cursor-default" : "border-slate-200 bg-white"
+                              }`}
+                              placeholder={block.label}
+                            />
+                          )}
+                          {/* Tooltip */}
+                          <div className="mt-0.5 text-[8px] text-slate-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
+                            {block.description}
+                            {block.commonError && <span className="text-red-400 ml-1">⚠ {block.commonError}</span>}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Claim entry form */}
@@ -286,6 +351,24 @@ export function BillingLedger() {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3">
+                  <button onClick={() => {
+                    exportCMS1500PDF({
+                      patientName: cms1500["2"] || patient ? `${patient.firstName} ${patient.lastName}` : "Unknown",
+                      dob: cms1500["3"] || patient?.dob || "N/A",
+                      insurance: cms1500["11c"] || patient?.insurance || payer,
+                      diagnosisCodes: state?.icdCodes || [],
+                      procedureCodes: state?.cptCodes || [],
+                      charges: parseFloat(cms1500["28"]) || calcPayment().billed,
+                      status: "Draft — Pending Submission",
+                      payer: cms1500["1"] || payer,
+                      posCode,
+                      cmsFields: cms1500,
+                    });
+                  }}
+                    className="flex items-center gap-2 rounded-lg border border-violet-300 bg-violet-50 px-4 py-2.5 text-xs font-medium text-violet-700 hover:bg-violet-100"
+                  >
+                    <FileDown className="h-3.5 w-3.5" /> Download CMS-1500 Draft
+                  </button>
                   <button onClick={handleSubmit} className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-violet-500">
                     <Send className="h-3.5 w-3.5" /> Submit Claim (Path A — Paid)
                   </button>

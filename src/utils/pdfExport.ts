@@ -109,6 +109,7 @@ export function exportCMS1500PDF(claimData: {
   status: string;
   payer?: string;
   posCode?: string;
+  cmsFields?: Record<string, string>;
 }): void {
   const doc = new jsPDF();
   const margin = 14;
@@ -116,6 +117,7 @@ export function exportCMS1500PDF(claimData: {
   const lineH = 5;
   const pageW = doc.internal.pageSize.width;
   const col2 = 85;
+  const cf = claimData.cmsFields || {};
 
   addHeader(doc, "CMS-1500 Health Insurance Claim Form");
 
@@ -125,11 +127,14 @@ export function exportCMS1500PDF(claimData: {
   doc.text("Patient & Insurance Information", margin, y); y += lineH + 2;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`Patient Name: ${claimData.patientName}`, margin, y); y += lineH + 1;
-  doc.text(`Date of Birth: ${claimData.dob}`, margin, y); y += lineH + 1;
-  doc.text(`Insurance Provider: ${claimData.insurance}`, margin, y); y += lineH + 1;
-  if (claimData.payer) {
-    doc.text(`Payer: ${claimData.payer}`, margin, y); y += lineH + 1;
+  doc.text(`Patient Name: ${cf["2"] || claimData.patientName}`, margin, y); y += lineH + 1;
+  doc.text(`Date of Birth: ${cf["3"] || claimData.dob}`, margin, y); y += lineH + 1;
+  doc.text(`Insurance Provider: ${cf["11c"] || claimData.insurance}`, margin, y); y += lineH + 1;
+  if (claimData.payer || cf["1"]) {
+    doc.text(`Payer: ${cf["1"] || claimData.payer}`, margin, y); y += lineH + 1;
+  }
+  if (cf["4"]) {
+    doc.text(`Insured Name: ${cf["4"]}`, margin, y); y += lineH + 1;
   }
   if (claimData.posCode) {
     const posLabels: Record<string, string> = { "11": "Office", "21": "Inpatient Hospital", "22": "Outpatient Hospital", "23": "Emergency Room", "12": "Home" };
@@ -138,7 +143,7 @@ export function exportCMS1500PDF(claimData: {
   }
   y += 4;
 
-  // ── Diagnosis Codes with descriptions (if available from ICD data) ──
+  // ── Diagnosis Codes ──
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.text("Diagnosis Codes (ICD-10-CM)", margin, y); y += lineH + 1;
@@ -148,7 +153,7 @@ export function exportCMS1500PDF(claimData: {
     doc.text("None recorded", margin + 3, y); y += lineH;
   } else {
     claimData.diagnosisCodes.forEach((code, i) => {
-      const letter = String.fromCharCode(65 + i); // A, B, C, D...
+      const letter = String.fromCharCode(65 + i);
       doc.text(`${letter}. ${code}`, margin + 3, y);
       y += lineH;
     });
@@ -171,22 +176,30 @@ export function exportCMS1500PDF(claimData: {
   }
   y += 2;
 
-  // ── CMS-1500 Key Fields Table ──
+  // ── CMS-1500 Key Fields Table (including editable fields) ──
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.text("Key CMS-1500 Fields", margin, y); y += lineH + 2;
 
   doc.setFontSize(8);
   const fields: [string, string][] = [
-    ["Box 1 — Insurance Type", claimData.payer || claimData.insurance],
-    ["Box 2 — Patient Name", claimData.patientName],
-    ["Box 3 — Date of Birth", claimData.dob],
-    ["Box 11 — Insured's Policy Number", "MOCK-" + Math.random().toString(36).slice(2, 10).toUpperCase()],
-    ["Box 21 — Diagnosis Pointers", claimData.diagnosisCodes.map((_, i) => String.fromCharCode(65 + i)).join(", ") || "—"],
-    ["Box 24D — Procedure Codes", claimData.procedureCodes.join(", ") || "—"],
-    ["Box 24F — Total Charges", `${claimData.charges.toFixed(2)}`],
-    ["Box 32 — Service Facility", "Healthcare Hustlers Training Clinic"],
-    ["Box 33 — Billing Provider", "Healthcare Hustlers EHR — Educational"],
+    ["Box 1 — Insurance Type", cf["1"] || claimData.payer || claimData.insurance],
+    ["Box 2 — Patient Name", cf["2"] || claimData.patientName],
+    ["Box 3 — Patient DOB", cf["3"] || claimData.dob],
+    ["Box 4 — Insured Name", cf["4"] || "—"],
+    ["Box 6 — Relationship", cf["6"] || "Self"],
+    ["Box 11 — Policy Number", cf["11"] || "—"],
+    ["Box 11c — Insurance Plan", cf["11c"] || claimData.insurance],
+    ["Box 14 — Date of Illness", cf["14"] || "—"],
+    ["Box 17 — Referring Provider", cf["17"] || "—"],
+    ["Box 17a — Referring NPI", cf["17a"] || "—"],
+    ["Box 21 — Diagnosis Codes", cf["21"] || claimData.diagnosisCodes.join(", ")],
+    ["Box 23 — Prior Auth #", cf["23"] || "—"],
+    ["Box 24 — Procedure Codes", cf["24"] || claimData.procedureCodes.join(", ")],
+    ["Box 25 — Tax ID", cf["25"] || "XX-XXXXXXX"],
+    ["Box 28 — Total Charges", cf["28"] ? `${parseFloat(cf["28"]).toFixed(2)}` : `${claimData.charges.toFixed(2)}`],
+    ["Box 32 — Service Facility", cf["32"] || "Healthcare Hustlers Training Clinic"],
+    ["Box 33 — Billing Provider", cf["33"] || "Healthcare Hustlers EHR — Educational"],
   ];
 
   fields.forEach(([label, value]) => {
@@ -203,7 +216,10 @@ export function exportCMS1500PDF(claimData: {
   y += 4;
 
   // ── Billing Summary ──
-  const payment = calcCMS1500Payment(claimData.charges, claimData.payer);
+  const payment = calcCMS1500Payment(
+    cf["28"] ? parseFloat(cf["28"]) : claimData.charges,
+    cf["1"] || claimData.payer
+  );
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.text("Billing Summary", margin, y); y += lineH + 2;
@@ -211,7 +227,7 @@ export function exportCMS1500PDF(claimData: {
   doc.setFontSize(8);
 
   const summary: [string, string][] = [
-    ["Billed Amount", `${claimData.charges.toFixed(2)}`],
+    ["Billed Amount", `${payment.billed.toFixed(2)}`],
     ["Allowed Amount", `${payment.allowed.toFixed(2)}`],
     ["Paid Amount", `${payment.paid.toFixed(2)}`],
     ["Patient Responsibility", `${payment.patient.toFixed(2)}`],
