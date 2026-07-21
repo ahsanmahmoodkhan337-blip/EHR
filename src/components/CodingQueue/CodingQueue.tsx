@@ -128,6 +128,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
   const [showPAInterstitial, setShowPAInterstitial] = useState(false);
   const [hasPACodes, setHasPACodes] = useState(false);
   const [paTriggerReasons, setPaTriggerReasons] = useState<string[]>([]);
+  // Pending codes stored before PA interstitial decision
+  const [pendingIcdCodes, setPendingIcdCodes] = useState<string[]>([]);
+  const [pendingCptCodes, setPendingCptCodes] = useState<string[]>([]);
 
   // Code details panel (D3: Code Lookup)
   const [selectedCodeDetails, setSelectedCodeDetails] = useState<ICD10Code | CPTCode | null>(null);
@@ -224,17 +227,12 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
 
   const handleSubmitToBilling = () => {
     if (selectedICDs.length > 0 && selectedCPTs.length > 0) {
-      submitToBilling(
-        selectedICDs.map((c) => c.code),
-        selectedCPTs.map((c) => c.code)
-      );
+      const icdCodes = selectedICDs.map((c) => c.code);
+      const cptCodes = selectedCPTs.map((c) => c.code);
+
       // Calculate coding score
       const modifier25Applied = selectedCPTs.some(c => cptDataMap[c.code]?.modifiers.includes("25") ?? false);
-      const score = scoreCoder(
-        selectedICDs.map((c) => c.code),
-        selectedCPTs.map((c) => c.code),
-        modifier25Applied
-      );
+      const score = scoreCoder(icdCodes, cptCodes, modifier25Applied);
       setCodingScore(score);
       updateStageScore(getStudentName(), "coder", score);
 
@@ -275,12 +273,15 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
       const detectedPA = paReasons.length > 0;
       setHasPACodes(detectedPA);
       setPaTriggerReasons(paReasons);
+      setPendingIcdCodes(icdCodes);
+      setPendingCptCodes(cptCodes);
 
       if (detectedPA) {
-        // Show interstitial with reasons
+        // Show interstitial with reasons — don't submit yet
         setShowPAInterstitial(true);
       } else {
-        // No PA needed — submit and go to Biller
+        // No PA needed — submit and go to Biller directly
+        submitToBilling(icdCodes, cptCodes);
         setSubmitted(true);
         setRole("biller");
       }
@@ -288,12 +289,16 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
   };
 
   const handleConfirmPA = () => {
+    // Submit codes and route to Prior Auth
+    submitToBilling(pendingIcdCodes, pendingCptCodes);
     setSubmitted(true);
     setShowPAInterstitial(false);
     setRole("prior-auth");
   };
 
   const handleSkipPA = () => {
+    // Submit codes but skip PA — go directly to Biller
+    submitToBilling(pendingIcdCodes, pendingCptCodes);
     setSubmitted(true);
     setShowPAInterstitial(false);
     setRole("biller");
