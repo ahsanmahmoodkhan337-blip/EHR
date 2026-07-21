@@ -24,8 +24,9 @@ type BillingTab = "form" | "scrubber" | "denials" | "references";
 
 export function BillingLedger() {
   const { state, submitClaim, handleDenial, setRole, paRecords } = usePipeline();
-  const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog } = usePatientStore();
-  const patientId = state.encounterId || "P001";
+  const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
+  const patientId = state.encounterId || state.patientId || "P001";
+  const patient = getPatientById(patientId);
   const cs = caseStates[patientId];
 
   const [payer, setPayer] = useState("Medicare");
@@ -125,13 +126,15 @@ export function BillingLedger() {
               <button
                 onClick={() => {
                   exportCMS1500PDF({
-                    patientName: state?.patientId || "Unknown",
-                    dob: "N/A",
-                    insurance: state?.icdCodes?.join(", ") || "N/A",
+                    patientName: patient ? `${patient.firstName} ${patient.lastName}` : (state.patientId || "Unknown"),
+                    dob: patient?.dob || "N/A",
+                    insurance: patient?.insurance || payer,
                     diagnosisCodes: state?.icdCodes || [],
                     procedureCodes: state?.cptCodes || [],
-                    charges: 0,
+                    charges: calcPayment().billed,
                     status: "Submitted — Paid",
+                    payer,
+                    posCode,
                   });
                 }}
                 className="flex items-center gap-2 rounded-lg border border-purple-300 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors"

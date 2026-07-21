@@ -107,53 +107,139 @@ export function exportCMS1500PDF(claimData: {
   procedureCodes: string[];
   charges: number;
   status: string;
+  payer?: string;
+  posCode?: string;
 }): void {
   const doc = new jsPDF();
   const margin = 14;
   let y = 40;
-  const lineH = 5.5;
+  const lineH = 5;
   const pageW = doc.internal.pageSize.width;
+  const col2 = 85;
 
-  addHeader(doc, "CMS-1500 Claim Form");
+  addHeader(doc, "CMS-1500 Health Insurance Claim Form");
 
+  // ── Patient Demographics ──
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Patient & Insurance Information", margin, y); y += lineH + 2;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Patient Name: ${claimData.patientName}`, margin, y); y += lineH + 1;
+  doc.text(`Date of Birth: ${claimData.dob}`, margin, y); y += lineH + 1;
+  doc.text(`Insurance Provider: ${claimData.insurance}`, margin, y); y += lineH + 1;
+  if (claimData.payer) {
+    doc.text(`Payer: ${claimData.payer}`, margin, y); y += lineH + 1;
+  }
+  if (claimData.posCode) {
+    const posLabels: Record<string, string> = { "11": "Office", "21": "Inpatient Hospital", "22": "Outpatient Hospital", "23": "Emergency Room", "12": "Home" };
+    const posLabel = posLabels[claimData.posCode] || `Code ${claimData.posCode}`;
+    doc.text(`Place of Service: ${posLabel} (${claimData.posCode})`, margin, y); y += lineH + 1;
+  }
+  y += 4;
+
+  // ── Diagnosis Codes with descriptions (if available from ICD data) ──
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text("Patient & Insurance Information", margin, y); y += lineH + 1;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.text(`Patient: ${claimData.patientName}     DOB: ${claimData.dob}`, margin, y); y += lineH;
-  doc.text(`Insurance: ${claimData.insurance}`, margin, y); y += lineH + 3;
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("Diagnosis Codes (ICD-10)", margin, y); y += lineH;
+  doc.text("Diagnosis Codes (ICD-10-CM)", margin, y); y += lineH + 1;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  claimData.diagnosisCodes.forEach((code, i) => {
-    doc.text(`${i + 1}. ${code}`, margin + 5, y); y += lineH;
-  });
+  if (claimData.diagnosisCodes.length === 0) {
+    doc.text("None recorded", margin + 3, y); y += lineH;
+  } else {
+    claimData.diagnosisCodes.forEach((code, i) => {
+      const letter = String.fromCharCode(65 + i); // A, B, C, D...
+      doc.text(`${letter}. ${code}`, margin + 3, y);
+      y += lineH;
+    });
+  }
   y += 2;
 
+  // ── Procedure Codes ──
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("Procedure Codes (CPT)", margin, y); y += lineH;
+  doc.setFontSize(10);
+  doc.text("Procedure Codes (CPT / HCPCS)", margin, y); y += lineH + 1;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  claimData.procedureCodes.forEach((code, i) => {
-    doc.text(`${i + 1}. ${code}`, margin + 5, y); y += lineH;
-  });
+  if (claimData.procedureCodes.length === 0) {
+    doc.text("None recorded", margin + 3, y); y += lineH;
+  } else {
+    claimData.procedureCodes.forEach((code, i) => {
+      doc.text(`${i + 1}. ${code}`, margin + 3, y);
+      y += lineH;
+    });
+  }
   y += 2;
 
+  // ── CMS-1500 Key Fields Table ──
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("Billing Summary", margin, y); y += lineH + 1;
+  doc.setFontSize(10);
+  doc.text("Key CMS-1500 Fields", margin, y); y += lineH + 2;
+
+  doc.setFontSize(8);
+  const fields: [string, string][] = [
+    ["Box 1 — Insurance Type", claimData.payer || claimData.insurance],
+    ["Box 2 — Patient Name", claimData.patientName],
+    ["Box 3 — Date of Birth", claimData.dob],
+    ["Box 11 — Insured's Policy Number", "MOCK-" + Math.random().toString(36).slice(2, 10).toUpperCase()],
+    ["Box 21 — Diagnosis Pointers", claimData.diagnosisCodes.map((_, i) => String.fromCharCode(65 + i)).join(", ") || "—"],
+    ["Box 24D — Procedure Codes", claimData.procedureCodes.join(", ") || "—"],
+    ["Box 24F — Total Charges", `${claimData.charges.toFixed(2)}`],
+    ["Box 32 — Service Facility", "Healthcare Hustlers Training Clinic"],
+    ["Box 33 — Billing Provider", "Healthcare Hustlers EHR — Educational"],
+  ];
+
+  fields.forEach(([label, value]) => {
+    if (y > 265) { doc.addPage(); y = 40; addHeader(doc, "CMS-1500 (cont.)"); }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text(label, margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(value, col2, y);
+    y += lineH + 1;
+  });
+
+  y += 4;
+
+  // ── Billing Summary ──
+  const payment = calcCMS1500Payment(claimData.charges, claimData.payer);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("Billing Summary", margin, y); y += lineH + 2;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.text(`Total Charges: $${claimData.charges.toFixed(2)}`, margin, y); y += lineH;
-  doc.text(`Claim Status: ${claimData.status}`, margin, y);
+  doc.setFontSize(8);
+
+  const summary: [string, string][] = [
+    ["Billed Amount", `${claimData.charges.toFixed(2)}`],
+    ["Allowed Amount", `${payment.allowed.toFixed(2)}`],
+    ["Paid Amount", `${payment.paid.toFixed(2)}`],
+    ["Patient Responsibility", `${payment.patient.toFixed(2)}`],
+    ["Claim Status", claimData.status],
+    ["Generated", new Date().toLocaleDateString()],
+  ];
+  summary.forEach(([label, value]) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text(label, margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.text(value, col2, y);
+    y += lineH + 1;
+  });
 
   addFooter(doc, 1);
   doc.save(`CMS1500_${claimData.patientName.replace(/\s+/g, "_")}.pdf`);
+}
+
+/** Helper for CMS-1500 payment calculation */
+function calcCMS1500Payment(billed: number, payer?: string): { billed: number; allowed: number; paid: number; patient: number } {
+  const rates: Record<string, number> = { Medicare: 0.80, Medicaid: 0.65, "Blue Cross": 0.85, "United Healthcare": 0.82, Aetna: 0.83 };
+  const rate = rates[payer || ""] ?? 0.80;
+  const allowed = billed * rate;
+  const paid = allowed * 0.90;
+  const patient = allowed * 0.10;
+  return { billed, allowed, paid, patient };
 }
 
 /**
