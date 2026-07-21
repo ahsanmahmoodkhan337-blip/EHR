@@ -1489,7 +1489,16 @@ function Home() {
                 setAppointments={setAppointments}
                 onSelectPatient={(name) => {
                   saveCurrentSession();
-                  const match = patients.find(p => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase());
+                  // Try exact match first, then fuzzy (case-insensitive partial)
+                  let match = patients.find(p => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase());
+                  if (!match) {
+                    match = patients.find(p =>
+                      `${p.firstName} ${p.lastName}`.toLowerCase().includes(name.toLowerCase()) ||
+                      name.toLowerCase().includes(`${p.firstName} ${p.lastName}`.toLowerCase())
+                    );
+                  }
+                  const apt = appointments.find(a => a.patientName.toLowerCase() === name.toLowerCase());
+
                   if (match) {
                     setSelectedPatientId(match.id);
                     setRole("scribe");
@@ -1501,29 +1510,32 @@ function Home() {
                       chiefComplaint: match.chiefComplaint,
                     }));
                   } else {
-                    // For custom / new patients not in the mock database,
-                    // select the first patient and show the appointment name as chief complaint
-                    if (patients.length > 0) {
-                      setSelectedPatientId(patients[0].id);
-                      setRole("scribe");
-                      setActiveWorkspace("chart");
-                      setActiveStage("intake-vitals");
-                      setDisplayName(name);
-                      setEditablePatientData(prev => ({
-                        ...prev,
-                        chiefComplaint: `Visit for: ${name} — ${(() => {
-                          const apt = appointments.find(a => a.patientName.toLowerCase() === name.toLowerCase());
-                          return apt?.notes || apt?.type || "New patient appointment";
-                        })()}`,
-                        problems: [...prev.problems],
-                      }));
-                      // Show a brief toast notification
-                      const toast = document.createElement("div");
-                      toast.className = "fixed top-4 right-4 z-50 rounded-lg bg-sky-600 px-4 py-2 text-sm text-white shadow-lg animate-bounce";
-                      toast.textContent = `✓ Starting visit for ${name} — opened placeholder chart`;
-                      document.body.appendChild(toast);
-                      setTimeout(() => toast.remove(), 3000);
-                    }
+                    // Custom patient not in mock database — use apt data, clear stale session
+                    const fallbackId = patients[0]?.id || "P001";
+                    setSelectedPatientId(fallbackId);
+                    // Clear any cached session for this fallback patient to avoid stale data
+                    delete patientDataStore.current[fallbackId];
+                    setRole("scribe");
+                    setActiveWorkspace("chart");
+                    setActiveStage("intake-vitals");
+                    setDisplayName(name);
+                    setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
+                    setEditableVitals({ bp: "", hr: "", temp: "", rr: "", o2: "" });
+                    setEditablePatientData({
+                      chiefComplaint: apt?.notes || `Visit for: ${name} (${apt?.type || "New patient"})`,
+                      problems: [],
+                      medications: [],
+                      allergies: [],
+                      patientInstructions: "",
+                      followUpPlan: "",
+                    });
+                    setSharedImmunizations([]);
+                    setSharedLabs([]);
+                    setSharedReferrals([]);
+                    setSharedOrders([]);
+                    setSharedImaging([]);
+                    setCompletedStages([]);
+                    setSubmittedToCoding(false);
                   }
                 }} />
             </WorkspacePanel>
