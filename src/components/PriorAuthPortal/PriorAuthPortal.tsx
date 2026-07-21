@@ -241,7 +241,7 @@ export default function PriorAuthPortal() {
       authEndDate: paRecord.authEndDate,
     });
     setSubmitted(true);
-    setRole("biller");
+    // Don't auto-switch to Biller — let the user see the queue first
   };
 
   // Filtered queue
@@ -329,6 +329,28 @@ export default function PriorAuthPortal() {
         {/* ═══ TAB: QUEUE DASHBOARD with Alerts + Expandable Cards ═══ */}
         {activeTab === "queue" && (
           <div className="space-y-4">
+            {/* ── Submitted Success Banner ── */}
+            {submitted && (
+              <div className="rounded-xl border-2 border-green-300 bg-green-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-bold text-green-800">Prior Authorization Submitted Successfully!</p>
+                      <p className="text-xs text-green-600">Your PA has been added to the queue. You can view it below or proceed to billing.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setRole("biller")}
+                    className="flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-xs font-bold text-white hover:bg-green-500 transition-colors shadow-sm"
+                  >
+                    <ArrowRight className="h-3.5 w-3.5" />
+                    Proceed to Billing
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ── Alerts Dashboard ── */}
             {(alerts.expiringSoon.length > 0 || alerts.refillDue.length > 0 || alerts.infoRequired.length > 0 || alerts.overdueFollowup.length > 0) && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 shadow-sm">
