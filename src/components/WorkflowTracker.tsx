@@ -21,8 +21,8 @@ interface WorkflowTrackerProps {
 const STAGES = [
   { key: "charted" as const, label: "Charted", color: "blue" },
   { key: "coded" as const, label: "Coded", color: "indigo" },
-  { key: "billed" as const, label: "Billed", color: "violet" },
   { key: "priorAuth" as const, label: "Prior Auth", color: "purple" },
+  { key: "billed" as const, label: "Billed", color: "violet" },
 ];
 
 const COLOR_MAP: Record<string, { bg: string; text: string; ring: string; dot: string }> = {
@@ -39,13 +39,13 @@ export function WorkflowTracker({ encounterId }: WorkflowTrackerProps) {
   const isStageCompleted = (stageKey: string): boolean => {
     switch (stageKey) {
       case "charted":
-        return ["charted", "coded", "billed", "paid", "denied"].includes(state.status);
+        return ["charted", "coded", "paid", "denied"].includes(state.status);
       case "coded":
-        return ["coded", "billed", "paid", "denied"].includes(state.status);
+        return ["coded", "paid", "denied"].includes(state.status);
+      case "priorAuth":
+        return ["paid", "denied"].includes(state.status);
       case "billed":
         return ["billed", "paid", "denied"].includes(state.status);
-      case "priorAuth":
-        return state.status === "paid";
       default:
         return false;
     }
@@ -55,8 +55,8 @@ export function WorkflowTracker({ encounterId }: WorkflowTrackerProps) {
   const roleStageIndex: Record<string, number> = {
     scribe: 0,
     coder: 1,
-    biller: 2,
-    "prior-auth": 3,
+    "prior-auth": 2,
+    biller: 3,
     "ar-voice": 4,
   };
   const currentStageIndex = roleStageIndex[currentRole] ?? 0;
