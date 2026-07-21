@@ -13,7 +13,7 @@
  */
 
 import { useState } from "react";
-import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info, Route, FileDown, Star } from "lucide-react";
+import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info, Route, FileDown, Star, Shield } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore, type RoutingNote } from "../../store/patientStore";
 import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";
@@ -56,6 +56,10 @@ export function BillingLedger() {
   };
 
   const handleSubmit = () => {
+    if (needsPriorAuth) {
+      setRole("prior-auth");
+      return;
+    }
     submitClaim({ payer, posCode, submittedAt: new Date().toISOString() });
     setSubmitted(true);
     const score = scoreBiller(true, false, false);
@@ -247,8 +251,19 @@ export function BillingLedger() {
                     }
                     if (needsPriorAuth) {
                       return (
-                        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2">
-                          <p className="text-[10px] text-amber-700">⚠ Requires Prior Authorization. Complete Stage 4 before submitting.</p>
+                        <div className="mt-2 rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
+                          <p className="text-[11px] font-semibold text-amber-800 flex items-center gap-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Prior Authorization Required
+                          </p>
+                          <p className="mt-1 text-[10px] text-amber-700">You cannot submit this claim until Prior Authorization is completed. Go to Stage 4 to fill the PA form.</p>
+                          <button
+                            onClick={() => setRole("prior-auth")}
+                            className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-500 transition-colors"
+                          >
+                            <Shield className="h-3.5 w-3.5" />
+                            Go to Prior Auth Portal
+                          </button>
                         </div>
                       );
                     }
