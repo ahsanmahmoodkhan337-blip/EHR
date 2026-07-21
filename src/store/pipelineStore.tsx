@@ -18,6 +18,7 @@ export type Role = "scribe" | "coder" | "biller" | "prior-auth" | "ar-voice";
 
 export interface PipelineState {
   patientId: string | null;
+  displayName: string | null;  // override for custom/new patients from calendar
   stage: Role | "complete";
   status: "charted" | "coded" | "billed" | "paid" | "denied" | "reprocessed" | "pending";
   scribeNote: string;
@@ -95,6 +96,7 @@ interface PipelineContextValue {
   addPARecord: (record: PARecordStore) => void;
   updatePAStatus: (id: string, status: string) => void;
   resetEncounter: () => void;
+  setPatientDisplayName: (name: string | null) => void;
 }
 
 const PipelineContext = createContext<PipelineContextValue | null>(null);
@@ -126,6 +128,7 @@ const STAGE_ORDER: Role[] = ["scribe", "coder", "prior-auth", "biller", "ar-voic
 export function PipelineProvider({ children }: { children: ReactNode }) {
   const [pipeline, setPipeline] = useState<PipelineState>({
     patientId: null,
+    displayName: null,
     stage: "scribe",
     status: "pending",
     scribeNote: "",
@@ -145,10 +148,15 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     setCurrentRole(role);
   };
 
+  const setPatientDisplayName = (name: string | null) => {
+    setPipeline((prev) => ({ ...prev, displayName: name }));
+  };
+
   // Reset per-encounter data when switching patients
   const resetEncounter = () => {
     setPipeline((prev) => ({
       ...prev,
+      displayName: null,
       scribeNote: "",
       icdCodes: [],
       cptCodes: [],
@@ -313,6 +321,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         addPARecord,
         updatePAStatus,
         resetEncounter,
+        setPatientDisplayName,
       }}
     >
       {children}

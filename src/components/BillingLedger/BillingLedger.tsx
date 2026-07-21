@@ -56,7 +56,7 @@ export function BillingLedger() {
   const genPolicyNum = () => "POL-" + Math.random().toString(36).slice(2, 10).toUpperCase();
   const [cms1500, setCms1500] = useState<Record<string, string>>(() => ({
     "1": payer,
-    "2": patient ? `${patient.firstName} ${patient.lastName}` : (state.patientId || ""),
+    "2": state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : (state.patientId || "")),
     "3": patient?.dob || "",
     "4": "",
     "5": patient?.address || "",
@@ -84,7 +84,7 @@ export function BillingLedger() {
     setCms1500(prev => ({
       ...prev,
       "1": payer,
-      "2": patient ? `${patient.firstName} ${patient.lastName}` : prev["2"],
+      "2": state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : prev["2"]),
       "3": patient?.dob || prev["3"],
       "5": patient?.address || prev["5"],
       "11c": patient?.insurance || prev["11c"],
@@ -92,7 +92,7 @@ export function BillingLedger() {
       "24": state.cptCodes.join(", "),
       "23": paRecords.filter(r => r.patientId === patientId).slice(-1)[0]?.id || prev["23"],
     }));
-  }, [payer, patient, state.icdCodes, state.cptCodes, paRecords, patientId]);
+  }, [payer, patient, state.icdCodes, state.cptCodes, state.displayName, paRecords, patientId]);
 
   const cmsEditableBlocks = CMS1500_BLOCKS.filter(b => 
     ["1","2","3","4","5","6","9","11","11c","14","17","17a","21","22","22a","23","24","25","28","32","33"].includes(b.box)

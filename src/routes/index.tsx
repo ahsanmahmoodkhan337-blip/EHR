@@ -1088,7 +1088,7 @@ function Home() {
   const [selectedPatientId, setSelectedPatientId] = useState(patients[0]?.id ?? "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, paRecords, resetEncounter, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, setRole, paRecords, resetEncounter, setPatientDisplayName, state: pipelineState } = usePipeline();
   const { addToast } = useToast();
   const [activeStage, setActiveStage] = useState("registration");
   const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["registration"]));
@@ -1502,6 +1502,7 @@ function Home() {
 
                   if (match) {
                     setSelectedPatientId(match.id);
+                    setPatientDisplayName(null);
                     setRole("scribe");
                     setActiveWorkspace("chart");
                     setActiveStage("intake-vitals");
@@ -1514,6 +1515,7 @@ function Home() {
                     // Custom patient not in mock database — use apt data, clear stale session
                     const fallbackId = patients[0]?.id || "P001";
                     setSelectedPatientId(fallbackId);
+                    setPatientDisplayName(name);
                     // Clear any cached session for this fallback patient to avoid stale data
                     delete patientDataStore.current[fallbackId];
                     setRole("scribe");
