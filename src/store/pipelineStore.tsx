@@ -94,6 +94,7 @@ interface PipelineContextValue {
   paRecords: PARecordStore[];
   addPARecord: (record: PARecordStore) => void;
   updatePAStatus: (id: string, status: string) => void;
+  resetEncounter: () => void;
 }
 
 const PipelineContext = createContext<PipelineContextValue | null>(null);
@@ -142,6 +143,21 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   const setRole = (role: Role) => {
     setCurrentRole(role);
+  };
+
+  // Reset per-encounter data when switching patients
+  const resetEncounter = () => {
+    setPipeline((prev) => ({
+      ...prev,
+      scribeNote: "",
+      icdCodes: [],
+      cptCodes: [],
+      claimData: {},
+      denialInfo: null,
+      paData: {},
+      status: "pending",
+      stage: "scribe",
+    }));
   };
 
   // Auto-advance: Scribe → Coder
@@ -296,6 +312,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         paRecords,
         addPARecord,
         updatePAStatus,
+        resetEncounter,
       }}
     >
       {children}

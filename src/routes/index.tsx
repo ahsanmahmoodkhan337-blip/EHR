@@ -1088,7 +1088,7 @@ function Home() {
   const [selectedPatientId, setSelectedPatientId] = useState(patients[0]?.id ?? "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, paRecords, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, setRole, paRecords, resetEncounter, state: pipelineState } = usePipeline();
   const { addToast } = useToast();
   const [activeStage, setActiveStage] = useState("registration");
   const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["registration"]));
@@ -1362,7 +1362,7 @@ function Home() {
           <Header
             businessName={businessName}
             selectedPatientId={selectedPatientId}
-            onPatientSelect={(id) => { saveCurrentSession(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }}
+            onPatientSelect={(id) => { saveCurrentSession(); resetEncounter(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }}
             showRightPanel={showRightPanel}
             onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
             selectedPatientName={
@@ -1379,7 +1379,7 @@ function Home() {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { saveCurrentSession(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }} />
+            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { saveCurrentSession(); resetEncounter(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }} />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
@@ -1489,6 +1489,7 @@ function Home() {
                 setAppointments={setAppointments}
                 onSelectPatient={(name) => {
                   saveCurrentSession();
+                  resetEncounter(); // Clear codes from previous patient
                   // Try exact match first, then fuzzy (case-insensitive partial)
                   let match = patients.find(p => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase());
                   if (!match) {
