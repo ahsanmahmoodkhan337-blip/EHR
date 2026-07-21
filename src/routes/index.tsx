@@ -1535,7 +1535,7 @@ function Home() {
                     setSharedReferrals([]);
                     setSharedOrders([]);
                     setSharedImaging([]);
-                    setCompletedStages([]);
+                    setCompletedStages(new Set(["registration"]));
                     setSubmittedToCoding(false);
                   }
                 }} />
