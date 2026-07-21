@@ -11,7 +11,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertCircle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, ExternalLink, Activity, Star } from "lucide-react";
+import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertCircle, AlertTriangle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, ExternalLink, Activity, Star } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { ICD10_CODES, searchICD10, type ICD10Code } from "./icd10Data";
 import { CPT_CODES, searchCPT, type CPTCode } from "./cptData";
