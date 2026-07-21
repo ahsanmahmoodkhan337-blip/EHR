@@ -63,15 +63,25 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
         <h2 className="text-lg font-bold text-slate-800">
           {displayName || `${patient.firstName} ${patient.lastName}`}
         </h2>
-        <p className="text-sm text-slate-500">
-          {patient.gender} | {patient.age} yrs | DOB:{" "}
-          {new Date(patient.dateOfBirth).toLocaleDateString()}
-        </p>
-        <p className="text-xs text-slate-400">MRN: {patient.mrn}</p>
-        {patient.preferredName && (
-          <p className="text-xs text-blue-600">
-            Also known as: {patient.preferredName}
-          </p>
+        {displayName ? (
+          <div className="mt-1">
+            <span className="inline-block rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+              New Patient — Appointment Visit
+            </span>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-slate-500">
+              {patient.gender} | {patient.age} yrs | DOB:{" "}
+              {new Date(patient.dateOfBirth).toLocaleDateString()}
+            </p>
+            <p className="text-xs text-slate-400">MRN: {patient.mrn}</p>
+            {patient.preferredName && (
+              <p className="text-xs text-blue-600">
+                Also known as: {patient.preferredName}
+              </p>
+            )}
+          </>
         )}
       </div>
 
