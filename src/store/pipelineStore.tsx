@@ -165,13 +165,13 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  // Auto-advance: Prior Auth → Biller
+  // PA submission — don't change status; claim isn't submitted yet
   const submitPA = (paData: Record<string, string>) => {
     setPipeline((prev) => ({
       ...prev,
       paData,
       stage: "biller",
-      status: "paid",
+      // Keep existing status (typically "coded") — status = "paid" only after actual claim settlement
       denialInfo: null,
     }));
   };
