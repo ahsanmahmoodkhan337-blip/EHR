@@ -129,7 +129,7 @@ export default function PriorAuthPortal() {
   // Payer-specific requirements
   const payerInfo = PAYER_REQUIREMENTS[payer] || PAYER_REQUIREMENTS["Medicare"];
 
-  const isLocked = state.status !== "billed" && !submitted;
+  const isLocked = state.status !== "coded" && state.status !== "billed" && !submitted;
 
   // Get procedure data
   const procedureData = procedure ? PA_PROCEDURES[procedure as ProcedureKey] : null;
@@ -278,7 +278,7 @@ export default function PriorAuthPortal() {
       <div className="flex flex-1 flex-col items-center justify-center text-center p-6">
         <Shield className="mb-2 h-10 w-10 text-slate-300" />
         <p className="text-sm font-medium text-slate-400">Prior Authorization Portal</p>
-        <p className="mt-1 text-xs text-slate-300">Complete billing first to unlock this stage</p>
+        <p className="mt-1 text-xs text-slate-300">Complete medical coding first to unlock this stage</p>
       </div>
     );
   }
