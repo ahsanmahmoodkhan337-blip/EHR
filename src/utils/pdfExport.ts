@@ -194,6 +194,8 @@ export function exportCMS1500PDF(claimData: {
     ["Box 17 — Referring Provider", cf["17"] || "—"],
     ["Box 17a — Referring NPI", cf["17a"] || "—"],
     ["Box 21 — Diagnosis Codes", cf["21"] || claimData.diagnosisCodes.join(", ")],
+    ["Box 22 — Resubmission Code", cf["22"] ? (cf["22"] === "7" ? "7 — Corrected Claim" : "8 — Void Claim") : "—"],
+    ["Box 22a — Original Claim #", cf["22a"] || "—"],
     ["Box 23 — Prior Auth #", cf["23"] || "—"],
     ["Box 24 — Procedure Codes", cf["24"] || claimData.procedureCodes.join(", ")],
     ["Box 25 — Tax ID", cf["25"] || "XX-XXXXXXX"],

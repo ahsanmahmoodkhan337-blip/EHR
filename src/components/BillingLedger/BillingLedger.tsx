@@ -68,6 +68,8 @@ export function BillingLedger() {
     "17": "",
     "17a": "",
     "21": state.icdCodes.join(", "),
+    "22": "",
+    "22a": "",
     "23": "",
     "24": state.cptCodes.join(", "),
     "25": "XX-XXXXXXX",
@@ -93,7 +95,7 @@ export function BillingLedger() {
   }, [payer, patient, state.icdCodes, state.cptCodes, paRecords, patientId]);
 
   const cmsEditableBlocks = CMS1500_BLOCKS.filter(b => 
-    ["1","2","3","4","5","6","9","11","11c","14","17","17a","21","23","24","25","28","32","33"].includes(b.box)
+    ["1","2","3","4","5","6","9","11","11c","14","17","17a","21","22","22a","23","24","25","28","32","33"].includes(b.box)
   );
 
   const runScrubber = () => {
@@ -246,6 +248,16 @@ export function BillingLedger() {
                               <option>Medicare</option><option>Medicaid</option><option>Blue Cross</option>
                               <option>United Healthcare</option><option>Aetna</option><option>Cigna</option>
                               <option>Other</option>
+                            </select>
+                          ) : block.box === "22" ? (
+                            <select
+                              value={value}
+                              onChange={e => updateCmsField("22", e.target.value)}
+                              className="w-full rounded border border-slate-200 px-1.5 py-0.5 text-[10px] outline-none focus:border-violet-400 bg-white"
+                            >
+                              <option value="">— None —</option>
+                              <option value="7">7 — Replacement / Corrected Claim</option>
+                              <option value="8">8 — Void Prior Claim</option>
                             </select>
                           ) : (
                             <input
