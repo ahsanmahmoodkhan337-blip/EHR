@@ -1367,7 +1367,7 @@ function Home() {
             onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
             selectedPatientName={
               selectedPatient
-                ? `${selectedPatient.lastName}, ${selectedPatient.firstName}`
+                ? `${displayName || `${selectedPatient.lastName}, ${selectedPatient.firstName}`}`
                 : undefined
             }
             examMode={examMode}
@@ -1588,7 +1588,7 @@ function Home() {
                     )}
                     {activeStage === "hpi" && (
                       <HPIStage
-                        patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+                        patientName={displayName || `${selectedPatient.firstName} ${selectedPatient.lastName}`}
                         chiefComplaint={editablePatientData.chiefComplaint || selectedPatient.chiefComplaint}
                         note={soapNote}
                         onNoteChange={setSoapNote}
@@ -1596,21 +1596,21 @@ function Home() {
                     )}
                     {activeStage === "exam-ros" && (
                       <ExamROSStage
-                        patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+                        patientName={displayName || `${selectedPatient.firstName} ${selectedPatient.lastName}`}
                         note={soapNote}
                         onNoteChange={setSoapNote}
                       />
                     )}
                     {activeStage === "assessment-plan" && (
                       <AssessmentPlanStage
-                        patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+                        patientName={displayName || `${selectedPatient.firstName} ${selectedPatient.lastName}`}
                         note={soapNote}
                         onNoteChange={setSoapNote}
                       />
                     )}
                     {activeStage === "sign-lock" && !submittedToCoding && (
                       <SignLockStage
-                        patientName={`${selectedPatient.firstName} ${selectedPatient.lastName}`}
+                        patientName={displayName || `${selectedPatient.firstName} ${selectedPatient.lastName}`}
                         note={soapNote}
                         onSignAndLock={handleSignAndLock}
                         isSubmitting={isSubmittingNote}
@@ -1932,7 +1932,7 @@ function Home() {
             {/* ─── Active Progress Note ─── */}
             <WorkspacePanel id="note" activeWorkspace={activeWorkspace}>
               <ActiveProgressNote
-                patientName={selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : undefined}
+                patientName={displayName || (selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : undefined)}
                 soapNote={soapNote}
                 onNoteChange={setSoapNote}
               />
