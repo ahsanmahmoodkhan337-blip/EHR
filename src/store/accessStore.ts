@@ -81,6 +81,20 @@ export function addApprovedPhone(phone: string): void {
   }
 }
 
+export function revokeApprovedPhone(phone: string): void {
+  const phones = getApprovedPhones().filter(p => p !== phone);
+  localStorage.setItem(APPROVED_PHONES_KEY, JSON.stringify(phones));
+  // Also update the request status back to pending
+  const requests = getAccessRequests();
+  const idx = requests.findIndex(r => r.phone === phone && r.status === "approved");
+  if (idx >= 0) {
+    requests[idx].status = "pending";
+    delete requests[idx].subscriptionEndDate;
+    delete requests[idx].durationLabel;
+    localStorage.setItem(ACCESS_REQUESTS_KEY, JSON.stringify(requests));
+  }
+}
+
 export function isPhoneApproved(phone: string): boolean {
   return getApprovedPhones().includes(phone);
 }

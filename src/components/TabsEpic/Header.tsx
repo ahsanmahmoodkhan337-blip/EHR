@@ -13,8 +13,8 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { Building2, PanelRightClose, LogOut, Timer } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { Building2, PanelRightClose, LogOut, Timer, Home } from "lucide-react";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
 import { getLoggedInPhone, logout } from "../../store/accessStore";
 import { RoleSwitcher } from "../RoleSwitcher";
@@ -66,6 +66,9 @@ export function Header({
     <header className="header-nav sticky top-0 z-30 flex items-center justify-between gap-4 px-4 py-2 shadow-lg">
       {/* ─── Left: Brand ─── */}
       <div className="flex items-center gap-3 shrink-0">
+        <Link to="/" className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors" title="Home">
+          <Home className="h-4 w-4" />
+        </Link>
         <img
           src="/healthcarehustlers-logo.png"
           alt="Healthcare Hustlers"

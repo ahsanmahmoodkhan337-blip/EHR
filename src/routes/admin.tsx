@@ -38,6 +38,7 @@ import {
   getSubscriptionStatus,
   getDaysRemaining,
   calculateEndDate,
+  revokeApprovedPhone,
 } from "../store/accessStore";
 import {
   getAllPins,
@@ -107,6 +108,12 @@ function AdminPage() {
 
   const handleReject = (id: string) => {
     updateRequestStatus(id, "rejected");
+    setRefreshKey((k) => k + 1);
+  };
+
+  const handleRevoke = (phone: string) => {
+    revokeApprovedPhone(phone);
+    setApprovedPhones(getApprovedPhones());
     setRefreshKey((k) => k + 1);
   };
 
@@ -317,9 +324,18 @@ function AdminPage() {
                           <p className="text-xs text-white">{req.fullName}</p>
                           <p className="text-[10px] text-slate-400">{req.phone}</p>
                         </div>
-                        <div className="text-right">
-                          <p className={`text-[10px] font-medium ${statusColor}`}>{statusLabel}</p>
-                          {req.durationLabel && <p className="text-[9px] text-slate-500">{req.durationLabel}</p>}
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <p className={`text-[10px] font-medium ${statusColor}`}>{statusLabel}</p>
+                            {req.durationLabel && <p className="text-[9px] text-slate-500">{req.durationLabel}</p>}
+                          </div>
+                          <button
+                            onClick={() => handleRevoke(req.phone)}
+                            className="rounded bg-red-900/50 px-2 py-0.5 text-[9px] font-medium text-red-300 hover:bg-red-800 transition-colors"
+                            title="Revoke access"
+                          >
+                            Revoke
+                          </button>
                         </div>
                       </div>
                     </div>
