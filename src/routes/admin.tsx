@@ -112,7 +112,7 @@ function AdminPage() {
 
   const handleSavePin = (role: Role) => {
     if (editPinValue.length >= 4) {
-      updateStagePin(role, editPinValue);
+      setStagePin(role, editPinValue);
       setPins(getAllPins());
       setEditPinRole(null);
       setPinSaved(true);
