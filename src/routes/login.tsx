@@ -206,7 +206,8 @@ function LoginPage() {
                 <div className="relative">
                   <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
-                    type="tel"
+                    type="password"
+                    inputMode="numeric"
                     value={phone}
                     onChange={(e) => {
                       setPhone(e.target.value);

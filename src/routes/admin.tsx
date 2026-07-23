@@ -402,9 +402,17 @@ function AdminPage() {
                         className="w-20 rounded border border-sky-600 bg-slate-700 px-2 py-1 text-center text-xs text-white outline-none"
                         autoFocus
                       />
+                      {editPinValue.length > 0 && editPinValue.length < 4 && (
+                        <p className="text-[9px] text-amber-400 mt-0.5">Min 4 digits required</p>
+                      )}
                       <button
                         onClick={() => handleSavePin(role)}
-                        className="flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-[10px] font-medium text-white hover:bg-green-500"
+                        disabled={editPinValue.length < 4}
+                        className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium ${
+                          editPinValue.length >= 4
+                            ? "bg-green-600 text-white hover:bg-green-500"
+                            : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                        }`}
                       >
                         <Save className="h-3 w-3" /> Save
                       </button>
