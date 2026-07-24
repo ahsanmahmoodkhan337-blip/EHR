@@ -108,6 +108,11 @@ export async function saveAccessRequestAsync(request: AccessRequest): Promise<vo
     requests.push(request);
   }
   localStorage.setItem(ACCESS_REQUESTS_KEY, JSON.stringify(requests));
+
+  // Auto-add to approved phones if status is approved
+  if (request.status === "approved") {
+    addApprovedPhone(request.phone);
+  }
 }
 
 // Sync wrapper for backwards compatibility

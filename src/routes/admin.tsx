@@ -192,19 +192,22 @@ function AdminPage() {
             onClick={() => {
               const phone = prompt("Enter student phone number to manually add:");
               if (phone) {
+                const name = prompt("Enter student name:") || "Manual Entry";
                 const req: AccessRequest = {
                   id: `manual-${Date.now()}`,
-                  fullName: prompt("Enter student name:") || "Manual Entry",
+                  fullName: name,
                   phone: phone.trim(),
                   email: "",
                   paymentMethod: "easypaisa",
                   transactionId: "manual-" + Date.now(),
                   submittedAt: new Date().toISOString(),
-                  status: "pending",
+                  status: "approved",
+                  subscriptionEndDate: calculateEndDate("1 month"),
+                  durationLabel: "1 month",
                 };
                 saveAccessRequest(req);
                 setRefreshKey(k => k + 1);
-                alert(`Manual request added for ${req.fullName}`);
+                alert(`${name} added and approved for 1 month`);
               }
             }}
             className="flex items-center gap-1 rounded-lg bg-green-700 px-3 py-1.5 text-xs text-white hover:bg-green-600"
