@@ -72,11 +72,15 @@ function AdminPage() {
   const [durationModal, setDurationModal] = useState<{ id: string; duration: string } | null>(null);
   const [subscriptionDurations, setSubscriptionDurations] = useState<Record<string, string>>({});
 
-  // Load data from localStorage
+  // Load data — sync from Supabase first, then read localStorage cache
   useEffect(() => {
     if (authenticated) {
-      setRequests(getAccessRequests());
-      setApprovedPhones(getApprovedPhones());
+      import("../store/accessStore").then(m => {
+        m.syncFromSupabase().then(() => {
+          setRequests(getAccessRequests());
+          setApprovedPhones(getApprovedPhones());
+        });
+      });
       setPins(getAllPins());
       setEditPinRole(null);
       setPinSaved(false);
