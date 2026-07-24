@@ -23,7 +23,6 @@ import {
   getSubscriptionStatus,
   getDaysRemaining,
   getDurationLabel,
-  importAccessToken,
 } from "../store/accessStore";
 
 export const Route = createFileRoute("/login")({
@@ -210,26 +209,6 @@ function LoginPage() {
               >
                 Request Access & Enroll
               </Link>
-
-              {/* Import access from another device */}
-              <details className="mt-3">
-                <summary className="cursor-pointer text-[10px] text-slate-400 hover:text-slate-600">
-                  Import access from another device
-                </summary>
-                <div className="mt-2 flex gap-1">
-                  <input
-                    type="text"
-                    placeholder="Paste share key from admin..."
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.target as HTMLInputElement).value) {
-                        importAccessToken((e.target as HTMLInputElement).value);
-                        window.location.reload();
-                      }
-                    }}
-                    className="flex-1 rounded border border-slate-200 px-2 py-1 text-[10px] outline-none focus:border-sky-400"
-                  />
-                </div>
-              </details>
             </div>
           )}
 

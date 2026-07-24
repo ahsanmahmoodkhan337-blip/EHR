@@ -126,19 +126,9 @@ function AccessPage() {
           >
             Go to Login
           </Link>
-          <button
-            onClick={() => {
-              const token = (window as any).__lastRequestToken;
-              if (token) {
-                navigator.clipboard.writeText(token).then(() => {
-                  alert("Request token copied! Share this with the admin on WhatsApp so they can approve you from their device.");
-                });
-              }
-            }}
-            className="mt-3 ml-3 inline-block rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-100"
-          >
-            Copy Request Token (for Admin)
-          </button>
+          <p className="mt-3 text-xs text-slate-400">
+            After submitting, message your name and phone on WhatsApp at +92 335 0340888 so the admin can approve your access.
+          </p>
         </div>
       </div>
     );

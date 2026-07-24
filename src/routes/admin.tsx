@@ -27,7 +27,6 @@ import {
   Save,
   UserPlus,
   Trash2,
-  Copy,
 } from "lucide-react";
 import {
   getAccessRequests,
@@ -40,7 +39,6 @@ import {
   getDaysRemaining,
   calculateEndDate,
   revokeApprovedPhone,
-  getAccessToken,
   saveAccessRequest,
 } from "../store/accessStore";
 import {
@@ -193,37 +191,6 @@ function AdminPage() {
           </button>
           <button
             onClick={() => {
-              const token = getAccessToken();
-              navigator.clipboard.writeText(token).then(() => {
-                alert("Access key copied! Share this with students so they can login from any device.");
-              });
-            }}
-            className="flex items-center gap-1 rounded-lg bg-sky-700 px-3 py-1.5 text-xs text-white hover:bg-sky-600"
-          >
-            <Copy className="h-3 w-3" />
-            Copy Share Key
-          </button>
-          <button
-            onClick={() => {
-              const token = prompt("Paste the student's request token:");
-              if (token) {
-                try {
-                  const req = JSON.parse(atob(token));
-                  if (req.phone && req.fullName) {
-                    saveAccessRequest(req);
-                    setRefreshKey(k => k + 1);
-                    alert(`Request imported for ${req.fullName} (${req.phone})`);
-                  }
-                } catch { alert("Invalid request token"); }
-              }
-            }}
-            className="flex items-center gap-1 rounded-lg bg-amber-700 px-3 py-1.5 text-xs text-white hover:bg-amber-600"
-          >
-            <UserPlus className="h-3 w-3" />
-            Import Request
-          </button>
-          <button
-            onClick={() => {
               const phone = prompt("Enter student phone number to manually add:");
               if (phone) {
                 const req: AccessRequest = {
@@ -257,10 +224,6 @@ function AdminPage() {
       </header>
 
       <div className="mx-auto max-w-5xl p-4 py-6">
-        {/* Data notice */}
-        <div className="mb-4 rounded-lg border border-sky-700 bg-sky-900/30 p-3 text-[11px] text-sky-300">
-          Data is stored per-device in your browser. Registrations made on desktop won't appear on mobile (and vice versa). Use the same device to manage access.
-        </div>
         {/* Stats */}
         <div className="mb-6 grid grid-cols-3 gap-4">
           <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
