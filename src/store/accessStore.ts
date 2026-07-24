@@ -175,6 +175,24 @@ export function revokeApprovedPhone(phone: string): void {
     phones.splice(idx, 1);
     localStorage.setItem(APPROVED_PHONES_KEY, JSON.stringify(phones));
   }
+  // Also update Supabase — reset to pending
+  supabase
+    .from("access_requests")
+    .update({ status: "pending", subscription_end_date: null, duration_label: null })
+    .eq("phone", phone)
+    .eq("status", "approved")
+    .then(({ error }) => {
+      if (error) console.warn("Supabase revoke failed:", error.message);
+    });
+  // Update localStorage requests cache too
+  const requests = getAccessRequests();
+  const reqIdx = requests.findIndex(r => r.phone === phone && r.status === "approved");
+  if (reqIdx >= 0) {
+    requests[reqIdx].status = "pending";
+    requests[reqIdx].subscriptionEndDate = undefined;
+    requests[reqIdx].durationLabel = undefined;
+    localStorage.setItem(ACCESS_REQUESTS_KEY, JSON.stringify(requests));
+  }
 }
 
 export function isPhoneApproved(phone: string): boolean {
