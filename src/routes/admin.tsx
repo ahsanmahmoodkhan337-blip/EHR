@@ -41,6 +41,7 @@ import {
   calculateEndDate,
   revokeApprovedPhone,
   getAccessToken,
+  saveAccessRequest,
 } from "../store/accessStore";
 import {
   getAllPins,
@@ -201,6 +202,49 @@ function AdminPage() {
           >
             <Copy className="h-3 w-3" />
             Copy Share Key
+          </button>
+          <button
+            onClick={() => {
+              const token = prompt("Paste the student's request token:");
+              if (token) {
+                try {
+                  const req = JSON.parse(atob(token));
+                  if (req.phone && req.fullName) {
+                    saveAccessRequest(req);
+                    setRefreshKey(k => k + 1);
+                    alert(`Request imported for ${req.fullName} (${req.phone})`);
+                  }
+                } catch { alert("Invalid request token"); }
+              }
+            }}
+            className="flex items-center gap-1 rounded-lg bg-amber-700 px-3 py-1.5 text-xs text-white hover:bg-amber-600"
+          >
+            <UserPlus className="h-3 w-3" />
+            Import Request
+          </button>
+          <button
+            onClick={() => {
+              const phone = prompt("Enter student phone number to manually add:");
+              if (phone) {
+                const req: AccessRequest = {
+                  id: `manual-${Date.now()}`,
+                  fullName: prompt("Enter student name:") || "Manual Entry",
+                  phone: phone.trim(),
+                  email: "",
+                  paymentMethod: "easypaisa",
+                  transactionId: "manual-" + Date.now(),
+                  submittedAt: new Date().toISOString(),
+                  status: "pending",
+                };
+                saveAccessRequest(req);
+                setRefreshKey(k => k + 1);
+                alert(`Manual request added for ${req.fullName}`);
+              }
+            }}
+            className="flex items-center gap-1 rounded-lg bg-green-700 px-3 py-1.5 text-xs text-white hover:bg-green-600"
+          >
+            <UserPlus className="h-3 w-3" />
+            Manual Add
           </button>
           <button
             onClick={() => setAuthenticated(false)}

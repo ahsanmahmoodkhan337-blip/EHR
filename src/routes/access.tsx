@@ -102,6 +102,9 @@ function AccessPage() {
     };
 
     saveAccessRequest(request);
+    // Generate a cross-device shareable request token
+    const requestToken = btoa(JSON.stringify(request));
+    (window as any).__lastRequestToken = requestToken;
     setSubmitted(true);
   };
 
@@ -123,6 +126,19 @@ function AccessPage() {
           >
             Go to Login
           </Link>
+          <button
+            onClick={() => {
+              const token = (window as any).__lastRequestToken;
+              if (token) {
+                navigator.clipboard.writeText(token).then(() => {
+                  alert("Request token copied! Share this with the admin on WhatsApp so they can approve you from their device.");
+                });
+              }
+            }}
+            className="mt-3 ml-3 inline-block rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-100"
+          >
+            Copy Request Token (for Admin)
+          </button>
         </div>
       </div>
     );
@@ -289,6 +305,12 @@ function AccessPage() {
             {/* ─── Pricing Note ─── */}
             <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-700">
               <p className="font-medium">Note: 20$/ 5500 pkr provides access to whole RCM</p>
+            </div>
+
+            {/* ─── Device-Specific Disclaimer ─── */}
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+              <p className="font-medium">⚠ Important: Device-Specific Access</p>
+              <p className="mt-1">Your access is tied to the device you register from. To login from a different device (e.g., phone vs desktop), an admin must share an access key with you.</p>
             </div>
 
             {/* ─── WhatsApp Receipt Confirmation ─── */}
