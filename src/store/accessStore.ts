@@ -96,7 +96,28 @@ export function revokeApprovedPhone(phone: string): void {
 }
 
 export function isPhoneApproved(phone: string): boolean {
+  // Also check the hardcoded cross-device whitelist
+  if (CROSS_DEVICE_WHITELIST.includes(phone)) return true;
   return getApprovedPhones().includes(phone);
+}
+
+// ─── Cross-Device Whitelist ──────────────────────────────────────
+// Phones hardcoded here work on ALL devices (not just the approving device).
+// Add a phone to this array to grant access everywhere.
+const CROSS_DEVICE_WHITELIST: string[] = [];
+
+export function getAccessToken(): string {
+  const phones = [...new Set([...CROSS_DEVICE_WHITELIST, ...getApprovedPhones()])];
+  return btoa(JSON.stringify(phones));
+}
+
+export function importAccessToken(token: string): void {
+  try {
+    const phones: string[] = JSON.parse(atob(token));
+    if (Array.isArray(phones)) {
+      phones.forEach(p => addApprovedPhone(p));
+    }
+  } catch { /* invalid token */ }
 }
 
 // ─── Login Session ────────────────────────────────────────────────

@@ -27,6 +27,7 @@ import {
   Save,
   UserPlus,
   Trash2,
+  Copy,
 } from "lucide-react";
 import {
   getAccessRequests,
@@ -39,6 +40,7 @@ import {
   getDaysRemaining,
   calculateEndDate,
   revokeApprovedPhone,
+  getAccessToken,
 } from "../store/accessStore";
 import {
   getAllPins,
@@ -187,6 +189,18 @@ function AdminPage() {
           >
             <RefreshCw className="h-3 w-3" />
             Refresh
+          </button>
+          <button
+            onClick={() => {
+              const token = getAccessToken();
+              navigator.clipboard.writeText(token).then(() => {
+                alert("Access key copied! Share this with students so they can login from any device.");
+              });
+            }}
+            className="flex items-center gap-1 rounded-lg bg-sky-700 px-3 py-1.5 text-xs text-white hover:bg-sky-600"
+          >
+            <Copy className="h-3 w-3" />
+            Copy Share Key
           </button>
           <button
             onClick={() => setAuthenticated(false)}
