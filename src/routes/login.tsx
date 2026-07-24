@@ -173,6 +173,7 @@ function LoginPage() {
               <p className="mt-1 text-sm text-red-600">
                 {expiryWarning || "No account found for this phone number. Please submit an access request first."}
               </p>
+              <p className="mt-2 text-[10px] text-slate-400">Note: Access is device-specific. If you were approved on another device, register again on this device.</p>
               {!expiryWarning && (
                 <Link
                   to="/access"

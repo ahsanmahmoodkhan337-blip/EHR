@@ -199,6 +199,10 @@ function AdminPage() {
       </header>
 
       <div className="mx-auto max-w-5xl p-4 py-6">
+        {/* Data notice */}
+        <div className="mb-4 rounded-lg border border-sky-700 bg-sky-900/30 p-3 text-[11px] text-sky-300">
+          Data is stored per-device in your browser. Registrations made on desktop won't appear on mobile (and vice versa). Use the same device to manage access.
+        </div>
         {/* Stats */}
         <div className="mb-6 grid grid-cols-3 gap-4">
           <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
