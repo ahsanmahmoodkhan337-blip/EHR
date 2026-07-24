@@ -1,11 +1,13 @@
 /**
- * Access Store — localStorage-based access control utilities
+ * Access Store — Supabase-backed access control with localStorage cache
  *
- * Manages student access requests, approved phone numbers,
- * and login sessions using localStorage. This is a temporary
- * store for the educational prototype — production would use
- * a real database.
+ * Primary data is stored in Supabase for cross-device sync.
+ * localStorage serves as a fast read cache and fallback.
+ * On app load, data is synced from Supabase to localStorage.
+ * On write, Supabase is updated first, then localStorage cache.
  */
+
+import { supabase } from "./supabase";
 
 const ACCESS_REQUESTS_KEY = "hh_access_requests";
 const APPROVED_PHONES_KEY = "hh_approved_phones";
@@ -24,11 +26,52 @@ export interface AccessRequest {
   transactionId: string;
   submittedAt: string;
   status: "pending" | "approved" | "rejected";
-  subscriptionEndDate?: string; // ISO date string
-  durationLabel?: string; // "1 month", "3 months", "6 months", "1 year", "Custom"
+  subscriptionEndDate?: string;
+  durationLabel?: string;
 }
 
-// ─── Access Requests ──────────────────────────────────────────────
+// ─── Supabase ↔ localStorage sync ──────────────────────────────────
+
+// Sync all requests from Supabase to localStorage cache
+export async function syncFromSupabase(): Promise<void> {
+  try {
+    const { data, error } = await supabase
+      .from("access_requests")
+      .select("*")
+      .order("submitted_at", { ascending: false });
+
+    if (error) {
+      console.warn("Supabase sync failed, using localStorage cache:", error.message);
+      return;
+    }
+
+    if (data) {
+      const mapped: AccessRequest[] = data.map((r: any) => ({
+        id: r.id,
+        fullName: r.full_name,
+        phone: r.phone,
+        email: r.email,
+        paymentMethod: r.payment_method,
+        transactionId: r.transaction_id,
+        submittedAt: r.submitted_at,
+        status: r.status,
+        subscriptionEndDate: r.subscription_end_date,
+        durationLabel: r.duration_label,
+      }));
+      localStorage.setItem(ACCESS_REQUESTS_KEY, JSON.stringify(mapped));
+
+      // Also sync approved phones
+      const approved = mapped
+        .filter((r) => r.status === "approved")
+        .map((r) => r.phone);
+      localStorage.setItem(APPROVED_PHONES_KEY, JSON.stringify([...new Set(approved)]));
+    }
+  } catch (e) {
+    console.warn("Supabase sync error, using localStorage cache:", e);
+  }
+}
+
+// ─── Access Requests (sync — reads from localStorage cache) ─────────
 
 export function getAccessRequests(): AccessRequest[] {
   try {
@@ -39,27 +82,71 @@ export function getAccessRequests(): AccessRequest[] {
   }
 }
 
-export function saveAccessRequest(request: AccessRequest): void {
+// ─── Save (async — writes to Supabase + localStorage) ──────────────
+
+export async function saveAccessRequestAsync(request: AccessRequest): Promise<void> {
+  // Write to Supabase
+  await supabase.from("access_requests").upsert({
+    id: request.id,
+    full_name: request.fullName,
+    phone: request.phone,
+    email: request.email,
+    payment_method: request.paymentMethod,
+    transaction_id: request.transactionId,
+    submitted_at: request.submittedAt,
+    status: request.status,
+    subscription_end_date: request.subscriptionEndDate || null,
+    duration_label: request.durationLabel || null,
+  });
+
+  // Update localStorage cache
   const requests = getAccessRequests();
-  requests.push(request);
+  const idx = requests.findIndex((r) => r.id === request.id);
+  if (idx >= 0) {
+    requests[idx] = request;
+  } else {
+    requests.push(request);
+  }
   localStorage.setItem(ACCESS_REQUESTS_KEY, JSON.stringify(requests));
 }
 
-export function updateRequestStatus(
+// Sync wrapper for backwards compatibility
+export function saveAccessRequest(request: AccessRequest): void {
+  saveAccessRequestAsync(request).catch((e) =>
+    console.warn("Supabase write failed, using localStorage only:", e)
+  );
+}
+
+// ─── Status Updates ────────────────────────────────────────────────
+
+export async function updateRequestStatusAsync(
   id: string,
   status: "approved" | "rejected"
-): void {
+): Promise<void> {
+  await supabase
+    .from("access_requests")
+    .update({ status })
+    .eq("id", id);
+
   const requests = getAccessRequests();
   const idx = requests.findIndex((r) => r.id === id);
   if (idx >= 0) {
     requests[idx].status = status;
     localStorage.setItem(ACCESS_REQUESTS_KEY, JSON.stringify(requests));
 
-    // If approved, add phone to approved list
     if (status === "approved") {
       addApprovedPhone(requests[idx].phone);
     }
   }
+}
+
+export function updateRequestStatus(
+  id: string,
+  status: "approved" | "rejected"
+): void {
+  updateRequestStatusAsync(id, status).catch((e) =>
+    console.warn("Supabase status update failed:", e)
+  );
 }
 
 // ─── Approved Phones ──────────────────────────────────────────────
@@ -82,42 +169,16 @@ export function addApprovedPhone(phone: string): void {
 }
 
 export function revokeApprovedPhone(phone: string): void {
-  const phones = getApprovedPhones().filter(p => p !== phone);
-  localStorage.setItem(APPROVED_PHONES_KEY, JSON.stringify(phones));
-  // Also update the request status back to pending
-  const requests = getAccessRequests();
-  const idx = requests.findIndex(r => r.phone === phone && r.status === "approved");
+  const phones = getApprovedPhones();
+  const idx = phones.indexOf(phone);
   if (idx >= 0) {
-    requests[idx].status = "pending";
-    delete requests[idx].subscriptionEndDate;
-    delete requests[idx].durationLabel;
-    localStorage.setItem(ACCESS_REQUESTS_KEY, JSON.stringify(requests));
+    phones.splice(idx, 1);
+    localStorage.setItem(APPROVED_PHONES_KEY, JSON.stringify(phones));
   }
 }
 
 export function isPhoneApproved(phone: string): boolean {
-  // Also check the hardcoded cross-device whitelist
-  if (CROSS_DEVICE_WHITELIST.includes(phone)) return true;
   return getApprovedPhones().includes(phone);
-}
-
-// ─── Cross-Device Whitelist ──────────────────────────────────────
-// Phones hardcoded here work on ALL devices (not just the approving device).
-// Add a phone to this array to grant access everywhere.
-const CROSS_DEVICE_WHITELIST: string[] = [];
-
-export function getAccessToken(): string {
-  const phones = [...new Set([...CROSS_DEVICE_WHITELIST, ...getApprovedPhones()])];
-  return btoa(JSON.stringify(phones));
-}
-
-export function importAccessToken(token: string): void {
-  try {
-    const phones: string[] = JSON.parse(atob(token));
-    if (Array.isArray(phones)) {
-      phones.forEach(p => addApprovedPhone(p));
-    }
-  } catch { /* invalid token */ }
 }
 
 // ─── Login Session ────────────────────────────────────────────────
@@ -141,7 +202,7 @@ export function isLoggedIn(): boolean {
 
 // ─── Session Timeout ──────────────────────────────────────────────
 
-const SESSION_TIMEOUT_DEFAULT = 0; // 0 = no timeout
+const SESSION_TIMEOUT_DEFAULT = 0;
 
 export function getSessionTimeoutMinutes(): number {
   try {
@@ -154,7 +215,6 @@ export function getSessionTimeoutMinutes(): number {
 
 export function setSessionTimeoutMinutes(minutes: number): void {
   localStorage.setItem(SESSION_TIMEOUT_KEY, minutes.toString());
-  // Reset session start when timeout is changed
   if (minutes > 0) {
     localStorage.setItem(SESSION_START_KEY, Date.now().toString());
   } else {
@@ -171,11 +231,9 @@ export function setSessionStart(): void {
 
 export function checkSessionExpired(): boolean {
   const timeout = getSessionTimeoutMinutes();
-  if (timeout <= 0) return false; // No timeout configured
-
+  if (timeout <= 0) return false;
   const startRaw = localStorage.getItem(SESSION_START_KEY);
   if (!startRaw) return false;
-
   const start = parseInt(startRaw, 10);
   const elapsed = Date.now() - start;
   return elapsed >= timeout * 60 * 1000;
@@ -186,7 +244,7 @@ export function clearSession(): void {
   localStorage.removeItem(SESSION_START_KEY);
 }
 
-// ─── Subscription Expiry ────────────────────────────────────────────
+// ─── Subscription Expiry ──────────────────────────────────────────
 
 export function getSubscriptionEndDate(phone: string): string | null {
   const requests = getAccessRequests();
@@ -202,7 +260,7 @@ export function getDurationLabel(phone: string): string | null {
 
 export function getDaysRemaining(phone: string): number {
   const endDateStr = getSubscriptionEndDate(phone);
-  if (!endDateStr) return Infinity; // No expiry = unlimited
+  if (!endDateStr) return Infinity;
   const endDate = new Date(endDateStr);
   const now = new Date();
   const diffMs = endDate.getTime() - now.getTime();
@@ -211,7 +269,7 @@ export function getDaysRemaining(phone: string): number {
 
 export function isSubscriptionExpired(phone: string): boolean {
   const days = getDaysRemaining(phone);
-  if (days === Infinity) return false; // No expiry set
+  if (days === Infinity) return false;
   return days <= 0;
 }
 
@@ -230,7 +288,7 @@ export function calculateEndDate(durationLabel: string): string {
     case "3 months": now.setMonth(now.getMonth() + 3); break;
     case "6 months": now.setMonth(now.getMonth() + 6); break;
     case "1 year": now.setFullYear(now.getFullYear() + 1); break;
-    default: now.setMonth(now.getMonth() + 1); // Default to 1 month
+    default: now.setMonth(now.getMonth() + 1);
   }
   return now.toISOString();
 }

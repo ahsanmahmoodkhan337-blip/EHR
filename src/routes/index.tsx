@@ -1247,6 +1247,8 @@ function Home() {
     setCheckingAuth(false);
     // Record session start time for timeout tracking
     setSessionStart();
+    // Sync access data from Supabase to localStorage
+    import("../store/accessStore").then(m => m.syncFromSupabase());
   }, []);
 
   // Exam mode timer
