@@ -121,11 +121,21 @@ export function saveAccessRequest(request: AccessRequest): void {
 
 export async function updateRequestStatusAsync(
   id: string,
-  status: "approved" | "rejected"
+  status: "approved" | "rejected",
+  extra?: { subscriptionEndDate?: string; durationLabel?: string }
 ): Promise<void> {
+  const updates: Record<string, any> = { status };
+  if (extra?.subscriptionEndDate) updates.subscription_end_date = extra.subscriptionEndDate;
+  if (extra?.durationLabel) updates.duration_label = extra.durationLabel;
+  if (status === "approved" && !extra?.subscriptionEndDate) {
+    // Default: 1 month if no duration specified
+    updates.subscription_end_date = calculateEndDate("1 month");
+    updates.duration_label = "1 month";
+  }
+
   await supabase
     .from("access_requests")
-    .update({ status })
+    .update(updates)
     .eq("id", id);
 
   const requests = getAccessRequests();
@@ -142,9 +152,10 @@ export async function updateRequestStatusAsync(
 
 export function updateRequestStatus(
   id: string,
-  status: "approved" | "rejected"
+  status: "approved" | "rejected",
+  extra?: { subscriptionEndDate?: string; durationLabel?: string }
 ): void {
-  updateRequestStatusAsync(id, status).catch((e) =>
+  updateRequestStatusAsync(id, status, extra).catch((e) =>
     console.warn("Supabase status update failed:", e)
   );
 }

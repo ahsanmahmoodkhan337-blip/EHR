@@ -97,16 +97,11 @@ function AdminPage() {
   };
 
   const handleApprove = (id: string, duration: string) => {
-    // Calculate end date and store it
     const endDate = calculateEndDate(duration);
-    const requests = getAccessRequests();
-    const idx = requests.findIndex((r) => r.id === id);
-    if (idx >= 0) {
-      requests[idx].subscriptionEndDate = endDate;
-      requests[idx].durationLabel = duration;
-      localStorage.setItem("hh_access_requests", JSON.stringify(requests));
-    }
-    updateRequestStatus(id, "approved");
+    updateRequestStatus(id, "approved", {
+      subscriptionEndDate: endDate,
+      durationLabel: duration,
+    });
     setDurationModal(null);
     setRefreshKey((k) => k + 1);
   };
