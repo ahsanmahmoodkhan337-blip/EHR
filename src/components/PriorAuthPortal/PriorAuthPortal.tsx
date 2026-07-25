@@ -82,7 +82,7 @@ export default function PriorAuthPortal() {
   const { getPatientById } = usePatientStore();
 
   // Get the first patient from the pipeline state or the first mock patient
-  const patientId = state.patientId || "P001";
+  const patientId = state.patientId || "";
   const patient = getPatientById(patientId);
 
   // Active tab
@@ -212,7 +212,7 @@ export default function PriorAuthPortal() {
   const handleSubmit = () => {
     const paRecord = {
       id: `PA-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      patientId: patient?.id || "P001",
+      patientId: patient?.id || "",
       procedure: procedure ? PA_PROCEDURES[procedure as ProcedureKey]?.label || procedure : "General consultation",
       insuranceName: patient?.insurance || payer,
       paProcessor: "",

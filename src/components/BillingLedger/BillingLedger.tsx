@@ -25,7 +25,7 @@ type BillingTab = "form" | "scrubber" | "denials" | "references";
 export function BillingLedger() {
   const { state, submitClaim, handleDenial, setRole, paRecords } = usePipeline();
   const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
-  const patientId = state.encounterId || state.patientId || "P001";
+  const patientId = state.encounterId || state.patientId || "";
   const patient = getPatientById(patientId);
   const cs = caseStates[patientId];
 
@@ -38,7 +38,7 @@ export function BillingLedger() {
 
   // Auto-check the PA checkbox when PA records exist for this patient
   useEffect(() => {
-    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || "P001"));
+    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || ""));
     if (patientPaRecords.length > 0) {
       setNeedsPriorAuth(true);
     }
@@ -111,7 +111,7 @@ export function BillingLedger() {
   };
 
   const handleSubmit = () => {
-    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || "P001"));
+    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || ""));
     // Only redirect to PA if checkbox is ticked AND no PA has been submitted yet
     if (needsPriorAuth && patientPaRecords.length === 0) {
       setRole("prior-auth");
@@ -311,7 +311,7 @@ export function BillingLedger() {
                   </div>
                   {/* PA Status indicator */}
                   {(() => {
-                    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || "P001"));
+                    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || ""));
                     const approvedPa = patientPaRecords.find((r) => r.status === "approved");
                     const pendingPa = patientPaRecords.find((r) => r.status === "submitted" || r.status === "in-progress" || r.status === "pending");
                     const hasPaRecords = patientPaRecords.length > 0;
