@@ -172,15 +172,16 @@ export function BillingLedger() {
               <button
                 onClick={() => {
                   exportCMS1500PDF({
-                    patientName: patient ? `${patient.firstName} ${patient.lastName}` : (state.patientId || "Unknown"),
-                    dob: patient?.dob || "N/A",
-                    insurance: patient?.insurance || payer,
+                    patientName: cms1500["2"] || state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),
+                    dob: cms1500["3"] || patient?.dob || "N/A",
+                    insurance: cms1500["11c"] || patient?.insurance || payer,
                     diagnosisCodes: state?.icdCodes || [],
                     procedureCodes: state?.cptCodes || [],
-                    charges: calcPayment().billed,
+                    charges: parseFloat(cms1500["28"]) || calcPayment().billed,
                     status: "Submitted — Paid",
-                    payer,
+                    payer: cms1500["1"] || payer,
                     posCode,
+                    cmsFields: cms1500,
                   });
                 }}
                 className="flex items-center gap-2 rounded-lg border border-purple-300 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors"
