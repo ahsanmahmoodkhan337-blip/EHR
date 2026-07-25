@@ -62,6 +62,7 @@ import { RCMDashboard } from "../components/RCMDashboard";
 import { FHIRDrawer } from "../components/FHIRDrawer";
 import { AuditTrail } from "../components/AuditTrail";
 import { AppealGenerator } from "../components/AppealGenerator";
+import { CareGapAlerts } from "../components/CareGapAlerts";
 import { VaccineForecaster } from "../components/VaccineForecaster";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { FinancialLedger } from "../components/FinancialLedger";
