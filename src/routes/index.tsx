@@ -51,6 +51,7 @@ import { CodingQueue } from "../components/CodingQueue/CodingQueue";
 import { BillingLedger } from "../components/BillingLedger/BillingLedger";
 import PriorAuthPortal from "../components/PriorAuthPortal/PriorAuthPortal";
 import { GamificationHeader } from "../components/GamificationHeader";
+import { ScenarioInjector } from "../components/ScenarioInjector";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { FinancialLedger } from "../components/FinancialLedger";
 import { ToastProvider, useToast } from "../components/Toast";
@@ -1363,6 +1364,7 @@ function Home() {
       header={
         <>
           <GamificationHeader xp={xp} streak={streak} level={level} />
+          <ScenarioInjector />
           <Header
             businessName={businessName}
             selectedPatientId={selectedPatientId}
