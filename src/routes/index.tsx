@@ -88,6 +88,7 @@ import { CopyForward } from "../components/CopyForward";
 import { PeerToPeerScheduler } from "../components/PeerToPeerScheduler";
 import { Toaster } from "sonner";
 import { HotkeyEngine } from "../components/HotkeyEngine";
+import { FadeTransition } from "../components/FadeTransition";
 import { VaccineForecaster } from "../components/VaccineForecaster";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { FinancialLedger } from "../components/FinancialLedger";
@@ -1136,6 +1137,7 @@ function Home() {
   const [streak, setStreak] = useState(0);
   const [level, setLevel] = useState(1);
   const [examMode, setExamMode] = useState(false);
+  const [isLoadingPatient, setIsLoadingPatient] = useState(false);
   const [examTimeRemaining, setExamTimeRemaining] = useState(1800); // 30 min in seconds
   const examTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -1405,7 +1407,7 @@ function Home() {
           <Header
             businessName={businessName}
             selectedPatientId={selectedPatientId}
-            onPatientSelect={(id) => { saveCurrentSession(); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }}
+            onPatientSelect={(id) => { setIsLoadingPatient(true); saveCurrentSession(); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); setTimeout(() => setIsLoadingPatient(false), 300); }}
             showRightPanel={showRightPanel}
             onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
             selectedPatientName={
@@ -1422,7 +1424,7 @@ function Home() {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { saveCurrentSession(); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }} />
+            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { setIsLoadingPatient(true); saveCurrentSession(); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); setTimeout(() => setIsLoadingPatient(false), 300); }} />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
@@ -1460,7 +1462,7 @@ function Home() {
 
       {/* ─── Role-Based Workspace ─── */}
       {selectedPatient && currentRole !== "scribe" ? (
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <FadeTransition id={currentRole} className="flex flex-1 flex-col overflow-hidden">
           {currentRole === "coder" && (
             <StagePinGate role="coder" roleLabel="Medical Coder">
               <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
@@ -1497,7 +1499,7 @@ function Home() {
               </div>
             </div>
           )}
-        </div>
+        </FadeTransition>
       ) : (
         <>{/* ─── Workspace Tabs + Content (Scribe or no patient) ─── */}
           <WorkspaceTabs
@@ -1509,9 +1511,15 @@ function Home() {
           />
 
       {/* ─── Workspace Content ─── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Empty state — no patient selected */}
-        {!selectedPatient && activeWorkspace !== "schedule" ? (
+      <FadeTransition id={selectedPatientId || "empty"} className="flex flex-1 flex-col overflow-hidden">
+        {/* Skeleton loading on patient switch */}
+        {isLoadingPatient ? (
+          <div className="p-4 space-y-4">
+            <Skeleton variant="card" />
+            <Skeleton variant="card" />
+            <Skeleton variant="card" />
+          </div>
+        ) : !selectedPatient && activeWorkspace !== "schedule" ? (
           <div className="flex flex-1 items-center justify-center p-4">
             <div className="text-center">
               <Activity className="mx-auto h-12 w-12 text-slate-300" />
@@ -1984,7 +1992,7 @@ function Home() {
             </WorkspacePanel>
           </>
         )}
-      </div>
+      </FadeTransition>
       </>
     )}
       {/* ─── Activity Log Stream ─── */}
