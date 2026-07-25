@@ -1371,11 +1371,11 @@ function Home() {
       header={
         <>
           <GamificationHeader xp={xp} streak={streak} level={level} />
-          <ScenarioInjector onSelectScenario={(scenarioId) => { const map: Record<string,string> = { "clean-routine": "P001", "complex-surgery": "P018", "denied-claim": "P011", "chronic-dm": "P005" }; const pid = map[scenarioId]; if (pid) { saveCurrentSession(); resetEncounter(); setSelectedPatientId(pid); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("intake-vitals"); } }} />
+          <ScenarioInjector onSelectScenario={(scenarioId) => { const map: Record<string,string> = { "clean-routine": "P001", "complex-surgery": "P018", "denied-claim": "P011", "chronic-dm": "P005" }; const pid = map[scenarioId]; if (pid) { saveCurrentSession(); resetEncounter(pid); setSelectedPatientId(pid); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("intake-vitals"); } }} />
           <Header
             businessName={businessName}
             selectedPatientId={selectedPatientId}
-            onPatientSelect={(id) => { saveCurrentSession(); resetEncounter(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }}
+            onPatientSelect={(id) => { saveCurrentSession(); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }}
             showRightPanel={showRightPanel}
             onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
             selectedPatientName={
@@ -1392,7 +1392,7 @@ function Home() {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { saveCurrentSession(); resetEncounter(); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }} />
+            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { saveCurrentSession(); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); }} />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">

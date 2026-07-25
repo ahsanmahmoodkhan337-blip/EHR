@@ -95,7 +95,7 @@ interface PipelineContextValue {
   paRecords: PARecordStore[];
   addPARecord: (record: PARecordStore) => void;
   updatePAStatus: (id: string, status: string) => void;
-  resetEncounter: () => void;
+  resetEncounter: (newPatientId?: string) => void;
   setPatientDisplayName: (name: string | null) => void;
 }
 
@@ -152,10 +152,11 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     setPipeline((prev) => ({ ...prev, displayName: name }));
   };
 
-  // Reset per-encounter data when switching patients
-  const resetEncounter = () => {
+  // Reset per-encounter data when switching patients. Accepts new patientId.
+  const resetEncounter = (newPatientId?: string) => {
     setPipeline((prev) => ({
       ...prev,
+      patientId: newPatientId || prev.patientId,
       displayName: null,
       scribeNote: "",
       icdCodes: [],
