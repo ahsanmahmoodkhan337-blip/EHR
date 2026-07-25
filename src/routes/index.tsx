@@ -70,6 +70,7 @@ import { GFECalculator } from "../components/GFECalculator";
 import { SDOHIntake } from "../components/SDOHIntake";
 import { ConsentPortal } from "../components/ConsentPortal";
 import { UB04Form } from "../components/UB04Form";
+import { EDIViewer } from "../components/EDIViewer";
 import { VaccineForecaster } from "../components/VaccineForecaster";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { FinancialLedger } from "../components/FinancialLedger";
