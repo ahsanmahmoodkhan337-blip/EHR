@@ -20,7 +20,7 @@ const CLINICAL_INDICATIONS = [
 
 const CORRECT_INDICATION = "atypical-chest-pain";
 
-export function EligibilityStage() {
+export function EligibilityStage({ patientName, dob, insurance }: { patientName?: string; dob?: string; insurance?: string }) {
   const [inquiryDone, setInquiryDone] = useState(false);
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [selectedIndication, setSelectedIndication] = useState("");
@@ -70,9 +70,9 @@ export function EligibilityStage() {
         </div>
         <div className="mt-3 space-y-3">
           <div className="flex items-center gap-2 text-sm text-slate-600">
-            <span className="font-medium">Patient:</span> Jonathan Doe
-            <span className="ml-4 font-medium">DOB:</span> 04/15/1988
-            <span className="ml-4 font-medium">Subscriber ID:</span> XYZ987654321
+            <span className="font-medium">Patient:</span> {patientName || "Jonathan Doe"}
+            <span className="ml-4 font-medium">DOB:</span> {dob || "04/15/1988"}
+            <span className="ml-4 font-medium">Subscriber ID:</span> {insurance || "XYZ987654321"}
           </div>
           <div className="flex items-center gap-2">
             <button onClick={handleInquiry} disabled={inquiryLoading || isStageComplete}

@@ -1624,7 +1624,7 @@ function Home() {
                       <RegistrationStage />
                     )}
                     {activeStage === "eligibility" && (
-                      <EligibilityStage />
+                      <EligibilityStage patientName={displayName || (selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : undefined)} dob={selectedPatient?.dob} insurance={selectedPatient?.insurance} />
                     )}
                     {activeStage === "intake-vitals" && (
                       <IntakeVitalsStage patientId={selectedPatientId} editableVitals={editableVitals} onVitalsChange={setEditableVitals} />
