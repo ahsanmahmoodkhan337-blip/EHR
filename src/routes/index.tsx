@@ -65,6 +65,7 @@ import { AppealGenerator } from "../components/AppealGenerator";
 import { CareGapAlerts } from "../components/CareGapAlerts";
 import { OrderSetBundles } from "../components/OrderSetBundles";
 import { VitalsFlowsheet } from "../components/VitalsFlowsheet";
+import { PatientLedger } from "../components/PatientLedger";
 import { VaccineForecaster } from "../components/VaccineForecaster";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { FinancialLedger } from "../components/FinancialLedger";
