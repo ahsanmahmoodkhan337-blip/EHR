@@ -56,6 +56,8 @@ import { FinancialLedger } from "../components/FinancialLedger";
 import { ToastProvider, useToast } from "../components/Toast";
 import { Skeleton } from "../components/Skeleton";
 import { Certificate } from "../components/Certificate";
+import { CommandPalette } from "../components/CommandPalette";
+import { useAppStore } from "../stores/appStore";
 
 // ─── Route ──────────────────────────────────────────────────────────
 
@@ -1973,6 +1975,11 @@ function Home() {
           </div>
         </div>
       )}
+    {/* Command Palette — Cmd+K */}
+      <CommandPalette
+        onSelectRole={(role) => setRole(role)}
+        onSelectPatient={(pid) => setSelectedPatientId(pid)}
+      />
     </AppShell>
   );
 }
