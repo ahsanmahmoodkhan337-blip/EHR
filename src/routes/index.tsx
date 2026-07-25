@@ -1614,7 +1614,7 @@ function Home() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-blue-700">
                         Workflow: {activeStage === "registration" ? "Patient Registration" :
-                              activeStage === "eligibility" ? "Eligibility & Prior Auth" :
+                              activeStage === "eligibility" ? "Eligibility Verification" :
                             activeStage === "intake-vitals" ? "Intake / Vitals" :
                                     activeStage === "hpi" ? "History of Present Illness" :
                                     activeStage === "exam-ros" ? "Review of Systems" :
