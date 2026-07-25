@@ -1,1 +1,1 @@
-export * from "./prior-auth/PeerToPeerScheduler";
+export * from "../PeerToPeerScheduler";

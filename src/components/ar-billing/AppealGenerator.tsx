@@ -1,1 +1,1 @@
-export * from "./ar-billing/AppealGenerator";
+export * from "../AppealGenerator";

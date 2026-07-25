@@ -1,1 +1,1 @@
-export * from "./compliance/GFECalculator";
+export * from "../GFECalculator";

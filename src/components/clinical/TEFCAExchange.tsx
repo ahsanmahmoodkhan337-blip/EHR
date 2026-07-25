@@ -1,1 +1,1 @@
-export * from "./clinical/TEFCAExchange";
+export * from "../TEFCAExchange";

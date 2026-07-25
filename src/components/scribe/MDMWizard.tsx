@@ -1,1 +1,1 @@
-export * from "./scribe/MDMWizard";
+export * from "../MDMWizard";

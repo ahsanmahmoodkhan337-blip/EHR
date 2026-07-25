@@ -1,1 +1,1 @@
-export * from "./compliance/ConsentPortal";
+export * from "../ConsentPortal";

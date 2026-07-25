@@ -1,1 +1,1 @@
-export * from "./ar-billing/PatientLedger";
+export * from "../PatientLedger";

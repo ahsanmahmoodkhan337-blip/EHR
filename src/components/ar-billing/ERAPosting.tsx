@@ -1,1 +1,1 @@
-export * from "./ar-billing/ERAPosting";
+export * from "../ERAPosting";

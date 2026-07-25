@@ -1,1 +1,1 @@
-export * from "./ar-billing/EOBScanner";
+export * from "../EOBScanner";

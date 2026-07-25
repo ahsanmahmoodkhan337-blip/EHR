@@ -1,1 +1,1 @@
-export * from "./ar-billing/CrossoverClaims";
+export * from "../CrossoverClaims";

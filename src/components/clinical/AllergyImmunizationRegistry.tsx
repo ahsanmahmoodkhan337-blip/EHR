@@ -1,1 +1,1 @@
-export * from "./clinical/AllergyImmunizationRegistry";
+export * from "../AllergyImmunizationRegistry";

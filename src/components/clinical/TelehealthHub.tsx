@@ -1,1 +1,1 @@
-export * from "./clinical/TelehealthHub";
+export * from "../TelehealthHub";

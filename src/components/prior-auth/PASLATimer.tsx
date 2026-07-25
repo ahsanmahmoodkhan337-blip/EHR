@@ -1,1 +1,1 @@
-export * from "./prior-auth/PASLATimer";
+export * from "../PASLATimer";

@@ -1,1 +1,1 @@
-export * from "./scribe/SmartPhrases";
+export * from "../SmartPhrases";

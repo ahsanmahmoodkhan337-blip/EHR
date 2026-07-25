@@ -1,1 +1,1 @@
-export * from "./scribe/PhysicalExamMatrix";
+export * from "../PhysicalExamMatrix";

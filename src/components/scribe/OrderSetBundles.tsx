@@ -1,1 +1,1 @@
-export * from "./scribe/OrderSetBundles";
+export * from "../OrderSetBundles";

@@ -1,1 +1,1 @@
-export * from "./ar-billing/CreditBalanceQueue";
+export * from "../CreditBalanceQueue";

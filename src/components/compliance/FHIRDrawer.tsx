@@ -1,1 +1,1 @@
-export * from "./compliance/FHIRDrawer";
+export * from "../FHIRDrawer";

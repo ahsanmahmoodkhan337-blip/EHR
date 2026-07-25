@@ -1,1 +1,1 @@
-export * from "./ar-billing/FWADetector";
+export * from "../FWADetector";

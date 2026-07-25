@@ -1,1 +1,1 @@
-export * from "./clinical/CopyForward";
+export * from "../CopyForward";

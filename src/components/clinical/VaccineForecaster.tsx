@@ -1,1 +1,1 @@
-export * from "./clinical/VaccineForecaster";
+export * from "../VaccineForecaster";

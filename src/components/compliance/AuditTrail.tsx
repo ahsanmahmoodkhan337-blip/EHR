@@ -1,1 +1,1 @@
-export * from "./compliance/AuditTrail";
+export * from "../AuditTrail";

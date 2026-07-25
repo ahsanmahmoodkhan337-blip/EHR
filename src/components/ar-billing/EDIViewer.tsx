@@ -1,1 +1,1 @@
-export * from "./ar-billing/EDIViewer";
+export * from "../EDIViewer";

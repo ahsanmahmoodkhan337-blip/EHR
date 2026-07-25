@@ -1,1 +1,1 @@
-export * from "./ar-billing/UB04Form";
+export * from "../UB04Form";

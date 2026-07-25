@@ -1,1 +1,1 @@
-export * from "./compliance/CCDATool";
+export * from "../CCDATool";

@@ -1,1 +1,1 @@
-export * from "./clinical/VitalsFlowsheet";
+export * from "../VitalsFlowsheet";

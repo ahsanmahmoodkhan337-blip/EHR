@@ -1,1 +1,1 @@
-export * from "./clinical/DrugAlertEngine";
+export * from "../DrugAlertEngine";

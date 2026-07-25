@@ -1,1 +1,1 @@
-export * from "./compliance/GlassBreakDrawer";
+export * from "../GlassBreakDrawer";

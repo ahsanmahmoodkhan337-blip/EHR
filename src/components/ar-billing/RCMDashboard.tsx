@@ -1,1 +1,1 @@
-export * from "./ar-billing/RCMDashboard";
+export * from "../RCMDashboard";

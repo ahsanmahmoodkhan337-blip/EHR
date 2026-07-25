@@ -1,1 +1,1 @@
-export * from "./compliance/SDOHIntake";
+export * from "../SDOHIntake";

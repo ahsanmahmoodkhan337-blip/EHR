@@ -1,1 +1,1 @@
-export * from "./scribe/CareGapAlerts";
+export * from "../CareGapAlerts";
