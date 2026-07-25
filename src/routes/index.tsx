@@ -86,6 +86,8 @@ import { TelehealthHub } from "../components/TelehealthHub";
 import { CrossoverClaims } from "../components/CrossoverClaims";
 import { CopyForward } from "../components/CopyForward";
 import { PeerToPeerScheduler } from "../components/PeerToPeerScheduler";
+import { Toaster } from "sonner";
+import { HotkeyEngine } from "../components/HotkeyEngine";
 import { VaccineForecaster } from "../components/VaccineForecaster";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { FinancialLedger } from "../components/FinancialLedger";
