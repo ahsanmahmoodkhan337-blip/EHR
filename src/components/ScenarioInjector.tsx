@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import { FlaskConical, RotateCcw, ChevronDown, Zap, CheckCircle2, AlertTriangle, Stethoscope } from "lucide-react";
+import { useAppStore } from "../stores/appStore";
 
 // ─── Scenario Definitions ───────────────────────────────────────────
 
@@ -60,20 +61,23 @@ interface ScenarioInjectorProps {
 export function ScenarioInjector({ onSelectScenario }: ScenarioInjectorProps) {
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState<string | null>(null);
+  const setPatientId = useAppStore((s) => s.setPatientId);
+  const setRole = useAppStore((s) => s.setRole);
 
   const handleSelect = (id: string) => {
     // Select patient based on scenario
     const patientMap: Record<string, string> = {
-      "clean-routine": "P001",      // Jane Doe — hypertension follow-up
-      "complex-surgery": "P018",    // Robert Williams — knee replacement
-      "denied-claim": "P011",      // James Kowalski — knee OA
-      "chronic-dm": "P005",        // Eleanor Hayes — DM + neuropathy
+      "clean-routine": "P001",
+      "complex-surgery": "P018",
+      "denied-claim": "P011",
+      "chronic-dm": "P005",
     };
 
     const patientId = patientMap[id];
     if (patientId) {
-      // Set selected patient in localStorage for next load
       localStorage.setItem("hh_scenario_patient", patientId);
+      setPatientId(patientId);
+      setRole("scribe");
     }
     localStorage.setItem("hh_scenario", id);
 
