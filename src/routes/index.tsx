@@ -1398,9 +1398,8 @@ function Home() {
 
   // Safely load a patient — always clears loading state even on error
   const handlePatientSelect = (id: string) => {
-    if (!id || !patients.find(p => p.id === id)) {
-      console.warn("handlePatientSelect: invalid or unknown patient ID:", id);
-      setIsLoadingPatient(false);
+    if (!id) {
+      console.warn("handlePatientSelect: no patient ID provided");
       return;
     }
     const oldPatientId = selectedPatientId;
