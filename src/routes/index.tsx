@@ -49,8 +49,6 @@ import { StagePinGate } from "../components/StagePinGate";
 import { CodingQueue } from "../components/CodingQueue/CodingQueue";
 import { BillingLedger } from "../components/BillingLedger/BillingLedger";
 import PriorAuthPortal from "../components/PriorAuthPortal/PriorAuthPortal";
-import { GamificationHeader } from "../components/GamificationHeader";
-import { ScenarioInjector } from "../components/ScenarioInjector";
 import { MDMWizard } from "../components/scribe/MDMWizard";
 import { DrugAlertEngine } from "../components/clinical/DrugAlertEngine";
 import { PhysicalExamMatrix } from "../components/scribe/PhysicalExamMatrix";
@@ -1131,9 +1129,7 @@ function Home() {
   const { addToast } = useToast();
   const [activeStage, setActiveStage] = useState("registration");
   const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["registration"]));
-  const [xp, setXp] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [level, setLevel] = useState(1);
+
   const [examMode, setExamMode] = useState(false);
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
   const [examTimeRemaining, setExamTimeRemaining] = useState(1800); // 30 min in seconds
@@ -1177,7 +1173,14 @@ function Home() {
 
   // Lifted appointments state for persistence across tab switches (Bug 2 fix)
   const [appointments, setAppointments] = useState<Appointment[]>(PLACEHOLDER_APPOINTMENTS);
-  const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const hasToday = PLACEHOLDER_APPOINTMENTS.some(a => a.date === today);
+    if (hasToday) return today;
+    // Default to first date in appointments that has entries
+    const dates = [...new Set(PLACEHOLDER_APPOINTMENTS.map(a => a.date))].sort();
+    return dates[0] || today;
+  });
   // Override display name for right panel header when showing placeholder patient (e.g. new appointment)
   const [displayName, setDisplayName] = useState<string | undefined>(undefined);
 
@@ -1431,8 +1434,6 @@ function Home() {
     <AppShell
       header={
         <>
-          <GamificationHeader xp={xp} streak={streak} level={level} />
-          <ScenarioInjector onSelectScenario={(scenarioId) => { const map: Record<string,string> = { "clean-routine": "P001", "complex-surgery": "P018", "denied-claim": "P011", "chronic-dm": "P005" }; const pid = map[scenarioId]; if (pid) { saveCurrentSession(); resetEncounter(pid); setSelectedPatientId(pid); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("intake-vitals"); } }} />
           <Header
             businessName={businessName}
             selectedPatientId={selectedPatientId}

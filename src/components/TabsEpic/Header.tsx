@@ -19,7 +19,6 @@ import { GlobalPatientSearch } from "./GlobalPatientSearch";
 import { getLoggedInPhone, logout } from "../../store/accessStore";
 import { RoleSwitcher } from "../RoleSwitcher";
 import { DarkModeToggle } from "../DarkModeToggle";
-import { LeaderboardPanel } from "../LeaderboardPanel";
 
 interface HeaderProps {
   businessName: string;
@@ -137,8 +136,7 @@ export function Header({
           </div>
         </div>
 
-        {/* Leaderboard */}
-        <LeaderboardPanel />
+
 
         {/* Exam Mode Toggle */}
         <button
