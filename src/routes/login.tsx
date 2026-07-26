@@ -23,6 +23,7 @@ import {
   getSubscriptionStatus,
   getDaysRemaining,
   getDurationLabel,
+  revokeApprovedPhone,
 } from "../store/accessStore";
 
 export const Route = createFileRoute("/login")({
@@ -50,8 +51,9 @@ function LoginPage() {
 
     // Check if approved
     if (isPhoneApproved(cleaned)) {
-      // Check subscription expiry
+      // Check subscription expiry — auto-revoke if expired
       if (isSubscriptionExpired(cleaned)) {
+        revokeApprovedPhone(cleaned);
         setStatus("denied");
         setExpiryWarning("Your subscription has expired. Please renew via WhatsApp at +92 335 0340888.");
         return;
