@@ -1124,7 +1124,7 @@ function Home() {
   const { patients, caseStates } = usePatientStore();
   const { activeTab, setActiveTab } = useTabsEpic("summary");
   const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("chart");
-  const [selectedPatientId, setSelectedPatientId] = useState(patients[0]?.id ?? "");
+  const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const { currentRole, submitToCoding, setRole, paRecords, resetEncounter, setPatientDisplayName, state: pipelineState } = usePipeline();
@@ -1219,7 +1219,7 @@ function Home() {
    */
   function loadPatientSession(patientId: string) {
     const saved = patientDataStore.current[patientId];
-    const p = patients.find(pp => pp.id === patientId) || patients[0];
+    const p = patients.find(pp => pp.id === patientId);
 
     if (saved) {
       setSoapNote(saved.soapNote);
@@ -1398,13 +1398,20 @@ function Home() {
 
   // Safely load a patient — always clears loading state even on error
   const handlePatientSelect = (id: string) => {
+    if (!id || !patients.find(p => p.id === id)) {
+      console.warn("handlePatientSelect: invalid or unknown patient ID:", id);
+      setIsLoadingPatient(false);
+      return;
+    }
+    const oldPatientId = selectedPatientId;
     try {
       setIsLoadingPatient(true);
+      // save current session BEFORE changing patient ID
       saveCurrentSession();
       const p = patients.find(p => p.id === id);
       if (p) toast(p.firstName + " " + p.lastName + " loaded");
-      resetEncounter(id);
       setSelectedPatientId(id);
+      resetEncounter(id);
       setDisplayName(undefined);
       setRole("scribe");
       setActiveWorkspace("chart");
@@ -1412,6 +1419,8 @@ function Home() {
     } catch (e: any) {
       console.error("Patient select error:", e);
       toast("Error loading patient: " + (e?.message || "Unknown error"));
+      // Restore old patient ID on error
+      if (oldPatientId) setSelectedPatientId(oldPatientId);
     } finally {
       setTimeout(() => setIsLoadingPatient(false), 300);
     }
@@ -1552,7 +1561,6 @@ function Home() {
                 setAppointments={setAppointments}
                 onSelectPatient={(name) => {
                   saveCurrentSession();
-                  resetEncounter(); // Clear codes from previous patient
                   // Try exact match first, then fuzzy (case-insensitive partial)
                   let match = patients.find(p => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase());
                   if (!match) {
@@ -1565,6 +1573,7 @@ function Home() {
 
                   if (match) {
                     setSelectedPatientId(match.id);
+                    resetEncounter(match.id);
                     setPatientDisplayName(null);
                     setRole("scribe");
                     setActiveWorkspace("chart");
