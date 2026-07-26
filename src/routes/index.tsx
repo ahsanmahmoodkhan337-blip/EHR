@@ -1291,7 +1291,7 @@ function Home() {
         assessment: "1. Suspected Coronary Artery Disease (I25.10)\n2. Hypertension, uncontrolled (I10)\n3. Chest Pain, unspecified (R07.9)\n\nPlan: Admit for cardiac workup. Order serial troponins, echocardiogram, cardiology consult. Continue Lisinopril, start Atorvastatin 40mg, Aspirin 81mg daily.",
         plan: "1. Admit to telemetry unit\n2. Serial troponins q6h x3\n3. Echocardiogram in AM\n4. Cardiology consult (Dr. Williams)\n5. Continue home medications\n6. NPO after midnight for possible cardiac catheterization\n7. Stress test if enzymes negative\n8. Discharge planning: cardiac rehab referral"
       });
-      setSubmittedToCoding(true);
+      setSubmittedToCoding(false);
       setCompletedStages(new Set(["registration", "intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"]));
       setActiveStage("sign-lock");
       setSharedImmunizations(["Influenza 2025-2026", "Tdap 2023", "COVID-19 Bivalent 2024"]);
