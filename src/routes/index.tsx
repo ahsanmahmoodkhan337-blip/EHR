@@ -30,7 +30,6 @@ import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
 import { WorkflowAthena } from "../components/WorkflowAthena/WorkflowAthena";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
 import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
-import { EligibilityStage } from "../components/WorkflowAthena/EligibilityStage";
 import { HPIStage } from "../components/WorkflowAthena/HPIStage";
 import { ExamROSStage } from "../components/WorkflowAthena/ExamROSStage";
 import { AssessmentPlanStage, type SoapNoteData } from "../components/WorkflowAthena/AssessmentPlanStage";
