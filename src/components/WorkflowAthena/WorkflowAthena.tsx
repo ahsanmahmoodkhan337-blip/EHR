@@ -52,14 +52,7 @@ const DEFAULT_STAGES: WorkflowStage[] = [
     required: true,
   },
   {
-    id: "eligibility",
-    label: "Eligibility & Prior Auth",
-    description: "270/271 inquiry & PA submission",
-    icon: <FileCheck className="h-5 w-5" />,
-    required: true,
-  },
-  {
-    id: "intake-vitals",
+   id: "intake-vitals",
     label: "Intake / Vitals",
     description: "BP, HR, Temp, RR, O2 sat, weight, height",
     icon: <Activity className="h-5 w-5" />,
