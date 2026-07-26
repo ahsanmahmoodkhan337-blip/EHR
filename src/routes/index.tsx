@@ -1402,6 +1402,7 @@ function Home() {
 
   // Safely load a patient — always clears loading state even on error
   const handlePatientSelect = (id: string) => {
+    console.log("handlePatientSelect CALLED with id:", id, "patients:", patients.length);
     if (!id) {
       console.warn("handlePatientSelect: no patient ID provided");
       return;
@@ -1454,7 +1455,7 @@ function Home() {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={patients.filter(p => appointments.some(a => a.date === selectedScheduleDate && a.patientName.toLowerCase().includes(p.firstName.toLowerCase()) && a.patientName.toLowerCase().includes(p.lastName.toLowerCase())))} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
+            <WorklistPanel patients={(() => { const filtered = patients.filter(p => appointments.some(a => a.date === selectedScheduleDate && a.patientName.toLowerCase().includes(p.firstName.toLowerCase()) && a.patientName.toLowerCase().includes(p.lastName.toLowerCase()))); return filtered.length > 0 ? filtered : patients; })()} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
