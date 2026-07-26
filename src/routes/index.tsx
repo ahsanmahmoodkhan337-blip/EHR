@@ -1467,34 +1467,18 @@ function Home() {
 
   // Safely load a patient — always clears loading state even on error
   const handlePatientSelect = (id: string) => {
-    console.log("handlePatientSelect CALLED with id:", id, "patients:", patients.length);
-    if (!id) {
-      console.warn("handlePatientSelect: no patient ID provided");
-      return;
-    }
-    const oldPatientId = selectedPatientId;
-    try {
-      setIsLoadingPatient(true);
-      // save current session BEFORE changing patient ID
-      saveCurrentSession();
-      const p = patients.find(p => p.id === id);
-      if (p) toast(p.firstName + " " + p.lastName + " loaded");
-      setSelectedPatientId(id);
-      sessionStorage.setItem("hh_selected_patient", id);
-      console.log("handlePatientSelect: setSelectedPatientId to", id, "verified:", sessionStorage.getItem("hh_selected_patient"));
-      resetEncounter(id);
-      setDisplayName(undefined);
-      setRole("scribe");
-      setActiveWorkspace("chart");
-      setActiveStage("registration");
-    } catch (e: any) {
-      console.error("Patient select error:", e);
-      toast("Error loading patient: " + (e?.message || "Unknown error"));
-      // Restore old patient ID on error
-      if (oldPatientId) setSelectedPatientId(oldPatientId);
-    } finally {
-      setTimeout(() => setIsLoadingPatient(false), 300);
-    }
+    if (!id) return;
+    saveCurrentSession();
+    const p = patients.find(p => p.id === id);
+    if (!p) return;
+    setSelectedPatientId(p.id);
+    resetEncounter(p.id);
+    setPatientDisplayName(null);
+    setDisplayName(undefined);
+    setRole("scribe");
+    setActiveWorkspace("chart");
+    setActiveStage("registration");
+    toast(p.firstName + " " + p.lastName + " loaded");
   };
 
   return (
