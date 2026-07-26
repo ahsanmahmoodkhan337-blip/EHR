@@ -75,7 +75,7 @@ export function ChartSearch({ patientId, className = "" }: ChartSearchProps) {
     const found: SearchResult[] = [];
 
     // Search encounters / notes
-    patient.encounters.forEach((enc) => {
+    (patient.encounters || []).forEach((enc) => {
       if (
         enc.notes.toLowerCase().includes(q) ||
         enc.diagnosis.toLowerCase().includes(q) ||
@@ -107,7 +107,7 @@ export function ChartSearch({ patientId, className = "" }: ChartSearchProps) {
     });
 
     // Search labs
-    patient.labResults.forEach((lab) => {
+    (patient.labResults || []).forEach((lab) => {
       if (lab.testName.toLowerCase().includes(q) || lab.value.toLowerCase().includes(q)) {
         found.push({
           id: `lab-${lab.id}`,
@@ -121,7 +121,7 @@ export function ChartSearch({ patientId, className = "" }: ChartSearchProps) {
     });
 
     // Search allergies
-    patient.allergies.forEach((alg) => {
+    (patient.allergies || []).forEach((alg) => {
       if (alg.allergen.toLowerCase().includes(q) || alg.reaction.toLowerCase().includes(q)) {
         found.push({
           id: `alg-${alg.id}`,

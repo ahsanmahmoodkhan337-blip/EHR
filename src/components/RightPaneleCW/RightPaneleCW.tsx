@@ -157,7 +157,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
           </span>
         </div>
         <ul className="space-y-1">
-          {(editablePatientData?.medications || patient.medications.filter((m) => m.status === "active")).slice(0, 5).map((med) => (
+          {(editablePatientData?.medications || (patient.medications || []).filter((m) => m.status === "active")).slice(0, 5).map((med) => (
               <li
                 key={med.id}
                 className="flex items-start gap-1 text-xs text-slate-700"
@@ -187,9 +187,9 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
               </span>
             ))}
           </div>
-        ) : patient.allergies.length > 0 ? (
+        ) : (patient.allergies || []).length > 0 ? (
           <ul className="space-y-1">
-            {patient.allergies.map((alg, i) => (
+            {(patient.allergies || []).map((alg, i) => (
               <li key={typeof alg === "string" ? i : alg.id}>
                 <span className="inline-block rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
                   {typeof alg === "string" ? alg : `${alg.allergen} (${alg.severity})`}

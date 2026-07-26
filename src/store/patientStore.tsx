@@ -155,13 +155,22 @@ const mockPatients: Patient[] = [
     vitals: { bloodPressure: "145/92", heartRate: 92, temperature: 99.1, respiratoryRate: 20, oxygenSaturation: 94 },
     problems: ["Hypertension (I10)", "Coronary Artery Disease (I25.10)", "Chest Pain (R07.9)"],
     medications: [
-      { id: "med-d1", name: "Lisinopril", dosage: "10mg", frequency: "Once daily", status: "active" },
-      { id: "med-d2", name: "Atorvastatin", dosage: "40mg", frequency: "Once daily at bedtime", status: "active" },
-      { id: "med-d3", name: "Aspirin", dosage: "81mg", frequency: "Once daily", status: "active" },
+      { id: "med-d1", name: "Lisinopril", dosage: "10mg", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2026-01-15", prescribedBy: "Dr. Demo Instructor" },
+      { id: "med-d2", name: "Atorvastatin", dosage: "40mg", frequency: "Once daily at bedtime", route: "Oral", status: "active", prescribedDate: "2026-01-15", prescribedBy: "Dr. Demo Instructor" },
+      { id: "med-d3", name: "Aspirin", dosage: "81mg", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2026-01-15", prescribedBy: "Dr. Demo Instructor" },
     ],
-    allergies: ["Penicillin", "Sulfa drugs"],
-    labs: ["CBC — pending", "CMP — abnormal (elevated glucose)", "Cardiac Enzymes — elevated Troponin"],
-    orders: ["ECG — STAT", "Chest X-Ray PA/LAT — STAT", "Cardiology Consult"],
+    allergies: [
+      { id: "alg-d1", allergen: "Penicillin", severity: "severe" as const, reaction: "Anaphylaxis (hives, swelling, difficulty breathing)", recordedDate: "2020-03-22" },
+      { id: "alg-d2", allergen: "Sulfa drugs", severity: "moderate" as const, reaction: "Rash and fever", recordedDate: "2021-07-14" },
+    ],
+    labResults: [
+      { id: "lab-d1", testName: "CBC (Complete Blood Count)", value: "Pending", referenceRange: "", unit: "", status: "pending" as const, date: "2026-07-09" },
+      { id: "lab-d2", testName: "CMP (Comprehensive Metabolic Panel)", value: "Glucose elevated at 145", referenceRange: "70-100", unit: "mg/dL", status: "abnormal" as const, date: "2026-07-09" },
+      { id: "lab-d3", testName: "Cardiac Enzymes (Troponin I)", value: "0.085", referenceRange: "< 0.04", unit: "ng/mL", status: "abnormal" as const, date: "2026-07-09" },
+    ],
+    encounters: [
+      { id: "enc-d1", date: "2026-07-09", type: "Office Visit — Tutorial", provider: "Dr. Demo Instructor, MD", diagnosis: "Chest pain (R07.9), Essential hypertension (I10)", notes: "Tutorial patient presenting with chest pain and shortness of breath. BP elevated at 145/92. ECG and cardiac enzymes ordered. Cardiology consult placed.", department: "Internal Medicine" },
+    ],
   },
   {
     id: "P001",
