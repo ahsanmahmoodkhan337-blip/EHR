@@ -137,6 +137,33 @@ export interface Patient {
 
 const mockPatients: Patient[] = [
   {
+    id: "DEMO",
+    mrn: "TUTORIAL-001",
+    firstName: "📋 Tutorial",
+    lastName: "Patient",
+    dateOfBirth: "1971-06-20",
+    age: 55,
+    gender: "Male",
+    preferredName: "Tutorial",
+    phone: "(555) 999-0001",
+    email: "tutorial@demo.health",
+    address: "1 Training Lane, Medford, NY 11763",
+    emergencyContact: { name: "Demo Support", phone: "(555) 999-0002", relation: "Instructor" },
+    primaryCareProvider: "Dr. Demo Instructor, MD",
+    insurance: "Medicare Part B",
+    chiefComplaint: "Chest pain and shortness of breath — DEMO",
+    vitals: { bloodPressure: "145/92", heartRate: 92, temperature: 99.1, respiratoryRate: 20, oxygenSaturation: 94 },
+    problems: ["Hypertension (I10)", "Coronary Artery Disease (I25.10)", "Chest Pain (R07.9)"],
+    medications: [
+      { id: "med-d1", name: "Lisinopril", dosage: "10mg", frequency: "Once daily", status: "active" },
+      { id: "med-d2", name: "Atorvastatin", dosage: "40mg", frequency: "Once daily at bedtime", status: "active" },
+      { id: "med-d3", name: "Aspirin", dosage: "81mg", frequency: "Once daily", status: "active" },
+    ],
+    allergies: ["Penicillin", "Sulfa drugs"],
+    labs: ["CBC — pending", "CMP — abnormal (elevated glucose)", "Cardiac Enzymes — elevated Troponin"],
+    orders: ["ECG — STAT", "Chest X-Ray PA/LAT — STAT", "Cardiology Consult"],
+  },
+  {
     id: "P001",
     mrn: "MRN-1001",
     firstName: "Jane",

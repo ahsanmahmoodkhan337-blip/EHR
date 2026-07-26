@@ -1283,6 +1283,37 @@ function Home() {
    * Falls back to mock patient data or defaults if no saved session.
    */
   function loadPatientSession(patientId: string) {
+  // DEMO patient — load pre-filled tutorial data
+    if (patientId === "DEMO") {
+      setSoapNote({
+        subjective: "Patient reports intermittent chest pain over the past 2 weeks, described as pressure-like, radiating to left arm. Worse with exertion, relieved by rest. Associated shortness of breath when climbing stairs. Denies nausea or diaphoresis. Has history of hypertension, currently on Lisinopril.",
+        objective: "Vitals: BP 145/92, HR 92, Temp 99.1°F, RR 20, O2 Sat 94% on room air. General: Alert, mild distress. CV: Regular rate, no murmurs. Lungs: Clear bilaterally. ECG shows ST-segment depression in leads V4-V6. Labs: Troponin mildly elevated at 0.12 ng/mL.",
+        assessment: "1. Suspected Coronary Artery Disease (I25.10)\n2. Hypertension, uncontrolled (I10)\n3. Chest Pain, unspecified (R07.9)\n\nPlan: Admit for cardiac workup. Order serial troponins, echocardiogram, cardiology consult. Continue Lisinopril, start Atorvastatin 40mg, Aspirin 81mg daily.",
+        plan: "1. Admit to telemetry unit\n2. Serial troponins q6h x3\n3. Echocardiogram in AM\n4. Cardiology consult (Dr. Williams)\n5. Continue home medications\n6. NPO after midnight for possible cardiac catheterization\n7. Stress test if enzymes negative\n8. Discharge planning: cardiac rehab referral"
+      });
+      setSubmittedToCoding(true);
+      setCompletedStages(new Set(["registration", "intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"]));
+      setActiveStage("sign-lock");
+      setSharedImmunizations(["Influenza 2025-2026", "Tdap 2023", "COVID-19 Bivalent 2024"]);
+      setSharedLabs(["CBC — pending", "CMP — abnormal (elevated glucose 142)", "Cardiac Enzymes — Troponin 0.12 (elevated)", "Lipid Panel — LDL 160"]);
+      setSharedReferrals(["Cardiology — Dr. Williams", "Cardiac Rehab — outpatient"]);
+      setSharedOrders(["ECG 12-lead — STAT ✓", "Chest X-Ray PA/LAT — completed", "Echocardiogram — ordered", "Cardiac Catheterization — pending authorization"]);
+      setSharedImaging(["Chest X-Ray: Clear lung fields, normal cardiac silhouette", "ECG: ST depression V4-V6, no acute STEMI"]);
+      setEditablePatientData({
+        chiefComplaint: "Chest pain and shortness of breath",
+        problems: ["Hypertension (I10)", "Coronary Artery Disease (I25.10)", "Chest Pain (R07.9)"],
+        medications: [
+          { id: "med-d1", name: "Lisinopril", dosage: "10mg", frequency: "Once daily", status: "active" },
+          { id: "med-d2", name: "Atorvastatin", dosage: "40mg", frequency: "Once daily at bedtime", status: "active" },
+          { id: "med-d3", name: "Aspirin", dosage: "81mg", frequency: "Once daily", status: "active" },
+        ],
+        allergies: ["Penicillin", "Sulfa drugs"],
+        pcp: "Dr. Demo Instructor, MD",
+        insurance: "Medicare Part B",
+      });
+      setEditableVitals({ bloodPressure: "145/92", heartRate: "92", temperature: "99.1", respiratoryRate: "20", oxygenSaturation: "94" });
+      return;
+    }
     console.log("loadPatientSession called for:", patientId, "saved:", !!patientDataStore.current[patientId]);
     const saved = patientDataStore.current[patientId];
     const p = patients.find(pp => pp.id === patientId);
