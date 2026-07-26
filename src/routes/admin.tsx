@@ -72,6 +72,7 @@ function AdminPage() {
   const [timeoutSaved, setTimeoutSaved] = useState(false);
   const [durationModal, setDurationModal] = useState<{ id: string; duration: string } | null>(null);
   const [subscriptionDurations, setSubscriptionDurations] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Load data — sync from Supabase first, then read localStorage cache
   useEffect(() => {
@@ -176,6 +177,11 @@ function AdminPage() {
   const pendingRequests = requests.filter((r) => r.status === "pending");
   const approvedRequests = requests.filter((r) => r.status === "approved");
   const rejectedRequests = requests.filter((r) => r.status === "rejected");
+  const filteredApproved = approvedRequests.filter((req) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return req.fullName.toLowerCase().includes(q) || req.phone.includes(q);
+  });
 
   return (
     <div className="min-h-dvh bg-slate-900">
@@ -330,69 +336,103 @@ function AdminPage() {
           </div>
         )}
 
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {/* Approved */}
-          <div className="rounded-xl border border-slate-700 bg-slate-800">
-            <div className="flex items-center gap-2 border-b border-slate-700 px-4 py-3">
+        {/* All Approved Users */}
+        <div className="mb-6 rounded-xl border border-slate-700 bg-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
+            <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-400" />
-              <h2 className="text-sm font-semibold text-white">Approved</h2>
+              <h2 className="text-sm font-semibold text-white">All Approved Users</h2>
+              <span className="rounded-full bg-green-900/50 px-2 py-0.5 text-[10px] font-medium text-green-300">
+                {approvedRequests.length}
+              </span>
             </div>
-            {approvedRequests.length === 0 ? (
-              <div className="p-4 text-center text-xs text-slate-500">None</div>
-            ) : (
-              <div className="divide-y divide-slate-700">
-                {approvedRequests.slice(0, 10).map((req) => {
-                  const status = getSubscriptionStatus(req.phone);
-                  const days = getDaysRemaining(req.phone);
-                  const statusColor = status === "expired" ? "text-red-400" : status === "expiring-soon" ? "text-amber-400" : "text-green-400";
-                  const statusLabel = status === "no-expiry" ? "No expiry" : status === "expired" ? "Expired" : status === "expiring-soon" ? `${days}d left` : `${days}d left`;
-                  return (
-                    <div key={req.id} className="px-4 py-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-white">{req.fullName}</p>
-                          <p className="text-[10px] text-slate-400">{req.phone}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-right">
-                            <p className={`text-[10px] font-medium ${statusColor}`}>{statusLabel}</p>
-                            {req.durationLabel && <p className="text-[9px] text-slate-500">{req.durationLabel}</p>}
-                          </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name or phone..."
+              className="w-56 rounded-lg border border-slate-600 bg-slate-700 px-3 py-1.5 text-xs text-white placeholder-slate-400 outline-none focus:border-sky-500"
+            />
+          </div>
+          {filteredApproved.length === 0 ? (
+            <div className="p-8 text-center text-sm text-slate-500">
+              {searchQuery ? "No users match your search" : "No approved users"}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-700 text-[10px] uppercase tracking-wider text-slate-400">
+                    <th className="px-3 py-2 font-medium">Name</th>
+                    <th className="px-3 py-2 font-medium">Phone</th>
+                    <th className="px-3 py-2 font-medium">Payment</th>
+                    <th className="px-3 py-2 font-medium">Transaction ID</th>
+                    <th className="px-3 py-2 font-medium">Subscription</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                    <th className="px-3 py-2 font-medium">Days Left</th>
+                    <th className="px-3 py-2 font-medium">Submitted</th>
+                    <th className="px-3 py-2 font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
+                  {filteredApproved.map((req) => {
+                    const status = getSubscriptionStatus(req.phone);
+                    const days = getDaysRemaining(req.phone);
+                    const statusBadge =
+                      status === "expired"
+                        ? "bg-red-900/40 text-red-300 border-red-700/50"
+                        : status === "expiring-soon"
+                          ? "bg-amber-900/40 text-amber-300 border-amber-700/50"
+                          : status === "no-expiry"
+                            ? "bg-blue-900/40 text-blue-300 border-blue-700/50"
+                            : "bg-green-900/40 text-green-300 border-green-700/50";
+                    const statusLabel =
+                      status === "no-expiry"
+                        ? "No Expiry"
+                        : status === "expired"
+                          ? "Expired"
+                          : status === "expiring-soon"
+                            ? "Expiring Soon"
+                            : "Active";
+                    const daysLabel =
+                      status === "no-expiry"
+                        ? "∞"
+                        : status === "expired"
+                          ? "—"
+                          : `${days}d`;
+                    const durationLabel = req.durationLabel || "—";
+                    return (
+                      <tr key={req.id} className="hover:bg-slate-700/30 transition-colors">
+                        <td className="px-3 py-2 font-medium text-white">{req.fullName}</td>
+                        <td className="px-3 py-2 text-slate-300">{req.phone}</td>
+                        <td className="px-3 py-2 text-slate-300 capitalize">{req.paymentMethod || "—"}</td>
+                        <td className="px-3 py-2 font-mono text-[10px] text-slate-400">{req.transactionId || "—"}</td>
+                        <td className="px-3 py-2 text-slate-300">{durationLabel}</td>
+                        <td className="px-3 py-2">
+                          <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusBadge}`}>
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-slate-300">{daysLabel}</td>
+                        <td className="px-3 py-2 text-slate-400 text-[10px]">
+                          {new Date(req.submittedAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-3 py-2">
                           <button
                             onClick={() => handleRevoke(req.phone)}
-                            className="rounded bg-red-900/50 px-2 py-0.5 text-[9px] font-medium text-red-300 hover:bg-red-800 transition-colors"
+                            className="rounded bg-red-900/50 px-2 py-0.5 text-[10px] font-medium text-red-300 hover:bg-red-700 transition-colors"
                             title="Revoke access"
                           >
                             Revoke
                           </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Approved Phone Numbers */}
-          <div className="rounded-xl border border-slate-700 bg-slate-800">
-            <div className="flex items-center gap-2 border-b border-slate-700 px-4 py-3">
-              <Shield className="h-4 w-4 text-sky-400" />
-              <h2 className="text-sm font-semibold text-white">Active Logins</h2>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            {approvedPhones.length === 0 ? (
-              <div className="p-4 text-center text-xs text-slate-500">No active logins</div>
-            ) : (
-              <div className="divide-y divide-slate-700">
-                {approvedPhones.map((phone) => (
-                  <div key={phone} className="px-4 py-2">
-                    <p className="text-xs text-white">{phone}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* ─── PIN Management ─── */}
