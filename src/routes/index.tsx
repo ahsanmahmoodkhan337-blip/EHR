@@ -1180,7 +1180,7 @@ function Home() {
   const businessName = "Healthcare Hustlers";
   const { patients, caseStates } = usePatientStore();
   const { activeTab, setActiveTab } = useTabsEpic("summary");
-  const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("chart");
+  const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("schedule");
   const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -1541,7 +1541,7 @@ function Home() {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={(() => { const filtered = patients.filter(p => appointments.some(a => a.date === selectedScheduleDate && a.patientName.toLowerCase().includes(p.firstName.toLowerCase()) && a.patientName.toLowerCase().includes(p.lastName.toLowerCase()))); return filtered.length > 0 ? filtered : patients; })()} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
+            <WorklistPanel patients={(() => { const filtered = patients.filter(p => appointments.some(a => a.date === selectedScheduleDate && a.patientName.toLowerCase().includes(p.firstName.toLowerCase()) && a.patientName.toLowerCase().includes(p.lastName.toLowerCase()))); const demo = patients.find(p => p.id === "DEMO"); const result = filtered.length > 0 ? filtered : patients; if (demo && !result.some(p => p.id === "DEMO")) result.unshift(demo); return result; })()} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
