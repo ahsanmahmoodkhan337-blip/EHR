@@ -951,7 +951,7 @@ export default function PriorAuthPortal() {
                 {/* CoverMyMeds-style submit button */}
                 <div className="flex gap-2">
                 <button
-                  onClick={() => { toast("PA Submitted — tracking #PA-" + Math.random().toString(36).slice(2,8).toUpperCase()); handleSubmit}
+                  onClick={() => { toast("PA Submitted — tracking #PA-" + Math.random().toString(36).slice(2,8).toUpperCase()); handleSubmit(); }}
                   disabled={!procedure}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium text-white transition-colors ${
                     procedure
