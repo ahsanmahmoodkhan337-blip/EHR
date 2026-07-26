@@ -189,10 +189,10 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
           </div>
         ) : patient.allergies.length > 0 ? (
           <ul className="space-y-1">
-            {patient.allergies.map((alg) => (
-              <li key={alg.id}>
+            {patient.allergies.map((alg, i) => (
+              <li key={typeof alg === "string" ? i : alg.id}>
                 <span className="inline-block rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
-                  {alg.allergen} ({alg.severity})
+                  {typeof alg === "string" ? alg : `${alg.allergen} (${alg.severity})`}
                 </span>
               </li>
             ))}
