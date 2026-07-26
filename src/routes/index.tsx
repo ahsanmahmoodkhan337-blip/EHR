@@ -1246,10 +1246,12 @@ function Home() {
    * Call this BEFORE switching to a different patient.
    */
   function saveCurrentSession() {
+    console.log("saveCurrentSession: saving to key:", selectedPatientId);
     if (!selectedPatientId) return;
     const stages: string[] = [];
     completedStages.forEach(s => stages.push(s));
     patientDataStore.current[selectedPatientId] = {
+      _patientId: selectedPatientId,
       soapNote: { ...soapNote },
       submittedToCoding,
       completedStages: stages,
@@ -1276,10 +1278,12 @@ function Home() {
    * Falls back to mock patient data or defaults if no saved session.
    */
   function loadPatientSession(patientId: string) {
+    console.log("loadPatientSession called for:", patientId, "saved:", !!patientDataStore.current[patientId]);
     const saved = patientDataStore.current[patientId];
     const p = patients.find(pp => pp.id === patientId);
+    console.log("  patient found:", p?.firstName, p?.lastName, "| saved data:", !!saved);
 
-    if (saved) {
+    if (saved && saved._patientId === patientId) {
       setSoapNote(saved.soapNote);
       setSubmittedToCoding(saved.submittedToCoding);
       setCompletedStages(new Set(saved.completedStages));
@@ -1292,7 +1296,10 @@ function Home() {
       setSharedOrders(saved.sharedOrders);
       setSharedImaging(saved.sharedImaging);
       setDisplayName(saved.displayName);
-    } else if (p) {
+    } else {
+      // Clear any mismatched saved data
+      if (saved) delete patientDataStore.current[patientId];
+      if (p) {
       // First time visiting this patient — initialize from mock data
       setEditablePatientData({
         chiefComplaint: p.chiefComplaint ?? "",
@@ -1320,11 +1327,14 @@ function Home() {
       setActiveStage("registration");
       setCompletedStages(new Set(["registration"]));
     }
+    }
   }
 
   // When selected patient changes, load that patient's session data
   useEffect(() => {
+    console.log("useEffect[selectedPatientId] FIRED for:", selectedPatientId);
     const p = patients.find(pp => pp.id === selectedPatientId);
+    console.log("  patient found in useEffect:", p?.firstName, p?.lastName);
     if (!p) {
       // Handle case where patient not found (e.g. custom appointment mapped to placeholder)
       setSharedImmunizations([]);
@@ -1453,6 +1463,7 @@ function Home() {
   };
 
   const selectedPatient = patients.find((p) => p.id === selectedPatientId);
+  console.log("render: selectedPatientId=", selectedPatientId, "selectedPatient=", selectedPatient?.firstName, selectedPatient?.lastName);
 
   // Safely load a patient — always clears loading state even on error
   const handlePatientSelect = (id: string) => {
@@ -1470,6 +1481,7 @@ function Home() {
       if (p) toast(p.firstName + " " + p.lastName + " loaded");
       setSelectedPatientId(id);
       sessionStorage.setItem("hh_selected_patient", id);
+      console.log("handlePatientSelect: setSelectedPatientId to", id, "verified:", sessionStorage.getItem("hh_selected_patient"));
       resetEncounter(id);
       setDisplayName(undefined);
       setRole("scribe");
