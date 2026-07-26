@@ -98,11 +98,15 @@ function AdminPage() {
   };
 
   const handleApprove = (id: string, duration: string) => {
-    const endDate = calculateEndDate(duration);
-    updateRequestStatus(id, "approved", {
-      subscriptionEndDate: endDate,
-      durationLabel: duration,
-    });
+    if (duration === "Lifetime") {
+      updateRequestStatus(id, "approved");
+    } else {
+      const endDate = calculateEndDate(duration);
+      updateRequestStatus(id, "approved", {
+        subscriptionEndDate: endDate,
+        durationLabel: duration,
+      });
+    }
     setDurationModal(null);
     setRefreshKey((k) => k + 1);
   };
@@ -203,12 +207,10 @@ function AdminPage() {
                   transactionId: "manual-" + Date.now(),
                   submittedAt: new Date().toISOString(),
                   status: "approved",
-                  subscriptionEndDate: calculateEndDate("1 month"),
-                  durationLabel: "1 month",
                 };
                 saveAccessRequest(req);
                 setRefreshKey(k => k + 1);
-                alert(`${name} added and approved for 1 month`);
+                alert(`${name} added with lifetime access`);
               }
             }}
             className="flex items-center gap-1 rounded-lg bg-green-700 px-3 py-1.5 text-xs text-white hover:bg-green-600"
@@ -295,7 +297,7 @@ function AdminPage() {
             <div className="w-full max-w-sm rounded-xl border border-slate-600 bg-slate-800 p-6 shadow-2xl">
               <h3 className="text-sm font-bold text-white mb-4">Select Subscription Duration</h3>
               <div className="space-y-2">
-                {["1 month", "3 months", "6 months", "1 year"].map((d) => (
+                {["1 month", "3 months", "6 months", "1 year", "Lifetime (No Expiry)"].map((d) => (
                   <button
                     key={d}
                     onClick={() => handleApprove(durationModal.id, d)}

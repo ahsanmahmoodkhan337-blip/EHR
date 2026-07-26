@@ -132,11 +132,7 @@ export async function updateRequestStatusAsync(
   const updates: Record<string, any> = { status };
   if (extra?.subscriptionEndDate) updates.subscription_end_date = extra.subscriptionEndDate;
   if (extra?.durationLabel) updates.duration_label = extra.durationLabel;
-  if (status === "approved" && !extra?.subscriptionEndDate) {
-    // Default: 1 month if no duration specified
-    updates.subscription_end_date = calculateEndDate("1 month");
-    updates.duration_label = "1 month";
-  }
+  // No default expiry — if no duration specified, user gets lifetime (no end date)
 
   await supabase
     .from("access_requests")
