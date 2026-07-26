@@ -1411,6 +1411,7 @@ function Home() {
       const p = patients.find(p => p.id === id);
       if (p) toast(p.firstName + " " + p.lastName + " loaded");
       setSelectedPatientId(id);
+      sessionStorage.setItem("hh_selected_patient", id);
       resetEncounter(id);
       setDisplayName(undefined);
       setRole("scribe");
@@ -1584,12 +1585,8 @@ function Home() {
                       chiefComplaint: match.chiefComplaint,
                     }));
                   } else {
-                    // Custom patient not in mock database — use apt data, clear stale session
-                    const fallbackId = patients[0]?.id || "P001";
-                    setSelectedPatientId(fallbackId);
+                    // Custom patient not in mock database — keep current selection, just set display name
                     setPatientDisplayName(name);
-                    // Clear any cached session for this fallback patient to avoid stale data
-                    delete patientDataStore.current[fallbackId];
                     setRole("scribe");
                     setActiveWorkspace("chart");
                     setActiveStage("intake-vitals");
