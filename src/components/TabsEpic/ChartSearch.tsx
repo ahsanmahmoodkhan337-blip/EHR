@@ -93,7 +93,7 @@ export function ChartSearch({ patientId, className = "" }: ChartSearchProps) {
     });
 
     // Search medications
-    patient.medications.forEach((med) => {
+    (patient.medications || []).forEach((med) => {
       if (med.name.toLowerCase().includes(q) || med.dosage.toLowerCase().includes(q)) {
         found.push({
           id: `med-${med.id}`,
@@ -135,7 +135,7 @@ export function ChartSearch({ patientId, className = "" }: ChartSearchProps) {
     });
 
     // Search problems
-    patient.problems.forEach((prob, i) => {
+    (patient.problems || []).forEach((prob, i) => {
       if (prob.toLowerCase().includes(q)) {
         found.push({
           id: `prob-${i}`,
