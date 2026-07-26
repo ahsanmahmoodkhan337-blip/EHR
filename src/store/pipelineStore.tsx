@@ -97,6 +97,7 @@ interface PipelineContextValue {
   updatePAStatus: (id: string, status: string) => void;
   resetEncounter: (newPatientId?: string) => void;
   setPatientDisplayName: (name: string | null) => void;
+  prefillForTutorial: () => void;
 }
 
 const PipelineContext = createContext<PipelineContextValue | null>(null);
@@ -150,6 +151,17 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   const setPatientDisplayName = (name: string | null) => {
     setPipeline((prev) => ({ ...prev, displayName: name }));
+  };
+
+  // Pre-fill coding data for tutorial patient
+  const prefillForTutorial = () => {
+    setPipeline((prev) => ({
+      ...prev,
+      icdCodes: ["I10", "I25.10", "R07.9"],
+      cptCodes: ["99214", "93000"],
+      status: "charted",
+      stage: "coder",
+    }));
   };
 
   // Reset per-encounter data when switching patients. Accepts new patientId.
@@ -323,6 +335,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         updatePAStatus,
         resetEncounter,
         setPatientDisplayName,
+        prefillForTutorial,
       }}
     >
       {children}

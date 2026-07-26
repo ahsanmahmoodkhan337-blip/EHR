@@ -1184,7 +1184,7 @@ function Home() {
   const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, paRecords, resetEncounter, setPatientDisplayName, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, setRole, paRecords, resetEncounter, setPatientDisplayName, prefillForTutorial, state: pipelineState } = usePipeline();
   const { addToast } = useToast();
   const [activeStage, setActiveStage] = useState("registration");
   const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["registration"]));
@@ -1312,6 +1312,7 @@ function Home() {
         insurance: "Medicare Part B",
       });
       setEditableVitals({ bloodPressure: "145/92", heartRate: "92", temperature: "99.1", respiratoryRate: "20", oxygenSaturation: "94" });
+      prefillForTutorial();
       return;
     }
     console.log("loadPatientSession called for:", patientId, "saved:", !!patientDataStore.current[patientId]);
