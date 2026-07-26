@@ -6,7 +6,7 @@
  * ──────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Clock, User, Plus, FileEdit,
   X, Save, CheckCircle2, AlertTriangle, Loader2,
@@ -77,9 +77,10 @@ interface DailyScheduleProps {
   onSelectPatient?: (name: string) => void;
   appointments?: Appointment[];
   setAppointments?: React.Dispatch<React.SetStateAction<Appointment[]>>;
+  onDateChange?: (date: string) => void;
 }
 
-export function DailySchedule({ onSelectPatient, appointments: externalAppointments, setAppointments: setExternalAppointments }: DailyScheduleProps) {
+export function DailySchedule({ onSelectPatient, appointments: externalAppointments, setAppointments: setExternalAppointments, onDateChange }: DailyScheduleProps) {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -108,6 +109,11 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
       .filter((a) => a.date === selectedDate)
       .sort((a, b) => a.time.localeCompare(b.time));
   }, [appointments, selectedDate]);
+
+  // Notify parent when selected date changes
+  useEffect(() => {
+    onDateChange?.(selectedDate);
+  }, [selectedDate]);
 
   // Appointments grouped by date for calendar dots
   const appointmentsByDate = useMemo(() => {

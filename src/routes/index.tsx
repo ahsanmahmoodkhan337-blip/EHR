@@ -1177,6 +1177,7 @@ function Home() {
 
   // Lifted appointments state for persistence across tab switches (Bug 2 fix)
   const [appointments, setAppointments] = useState<Appointment[]>(PLACEHOLDER_APPOINTMENTS);
+  const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(new Date().toISOString().slice(0, 10));
   // Override display name for right panel header when showing placeholder patient (e.g. new appointment)
   const [displayName, setDisplayName] = useState<string | undefined>(undefined);
 
@@ -1452,7 +1453,7 @@ function Home() {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
+            <WorklistPanel patients={patients.filter(p => appointments.some(a => a.date === selectedScheduleDate && a.patientName.toLowerCase().includes(p.firstName.toLowerCase()) && a.patientName.toLowerCase().includes(p.lastName.toLowerCase())))} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
@@ -1559,6 +1560,7 @@ function Home() {
               <DailySchedule
                 appointments={appointments}
                 setAppointments={setAppointments}
+                onDateChange={setSelectedScheduleDate}
                 onSelectPatient={(name) => {
                   saveCurrentSession();
                   // Try exact match first, then fuzzy (case-insensitive partial)
