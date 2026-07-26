@@ -612,7 +612,7 @@ function SummaryTab({
         <table className="clinical-table">
           <thead><tr><th>Date</th><th>Type</th><th>Provider</th><th>Diagnosis</th></tr></thead>
           <tbody>
-            {patient.encounters.slice(0, 3).map((enc) => (
+            {(patient.encounters || []).slice(0, 3).map((enc) => (
               <tr key={enc.id}>
                 <td>{new Date(enc.date).toLocaleDateString()}</td>
                 <td>{enc.type}</td>
@@ -953,7 +953,7 @@ function LabsTab({ patientId }: { patientId: string }) {
           </tr>
         </thead>
         <tbody>
-          {patient.labResults.map((lab) => (
+          {(patient.labResults || []).map((lab) => (
             <tr key={lab.id}>
               <td className="font-medium">{lab.testName}</td>
               <td>
@@ -1970,7 +1970,7 @@ function Home() {
                     <TabPanel id="notes" activeTab={activeTab}>
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Clinical Notes</p>
-                        {selectedPatient.encounters.map((enc) => (
+                        {(selectedPatient.encounters || []).map((enc) => (
                           <div key={enc.id} className="mb-3 rounded border border-slate-200 p-3">
                             <p className="text-xs text-slate-500">
                               {new Date(enc.date).toLocaleDateString()} — {enc.type}
