@@ -1,4 +1,4 @@
-import "tailwindcss";
+import "./index.css";
 /**
  * Healthcare Hustlers EHR — SPA Entry Point
  *
