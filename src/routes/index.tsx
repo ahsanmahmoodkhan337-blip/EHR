@@ -172,6 +172,10 @@ function SummaryTab({
   onLabsResultsChange,
   referrals: extReferrals,
   onReferralsChange,
+  orders: extOrders,
+  onOrdersChange,
+  imaging: extImaging,
+  onImagingChange,
 }: {
   patientId: string;
   editableVitals?: EditableVitals;
@@ -186,6 +190,10 @@ function SummaryTab({
   onLabsResultsChange?: (v: string[]) => void;
   referrals?: string[];
   onReferralsChange?: (v: string[]) => void;
+  orders?: string[];
+  onOrdersChange?: (v: string[]) => void;
+  imaging?: string[];
+  onImagingChange?: (v: string[]) => void;
 }) {
   const { getPatientById } = usePatientStore();
   const pipeline = usePipeline();
@@ -217,6 +225,8 @@ function SummaryTab({
   const [immunInput, setImmunInput] = useState("");
   const [labInput, setLabInput] = useState("");
   const [referralInput, setReferralInput] = useState("");
+  const [orderInput, setOrderInput] = useState("");
+  const [imagingInput, setImagingInput] = useState("");
 
   const vitals = extVitals ?? localVitals;
   const setVitals = onVitalsChange ?? setLocalVitals;
@@ -230,6 +240,10 @@ function SummaryTab({
   const setLabsResults = onLabsResultsChange ?? ((v: string[]) => {});
   const referrals = extReferrals ?? [];
   const setReferrals = onReferralsChange ?? ((v: string[]) => {});
+  const orders = extOrders ?? [];
+  const setOrders = onOrdersChange ?? ((v: string[]) => {});
+  const imaging = extImaging ?? [];
+  const setImaging = onImagingChange ?? ((v: string[]) => {});
 
   const updateVital = (key: keyof EditableVitals, value: string) => {
     setVitals({ ...vitals, [key]: value });
@@ -507,6 +521,46 @@ function SummaryTab({
           <div className="mt-2 flex gap-1">
             <input type="text" value={labInput} onChange={e => setLabInput(e.target.value)} placeholder="+ Add lab/result..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
             <button onClick={() => { if (labInput.trim()) { setLabsResults([...labsResults, labInput.trim()]); setLabInput(""); } }} className="rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-700">Add</button>
+          </div>
+        )}
+      </div>
+
+      {/* Orders */}
+      <div className="clinical-card">
+        <p className="clinical-label mb-2">Orders</p>
+        {orders.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {orders.map((o, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-xs text-amber-700">{o}</span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 italic">No orders recorded</p>
+        )}
+        {isScribe && (
+          <div className="mt-2 flex gap-1">
+            <input type="text" value={orderInput} onChange={e => setOrderInput(e.target.value)} placeholder="+ Add order..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+            <button onClick={() => { if (orderInput.trim()) { setOrders([...orders, orderInput.trim()]); setOrderInput(""); } }} className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700">Add</button>
+          </div>
+        )}
+      </div>
+
+      {/* Imaging */}
+      <div className="clinical-card">
+        <p className="clinical-label mb-2">Imaging</p>
+        {imaging.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {imaging.map((img, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded bg-teal-50 px-2 py-0.5 text-xs text-teal-700">{img}</span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 italic">No imaging recorded</p>
+        )}
+        {isScribe && (
+          <div className="mt-2 flex gap-1">
+            <input type="text" value={imagingInput} onChange={e => setImagingInput(e.target.value)} placeholder="+ Add imaging..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+            <button onClick={() => { if (imagingInput.trim()) { setImaging([...imaging, imagingInput.trim()]); setImagingInput(""); } }} className="rounded bg-teal-600 px-2 py-1 text-xs text-white hover:bg-teal-700">Add</button>
           </div>
         )}
       </div>
@@ -1740,6 +1794,10 @@ function Home() {
                         onLabsResultsChange={setSharedLabs}
                         referrals={sharedReferrals}
                         onReferralsChange={setSharedReferrals}
+                        orders={sharedOrders}
+                        onOrdersChange={setSharedOrders}
+                        imaging={sharedImaging}
+                        onImagingChange={setSharedImaging}
                       />
                     </TabPanel>
                     <TabPanel id="vitals" activeTab={activeTab}>
