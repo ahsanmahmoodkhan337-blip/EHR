@@ -1396,6 +1396,26 @@ function Home() {
 
   const selectedPatient = patients.find((p) => p.id === selectedPatientId);
 
+  // Safely load a patient — always clears loading state even on error
+  const handlePatientSelect = (id: string) => {
+    setIsLoadingPatient(true);
+    try {
+      saveCurrentSession();
+      const p = patients.find(p => p.id === id);
+      if (p) toast(p.firstName + " " + p.lastName + " loaded");
+      resetEncounter(id);
+      setSelectedPatientId(id);
+      setDisplayName(undefined);
+      setRole("scribe");
+      setActiveWorkspace("chart");
+      setActiveStage("registration");
+    } catch (e) {
+      console.error("Patient select error:", e);
+      setIsLoadingPatient(false);
+    }
+    setTimeout(() => setIsLoadingPatient(false), 300);
+  };
+
   return (
     <AppShell
       header={
@@ -1405,7 +1425,7 @@ function Home() {
           <Header
             businessName={businessName}
             selectedPatientId={selectedPatientId}
-            onPatientSelect={(id) => { setIsLoadingPatient(true); saveCurrentSession(); toast(patients.find(p=>p.id===id)?.firstName + " " + patients.find(p=>p.id===id)?.lastName + " loaded"); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); setTimeout(() => setIsLoadingPatient(false), 300); }}
+            onPatientSelect={handlePatientSelect}
             showRightPanel={showRightPanel}
             onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
             selectedPatientName={
@@ -1422,7 +1442,7 @@ function Home() {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { setIsLoadingPatient(true); saveCurrentSession(); toast(patients.find(p=>p.id===id)?.firstName + " " + patients.find(p=>p.id===id)?.lastName + " loaded"); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); setTimeout(() => setIsLoadingPatient(false), 300); }} />
+            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
