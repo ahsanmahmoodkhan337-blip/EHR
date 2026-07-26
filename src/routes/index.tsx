@@ -93,7 +93,6 @@ import { WorklistPanel } from "../components/WorklistPanel";
 import { FinancialLedger } from "../components/FinancialLedger";
 import { ToastProvider, useToast } from "../components/Toast";
 import { Skeleton } from "../components/Skeleton";
-import { Certificate } from "../components/Certificate";
 import { CommandPalette } from "../components/CommandPalette";
 import { useAppStore } from "../stores/appStore";
 
@@ -1489,13 +1488,6 @@ function Home() {
               </div>
               <h3 className="mt-4 text-xl font-bold text-slate-800">Pipeline Complete!</h3>
               <p className="mt-2 text-sm text-slate-500">All stages have been completed. Great work!</p>
-              <div className="mt-6">
-                <Certificate
-                  studentName={localStorage.getItem("hh_student_name") || "Student"}
-                  completedModules={["Scribe", "Coder", "Prior Auth", "Biller", "AR Voice"]}
-                  score={92}
-                />
-              </div>
             </div>
           )}
         </FadeTransition>
@@ -1691,7 +1683,7 @@ function Home() {
                             Switch to Coder Role
                           </button>
                         </div>
-                        {/* NO CERTIFICATE HERE — Certificate only appears after full pipeline completion */}
+                        {/* Pipeline complete shown above after all stages finish */}
                       </div>
                     )}
                   </div>
