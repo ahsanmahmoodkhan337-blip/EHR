@@ -1398,8 +1398,8 @@ function Home() {
 
   // Safely load a patient — always clears loading state even on error
   const handlePatientSelect = (id: string) => {
-    setIsLoadingPatient(true);
     try {
+      setIsLoadingPatient(true);
       saveCurrentSession();
       const p = patients.find(p => p.id === id);
       if (p) toast(p.firstName + " " + p.lastName + " loaded");
@@ -1409,11 +1409,12 @@ function Home() {
       setRole("scribe");
       setActiveWorkspace("chart");
       setActiveStage("registration");
-    } catch (e) {
+    } catch (e: any) {
       console.error("Patient select error:", e);
-      setIsLoadingPatient(false);
+      toast("Error loading patient: " + (e?.message || "Unknown error"));
+    } finally {
+      setTimeout(() => setIsLoadingPatient(false), 300);
     }
-    setTimeout(() => setIsLoadingPatient(false), 300);
   };
 
   return (
