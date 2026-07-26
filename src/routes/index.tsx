@@ -351,8 +351,13 @@ function SummaryTab({
           )}
           {(() => {
             const parts = vitals.bloodPressure.split("/").map(s => parseFloat(s.trim()));
-            const isBad = parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && (parts[0] > 130 || parts[1] > 80);
-            return <p className={`mt-1 text-[10px] font-medium ${isBad ? "text-amber-600" : "text-green-600"}`}>{isBad ? "⚠ Elevated" : "✓ Normal"}</p>;
+            if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+            const sys = parts[0], dia = parts[1];
+            const isHigh = sys > 130 || dia > 80;
+            const isLow = sys < 90 || dia < 60;
+            const label = isHigh ? "⚠ High" : isLow ? "⚠ Low" : "✓ Normal";
+            const color = isHigh ? "text-red-500" : isLow ? "text-amber-600" : "text-green-600";
+            return <p className={`mt-1 text-[10px] font-medium ${color}`}>{label}</p>;
           })()}
         </div>
         <div className="clinical-card">
