@@ -19,6 +19,7 @@ import { usePatientStore, type RoutingNote } from "../../store/patientStore";
 import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";
 import { exportCMS1500PDF } from "../../utils/pdfExport";
 import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scoring";
+import { toast } from "sonner";
 
 type BillingTab = "form" | "scrubber" | "denials" | "references";
 
@@ -117,7 +118,7 @@ export function BillingLedger() {
       setRole("prior-auth");
       return;
     }
-    submitClaim({ payer, posCode, submittedAt: new Date().toISOString() });
+    toast.success("Claim Submitted"); submitClaim({ payer, posCode, submittedAt: new Date().toISOString() });
     setSubmitted(true);
     const score = scoreBiller(true, false, false);
     setBillingScore(score);

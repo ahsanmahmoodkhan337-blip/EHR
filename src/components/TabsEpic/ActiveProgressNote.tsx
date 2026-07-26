@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { FileEdit, Save, Eye, History, CheckCircle2 } from "lucide-react";
 import { type SoapNoteData } from "../WorkflowAthena/AssessmentPlanStage";
+import { toast } from "sonner";
 
 interface ActiveProgressNoteProps {
   patientName?: string;

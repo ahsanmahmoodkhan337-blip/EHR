@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { FlaskConical, RotateCcw, ChevronDown, Zap, CheckCircle2, AlertTriangle, Stethoscope } from "lucide-react";
 import { useAppStore } from "../stores/appStore";
+import { toast } from "sonner";
 
 // ─── Scenario Definitions ───────────────────────────────────────────
 

@@ -51,6 +51,7 @@ import {
   type PARecord,
 } from "./paData";
 import { exportPAFormPDF } from "../../utils/pdfExport";
+import { toast } from "sonner";
 
 type TabView = "queue" | "insurance" | "form" | "criteria" | "docs" | "step-therapy" | "letter" | "followup" | "errors";
 
@@ -210,6 +211,7 @@ export default function PriorAuthPortal() {
 
   // Handle submit
   const handleSubmit = () => {
+    toast("PA Submitted — tracking #PA-" + Math.random().toString(36).slice(2,8).toUpperCase());
     const paRecord = {
       id: `PA-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       patientId: patient?.id || "",
@@ -227,7 +229,7 @@ export default function PriorAuthPortal() {
       verificationResult: verificationResult || "",
     };
     addPARecord(paRecord);
-    submitPA({
+    toast("PA Submitted — tracking #PA-" + Math.random().toString(36).slice(2,8).toUpperCase()); submitPA({
       procedure: paRecord.procedure,
       payer,
       submittedAt: paRecord.submittedAt,
@@ -949,7 +951,7 @@ export default function PriorAuthPortal() {
                 {/* CoverMyMeds-style submit button */}
                 <div className="flex gap-2">
                 <button
-                  onClick={handleSubmit}
+                  onClick={() => { toast("PA Submitted — tracking #PA-" + Math.random().toString(36).slice(2,8).toUpperCase()); handleSubmit}
                   disabled={!procedure}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium text-white transition-colors ${
                     procedure

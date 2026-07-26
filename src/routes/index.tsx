@@ -1387,7 +1387,7 @@ function Home() {
     } else {
       updated.add(stageId);
       // Auto-advance to next stage
-      const stageOrder = ["registration", "eligibility", "intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"];
+      const stageOrder = ["registration", "intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"];
       const currentIdx = stageOrder.indexOf(stageId);
       if (currentIdx >= 0 && currentIdx < stageOrder.length - 1) {
         setActiveStage(stageOrder[currentIdx + 1]);
@@ -1407,7 +1407,7 @@ function Home() {
           <Header
             businessName={businessName}
             selectedPatientId={selectedPatientId}
-            onPatientSelect={(id) => { setIsLoadingPatient(true); saveCurrentSession(); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); setTimeout(() => setIsLoadingPatient(false), 300); }}
+            onPatientSelect={(id) => { setIsLoadingPatient(true); saveCurrentSession(); toast(patients.find(p=>p.id===id)?.firstName + " " + patients.find(p=>p.id===id)?.lastName + " loaded"); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); setTimeout(() => setIsLoadingPatient(false), 300); }}
             showRightPanel={showRightPanel}
             onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
             selectedPatientName={
@@ -1424,7 +1424,7 @@ function Home() {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { setIsLoadingPatient(true); saveCurrentSession(); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); setTimeout(() => setIsLoadingPatient(false), 300); }} />
+            <WorklistPanel patients={patients} selectedPatientId={selectedPatientId} onPatientSelect={(id) => { setIsLoadingPatient(true); saveCurrentSession(); toast(patients.find(p=>p.id===id)?.firstName + " " + patients.find(p=>p.id===id)?.lastName + " loaded"); resetEncounter(id); setSelectedPatientId(id); setDisplayName(undefined); setRole("scribe"); setActiveWorkspace("chart"); setActiveStage("registration"); setTimeout(() => setIsLoadingPatient(false), 300); }} />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
@@ -1614,8 +1614,7 @@ function Home() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-blue-700">
                         Workflow: {activeStage === "registration" ? "Patient Registration" :
-                              activeStage === "eligibility" ? "Eligibility Verification" :
-                            activeStage === "intake-vitals" ? "Intake / Vitals" :
+                                                          activeStage === "intake-vitals" ? "Intake / Vitals" :
                                     activeStage === "hpi" ? "History of Present Illness" :
                                     activeStage === "exam-ros" ? "Review of Systems" :
                                     activeStage === "assessment-plan" ? "Assessment & Plan" :
@@ -1632,9 +1631,6 @@ function Home() {
                   <div className="flex-1 overflow-y-auto p-4 animate-slide-in" key={activeStage}>
                     {activeStage === "registration" && (
                       <RegistrationStage />
-                    )}
-                    {activeStage === "eligibility" && (
-                      <EligibilityStage patientName={displayName || (selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : undefined)} dob={selectedPatient?.dob} insurance={selectedPatient?.insurance} />
                     )}
                     {activeStage === "intake-vitals" && (
                       <IntakeVitalsStage patientId={selectedPatientId} editableVitals={editableVitals} onVitalsChange={setEditableVitals} />
