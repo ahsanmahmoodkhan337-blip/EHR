@@ -73,6 +73,8 @@ function AdminPage() {
   const [durationModal, setDurationModal] = useState<{ id: string; duration: string } | null>(null);
   const [subscriptionDurations, setSubscriptionDurations] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Load data — sync from Supabase first, then read localStorage cache
   useEffect(() => {
@@ -182,6 +184,11 @@ function AdminPage() {
     const q = searchQuery.toLowerCase();
     return req.fullName.toLowerCase().includes(q) || req.phone.includes(q);
   });
+  const totalPages = Math.max(1, Math.ceil(filteredApproved.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedApproved = filteredApproved.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const showingFrom = filteredApproved.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const showingTo = Math.min(safePage * pageSize, filteredApproved.length);
 
   return (
     <div className="min-h-dvh bg-slate-900">
@@ -349,7 +356,7 @@ function AdminPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               placeholder="Search by name or phone..."
               className="w-56 rounded-lg border border-slate-600 bg-slate-700 px-3 py-1.5 text-xs text-white placeholder-slate-400 outline-none focus:border-sky-500"
             />
@@ -375,7 +382,7 @@ function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/50">
-                  {filteredApproved.map((req) => {
+                  {paginatedApproved.map((req) => {
                     const status = getSubscriptionStatus(req.phone);
                     const days = getDaysRemaining(req.phone);
                     const statusBadge =
@@ -433,6 +440,53 @@ function AdminPage() {
               </table>
             </div>
           )}
+
+        {/* Pagination */}
+        {filteredApproved.length > pageSize && (
+          <div className="mb-6 flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800 px-4 py-3">
+            <p className="text-xs text-slate-400">
+              Showing {showingFrom}&ndash;{showingTo} of {filteredApproved.length} approved user{filteredApproved.length !== 1 ? "s" : ""}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="rounded bg-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1).reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, []).map((item, i) =>
+                item === "..." ? (
+                  <span key={`ellipsis-${i}`} className="px-1 text-xs text-slate-500">&hellip;</span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => setCurrentPage(item as number)}
+                    className={`rounded px-2.5 py-1 text-xs font-medium ${
+                      safePage === item
+                        ? "bg-sky-600 text-white"
+                        : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="rounded bg-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
         </div>
 
         {/* ─── PIN Management ─── */}
