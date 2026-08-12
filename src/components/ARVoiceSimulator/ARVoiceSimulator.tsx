@@ -42,7 +42,6 @@ import {
   AR_SCENARIOS,
   BUCKET_SCRIPTS,
   AGING_LEDGER_DATA,
-  AGING_LEDGER_TOTAL,
 } from "./arData";
 
 type TabView = "ledger" | "calls" | "scripts" | "appeals" | "scenarios" | "carriers";
@@ -51,6 +50,7 @@ export default function ARVoiceSimulator() {
   const pipeline = usePipeline();
   const {
     state,
+    deniedClaims,
     resolveDenial,
     assignDenial,
     addCallRecord,
@@ -142,12 +142,37 @@ export default function ARVoiceSimulator() {
 
   const claimsByAging = getClaimsByAging();
 
+  // ─── Real aging ledger — derived from actual denied claims ─────────
+  // Never show demo figures as if they were the student's own AR.
+  const ledgerData = AGING_LEDGER_DATA.map((bucket) => {
+    const claims = claimsByAging[bucket.bucket] ?? [];
+    return {
+      ...bucket,
+      totalClaims: claims.length,
+      totalAmount: claims.reduce((sum, c) => sum + (c.amount || 0), 0),
+    };
+  });
+  const ledgerTotal = {
+    totalClaims: ledgerData.reduce((s, b) => s + b.totalClaims, 0),
+    totalAmount: ledgerData.reduce((s, b) => s + b.totalAmount, 0),
+  };
+
+  // Top denial reasons from real denied claims (replaces hardcoded payer list)
+  const topDenialReasons = useMemo(() => {
+    const counts: Record<string, number> = {};
+    deniedClaims.forEach((c) => {
+      const key = (c.reason.split("—")[0] || c.reason || "Unknown").trim();
+      counts[key] = (counts[key] ?? 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [deniedClaims]);
+
   // ─── Bucket stats ────────────────────────────────────────────────
   const bucketStats = [
-    { key: "0-30", label: "0-30 Days", count: (claimsByAging["0-30"] ?? []).length + AGING_LEDGER_DATA[0].totalClaims, color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-    { key: "31-60", label: "31-60 Days", count: (claimsByAging["31-60"] ?? []).length + AGING_LEDGER_DATA[1].totalClaims, color: "bg-orange-100 text-orange-700 border-orange-200" },
-    { key: "61-90", label: "61-90 Days", count: (claimsByAging["61-90"] ?? []).length + AGING_LEDGER_DATA[2].totalClaims, color: "bg-red-100 text-red-700 border-red-200" },
-    { key: "90+", label: "90+ Days", count: (claimsByAging["90+"] ?? []).length + AGING_LEDGER_DATA[3].totalClaims, color: "bg-rose-100 text-rose-700 border-rose-300" },
+    { key: "0-30", label: "0-30 Days", count: (claimsByAging["0-30"] ?? []).length, color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+    { key: "31-60", label: "31-60 Days", count: (claimsByAging["31-60"] ?? []).length, color: "bg-orange-100 text-orange-700 border-orange-200" },
+    { key: "61-90", label: "61-90 Days", count: (claimsByAging["61-90"] ?? []).length, color: "bg-red-100 text-red-700 border-red-200" },
+    { key: "90+", label: "90+ Days", count: (claimsByAging["90+"] ?? []).length, color: "bg-rose-100 text-rose-700 border-rose-300" },
   ];
 
   const currentClaims = claimsByAging[selectedBucket] ?? [];
@@ -247,85 +272,103 @@ export default function ARVoiceSimulator() {
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-slate-700">AR Aging Ledger</p>
               <p className="text-[10px] font-medium text-slate-500">
-                Total AR: <span className="font-bold text-slate-700">${AGING_LEDGER_TOTAL.totalAmount.toLocaleString()}</span>
-                {" "}| {AGING_LEDGER_TOTAL.totalClaims} Claims
+                {ledgerTotal.totalClaims > 0 ? (
+                  <>Total AR: <span className="font-bold text-slate-700">${ledgerTotal.totalAmount.toLocaleString()}</span>{" "}| {ledgerTotal.totalClaims} Claim{ledgerTotal.totalClaims !== 1 ? "s" : ""}</>
+                ) : (
+                  <span className="italic text-slate-400">No claims yet</span>
+                )}
               </p>
             </div>
 
-            {/* Aging summary cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {AGING_LEDGER_DATA.map((bucket) => (
-                <div
-                  key={bucket.bucket}
-                  className={`rounded-lg border p-3 ${bucket.color}`}
-                >
-                  <p className="text-[10px] font-medium text-slate-500">{bucket.label}</p>
-                  <p className="text-lg font-bold text-slate-800">${bucket.totalAmount.toLocaleString()}</p>
-                  <p className="text-[10px] text-slate-500">{bucket.totalClaims} claims</p>
+            {ledgerTotal.totalClaims === 0 ? (
+              /* Empty state — nothing submitted yet */
+              <div className="rounded-lg border-2 border-dashed border-slate-200 bg-white p-8 text-center">
+                <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-slate-300" />
+                <p className="text-xs font-medium text-slate-500">No claims in the AR aging ledger yet</p>
+                <p className="mt-1 text-[10px] text-slate-400">
+                  This ledger reflects the claims denied in the <strong>Biller</strong> stage (Path B — Simulate Denial).
+                  Complete Scribe → Coding → Billing and simulate a denial to see it appear here.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Aging summary cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {ledgerData.map((bucket) => (
+                    <div
+                      key={bucket.bucket}
+                      className={`rounded-lg border p-3 ${bucket.color}`}
+                    >
+                      <p className="text-[10px] font-medium text-slate-500">{bucket.label}</p>
+                      <p className="text-lg font-bold text-slate-800">${bucket.totalAmount.toLocaleString()}</p>
+                      <p className="text-[10px] text-slate-500">{bucket.totalClaims} claim{bucket.totalClaims !== 1 ? "s" : ""}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {/* Aging chart (bar visualization) */}
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <p className="mb-3 text-[10px] font-semibold text-slate-600">Aging Distribution by Dollar Amount</p>
-              <div className="space-y-2">
-                {AGING_LEDGER_DATA.map((bucket) => {
-                  const pct = (bucket.totalAmount / AGING_LEDGER_TOTAL.totalAmount) * 100;
-                  const barColorMap: Record<string, string> = {
-                    "0-30": "bg-yellow-400",
-                    "31-60": "bg-orange-400",
-                    "61-90": "bg-red-400",
-                    "90+": "bg-rose-500",
-                  };
-                  return (
-                    <div key={bucket.bucket} className="space-y-0.5">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="font-medium text-slate-600">{bucket.label}</span>
-                        <span className="text-slate-500">
-                          ${bucket.totalAmount.toLocaleString()} ({pct.toFixed(0)}%)
-                        </span>
-                      </div>
-                      <div className="h-3 w-full rounded-full bg-slate-100">
-                        <div
-                          className={`h-3 rounded-full ${barColorMap[bucket.bucket] || "bg-slate-400"}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+                {/* Aging chart (bar visualization) */}
+                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                  <p className="mb-3 text-[10px] font-semibold text-slate-600">Aging Distribution by Dollar Amount</p>
+                  <div className="space-y-2">
+                    {ledgerData.map((bucket) => {
+                      const pct = ledgerTotal.totalAmount > 0 ? (bucket.totalAmount / ledgerTotal.totalAmount) * 100 : 0;
+                      const barColorMap: Record<string, string> = {
+                        "0-30": "bg-yellow-400",
+                        "31-60": "bg-orange-400",
+                        "61-90": "bg-red-400",
+                        "90+": "bg-rose-500",
+                      };
+                      return (
+                        <div key={bucket.bucket} className="space-y-0.5">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="font-medium text-slate-600">{bucket.label}</span>
+                            <span className="text-slate-500">
+                              ${bucket.totalAmount.toLocaleString()} ({pct.toFixed(0)}%)
+                            </span>
+                          </div>
+                          <div className="h-3 w-full rounded-full bg-slate-100">
+                            <div
+                              className={`h-3 rounded-full ${barColorMap[bucket.bucket] || "bg-slate-400"}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Top denial reasons (from real claims — replaces hardcoded payer list) */}
+                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                  <p className="mb-2 text-[10px] font-semibold text-slate-600">Top Denial Reasons</p>
+                  {topDenialReasons.length === 0 ? (
+                    <p className="text-[10px] text-slate-400 italic">No denial reasons recorded yet.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {topDenialReasons.map(([reason, count]) => (
+                        <div key={reason} className="flex items-center justify-between text-[10px]">
+                          <span className="text-slate-600">{reason}</span>
+                          <span className="font-medium text-slate-700">{count} claim{count !== 1 ? "s" : ""}</span>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                  )}
+                </div>
 
-            {/* Top carrier breakdown */}
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <p className="mb-2 text-[10px] font-semibold text-slate-600">Top Aging by Payer</p>
-              <div className="space-y-1.5">
-                {["United Healthcare", "Blue Cross", "Medicare", "Aetna", "Medicaid"].map((payer, i) => {
-                  const amt = [18500, 14200, 9800, 7500, 5200][i];
-                  return (
-                    <div key={payer} className="flex items-center justify-between text-[10px]">
-                      <span className="text-slate-600">{payer}</span>
-                      <span className="font-medium text-slate-700">${amt.toLocaleString()}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Practice tip */}
-            <div className="rounded-lg border border-sky-100 bg-sky-50 p-3">
-              <p className="text-[10px] font-medium text-sky-700">
-                <ClipboardList className="mr-1 inline h-3 w-3" />
-                RCM Pro Tip
-              </p>
-              <p className="mt-1 text-[10px] text-sky-600">
-                The aging ledger should be reviewed DAILY. Focus on the 90+ day bucket first — these claims are
-                at highest risk of becoming non-collectible. A good AR team keeps &lt;15% of total AR in the 90+ bucket.
-                Current: {(AGING_LEDGER_DATA[3].totalAmount / AGING_LEDGER_TOTAL.totalAmount * 100).toFixed(0)}%.
-              </p>
-            </div>
+                {/* Practice tip */}
+                <div className="rounded-lg border border-sky-100 bg-sky-50 p-3">
+                  <p className="text-[10px] font-medium text-sky-700">
+                    <ClipboardList className="mr-1 inline h-3 w-3" />
+                    RCM Pro Tip
+                  </p>
+                  <p className="mt-1 text-[10px] text-sky-600">
+                    The aging ledger should be reviewed DAILY. Focus on the 90+ day bucket first — these claims are
+                    at highest risk of becoming non-collectible. A good AR team keeps &lt;15% of total AR in the 90+ bucket.
+                    Current: {ledgerTotal.totalAmount > 0 ? (ledgerData[3].totalAmount / ledgerTotal.totalAmount * 100).toFixed(0) : "0"}%.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
 

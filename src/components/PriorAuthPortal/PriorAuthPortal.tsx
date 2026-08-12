@@ -35,7 +35,7 @@ import {
   Plus,
   FileDown,
 } from "lucide-react";
-import { usePipeline } from "../../store/pipelineStore";
+import { usePipeline, type PARecordStore } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
 import {
   PA_PROCEDURES,
@@ -43,12 +43,9 @@ import {
   PA_STATUS_FLOW,
   PA_STATUS_LABELS,
   PA_TIMELINE_STEPS,
-  SAMPLE_PA_QUEUE,
   SUBMISSION_METHODS,
-  PA_RECORDS,
   type ProcedureKey,
   type PAQueueItem,
-  type PARecord,
 } from "./paData";
 import { exportPAFormPDF } from "../../utils/pdfExport";
 import { toast } from "sonner";
@@ -79,8 +76,31 @@ interface DocAttachment {
 }
 
 export default function PriorAuthPortal() {
-  const { state, submitPA, addPARecord, setRole } = usePipeline();
+  const { state, submitPA, addPARecord, setRole, paRecords } = usePipeline();
   const { getPatientById } = usePatientStore();
+
+  // ── Real PA queue — derived from the student's actual submissions ──
+  // (replaces the static SAMPLE_PA_QUEUE demo records)
+  const queueItems = useMemo<PAQueueItem[]>(() => {
+    return paRecords.map((r) => {
+      const p = getPatientById(r.patientId);
+      return {
+        id: r.id,
+        patientName: p ? `${p.firstName} ${p.lastName}` : "—",
+        procedure: r.procedure,
+        insuranceName: r.insuranceName,
+        paProcessor: r.paProcessor,
+        authStartDate: r.authStartDate,
+        authEndDate: r.authEndDate,
+        nextRefillDate: r.nextRefillDate,
+        submissionMethod: r.submissionMethod,
+        submittedBy: r.submittedBy,
+        submittedAt: r.submittedAt,
+        status: r.status,
+        urgency: "routine" as const,
+      };
+    });
+  }, [paRecords, getPatientById]);
 
   // Get the first patient from the pipeline state or the first mock patient
   const patientId = state.patientId || "";
@@ -161,7 +181,7 @@ export default function PriorAuthPortal() {
     const infoRequired: PAQueueItem[] = [];
     const overdueFollowup: PAQueueItem[] = [];
 
-    SAMPLE_PA_QUEUE.forEach((r) => {
+    queueItems.forEach((r) => {
       // Check auth end date — alert 2 weeks before
       if (r.authEndDate) {
         const end = new Date(r.authEndDate);
@@ -181,7 +201,7 @@ export default function PriorAuthPortal() {
     });
 
     return { expiringSoon, refillDue, infoRequired, overdueFollowup };
-  }, []);
+  }, [queueItems]);
 
   // Toggle criteria checkbox
   const toggleCriterion = (id: string) => {
@@ -248,7 +268,7 @@ export default function PriorAuthPortal() {
 
   // Filtered queue
   const filteredQueue = useMemo(() => {
-    return SAMPLE_PA_QUEUE.filter((item) => {
+    return queueItems.filter((item) => {
       const matchesFilter = queueFilter === "all" || item.status === queueFilter;
       const matchesSearch =
         !searchTerm ||
@@ -257,7 +277,7 @@ export default function PriorAuthPortal() {
         item.id.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesFilter && matchesSearch;
     });
-  }, [queueFilter, searchTerm]);
+  }, [queueFilter, searchTerm, queueItems]);
 
   // ─── Tabs ─────────────────────────────────────────────────────────
   const tabs: { key: TabView; label: string; icon: React.ReactNode }[] = [
@@ -450,7 +470,7 @@ export default function PriorAuthPortal() {
             {/* CoverMyMeds-style summary cards (using 11-status flow) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5">
               {PA_STATUS_FLOW.map((s) => {
-                const count = SAMPLE_PA_QUEUE.filter((i) => i.status === s.key).length;
+                const count = queueItems.filter((i) => i.status === s.key).length;
                 return count > 0 ? (
                   <div
                     key={s.key}
@@ -467,7 +487,15 @@ export default function PriorAuthPortal() {
 
             {/* Queue cards — expandable with all fields */}
             <div className="space-y-2">
-              {filteredQueue.length === 0 ? (
+              {queueItems.length === 0 ? (
+                <div className="rounded-lg border-2 border-dashed border-slate-200 bg-white px-3 py-8 text-center">
+                  <p className="text-xs font-medium text-slate-500">No prior authorization requests yet</p>
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    Submit a PA from the <strong>PA Form</strong> tab — it will appear here with the patient's real
+                    chart data (codes from Coding, insurance from Registration).
+                  </p>
+                </div>
+              ) : filteredQueue.length === 0 ? (
                 <div className="px-3 py-6 text-center text-[11px] text-slate-400">
                   No matching PA requests found
                 </div>
@@ -619,7 +647,7 @@ export default function PriorAuthPortal() {
                   <div><span className="text-slate-400">Payer:</span><p className="font-medium text-slate-700">{payer}</p></div>
                   <div><span className="text-slate-400">Member ID:</span><p className="font-medium text-slate-700">{patient?.mrn || "MRN-1001"}</p></div>
                   <div><span className="text-slate-400">Group #:</span><p className="font-medium text-slate-700">GRP-{Math.floor(Math.random() * 90000) + 10000}</p></div>
-                  <div><span className="text-slate-400">Patient:</span><p className="font-medium text-slate-700">{patient ? `${patient.firstName} ${patient.lastName}` : "—"}</p></div>
+                  <div><span className="text-slate-400">Patient:</span><p className="font-medium text-slate-700">{patient ? `${patient.firstName} ${patient.lastName}` : "���"}</p></div>
                 </div>
               </div>
 
@@ -1217,7 +1245,7 @@ export default function PriorAuthPortal() {
           </div>
         )}
 
-        {/* ─── TAB: DOCUMENTS (CoverMyMeds-style attachment panel) ─── */}
+        {/* ─── TAB: DOCUMENTS (CoverMyMeds-style attachment panel) ──�� */}
         {activeTab === "docs" && (
           <div className="space-y-4">
             {procedure ? (
