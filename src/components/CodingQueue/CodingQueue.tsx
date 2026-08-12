@@ -347,18 +347,61 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
               <Lock className="h-3 w-3 text-slate-300" />
             </div>
             <div className="space-y-3 text-xs">
-              <div className="rounded-lg bg-white p-3 shadow-sm">
-                <p className="font-medium text-slate-700">Chief Complaint</p>
-                <p className="mt-1 text-slate-500">Patient presents with follow-up for hypertension and diabetes management. Reports occasional headache, BP today 148/92.</p>
-              </div>
-              <div className="rounded-lg bg-white p-3 shadow-sm">
-                <p className="font-medium text-slate-700">Assessment</p>
-                <p className="mt-1 text-slate-500">1. Essential hypertension (I10) — poorly controlled<br />2. Type 2 DM (E11.9) — on Metformin 500mg BID<br />3. Hyperlipidemia (E78.5)</p>
-              </div>
-              <div className="rounded-lg bg-white p-3 shadow-sm">
-                <p className="font-medium text-slate-700">Plan</p>
-                <p className="mt-1 text-slate-500">Continue Metformin. Start Lisinopril 10mg. Follow up in 3 months. CMP ordered.</p>
-              </div>
+              {/* Dynamic SOAP note — uses actual scribe data, not hardcoded placeholder */}
+              {(() => {
+                const hasSoapData = !!(soapNote?.subjective || soapNote?.objective || soapNote?.assessment || soapNote?.plan);
+                const hasScribeNote = !!state.scribeNote;
+
+                if (hasSoapData) {
+                  // Structured SOAP data from the scribe stage
+                  return (
+                    <>
+                      {soapNote?.subjective && (
+                        <div className="rounded-lg bg-white p-3 shadow-sm">
+                          <p className="font-medium text-blue-600">Subjective</p>
+                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.subjective}</p>
+                        </div>
+                      )}
+                      {soapNote?.objective && (
+                        <div className="rounded-lg bg-white p-3 shadow-sm">
+                          <p className="font-medium text-green-600">Objective</p>
+                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.objective}</p>
+                        </div>
+                      )}
+                      {soapNote?.assessment && (
+                        <div className="rounded-lg bg-white p-3 shadow-sm">
+                          <p className="font-medium text-amber-600">Assessment</p>
+                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.assessment}</p>
+                        </div>
+                      )}
+                      {soapNote?.plan && (
+                        <div className="rounded-lg bg-white p-3 shadow-sm">
+                          <p className="font-medium text-purple-600">Plan</p>
+                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.plan}</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                }
+
+                if (hasScribeNote) {
+                  // Fallback: raw scribe note text (pre-structured SOAP data)
+                  return (
+                    <div className="rounded-lg bg-white p-3 shadow-sm">
+                      <p className="font-medium text-slate-700">Encounter Note</p>
+                      <p className="mt-1 whitespace-pre-wrap text-slate-600">{state.scribeNote}</p>
+                    </div>
+                  );
+                }
+
+                // No note available
+                return (
+                  <div className="rounded-lg bg-white p-3 shadow-sm">
+                    <p className="font-medium text-slate-400">No clinical note submitted</p>
+                    <p className="mt-1 text-slate-400 italic">Complete charting in the Scribe role first.</p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
