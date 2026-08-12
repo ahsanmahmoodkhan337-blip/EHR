@@ -1,0 +1,98 @@
+[1mdiff --git a/src/components/BillingLedger/BillingLedger.tsx b/src/components/BillingLedger/BillingLedger.tsx[m
+[1mindex 64daa65..8794bc6 100644[m
+[1m--- a/src/components/BillingLedger/BillingLedger.tsx[m
+[1m+++ b/src/components/BillingLedger/BillingLedger.tsx[m
+[36m@@ -17,6 +17,7 @@[m [mimport { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search[m
+ import { usePipeline } from "../../store/pipelineStore";[m
+ import { usePatientStore, type RoutingNote } from "../../store/patientStore";[m
+ import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";[m
+[32m+[m[32mimport { CPT_CODES } from "../CodingQueue/cptData";[m
+ import { exportCMS1500PDF } from "../../utils/pdfExport";[m
+ import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scoring";[m
+ import { toast } from "sonner";[m
+[36m@@ -126,15 +127,22 @@[m [mexport function BillingLedger() {[m
+   };[m
+ [m
+   const simulateDenial = () => {[m
+[31m-    handleDenial("CO-16 — Claim lacks information");[m
+[32m+[m[32m    handleDenial("CO-16 — Claim lacks information", {[m
+[32m+[m[32m      amount: calcPayment().billed,[m
+[32m+[m[32m      patientName: state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),[m
+[32m+[m[32m    });[m
+     setActiveTab("denials");[m
+   };[m
+ [m
+[31m-  // Calculate estimated payment[m
+[32m+[m[32m  // Calculate estimated payment from the ACTUAL CPT codes chosen in Coding[m
+[32m+[m[32m  // (medicare fee schedule basis) — never a hardcoded flat amount.[m
+   const calcPayment = () => {[m
+     const rates: Record<string, number> = { Medicare: 0.80, Medicaid: 0.65, "Blue Cross": 0.85, "United Healthcare": 0.82, Aetna: 0.83 };[m
+     const rate = rates[payer] ?? 0.80;[m
+[31m-    const billed = 185.00;[m
+[32m+[m[32m    const billed = (state.cptCodes || []).reduce((sum, code) => {[m
+[32m+[m[32m      const cpt = CPT_CODES.find((c) => c.code === code);[m
+[32m+[m[32m      return sum + (cpt?.medicareRate ?? 0);[m
+[32m+[m[32m    }, 0);[m
+     return { billed, allowed: billed * rate, paid: billed * rate * 0.90, patient: billed * rate * 0.10 };[m
+   };[m
+ [m
+[36m@@ -564,12 +572,17 @@[m [mexport function BillingLedger() {[m
+             <div className="space-y-3">[m
+               <div className="rounded-lg bg-white p-3 shadow-sm">[m
+                 <p className="text-[10px] text-slate-400">Fee Schedule</p>[m
+[31m-                <p className="text-lg font-bold text-green-600">$185.00</p>[m
+[32m+[m[32m                <p className="text-lg font-bold text-green-600">[m
+[32m+[m[32m                  {calcPayment().billed > 0 ? `$${calcPayment().billed.toFixed(2)}` : "$0.00"}[m
+[32m+[m[32m                </p>[m
+                 <p className="text-[10px] text-slate-400">Billed Amount</p>[m
+[32m+[m[32m                {calcPayment().billed === 0 && ([m
+[32m+[m[32m                  <p className="mt-1 text-[9px] text-amber-600">No CPT codes submitted — amount will update after Coding.</p>[m
+[32m+[m[32m                )}[m
+               </div>[m
+               <div className="rounded-lg bg-white p-3 shadow-sm">[m
+                 <p className="text-[10px] text-slate-400">Payer Rate</p>[m
+[31m-                <p className="text-sm font-bold text-slate-700">{payer}: {(calcPayment().allowed / calcPayment().billed * 100).toFixed(0)}% of billed</p>[m
+[32m+[m[32m                <p className="text-sm font-bold text-slate-700">{calcPayment().billed > 0 ? `${payer}: {(calcPayment().allowed / calcPayment().billed * 100).toFixed(0)}% of billed` : `${payer}: — no codes yet`}</p>[m
+               </div>[m
+               <div className="rounded-lg bg-green-50 p-3 border border-green-200">[m
+                 <p className="text-[10px] text-green-600">Estimated Payment</p>[m
+[1mdiff --git a/src/store/pipelineStore.tsx b/src/store/pipelineStore.tsx[m
+[1mindex 171d1c4..b4e5153 100644[m
+[1m--- a/src/store/pipelineStore.tsx[m
+[1m+++ b/src/store/pipelineStore.tsx[m
+[36m@@ -80,7 +80,7 @@[m [minterface PipelineContextValue {[m
+   submitToCoding: (note: string) => void;[m
+   submitToBilling: (icdCodes: string[], cptCodes: string[]) => void;[m
+   submitClaim: (claimData: Record<string, string>) => void;[m
+[31m-  handleDenial: (denialCode: string) => void;[m
+[32m+[m[32m  handleDenial: (denialCode: string, meta?: { amount?: number; patientName?: string }) => void;[m
+   submitPA: (paData: Record<string, string>) => void;[m
+   completePipeline: () => void;[m
+   getRoleLabel: (role: Role) => string;[m
+[36m@@ -224,14 +224,14 @@[m [mexport function PipelineProvider({ children }: { children: ReactNode }) {[m
+   };[m
+ [m
+   // Denial from Biller stage — routes to AR queue[m
+[31m-  const handleDenial = (denialCode: string) => {[m
+[32m+[m[32m  const handleDenial = (denialCode: string, meta?: { amount?: number; patientName?: string }) => {[m
+     setPipeline((prev) => {[m
+       const denial: DeniedClaim = {[m
+         id: `denial-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,[m
+         encounterId: prev.patientId ?? "unknown",[m
+[31m-        patientName: "",[m
+[32m+[m[32m        patientName: meta?.patientName ?? "",[m
+         reason: denialCode,[m
+[31m-        amount: 0,[m
+[32m+[m[32m        amount: meta?.amount ?? 0,[m
+         deniedAt: new Date().toISOString(),[m
+         agingBucket: "0-30",[m
+         resolutionStatus: "unresolved",[m
+[36m@@ -240,7 +240,7 @@[m [mexport function PipelineProvider({ children }: { children: ReactNode }) {[m
+       return {[m
+         ...prev,[m
+         status: "denied",[m
+[31m-        denialInfo: { code: denialCode, reason: "Claim denied", amount: 0 },[m
+[32m+[m[32m        denialInfo: { code: denialCode, reason: "Claim denied", amount: meta?.amount ?? 0 },[m
+       };[m
+     });[m
+   };[m
