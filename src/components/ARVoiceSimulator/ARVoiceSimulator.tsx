@@ -908,27 +908,12 @@ export default function ARVoiceSimulator() {
           </div>
         )}
 
-        {/* Complete Pipeline — marks all stages as done */}
         {arScore !== null && (
           <div className="mt-4 flex items-center justify-center gap-1.5 text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5 text-xs">
             <Star className="h-3.5 w-3.5" />
             AR Voice Score: <strong>{arScore}/5</strong>
           </div>
         )}
-        <div className="mt-4 flex justify-center">
-          <button
-            onClick={() => {
-              const score = scoreARVoice(true);
-              setArScore(score);
-              updateStageScore(getStudentName(), "arVoice", score);
-              pipeline.completePipeline();
-            }}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 shadow-sm transition-colors"
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            Complete Pipeline — Generate Certificate
-          </button>
-        </div>
       </div>
     </div>
   );
