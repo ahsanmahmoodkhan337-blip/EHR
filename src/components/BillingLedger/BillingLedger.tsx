@@ -17,6 +17,7 @@ import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search
 import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore, type RoutingNote } from "../../store/patientStore";
 import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";
+import { CPT_CODES } from "../CodingQueue/cptData";
 import { exportCMS1500PDF } from "../../utils/pdfExport";
 import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scoring";
 import { toast } from "sonner";
@@ -126,15 +127,22 @@ export function BillingLedger() {
   };
 
   const simulateDenial = () => {
-    handleDenial("CO-16 — Claim lacks information");
+    handleDenial("CO-16 — Claim lacks information", {
+      amount: calcPayment().billed,
+      patientName: state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),
+    });
     setActiveTab("denials");
   };
 
-  // Calculate estimated payment
+  // Calculate estimated payment from the ACTUAL CPT codes chosen in Coding
+  // (medicare fee schedule basis) — never a hardcoded flat amount.
   const calcPayment = () => {
     const rates: Record<string, number> = { Medicare: 0.80, Medicaid: 0.65, "Blue Cross": 0.85, "United Healthcare": 0.82, Aetna: 0.83 };
     const rate = rates[payer] ?? 0.80;
-    const billed = 185.00;
+    const billed = (state.cptCodes || []).reduce((sum, code) => {
+      const cpt = CPT_CODES.find((c) => c.code === code);
+      return sum + (cpt?.medicareRate ?? 0);
+    }, 0);
     return { billed, allowed: billed * rate, paid: billed * rate * 0.90, patient: billed * rate * 0.10 };
   };
 
@@ -564,12 +572,17 @@ export function BillingLedger() {
             <div className="space-y-3">
               <div className="rounded-lg bg-white p-3 shadow-sm">
                 <p className="text-[10px] text-slate-400">Fee Schedule</p>
-                <p className="text-lg font-bold text-green-600">$185.00</p>
+                <p className="text-lg font-bold text-green-600">
+                  {calcPayment().billed > 0 ? `$${calcPayment().billed.toFixed(2)}` : "$0.00"}
+                </p>
                 <p className="text-[10px] text-slate-400">Billed Amount</p>
+                {calcPayment().billed === 0 && (
+                  <p className="mt-1 text-[9px] text-amber-600">No CPT codes submitted — amount will update after Coding.</p>
+                )}
               </div>
               <div className="rounded-lg bg-white p-3 shadow-sm">
                 <p className="text-[10px] text-slate-400">Payer Rate</p>
-                <p className="text-sm font-bold text-slate-700">{payer}: {(calcPayment().allowed / calcPayment().billed * 100).toFixed(0)}% of billed</p>
+                <p className="text-sm font-bold text-slate-700">{calcPayment().billed > 0 ? `${payer}: {(calcPayment().allowed / calcPayment().billed * 100).toFixed(0)}% of billed` : `${payer}: — no codes yet`}</p>
               </div>
               <div className="rounded-lg bg-green-50 p-3 border border-green-200">
                 <p className="text-[10px] text-green-600">Estimated Payment</p>

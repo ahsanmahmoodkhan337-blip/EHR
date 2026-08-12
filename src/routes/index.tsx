@@ -89,6 +89,7 @@ import { FadeTransition } from "../components/FadeTransition";
 import { VaccineForecaster } from "../components/clinical/VaccineForecaster";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { FinancialLedger } from "../components/FinancialLedger";
+import { CPT_CODES } from "../components/CodingQueue/cptData";
 import { ToastProvider, useToast } from "../components/Toast";
 import { Skeleton } from "../components/Skeleton";
 import { CommandPalette } from "../components/CommandPalette";
@@ -1184,7 +1185,16 @@ function Home() {
   const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, paRecords, resetEncounter, setPatientDisplayName, prefillForTutorial, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, setRole, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, state: pipelineState } = usePipeline();
+
+  // ── Right-panel financial KPIs — derived from REAL pipeline data ──
+  // (was hardcoded 12500/8700/2400/32 demo figures)
+  const billedTotal = (pipelineState.cptCodes || []).reduce((sum, code) => {
+    const cpt = CPT_CODES.find((c) => c.code === code);
+    return sum + (cpt?.medicareRate ?? 0);
+  }, 0);
+  const deniedTotal = deniedClaims.reduce((sum, c) => sum + (c.amount || 0), 0);
+  const hasFinancialActivity = billedTotal > 0 || deniedTotal > 0 || pipelineState.status !== "pending";
   const { addToast } = useToast();
   const [activeStage, setActiveStage] = useState("registration");
   const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["registration"]));
@@ -1563,7 +1573,14 @@ function Home() {
           </div>
           {currentRole !== "scribe" && (
             <div className="border-t border-slate-100 p-3">
-              <FinancialLedger totalBilled={12500} totalCollected={8700} totalDenied={2400} daysInAR={32} />
+              {hasFinancialActivity ? (
+                <FinancialLedger totalBilled={billedTotal} totalCollected={pipelineState.status === "paid" ? billedTotal : 0} totalDenied={deniedTotal} daysInAR={0} />
+              ) : (
+                <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center">
+                  <p className="text-[10px] font-medium text-slate-400">No financial activity yet</p>
+                  <p className="mt-0.5 text-[9px] text-slate-300">Complete Scribe → Coding → Billing to see claim KPIs here.</p>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -80,7 +80,7 @@ interface PipelineContextValue {
   submitToCoding: (note: string) => void;
   submitToBilling: (icdCodes: string[], cptCodes: string[]) => void;
   submitClaim: (claimData: Record<string, string>) => void;
-  handleDenial: (denialCode: string) => void;
+  handleDenial: (denialCode: string, meta?: { amount?: number; patientName?: string }) => void;
   submitPA: (paData: Record<string, string>) => void;
   completePipeline: () => void;
   getRoleLabel: (role: Role) => string;
@@ -224,14 +224,14 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   };
 
   // Denial from Biller stage — routes to AR queue
-  const handleDenial = (denialCode: string) => {
+  const handleDenial = (denialCode: string, meta?: { amount?: number; patientName?: string }) => {
     setPipeline((prev) => {
       const denial: DeniedClaim = {
         id: `denial-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         encounterId: prev.patientId ?? "unknown",
-        patientName: "",
+        patientName: meta?.patientName ?? "",
         reason: denialCode,
-        amount: 0,
+        amount: meta?.amount ?? 0,
         deniedAt: new Date().toISOString(),
         agingBucket: "0-30",
         resolutionStatus: "unresolved",
@@ -240,7 +240,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       return {
         ...prev,
         status: "denied",
-        denialInfo: { code: denialCode, reason: "Claim denied", amount: 0 },
+        denialInfo: { code: denialCode, reason: "Claim denied", amount: meta?.amount ?? 0 },
       };
     });
   };
