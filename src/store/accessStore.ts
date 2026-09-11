@@ -34,6 +34,7 @@ export interface AccessRequest {
 
 // Sync all requests from Supabase to localStorage cache
 export async function syncFromSupabase(): Promise<void> {
+  if (!supabase) return; // local-only mode — localStorage cache is the source of truth
   try {
     const { data, error } = await supabase
       .from("access_requests")
@@ -85,8 +86,8 @@ export function getAccessRequests(): AccessRequest[] {
 // ─── Save (async — writes to Supabase + localStorage) ──────────────
 
 export async function saveAccessRequestAsync(request: AccessRequest): Promise<void> {
-  // Write to Supabase
-  await supabase.from("access_requests").upsert({
+  // Write to Supabase (skipped in local-only mode)
+  await supabase?.from("access_requests").upsert({
     id: request.id,
     full_name: request.fullName,
     phone: request.phone,
@@ -135,7 +136,7 @@ export async function updateRequestStatusAsync(
   // No default expiry — if no duration specified, user gets lifetime (no end date)
 
   await supabase
-    .from("access_requests")
+    ?.from("access_requests")
     .update(updates)
     .eq("id", id);
 
@@ -189,7 +190,7 @@ export function revokeApprovedPhone(phone: string): void {
   }
   // Also update Supabase — reset to pending
   supabase
-    .from("access_requests")
+    ?.from("access_requests")
     .update({ status: "pending", subscription_end_date: null, duration_label: null })
     .eq("phone", phone)
     .eq("status", "approved")
