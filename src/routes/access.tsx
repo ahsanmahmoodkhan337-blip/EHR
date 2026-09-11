@@ -159,6 +159,27 @@ function AccessPage() {
           <p className="mt-1 text-sm text-slate-500">
             Follow the steps below to get access to the EHR Simulation Portal
           </p>
+
+          {/* ─── Tracks included ─── */}
+          <div className="mx-auto mt-5 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-left">
+              <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Medical RCM</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                Patient registration, eligibility, scribe/SOAP charting, ICD-10 &amp; CPT coding,
+                CMS-1500 billing, prior authorization, and AR voice calling.
+              </p>
+            </div>
+            <div className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-left">
+              <p className="text-xs font-bold uppercase tracking-wide text-teal-700">
+                Dental RCM · rolling out now
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                CDT coding with tooth, surface &amp; quadrant, odontogram charting, the ADA dental
+                claim form, predeterminations, and benefit rules — annual maximums, frequency
+                limits, waiting periods and alternate-benefit downgrades.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Step-by-step guide */}
@@ -294,7 +315,10 @@ function AccessPage() {
 
             {/* ─── Pricing Note ─── */}
             <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-700">
-              <p className="font-medium">Note: 20$/ 5500 pkr provides access to whole RCM</p>
+              <p className="font-medium">
+                Note: $20 / 5,500 PKR gives you access to the whole revenue cycle — both the Medical
+                and Dental tracks. No separate fee for dental.
+              </p>
             </div>
 
             {/* ─── Device-Specific Disclaimer ─── */}

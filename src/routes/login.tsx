@@ -117,9 +117,35 @@ function LoginPage() {
         {/* Login Card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
           <h2 className="mb-1 text-lg font-semibold text-slate-800">Student Login</h2>
-          <p className="mb-5 text-sm text-slate-500">
+          <p className="mb-4 text-sm text-slate-500">
             Enter your registered phone number to access the EHR simulator
           </p>
+
+          {/* ─── What's inside the sandbox ─── */}
+          <div className="mb-5 rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Inside the sandbox
+            </p>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700">
+                  Medical
+                </span>
+                <span className="text-[11px] text-slate-600">
+                  Registration → Scribe → ICD-10 / CPT coding → CMS-1500 → Prior Auth → AR calling
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700">
+                  Dental
+                </span>
+                <span className="text-[11px] text-slate-600">
+                  CDT coding, tooth charting &amp; ADA claim form —{" "}
+                  <span className="font-medium text-teal-700">rolling out now</span>
+                </span>
+              </div>
+            </div>
+          </div>
 
           {status === "pending" && requestInfo ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center">
