@@ -19,6 +19,8 @@
  * payer writes, authored here, not quoted from any real payer's documents.
  */
 
+import { CDT_CODE_INDEX } from "./cdtCodes";
+
 export type DenialCategory =
   | "Eligibility"
   | "Benefit limitation"
@@ -556,7 +558,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     plainLanguage: "Two evaluations on one day, or an evaluation the payer treats as part of the other service.",
     payerRemark: "Payment for this evaluation is included in another service reported for the same date.",
     typicalTrigger: "A problem-focused exam billed alongside a routine exam and cleaning at the same visit.",
-    commonCodes: ["D0140", "D0120", "D0150", "D9310", "D0460"],
+    commonCodes: ["D0140", "D0120", "D0150", "D9310"],
     correctiveActions: [
       "Decide which single evaluation best describes the visit and keep it.",
       "Where a genuinely separate problem was evaluated in addition to the recall, appeal with a note that clearly separates the two.",
@@ -568,6 +570,33 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     expectedOutcome: "write-off-contractual",
     patientBillable: false,
     teachingPoint: "Same-day duplication is caught by the payer's edits before a human ever reads the claim.",
+  },
+  {
+    id: "DEN-BUNDLE-DIAG",
+    carc: "97",
+    groupCode: "CO",
+    title: "Diagnostic test bundled into the evaluation",
+    category: "Bundling",
+    plainLanguage:
+      "The payer treats this diagnostic test as part of the examination it was performed during, so it pays nothing extra for it.",
+    payerRemark: "This diagnostic procedure is considered part of the evaluation reported for the same date of service.",
+    typicalTrigger:
+      "Nerve vitality testing or study models billed alongside the examination at which they were carried out.",
+    commonCodes: ["D0460", "D0470"],
+    correctiveActions: [
+      "Check whether the test was performed at the same visit as an evaluation that was also billed — if so, the bundling is expected behaviour rather than an error.",
+      "Where the test was performed at a separate visit from any evaluation, correct the date of service and resubmit.",
+      "Where it genuinely addressed a problem distinct from the evaluation, appeal with notes that record the test result separately from the examination findings.",
+      "Otherwise write the line off; it is a contractual adjustment, not a patient balance.",
+    ],
+    preventable: true,
+    prevention:
+      "Know which of your payers pay diagnostic adjuncts separately. Where they do not, the cost belongs in the examination fee rather than on its own claim line.",
+    appealable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
+    teachingPoint:
+      "A test that exists to inform the examination is usually considered part of it. Billing it separately by default produces a write-off, not extra revenue.",
   },
   {
     id: "DEN-BUNDLE-PERIO",
@@ -955,8 +984,23 @@ export function findDenial(id: string): DentalDenial | undefined {
   return DENTAL_DENIAL_INDEX[id];
 }
 
+/**
+ * Every denial commonly associated with a code, in both directions: denials
+ * that list the code in `commonCodes`, plus denials the code itself points to
+ * via `CDTCode.commonDenials`.
+ *
+ * Checking both matters — neither list is exhaustive on its own, and a
+ * one-directional lookup silently drops real risks from the student's
+ * pre-submission warnings.
+ */
 export function denialsForCode(code: string): DentalDenial[] {
-  return DENTAL_DENIALS.filter((d) => d.commonCodes.includes(code));
+  const key = code.trim().toUpperCase();
+  const fromDenials = DENTAL_DENIALS.filter((d) => d.commonCodes.includes(key));
+  const fromCode = (CDT_CODE_INDEX[key]?.commonDenials ?? [])
+    .map((id) => DENTAL_DENIAL_INDEX[id])
+    .filter((d): d is DentalDenial => Boolean(d));
+  const seen = new Set(fromDenials.map((d) => d.id));
+  return [...fromDenials, ...fromCode.filter((d) => !seen.has(d.id))];
 }
 
 export function denialsByCategory(category: DenialCategory): DentalDenial[] {

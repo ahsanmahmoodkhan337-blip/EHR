@@ -66,6 +66,24 @@ export interface CDTCode {
   typicalBenefitClass: BenefitClass;
   /** Fields the claim line must populate. */
   requires: CDTRequirement[];
+  /**
+   * Number of tooth surfaces the code represents, for codes where the surface
+   * count is what separates one code from the next (direct restorations).
+   *
+   * This is the check that catches surface upcoding — a two-surface code
+   * submitted with three surfaces listed, which inflates payment and is the
+   * first thing a restorative audit looks for. Validate the length of the
+   * submitted surface string against this number.
+   *
+   * Undefined means the surface count is not a coding factor for this code:
+   * either it takes no surfaces at all, or it covers the whole tooth.
+   */
+  expectedSurfaceCount?: number;
+  /**
+   * True when `expectedSurfaceCount` is a floor rather than an exact figure —
+   * the "four or more surfaces" codes. Compare with >= instead of ===.
+   */
+  surfaceCountIsMinimum?: boolean;
   /** ILLUSTRATIVE teaching figure only. Not a fee schedule. */
   illustrativeFeeUsd: number;
   /** Frequency rule key linking to DENTAL_PLANS frequency limits, when one commonly applies. */
@@ -275,6 +293,7 @@ export const CDT_CODES: CDTCode[] = [
     requires: ["none"],
     illustrativeFeeUsd: 118,
     predeterminationCommonlyRequested: false,
+    commonDenials: ["DEN-BUNDLE-DIAG"],
     teachingNotes: "Under an orthodontic benefit these are usually paid inside the case fee rather than separately.",
   },
 
@@ -388,6 +407,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 1,
     illustrativeFeeUsd: 165,
     predeterminationCommonlyRequested: false,
     commonDenials: ["DEN-SURFACE-MISMATCH"],
@@ -399,6 +419,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 2,
     illustrativeFeeUsd: 205,
     predeterminationCommonlyRequested: false,
   },
@@ -409,6 +430,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 3,
     illustrativeFeeUsd: 245,
     predeterminationCommonlyRequested: false,
   },
@@ -419,6 +441,8 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 4,
+    surfaceCountIsMinimum: true,
     illustrativeFeeUsd: 285,
     predeterminationCommonlyRequested: false,
     teachingNotes:
@@ -432,6 +456,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 1,
     illustrativeFeeUsd: 178,
     predeterminationCommonlyRequested: false,
     commonDenials: ["DEN-SURFACE-MISMATCH"],
@@ -443,6 +468,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 2,
     illustrativeFeeUsd: 218,
     predeterminationCommonlyRequested: false,
   },
@@ -453,6 +479,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 3,
     illustrativeFeeUsd: 262,
     predeterminationCommonlyRequested: false,
   },
@@ -464,6 +491,8 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 4,
+    surfaceCountIsMinimum: true,
     illustrativeFeeUsd: 308,
     predeterminationCommonlyRequested: false,
   },
@@ -475,6 +504,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 1,
     illustrativeFeeUsd: 195,
     predeterminationCommonlyRequested: false,
     alternateBenefitRisk: true,
@@ -489,6 +519,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 2,
     illustrativeFeeUsd: 248,
     predeterminationCommonlyRequested: false,
     alternateBenefitRisk: true,
@@ -501,6 +532,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 3,
     illustrativeFeeUsd: 298,
     predeterminationCommonlyRequested: false,
     alternateBenefitRisk: true,
@@ -512,6 +544,8 @@ export const CDT_CODES: CDTCode[] = [
     category: "Restorative",
     typicalBenefitClass: "Basic",
     requires: ["tooth", "surface"],
+    expectedSurfaceCount: 4,
+    surfaceCountIsMinimum: true,
     illustrativeFeeUsd: 345,
     predeterminationCommonlyRequested: false,
     alternateBenefitRisk: true,
@@ -1443,6 +1477,50 @@ export const CDT_CATEGORY_ORDER: CDTCategory[] = [
   "Orthodontics",
   "Adjunctive Services",
 ];
+
+/**
+ * Checks the number of surfaces submitted against the number the code
+ * represents, which is what separates one restoration code from the next.
+ *
+ * This catches surface upcoding — the two-surface code submitted with three
+ * surfaces listed — before the claim goes out. It does NOT check that the
+ * surfaces exist on the tooth; use `validateSurfaces` from toothNotation.ts
+ * for that. A complete restorative check runs both.
+ *
+ * Codes with no surface count defined always pass, so this is safe to call on
+ * any line.
+ */
+export function validateSurfaceCount(
+  code: string,
+  surfaces: string,
+): { valid: boolean; expected?: number; submitted: number; reason?: string } {
+  const entry = findCDT(code);
+  const submitted = surfaces.trim().length;
+  if (!entry || entry.expectedSurfaceCount === undefined) {
+    return { valid: true, submitted };
+  }
+  const expected = entry.expectedSurfaceCount;
+  if (entry.surfaceCountIsMinimum) {
+    return submitted >= expected
+      ? { valid: true, expected, submitted }
+      : {
+          valid: false,
+          expected,
+          submitted,
+          reason: `${code} covers four or more surfaces, but ${submitted} ${submitted === 1 ? "was" : "were"} listed. A lower-surface code describes this restoration.`,
+        };
+  }
+  if (submitted === expected) return { valid: true, expected, submitted };
+  return {
+    valid: false,
+    expected,
+    submitted,
+    reason:
+      submitted > expected
+        ? `${code} is a ${expected}-surface code, but ${submitted} surfaces were listed. Either the code should reflect the extra surfaces or the claim is overstating them — check the clinical note, and change the claim to match the note rather than the other way round.`
+        : `${code} is a ${expected}-surface code, but only ${submitted} ${submitted === 1 ? "surface was" : "surfaces were"} listed. The claim understates the restoration or the wrong code was chosen.`,
+  };
+}
 
 /**
  * Search over code, label and description. Intended for the coder stage's
