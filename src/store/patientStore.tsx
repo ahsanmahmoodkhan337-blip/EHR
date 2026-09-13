@@ -10,7 +10,9 @@
  *   - DrChrono's appointment-based chronology
  */
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { getLoggedInPhone } from "./accessStore";
+import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persistence";
 
 // ─── Audit Log ────────────────────────────────────────────────────
 
@@ -1211,6 +1213,37 @@ const PatientContext = createContext<PatientContextValue | null>(null);
 
 export function PatientProvider({ children }: { children: ReactNode }) {
   const [caseStates, setCaseStates] = useState<Record<string, CaseState>>({});
+
+  // ── Per-user persistence ─────────────────────────────────────────
+  // data is keyed by the logged-in student's phone (localStorage, always on),
+  // with an optional Supabase refresh that degrades gracefully. The providers
+  // remount on login/logout (separate /login route), so scoping to the phone
+  // at mount time gives correct per-user isolation.
+  useEffect(() => {
+    const phone = getLoggedInPhone();
+    if (!phone) {
+      setCaseStates({});
+      return;
+    }
+    // Layer 1 — synchronous hydrate from localStorage (survives refresh).
+    const local = loadUserData(phone);
+    setCaseStates(local?.caseStates ?? {});
+    // Layer 2 — optional cross-device refresh from Supabase.
+    void syncUserDataFromSupabase(phone).then((remote) => {
+      if (remote?.caseStates && (remote.updatedAt || "") > (local?.updatedAt || "")) {
+        setCaseStates(remote.caseStates);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Debounced save whenever per-patient case state changes.
+  useEffect(() => {
+    const phone = getLoggedInPhone();
+    if (!phone) return;
+    const t = setTimeout(() => saveUserData(phone, { caseStates }), 400);
+    return () => clearTimeout(t);
+  }, [caseStates]);
+
   const getPatientById = (id: string) => mockPatients.find((p) => p.id === id);
   const getPatientByMrn = (mrn: string) =>
     mockPatients.find((p) => p.mrn === mrn);
