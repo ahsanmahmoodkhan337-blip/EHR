@@ -10,7 +10,9 @@
  * role handles denied claims with aging buckets and call resolution.
  */
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { getLoggedInPhone } from "./accessStore";
+import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persistence";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -144,6 +146,45 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   const [deniedClaims, setDeniedClaims] = useState<DeniedClaim[]>([]);
   const [arCalls, setArCalls] = useState<ARCallRecord[]>([]);
   const [paRecords, setPaRecords] = useState<PARecordStore[]>([]);
+
+  // ── Per-user persistence ─────────────────────────────────────────
+  // Keyed by the logged-in student's phone (localStorage, always on), with an
+  // optional Supabase refresh. Providers remount on login/logout, so scoping
+  // to the phone at mount gives correct per-user isolation.
+  useEffect(() => {
+    const phone = getLoggedInPhone();
+    if (!phone) {
+      setCurrentRole("scribe");
+      return;
+    }
+    const local = loadUserData(phone);
+    if (local?.pipeline) setPipeline(local.pipeline);
+    if (local?.currentRole) setCurrentRole(local.currentRole);
+    if (local?.deniedClaims) setDeniedClaims(local.deniedClaims);
+    if (local?.arCalls) setArCalls(local.arCalls);
+    if (local?.paRecords) setPaRecords(local.paRecords);
+    // Layer 2 — optional cross-device refresh from Supabase.
+    void syncUserDataFromSupabase(phone).then((remote) => {
+      if (!remote) return;
+      if (remote.pipeline && (remote.updatedAt || "") > (local?.updatedAt || "")) setPipeline(remote.pipeline);
+      if (remote.currentRole) setCurrentRole(remote.currentRole);
+      if (remote.deniedClaims) setDeniedClaims(remote.deniedClaims);
+      if (remote.arCalls) setArCalls(remote.arCalls);
+      if (remote.paRecords) setPaRecords(remote.paRecords);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Debounced save whenever encounter/AR/PA state changes.
+  useEffect(() => {
+    const phone = getLoggedInPhone();
+    if (!phone) return;
+    const t = setTimeout(
+      () => saveUserData(phone, { pipeline, currentRole, deniedClaims, arCalls, paRecords }),
+      400
+    );
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pipeline, currentRole, deniedClaims, arCalls, paRecords]);
 
   const setRole = (role: Role) => {
     setCurrentRole(role);

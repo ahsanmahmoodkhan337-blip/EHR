@@ -21,6 +21,7 @@ import { Activity, ArrowRight, CheckCircle2 } from "lucide-react";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
 import { isLoggedIn, getLoggedInPhone, getAccessRequests } from "../store/accessStore";
+import { loadUserData, saveUserData, syncUserDataFromSupabase } from "../store/persistence";
 import { checkSessionExpired, clearSession, setSessionStart } from "../store/accessStore";
 import { PA_PROCEDURES, type ProcedureKey } from "../components/PriorAuthPortal/paData";
 import { WorkflowTracker } from "../components/WorkflowTracker";
@@ -1242,6 +1243,32 @@ function Home() {
 
   // Lifted appointments state for persistence across tab switches (Bug 2 fix)
   const [appointments, setAppointments] = useState<Appointment[]>(PLACEHOLDER_APPOINTMENTS);
+
+  // Per-user appointment persistence (localStorage keyed by phone + optional Supabase).
+  useEffect(() => {
+    const phone = getLoggedInPhone();
+    if (!phone) return;
+    const local = loadUserData(phone);
+    if (local?.appointments) {
+      setAppointments(local.appointments);
+    } else if (!local) {
+      // First visit for this student — seed from placeholders so the board isn't empty.
+      setAppointments(PLACEHOLDER_APPOINTMENTS);
+    }
+    void syncUserDataFromSupabase(phone).then((remote) => {
+      if (remote?.appointments && (remote.updatedAt || "") > (local?.updatedAt || "")) {
+        setAppointments(remote.appointments);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const phone = getLoggedInPhone();
+    if (!phone) return;
+    const t = setTimeout(() => saveUserData(phone, { appointments }), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointments]);
   const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(() => {
     const today = new Date().toISOString().slice(0, 10);
     const hasToday = PLACEHOLDER_APPOINTMENTS.some(a => a.date === today);
