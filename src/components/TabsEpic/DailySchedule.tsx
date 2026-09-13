@@ -515,6 +515,23 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
                         Check In
                       </button>
                     )}
+                    {apt.status === "in-progress" && (
+                      <button
+                        onClick={() => setAppointments((prev) => prev.map((a) => a.id === apt.id ? { ...a, status: "completed" as const } : a))}
+                        className="rounded bg-emerald-500 px-2 py-0.5 text-[9px] font-medium text-white hover:bg-emerald-400 transition-colors"
+                      >
+                        <CheckCircle2 className="inline h-2.5 w-2.5 mr-0.5" />
+                        Complete Visit
+                      </button>
+                    )}
+                    {(apt.status === "scheduled" || apt.status === "in-progress") && (
+                      <button
+                        onClick={() => setAppointments((prev) => prev.map((a) => a.id === apt.id ? { ...a, status: "cancelled" as const } : a))}
+                        className="rounded bg-red-50 px-2 py-0.5 text-[9px] font-medium text-red-600 hover:bg-red-100 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
