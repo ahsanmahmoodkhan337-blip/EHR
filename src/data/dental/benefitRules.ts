@@ -249,7 +249,9 @@ const STANDARD_FREQUENCIES: FrequencyLimit[] = [
   {
     key: "crown-replacement",
     label: "Crown and onlay replacement",
-    appliesToCodes: ["D2740", "D2750", "D2751", "D2790", "D6750"],
+    // D6750 is deliberately absent: a bridge retainer crown is replaced with
+    // the bridge, so it is governed by the prosthetic replacement rule below.
+    appliesToCodes: ["D2740", "D2750", "D2751", "D2790"],
     timesAllowed: 1,
     windowMonths: 60,
     scope: "per-tooth",
@@ -260,13 +262,24 @@ const STANDARD_FREQUENCIES: FrequencyLimit[] = [
   {
     key: "prosthetic-replacement",
     label: "Denture, partial and bridge replacement",
-    appliesToCodes: ["D5110", "D5120", "D5211", "D5213", "D5214", "D6240", "D6245", "D6750", "D5750"],
+    appliesToCodes: ["D5110", "D5120", "D5211", "D5213", "D5214", "D6240", "D6245", "D6750"],
     timesAllowed: 1,
     windowMonths: 60,
     scope: "per-arch",
     basis: "rolling-from-last-service",
     studentNote:
       "Five years from the last placement. This is the question to ask at check-in, because the patient rarely volunteers that their current denture is three years old.",
+  },
+  {
+    key: "reline",
+    label: "Denture reline",
+    appliesToCodes: ["D5750"],
+    timesAllowed: 1,
+    windowMonths: 24,
+    scope: "per-arch",
+    basis: "rolling-from-last-service",
+    studentNote:
+      "A reline carries its own clock, separate from the five-year replacement limit — which is the point: when a patient wants a new denture too soon, a reline is often payable now and solves the same complaint. Most plans also exclude a reline within the first six months after a denture is delivered, because early adjustments belong to the denture fee.",
   },
   {
     key: "occlusal-guard",
@@ -624,9 +637,28 @@ export function findPlan(planId: string): DentalPlan | undefined {
   return DENTAL_PLAN_INDEX[planId];
 }
 
-/** Find the frequency rule that governs a code under a given plan, if any. */
+/**
+ * Every frequency rule that governs a code under a given plan.
+ *
+ * More than one can genuinely apply at the same time, and when they do, the
+ * STRICTEST one binds. A comprehensive evaluation, for example, is counted
+ * against the shared two-per-year evaluation allowance AND against its own
+ * once-every-three-years limit; a patient can satisfy the first and still be
+ * denied by the second. Evaluate against all of these, not just the first.
+ */
+export function frequencyRulesFor(plan: DentalPlan, code: string): FrequencyLimit[] {
+  return plan.frequencyLimits.filter((f) => f.appliesToCodes.includes(code));
+}
+
+/**
+ * The first frequency rule matching a code under a plan.
+ *
+ * Convenience for display only. Where two rules apply this returns whichever
+ * is declared first, which is not necessarily the one that will deny the
+ * claim — use `frequencyRulesFor` for anything that decides payability.
+ */
 export function frequencyRuleFor(plan: DentalPlan, code: string): FrequencyLimit | undefined {
-  return plan.frequencyLimits.find((f) => f.appliesToCodes.includes(code));
+  return frequencyRulesFor(plan, code)[0];
 }
 
 /** Find the age rule that governs a code under a given plan, if any. */

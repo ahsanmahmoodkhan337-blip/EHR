@@ -25,6 +25,7 @@ export {
   findCDT,
   cdtByCategory,
   searchCDT,
+  validateSurfaceCount,
 } from "./cdtCodes";
 
 export type {
@@ -46,6 +47,7 @@ export {
   ADJUDICATION_ORDER,
   COB_EXPLANATIONS,
   findPlan,
+  frequencyRulesFor,
   frequencyRuleFor,
   ageRuleFor,
   alternateBenefitFor,
