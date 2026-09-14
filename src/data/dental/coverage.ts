@@ -5,11 +5,12 @@
  * code payable for this patient today, and if not, why not?"
  *
  * This is the executable counterpart to `ADJUDICATION_ORDER` in
- * benefitRules.ts. It walks the same twelve steps in the same order a payer's
- * system does and returns a verdict per step, so a student can see exactly
- * where a claim died rather than just being told the total. The ordering is
- * load-bearing: it is why a perfectly coded, fully documented, pre-authorised
- * claim can still pay nothing when the annual maximum is reached at step 11.
+ * benefitRules.ts, and the single source of truth for dental adjudication.
+ * It walks the same twelve steps in the same order a payer's system does and
+ * returns a verdict per step, so a student sees exactly where a claim died
+ * rather than just being told the total. The ordering is load-bearing: it is
+ * why a perfectly coded, fully documented, pre-authorised claim can still pay
+ * nothing when the annual maximum is reached at step 11.
  *
  * PURE DATA-LAYER LOGIC
  * No React, no I/O, no clock reads — every date comes in as a parameter so
@@ -20,6 +21,13 @@
  * because no fee schedule ships with this repo and inventing one would teach
  * students false numbers. Where an allowance is not supplied the charged
  * amount is used and the step says so.
+ *
+ * INPUT SHAPE
+ * Deliberately a superset of the UI-side trace contract, so a component that
+ * already assembled a trace input can pass it straight through: `plan` accepts
+ * a plan id or the object, and the patient object may carry `deductibleMetUsd`,
+ * `remainingAnnualMaximumUsd`, `paidHistory` and `hasSecondaryCoverage`
+ * instead of passing them at the top level.
  *
  * All plans referenced are the fictional teaching plans in benefitRules.ts.
  */
@@ -32,6 +40,7 @@ import {
   COB_EXPLANATIONS,
   ageRuleFor,
   alternateBenefitFor,
+  findPlan,
   frequencyRulesFor,
 } from "./benefitRules";
 import { denialsForCode } from "./denialReasons";
@@ -45,8 +54,23 @@ export interface CoverageStepResult {
   /** Rule name, taken from ADJUDICATION_ORDER so the two never drift. */
   rule: string;
   verdict: StepVerdict;
-  /** Student-facing explanation of what this step decided and why. */
-  reason: string;
+  /** Student-facing account of what this step decided and why. */
+  explanation: string;
+  /**
+   * Running amount after this step: the allowance while the allowance is
+   * still being established, then the plan's payment once coinsurance has
+   * been applied. `null` once a step has blocked the line.
+   */
+  runningAllowedUsd: number | null;
+}
+
+/** A previously paid service, shaped like `eligibilitySnapshot.paidHistory`. */
+export interface PaidHistoryEntry {
+  code: string;
+  tooth?: string;
+  quadrant?: string;
+  date: string;
+  note?: string;
 }
 
 export interface CoveragePatient {
@@ -57,15 +81,14 @@ export interface CoveragePatient {
   coverageEffectiveDate: string;
   /** Optional termination date, where coverage has ended. */
   coverageEndDate?: string;
-}
-
-/** A previously paid service, shaped like `eligibilitySnapshot.paidHistory`. */
-export interface PaidHistoryEntry {
-  code: string;
-  tooth?: string;
-  quadrant?: string;
-  date: string;
-  note?: string;
+  /** Deductible already satisfied this benefit period. Alternative to the top-level field. */
+  deductibleMetUsd?: number;
+  /** Remaining annual maximum, as an eligibility check reports it. `null` = uncapped. */
+  remainingAnnualMaximumUsd?: number | null;
+  /** Paid history, as an eligibility check reports it. Alternative to the top-level field. */
+  paidHistory?: PaidHistoryEntry[];
+  /** Set when a secondary plan exists but the plan object is not to hand. */
+  hasSecondaryCoverage?: boolean;
 }
 
 export interface ToothContext {
@@ -78,26 +101,40 @@ export interface ToothContext {
 }
 
 export interface CoverageInput {
-  plan: DentalPlan;
+  /** Plan object, or a plan id to resolve from DENTAL_PLANS. */
+  plan: DentalPlan | string;
   /** CDT code string or the code object itself. */
   code: string | CDTCode;
   /** Per-line date of service. Crowns often use the cementation date, which can fall in the next benefit year. */
   dateOfService: string;
   patient: CoveragePatient;
-  history?: PaidHistoryEntry[];
-  tooth?: ToothContext;
+  /**
+   * Tooth context. A bare Universal designation is accepted for convenience;
+   * the object form is needed to supply an extraction date.
+   */
+  tooth?: ToothContext | string;
+  /** Area of the oral cavity ("01"-"04", "10", "20", "00") for quadrant- and arch-scoped rules. */
+  quadrant?: string;
+  /** Surfaces on the line. Not used in adjudication; accepted so a claim line can be passed whole. */
+  surfaces?: string;
   /** Practice's charged fee. Defaults to the code's illustrative fee. */
   chargedUsd?: number;
   /** Contracted allowance. Defaults to the charged amount (i.e. no contract). */
   allowedUsd?: number;
   /** Allowance of the downgrade benchmark, where an alternate benefit applies. */
   alternateBenefitAllowedUsd?: number;
+  /** Whether a predetermination is on file — step 7 teaching context only. */
+  predeterminationOnFile?: boolean;
   /** Deductible already satisfied this benefit period, before this line. */
   deductibleAlreadyMetUsd?: number;
   /** Benefit already consumed this period, before this line. */
   benefitUsedUsd?: number;
+  /** Remaining annual maximum. Takes precedence over `benefitUsedUsd` when supplied. */
+  remainingAnnualMaximumUsd?: number | null;
   /** Secondary plan, for the coordination step. */
-  secondaryPlan?: DentalPlan;
+  secondaryPlan?: DentalPlan | string;
+  /** History of paid services. Falls back to `patient.paidHistory`. */
+  history?: PaidHistoryEntry[];
 }
 
 export interface CoverageResult {
@@ -111,12 +148,28 @@ export interface CoverageResult {
   /** Charged minus allowed. In network this is not billable to the patient. */
   contractualWriteOffUsd: number;
   deductibleAppliedUsd: number;
+  /** Patient's share arising from the coinsurance split alone. */
+  coinsurancePatientUsd: number;
+  /** Amount the annual maximum removed from what would otherwise have been paid. */
+  annualMaxReductionUsd: number;
   planPaysUsd: number;
   patientOwesUsd: number;
+  /** Step that blocked the line, where one did. */
+  blockedAtStep?: number;
+  blockedReason?: string;
   /** Denial id from denialReasons.ts, where a step blocked or reduced the line. */
   denialId?: string;
-  /** Alternate benefit provision id, where one applied. */
-  alternateBenefitId?: string;
+  /**
+   * Alternate benefit detail, where one applied. This is a REDUCTION, never a
+   * denial — the service was covered, at a lower allowance. UI must not
+   * render it as a denial.
+   */
+  alternateBenefit?: {
+    id: string;
+    paidAtCode: string;
+    explanation: string;
+    studentAction: string[];
+  };
   /** One-line plain-language outcome. */
   summary: string;
 }
@@ -129,6 +182,7 @@ function toDate(iso: string): Date {
   return new Date(`${iso.slice(0, 10)}T00:00:00Z`);
 }
 
+/** Whole months from one date to another, not counting a partial final month. */
 function monthsBetween(earlierIso: string, laterIso: string): number {
   const a = toDate(earlierIso);
   const b = toDate(laterIso);
@@ -178,6 +232,7 @@ function waitingPeriodMonths(plan: DentalPlan, benefitClass: BenefitClass): numb
 }
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
+const money = (n: number): string => `$${round2(n).toFixed(2)}`;
 
 /** Picks the denial that best describes a failure, using the bidirectional code/denial links. */
 function denialFor(code: string, category: string): string | undefined {
@@ -196,7 +251,13 @@ function archOf(entry: { tooth?: string; quadrant?: string }): string | undefine
   return undefined;
 }
 
-/** Whether a paid-history entry counts against a frequency rule, given its scope. */
+/**
+ * Whether a paid-history entry counts against a frequency rule.
+ *
+ * The entry must belong to the rule's code GROUP, not just be the same code —
+ * a two-image bitewing set paid last year counts against a four-image set
+ * today, because the plan limits bitewings, not a particular code.
+ */
 function historyCountsForRule(
   rule: FrequencyLimit,
   entry: PaidHistoryEntry,
@@ -208,6 +269,7 @@ function historyCountsForRule(
     case "per-patient":
       return true;
     case "per-tooth":
+    case "per-surface":
       return Boolean(tooth?.universal) && entry.tooth === tooth?.universal;
     case "per-quadrant":
       return Boolean(quadrant) && entry.quadrant === quadrant;
@@ -216,8 +278,6 @@ function historyCountsForRule(
       const b = archOf(entry);
       return Boolean(a) && a === b;
     }
-    case "per-surface":
-      return Boolean(tooth?.universal) && entry.tooth === tooth?.universal;
   }
 }
 
@@ -233,45 +293,32 @@ function historyCountsForRule(
  * sequence and learns where their line fell over.
  */
 export function evaluateCoverage(input: CoverageInput): CoverageResult {
-  const {
-    plan,
-    dateOfService,
-    patient,
-    history = [],
-    tooth,
-    deductibleAlreadyMetUsd = 0,
-    benefitUsedUsd = 0,
-    secondaryPlan,
-  } = input;
+  const plan = typeof input.plan === "string" ? findPlan(input.plan) : input.plan;
+  const { dateOfService, patient, predeterminationOnFile } = input;
+  const tooth: ToothContext | undefined =
+    typeof input.tooth === "string" ? { universal: input.tooth } : input.tooth;
+  const quadrant = input.quadrant;
+  const history = input.history ?? patient.paidHistory ?? [];
+  const deductibleAlreadyMet = input.deductibleAlreadyMetUsd ?? patient.deductibleMetUsd ?? 0;
+  const secondaryPlan =
+    typeof input.secondaryPlan === "string" ? findPlan(input.secondaryPlan) : input.secondaryPlan;
 
   const cdt = typeof input.code === "string" ? findCDT(input.code) : input.code;
   const codeStr = typeof input.code === "string" ? input.code.trim().toUpperCase() : input.code.code;
 
   const steps: CoverageStepResult[] = [];
   const nameOf = (step: number) => ADJUDICATION_ORDER.find((s) => s.step === step)?.rule ?? `Step ${step}`;
-  const record = (step: number, verdict: StepVerdict, reason: string) =>
-    steps.push({ step, rule: nameOf(step), verdict, reason });
+  const record = (step: number, verdict: StepVerdict, explanation: string, running: number | null) =>
+    steps.push({ step, rule: nameOf(step), verdict, explanation, runningAllowedUsd: running });
 
   const charged = round2(input.chargedUsd ?? cdt?.illustrativeFeeUsd ?? 0);
   const allowed = round2(input.allowedUsd ?? charged);
 
-  let blocked = false;
-  let denialId: string | undefined;
-  let alternateBenefitId: string | undefined;
-
-  const block = (step: number, reason: string, denial?: string) => {
-    record(step, "blocked", reason);
-    blocked = true;
-    denialId = denial;
-  };
-  /** Fills the remaining steps as not-applicable once a line is dead. */
-  const skipRest = (fromStep: number, why: string) => {
-    for (let s = fromStep; s <= 12; s++) record(s, "n/a", why);
-  };
-
-  if (!cdt) {
-    record(1, "blocked", `"${codeStr}" is not a code in this repository's teaching subset, so it cannot be adjudicated.`);
-    skipRest(2, "Not evaluated: unknown procedure code.");
+  /* --- unknown code: bail out cleanly rather than throwing --- */
+  if (!plan || !cdt) {
+    const what = !plan ? `Plan "${String(input.plan)}"` : `Procedure code "${codeStr}"`;
+    record(1, "blocked", `${what} is not in this repository's teaching data, so the line cannot be adjudicated.`, null);
+    for (let s = 2; s <= 12; s++) record(s, "n/a", "Not evaluated.", null);
     return {
       code: codeStr,
       dateOfService,
@@ -281,14 +328,37 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
       allowedUsd: 0,
       contractualWriteOffUsd: 0,
       deductibleAppliedUsd: 0,
+      coinsurancePatientUsd: 0,
+      annualMaxReductionUsd: 0,
       planPaysUsd: 0,
       patientOwesUsd: 0,
-      summary: `Unknown procedure code "${codeStr}".`,
+      blockedAtStep: 1,
+      blockedReason: `${what} not found.`,
+      summary: `${what} not found.`,
     };
   }
 
   const cls = cdt.typicalBenefitClass;
-  const quadrant = undefined as string | undefined;
+  const benefitUsed =
+    input.remainingAnnualMaximumUsd !== undefined && input.remainingAnnualMaximumUsd !== null
+      ? Math.max(0, (plan.annualMaximumUsd ?? 0) - input.remainingAnnualMaximumUsd)
+      : patient.remainingAnnualMaximumUsd !== undefined && patient.remainingAnnualMaximumUsd !== null
+        ? Math.max(0, (plan.annualMaximumUsd ?? 0) - patient.remainingAnnualMaximumUsd)
+        : (input.benefitUsedUsd ?? 0);
+
+  let blocked = false;
+  let blockedAtStep: number | undefined;
+  let blockedReason: string | undefined;
+  let denialId: string | undefined;
+  let alternateBenefit: CoverageResult["alternateBenefit"];
+
+  const block = (step: number, explanation: string, denial?: string) => {
+    record(step, "blocked", explanation, null);
+    blocked = true;
+    blockedAtStep = step;
+    blockedReason = explanation;
+    denialId = denial;
+  };
 
   // ── Step 1 — eligibility on the date of service ──────────────────
   const monthsSinceEffective = monthsBetween(patient.coverageEffectiveDate, dateOfService);
@@ -305,7 +375,7 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
       "DEN-NOT-ELIGIBLE",
     );
   } else {
-    record(1, "pass", `Active on ${dateOfService}, ${monthsSinceEffective} months after the coverage start date.`);
+    record(1, "pass", `Active on ${dateOfService}, ${monthsSinceEffective} months after the coverage start date.`, allowed);
   }
 
   // ── Step 2 — is it a covered benefit at all? ─────────────────────
@@ -318,16 +388,16 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
     if (codeExcluded || categoryExcluded) {
       block(
         2,
-        `${plan.planName} excludes ${categoryExcluded ? `the whole ${cdt.category} category` : `this service`}. An exclusion is absolute — it is not reduced, it is simply not covered, and no clinical argument changes that.`,
+        `${plan.planName} excludes ${categoryExcluded ? `the whole ${cdt.category} category` : "this service"}. An exclusion is absolute — it is not reduced, it is simply not covered, and no clinical argument changes that.`,
         "DEN-NOT-COVERED",
       );
     } else if (ageExcluded) {
-      block(2, `${ageExcluded.note}`, "DEN-NOT-COVERED");
+      block(2, ageExcluded.note, "DEN-NOT-COVERED");
     } else {
-      record(2, "pass", `Covered in principle under ${plan.planName} as a ${cls} service.`);
+      record(2, "pass", `Covered in principle under ${plan.planName} as a ${cls} service.`, allowed);
     }
   } else {
-    record(2, "n/a", "Not reached: the patient was not eligible on this date.");
+    record(2, "n/a", "Not reached: the patient was not eligible on this date.", null);
   }
 
   // ── Step 3 — waiting period ──────────────────────────────────────
@@ -346,17 +416,18 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
         wait === 0
           ? `No waiting period applies to ${priceableClass(cls)} services on this plan.`
           : `${wait}-month waiting period satisfied (${patient.monthsCoveredAtServiceDate} months covered).`,
+        allowed,
       );
     }
   } else {
-    record(3, "n/a", "Not reached.");
+    record(3, "n/a", "Not reached.", null);
   }
 
   // ── Step 4 — age limit ───────────────────────────────────────────
   if (!blocked) {
     const ageRule = ageRuleFor(plan, cdt.code);
     if (!ageRule) {
-      record(4, "n/a", "No age limit governs this service on this plan.");
+      record(4, "n/a", "No age limit governs this service on this plan.", allowed);
     } else if (ageRule.maxAgeInclusive !== undefined && patient.ageAtServiceDate > ageRule.maxAgeInclusive) {
       block(
         4,
@@ -366,24 +437,36 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
     } else if (ageRule.minAgeInclusive !== undefined && patient.ageAtServiceDate < ageRule.minAgeInclusive) {
       block(4, `${ageRule.label}: not covered below age ${ageRule.minAgeInclusive}.`, "DEN-AGE-LIMIT");
     } else {
-      record(4, "pass", `Within the age range for ${ageRule.label}.`);
+      record(4, "pass", `Within the age range for ${ageRule.label}.`, allowed);
     }
   } else {
-    record(4, "n/a", "Not reached.");
+    record(4, "n/a", "Not reached.", null);
   }
 
   // ── Step 5 — frequency and history ───────────────────────────────
   if (!blocked) {
     const rules = frequencyRulesFor(plan, cdt.code);
     if (rules.length === 0) {
-      record(5, "n/a", "No frequency limit governs this service on this plan.");
+      record(5, "n/a", "No frequency limit governs this service on this plan.", allowed);
     } else {
       const periodStart = benefitPeriodStart(plan, dateOfService, patient.coverageEffectiveDate);
       const dos = toDate(dateOfService);
       const violations: string[] = [];
       const passes: string[] = [];
+      const unscoped: string[] = [];
 
       for (const rule of rules) {
+        // A scoped rule cannot be evaluated without its scope key. Say so
+        // rather than passing silently, which would look like a clean claim.
+        if (rule.scope === "per-quadrant" && !quadrant) {
+          unscoped.push(`${rule.label} is measured per quadrant, but no area of the oral cavity was supplied.`);
+          continue;
+        }
+        if ((rule.scope === "per-tooth" || rule.scope === "per-surface") && !tooth?.universal) {
+          unscoped.push(`${rule.label} is measured per tooth, but no tooth was supplied.`);
+          continue;
+        }
+
         const relevant = history.filter((h) => historyCountsForRule(rule, h, tooth, quadrant));
         const inWindow = relevant.filter((h) => {
           const d = toDate(h.date);
@@ -393,7 +476,7 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
             : monthsBetween(h.date, dateOfService) < rule.windowMonths;
         });
         if (inWindow.length >= rule.timesAllowed) {
-          const last = inWindow.map((h) => h.date).sort().reverse()[0];
+          const last = inWindow.map((h) => h.date).sort().reverse()[0]!;
           violations.push(
             rule.basis === "benefit-period"
               ? `${rule.label}: ${rule.timesAllowed} allowed per benefit period, ${inWindow.length} already used (most recent ${last}).`
@@ -408,17 +491,19 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
         // Where two rules govern a code, the strictest binds.
         block(5, violations.join(" "), denialFor(cdt.code, "Frequency"));
       } else {
+        const notes = [...passes, ...unscoped];
         record(
           5,
-          "pass",
+          unscoped.length > 0 ? "n/a" : "pass",
           rules.length > 1
-            ? `All ${rules.length} frequency rules governing this code are satisfied — ${passes.join(" ")}`
-            : passes[0],
+            ? `All ${rules.length} frequency rules governing this code were checked — ${notes.join(" ")}`
+            : notes.join(" "),
+          allowed,
         );
       }
     }
   } else {
-    record(5, "n/a", "Not reached.");
+    record(5, "n/a", "Not reached.", null);
   }
 
   // ── Step 6 — missing tooth clause ────────────────────────────────
@@ -431,12 +516,14 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
         !clause.applies
           ? "This plan design does not apply a missing tooth clause."
           : "Not a tooth replacement service, so the clause is not tested.",
+        allowed,
       );
     } else if (!tooth?.extractionDate) {
       record(
         6,
         "n/a",
         "A missing tooth clause applies to this plan, but no extraction date was supplied. Establish it before quoting — this is the question that decides the case.",
+        allowed,
       );
     } else {
       const lostBeforeCoverage =
@@ -445,12 +532,13 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
         clause.waivedAfterContinuousMonths !== undefined &&
         patient.monthsCoveredAtServiceDate >= clause.waivedAfterContinuousMonths;
       if (!lostBeforeCoverage) {
-        record(6, "pass", `Tooth was extracted on ${tooth.extractionDate}, after coverage began, so the clause does not apply.`);
+        record(6, "pass", `Tooth was extracted on ${tooth.extractionDate}, after coverage began, so the clause does not apply.`, allowed);
       } else if (waived) {
         record(
           6,
           "pass",
           `Tooth was lost before coverage began, but the clause is waived after ${clause.waivedAfterContinuousMonths} months of continuous coverage and the patient has ${patient.monthsCoveredAtServiceDate}.`,
+          allowed,
         );
       } else {
         const waitNote =
@@ -465,37 +553,47 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
       }
     }
   } else {
-    record(6, "n/a", "Not reached.");
+    record(6, "n/a", "Not reached.", null);
   }
 
   // ── Step 7 — alternate benefit ───────────────────────────────────
   let benefitBase = allowed;
   if (!blocked) {
-    const isPosterior = input.tooth?.isPosterior ?? (tooth?.universal ? findTooth(tooth.universal)?.posterior : undefined);
+    const isPosterior = tooth?.isPosterior ?? (tooth?.universal ? findTooth(tooth.universal)?.posterior : undefined);
     const alt = alternateBenefitFor(plan, cdt.code, isPosterior);
     if (!alt) {
-      record(7, "n/a", "No alternate benefit provision applies to this service.");
+      record(7, "n/a", "No alternate benefit provision applies to this service.", allowed);
     } else {
-      alternateBenefitId = alt.id;
       denialId = denialId ?? "DEN-ALT-BENEFIT";
+      alternateBenefit = {
+        id: alt.id,
+        paidAtCode: alt.paidAtCode,
+        explanation: alt.explanation,
+        studentAction: alt.studentAction,
+      };
       const benchmark = input.alternateBenefitAllowedUsd;
+      const predetNote = predeterminationOnFile
+        ? " The predetermination on file is what lets you quote this accurately in advance."
+        : " No predetermination is on file — send one so the patient sees this in writing before the tooth is prepared.";
       if (benchmark !== undefined) {
         benefitBase = round2(benchmark);
         record(
           7,
           "reduced",
-          `${alt.label}. The service is still covered, but the allowance is based on ${alt.paidAtCode} at ${benefitBase.toFixed(2)} instead of ${allowed.toFixed(2)}. Bill the service actually delivered — never the downgraded code — and bill the difference to the patient as an upgrade.`,
+          `${alt.label}. The service is still covered, but the allowance is based on ${alt.paidAtCode} at ${money(benefitBase)} instead of ${money(allowed)}. Bill the service actually delivered — never the downgraded code — and bill the difference to the patient as an upgrade.${predetNote}`,
+          benefitBase,
         );
       } else {
         record(
           7,
           "reduced",
-          `${alt.label}. The plan will pay based on ${alt.paidAtCode}, but no benchmark allowance was supplied, so this estimate still uses ${allowed.toFixed(2)} and will overstate what the plan pays. Get the benchmark in a written predetermination.`,
+          `${alt.label}. The plan will pay based on ${alt.paidAtCode}, but no benchmark allowance was supplied, so this estimate still uses ${money(allowed)} and will overstate what the plan pays.${predetNote}`,
+          allowed,
         );
       }
     }
   } else {
-    record(7, "n/a", "Not reached.");
+    record(7, "n/a", "Not reached.", null);
   }
 
   // ── Step 8 — contracted allowance ────────────────────────────────
@@ -505,46 +603,53 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
       8,
       writeOff > 0 ? "reduced" : "pass",
       writeOff > 0
-        ? `Charged ${charged.toFixed(2)}, contracted allowance ${allowed.toFixed(2)}. The ${writeOff.toFixed(2)} difference is a contractual write-off and cannot be billed to the patient.`
+        ? `Charged ${money(charged)}, contracted allowance ${money(allowed)}. The ${money(writeOff)} difference is a contractual write-off and cannot be billed to the patient.`
         : input.allowedUsd === undefined
-          ? `No contracted allowance was supplied, so the charged amount of ${charged.toFixed(2)} is being treated as the allowance. Out of network, or an estimate that needs the real fee schedule.`
-          : `Charged amount matches the contracted allowance at ${allowed.toFixed(2)}.`,
+          ? `No contracted allowance was supplied, so the charged amount of ${money(charged)} is being treated as the allowance. Out of network, or an estimate that needs the real fee schedule.`
+          : `Charged amount matches the contracted allowance at ${money(allowed)}.`,
+      benefitBase,
     );
   } else {
-    record(8, "n/a", "Not reached.");
+    record(8, "n/a", "Not reached.", null);
   }
 
-  // ── DHMO copay path ──────────────────────────────────────────────
+  /* --- DHMO copay path: a fixed price, not a percentage --- */
   const copay = plan.copaySchedule.find((c) => c.code === cdt.code);
   if (!blocked && plan.planType === "DHMO" && copay) {
-    record(9, "n/a", "Copay plans do not apply a deductible.");
+    const planPays = round2(Math.max(0, allowed - copay.patientCopayUsd));
+    record(9, "n/a", "Copay plans do not apply a deductible.", benefitBase);
     record(
       10,
       "pass",
-      `Fixed copay of ${copay.patientCopayUsd.toFixed(2)} for this service instead of a coinsurance percentage. "No annual maximum" does not mean no cost to the patient.`,
+      `Fixed copay of ${money(copay.patientCopayUsd)} for this service instead of a coinsurance percentage. "No annual maximum" does not mean no cost to the patient.`,
+      planPays,
     );
-    const planPays = round2(Math.max(0, allowed - copay.patientCopayUsd));
-    record(11, "n/a", "This plan design has no annual maximum.");
+    record(11, "n/a", "This plan design has no annual maximum.", planPays);
     record(
       12,
-      secondaryPlan ? "pass" : "n/a",
+      secondaryPlan || patient.hasSecondaryCoverage ? "pass" : "n/a",
       secondaryPlan
         ? COB_EXPLANATIONS[secondaryPlan.coordinationOfBenefits]
-        : "No secondary coverage supplied.",
+        : patient.hasSecondaryCoverage
+          ? "Secondary coverage exists but the plan was not supplied, so coordination cannot be calculated here."
+          : "No secondary coverage supplied.",
+      planPays,
     );
     return {
       code: cdt.code,
       dateOfService,
       steps,
-      payable: true,
+      payable: planPays > 0,
       chargedUsd: charged,
       allowedUsd: allowed,
       contractualWriteOffUsd: writeOff,
       deductibleAppliedUsd: 0,
+      coinsurancePatientUsd: round2(copay.patientCopayUsd),
+      annualMaxReductionUsd: 0,
       planPaysUsd: planPays,
       patientOwesUsd: round2(copay.patientCopayUsd),
-      alternateBenefitId,
-      summary: `Covered with a ${copay.patientCopayUsd.toFixed(2)} patient copay.`,
+      alternateBenefit,
+      summary: `Covered with a ${money(copay.patientCopayUsd)} patient copay.`,
     };
   }
 
@@ -560,76 +665,84 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
         waivedPreventive
           ? "The deductible is waived for preventive services on this plan."
           : `The deductible does not apply to ${cls} services on this plan.`,
+        benefitBase,
       );
     } else {
-      const remaining = Math.max(0, plan.deductible.individualUsd - deductibleAlreadyMetUsd);
+      const remaining = Math.max(0, plan.deductible.individualUsd - deductibleAlreadyMet);
       deductibleApplied = round2(Math.min(remaining, benefitBase));
       if (deductibleApplied > 0) {
         record(
           9,
           "reduced",
-          `${deductibleApplied.toFixed(2)} of the ${plan.deductible.individualUsd.toFixed(2)} deductible taken from this line. It comes out in the order claims are processed, which is why claim order changes who owes what.`,
+          `${money(deductibleApplied)} of the ${money(plan.deductible.individualUsd)} deductible taken from this line. It comes out in the order claims are processed, which is why claim order changes who owes what.`,
+          round2(benefitBase - deductibleApplied),
         );
       } else {
-        record(9, "pass", `Deductible already satisfied (${deductibleAlreadyMetUsd.toFixed(2)} met).`);
+        record(9, "pass", `Deductible already satisfied (${money(deductibleAlreadyMet)} met).`, benefitBase);
       }
     }
   } else {
-    record(9, "n/a", "Not reached.");
+    record(9, "n/a", "Not reached.", null);
   }
 
   // ── Step 10 — coinsurance ────────────────────────────────────────
   let planPays = 0;
+  let coinsurancePatient = 0;
   if (!blocked) {
     const pct = plan.coinsurancePlanPaysPct[priceableClass(cls)];
-    planPays = round2(((benefitBase - deductibleApplied) * pct) / 100);
+    const afterDeductible = round2(benefitBase - deductibleApplied);
+    planPays = round2((afterDeductible * pct) / 100);
+    coinsurancePatient = round2(afterDeductible - planPays);
     record(
       10,
       pct === 100 ? "pass" : "reduced",
-      `${priceableClass(cls)} services pay at ${pct}% of ${round2(benefitBase - deductibleApplied).toFixed(2)}, which is ${planPays.toFixed(2)}. Benefit class is a plan decision, not a property of the code — always confirm it against the actual plan.`,
+      `${priceableClass(cls)} services pay at ${pct}% of ${money(afterDeductible)}, which is ${money(planPays)}. Benefit class is a plan decision, not a property of the code — always confirm it against the actual plan.`,
+      planPays,
     );
   } else {
-    record(10, "n/a", "Not reached.");
+    record(10, "n/a", "Not reached.", null);
   }
 
   // ── Step 11 — annual maximum ─────────────────────────────────────
+  let annualMaxReduction = 0;
   if (!blocked) {
     if (plan.annualMaximumUsd === null) {
-      record(11, "n/a", "This plan design has no annual maximum.");
+      record(11, "n/a", "This plan design has no annual maximum.", planPays);
     } else {
-      const remaining = round2(Math.max(0, plan.annualMaximumUsd - benefitUsedUsd));
+      const remaining = round2(Math.max(0, plan.annualMaximumUsd - benefitUsed));
       if (remaining <= 0) {
+        annualMaxReduction = planPays;
         planPays = 0;
         block(
           11,
-          `The ${plan.annualMaximumUsd.toFixed(2)} annual maximum was already exhausted before this line. The service passed every other rule and still pays nothing — there is nothing to appeal.`,
+          `The ${money(plan.annualMaximumUsd)} annual maximum was already exhausted before this line. The service passed every other rule and still pays nothing — there is nothing to appeal.`,
           "DEN-ANNUAL-MAX",
         );
       } else if (planPays > remaining) {
-        const capped = remaining;
+        annualMaxReduction = round2(planPays - remaining);
         record(
           11,
           "reduced",
-          `Only ${remaining.toFixed(2)} of the ${plan.annualMaximumUsd.toFixed(2)} annual maximum remained, so payment is capped from ${planPays.toFixed(2)} to ${capped.toFixed(2)}. Consider deferring remaining treatment into the next benefit period.`,
+          `Only ${money(remaining)} of the ${money(plan.annualMaximumUsd)} annual maximum remained, so payment is capped from ${money(planPays)} to ${money(remaining)}. Consider deferring remaining treatment into the next benefit period.`,
+          remaining,
         );
-        planPays = capped;
+        planPays = remaining;
         denialId = denialId ?? "DEN-ANNUAL-MAX";
       } else {
         record(
           11,
           "pass",
-          `${remaining.toFixed(2)} of the ${plan.annualMaximumUsd.toFixed(2)} annual maximum remained; ${round2(remaining - planPays).toFixed(2)} will remain after this line.`,
+          `${money(remaining)} of the ${money(plan.annualMaximumUsd)} annual maximum remained; ${money(remaining - planPays)} will remain after this line.`,
+          planPays,
         );
       }
     }
   } else {
-    record(11, "n/a", "Not reached.");
+    record(11, "n/a", "Not reached.", null);
   }
 
   // ── Step 12 — coordination of benefits ───────────────────────────
-  if (!secondaryPlan) {
-    record(12, "n/a", "No secondary coverage supplied.");
-  } else {
+  if (secondaryPlan) {
     const method = secondaryPlan.coordinationOfBenefits;
     record(
       12,
@@ -639,10 +752,23 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
           ? " Set the patient's expectation before treatment: with the primary paying at this level there is usually nothing left for the secondary to pay."
           : ""
       }`,
+      blocked ? null : planPays,
     );
+  } else if (patient.hasSecondaryCoverage) {
+    record(
+      12,
+      "n/a",
+      "Secondary coverage exists but the plan was not supplied, so coordination cannot be calculated. Establish which plan is primary before submitting — for dependent children most plans use the birthday rule.",
+      blocked ? null : planPays,
+    );
+  } else {
+    record(12, "n/a", "No secondary coverage supplied.", blocked ? null : planPays);
   }
 
-  if (blocked) planPays = 0;
+  if (blocked) {
+    planPays = 0;
+    coinsurancePatient = 0;
+  }
   const patientOwes = round2(allowed - planPays);
 
   return {
@@ -654,13 +780,17 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
     allowedUsd: allowed,
     contractualWriteOffUsd: writeOff,
     deductibleAppliedUsd: deductibleApplied,
+    coinsurancePatientUsd: coinsurancePatient,
+    annualMaxReductionUsd: annualMaxReduction,
     planPaysUsd: planPays,
     patientOwesUsd: patientOwes,
+    blockedAtStep,
+    blockedReason,
     denialId,
-    alternateBenefitId,
+    alternateBenefit,
     summary: blocked
-      ? `Not payable: ${steps.find((s) => s.verdict === "blocked")?.rule.toLowerCase()}. Patient owes ${patientOwes.toFixed(2)}.`
-      : `Plan pays ${planPays.toFixed(2)}, patient owes ${patientOwes.toFixed(2)}.`,
+      ? `Not payable: ${nameOf(blockedAtStep ?? 1).toLowerCase()}. Patient owes ${money(patientOwes)}.`
+      : `Plan pays ${money(planPays)}, patient owes ${money(patientOwes)}.`,
   };
 }
 
@@ -669,7 +799,10 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
 /* ------------------------------------------------------------------ */
 
 export interface ClaimLineInput
-  extends Omit<CoverageInput, "plan" | "patient" | "history" | "secondaryPlan" | "deductibleAlreadyMetUsd" | "benefitUsedUsd"> {
+  extends Omit<
+    CoverageInput,
+    "plan" | "patient" | "history" | "secondaryPlan" | "deductibleAlreadyMetUsd" | "benefitUsedUsd" | "remainingAnnualMaximumUsd"
+  > {
   /** Claim line reference, for matching results back to the form. */
   line: number;
 }
@@ -691,19 +824,27 @@ export interface ClaimEvaluationResult {
  *
  * Line order matters and is not cosmetic: the deductible comes out of
  * whichever line the payer processes first, and that changes the patient's
- * share on each line even though the claim total is the same.
+ * share on each line even though the claim total is the same. Evaluating
+ * lines independently double-applies the deductible.
  */
 export function evaluateClaim(args: {
-  plan: DentalPlan;
+  plan: DentalPlan | string;
   patient: CoveragePatient;
   lines: ClaimLineInput[];
   history?: PaidHistoryEntry[];
   deductibleAlreadyMetUsd?: number;
   benefitUsedUsd?: number;
-  secondaryPlan?: DentalPlan;
+  remainingAnnualMaximumUsd?: number | null;
+  secondaryPlan?: DentalPlan | string;
 }): ClaimEvaluationResult {
-  let deductibleMet = args.deductibleAlreadyMetUsd ?? 0;
-  let benefitUsed = args.benefitUsedUsd ?? 0;
+  const plan = typeof args.plan === "string" ? findPlan(args.plan) : args.plan;
+  let deductibleMet = args.deductibleAlreadyMetUsd ?? args.patient.deductibleMetUsd ?? 0;
+  let benefitUsed =
+    args.remainingAnnualMaximumUsd !== undefined && args.remainingAnnualMaximumUsd !== null
+      ? Math.max(0, (plan?.annualMaximumUsd ?? 0) - args.remainingAnnualMaximumUsd)
+      : args.patient.remainingAnnualMaximumUsd !== undefined && args.patient.remainingAnnualMaximumUsd !== null
+        ? Math.max(0, (plan?.annualMaximumUsd ?? 0) - args.patient.remainingAnnualMaximumUsd)
+        : (args.benefitUsedUsd ?? 0);
   const results: (CoverageResult & { line: number })[] = [];
 
   for (const line of args.lines) {
@@ -711,7 +852,7 @@ export function evaluateClaim(args: {
       ...line,
       plan: args.plan,
       patient: args.patient,
-      history: args.history,
+      history: args.history ?? args.patient.paidHistory,
       secondaryPlan: args.secondaryPlan,
       deductibleAlreadyMetUsd: deductibleMet,
       benefitUsedUsd: benefitUsed,
