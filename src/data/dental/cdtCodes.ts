@@ -92,6 +92,16 @@ export interface CDTCode {
   predeterminationCommonlyRequested: boolean;
   /** Commonly subject to an alternate-benefit downgrade under PPO plans. */
   alternateBenefitRisk?: boolean;
+  /**
+   * True where the service replaces a missing tooth, in any form — bridge,
+   * partial denture, or implant restoration.
+   *
+   * This is what a missing tooth clause is tested against. The clause applies
+   * to the replacement of a tooth lost before coverage began regardless of
+   * HOW it is replaced, so students who only check it on implants miss it on
+   * the partial denture they propose instead.
+   */
+  isToothReplacement?: boolean;
   /** Attachments payers commonly require to adjudicate. */
   commonAttachments?: string[];
   /** Denial ids from denialReasons.ts that this code commonly triggers. */
@@ -972,6 +982,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Removable Prosthodontics",
     typicalBenefitClass: "Major",
     requires: ["arch"],
+    isToothReplacement: true,
     illustrativeFeeUsd: 1645,
     frequencyRuleKey: "prosthetic-replacement",
     predeterminationCommonlyRequested: true,
@@ -985,6 +996,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Removable Prosthodontics",
     typicalBenefitClass: "Major",
     requires: ["arch"],
+    isToothReplacement: true,
     illustrativeFeeUsd: 1925,
     frequencyRuleKey: "prosthetic-replacement",
     predeterminationCommonlyRequested: true,
@@ -1000,6 +1012,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Removable Prosthodontics",
     typicalBenefitClass: "Major",
     requires: ["arch"],
+    isToothReplacement: true,
     illustrativeFeeUsd: 1925,
     frequencyRuleKey: "prosthetic-replacement",
     predeterminationCommonlyRequested: true,
@@ -1052,6 +1065,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Implant Services",
     typicalBenefitClass: "Major",
     requires: ["tooth"],
+    isToothReplacement: true,
     illustrativeFeeUsd: 2250,
     predeterminationCommonlyRequested: true,
     commonAttachments: ["Pre-operative radiograph or 3D scan", "Narrative on why the tooth is unrestorable or already missing", "Date the tooth was lost"],
@@ -1079,6 +1093,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Implant Services",
     typicalBenefitClass: "Major",
     requires: ["tooth"],
+    isToothReplacement: true,
     illustrativeFeeUsd: 1845,
     predeterminationCommonlyRequested: true,
     commonDenials: ["DEN-MISSING-TOOTH", "DEN-ANNUAL-MAX", "DEN-ALT-BENEFIT"],
@@ -1093,6 +1108,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Fixed Prosthodontics",
     typicalBenefitClass: "Major",
     requires: ["tooth"],
+    isToothReplacement: true,
     illustrativeFeeUsd: 1225,
     frequencyRuleKey: "prosthetic-replacement",
     predeterminationCommonlyRequested: true,
@@ -1108,6 +1124,7 @@ export const CDT_CODES: CDTCode[] = [
     category: "Fixed Prosthodontics",
     typicalBenefitClass: "Major",
     requires: ["tooth"],
+    isToothReplacement: true,
     illustrativeFeeUsd: 1275,
     frequencyRuleKey: "prosthetic-replacement",
     predeterminationCommonlyRequested: true,
