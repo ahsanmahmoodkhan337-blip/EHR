@@ -99,6 +99,33 @@ export const DENTAL_DENIALS: DentalDenial[] = [
       "The annual maximum is applied last, after every other rule passes. A perfectly coded, fully documented, pre-authorised claim can still pay nothing.",
   },
   {
+    id: "DEN-NOT-ELIGIBLE",
+    carc: "27",
+    groupCode: "PR",
+    title: "Patient not covered on the date of service",
+    category: "Eligibility",
+    plainLanguage:
+      "The patient did not have this coverage on the day they were treated — either it had not started yet or it had already ended.",
+    payerRemark: "Expenses were incurred outside the member's period of coverage.",
+    typicalTrigger:
+      "A patient treated in the gap between jobs, or one whose plan ended at the end of last month while the appointment was booked for this month.",
+    commonCodes: [],
+    correctiveActions: [
+      "Confirm the coverage start and end dates with the payer, and compare them against the date of service rather than today's date.",
+      "Check whether the patient has since moved to a different plan that was active on that date, and bill that payer instead.",
+      "If the dates are correct and no other coverage applies, the balance is the patient's.",
+      "Where the payer's record of the termination date is wrong, ask the patient to have their employer correct it — the practice cannot fix it from this side.",
+    ],
+    preventable: true,
+    prevention:
+      "Verify eligibility on the date of the appointment, not at the time of booking. Coverage that was active when the patient scheduled six weeks ago may not be active today.",
+    appealable: true,
+    expectedOutcome: "bill-patient",
+    patientBillable: true,
+    teachingPoint:
+      "Every other rule in the adjudication order is irrelevant if this one fails. It is the first thing the payer's system checks and should be the first thing you check.",
+  },
+  {
     id: "DEN-FREQ-XRAY",
     carc: "119",
     groupCode: "CO",
