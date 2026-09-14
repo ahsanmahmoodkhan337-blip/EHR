@@ -95,3 +95,16 @@ export {
   fdiToUniversal,
   validateSurfaces,
 } from "./toothNotation";
+
+export type {
+  CoverageInput,
+  CoverageResult,
+  CoverageStepResult,
+  CoveragePatient,
+  PaidHistoryEntry,
+  ToothContext,
+  StepVerdict,
+  ClaimLineInput,
+  ClaimEvaluationResult,
+} from "./coverage";
+export { evaluateCoverage, evaluateClaim } from "./coverage";

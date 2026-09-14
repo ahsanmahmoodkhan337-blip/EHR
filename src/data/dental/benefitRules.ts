@@ -23,7 +23,7 @@
  * patient's plan documents or verified by an eligibility call.
  */
 
-import type { BenefitClass } from "./cdtCodes";
+import type { BenefitClass, CDTCategory } from "./cdtCodes";
 
 export type PlanType = "PPO" | "DHMO" | "Indemnity" | "Discount";
 export type BenefitPeriod = "calendar-year" | "plan-year-anniversary";
@@ -135,6 +135,25 @@ export interface DentalPlan {
   coordinationOfBenefits: CoordinationMethod;
   /** Services the plan does not cover at all. */
   exclusions: string[];
+  /**
+   * Machine-readable form of the exclusion list, for the coverage evaluator.
+   *
+   * `exclusions` above stays as prose because that is what a benefit booklet
+   * looks like and what students must learn to read. These fields are the
+   * same information expressed so a rules engine can act on it — keep the two
+   * in step when editing either.
+   */
+  excludedCodes?: string[];
+  excludedCategories?: CDTCategory[];
+  /**
+   * Services excluded only from a stated age upward — the classic being
+   * inhaled sedation covered for children but not adults.
+   */
+  ageRestrictedExclusions?: {
+    codes: string[];
+    excludedFromAgeInclusive: number;
+    note: string;
+  }[];
   /** Services that require a predetermination before treatment. */
   predeterminationRequiredOver: number | null;
   predeterminationNote: string;
@@ -420,6 +439,14 @@ export const DENTAL_PLANS: DentalPlan[] = [
       "Charges for missed or late-cancelled appointments",
       "Treatment started before the coverage effective date",
     ],
+    excludedCodes: ["D0367"],
+    ageRestrictedExclusions: [
+      {
+        codes: ["D9230"],
+        excludedFromAgeInclusive: 16,
+        note: "Inhaled sedation is covered for children only. For anyone 16 or over it is the patient's cost, whatever the clinical reason.",
+      },
+    ],
     predeterminationRequiredOver: 500,
     predeterminationNote:
       "The plan asks for a predetermination on any treatment plan above the stated amount. It is not a guarantee of payment — eligibility is re-checked on the date of service, and the remaining annual maximum can change between the estimate and the visit.",
@@ -504,6 +531,10 @@ export const DENTAL_PLANS: DentalPlan[] = [
       "Specialty care without a referral from the assigned general dentist",
       "Cosmetic treatment",
     ],
+    // No code-level exclusions: this design controls cost through the copay
+    // schedule and the assignment/referral rules rather than by excluding
+    // procedures outright.
+    excludedCodes: [],
     predeterminationRequiredOver: null,
     predeterminationNote:
       "Predeterminations are not used in the same way as a PPO. What matters instead is confirming the member is assigned to this office on the date of service, and that specialty referrals are approved in advance.",
@@ -620,6 +651,8 @@ export const DENTAL_PLANS: DentalPlan[] = [
       "Adult orthodontics",
       "Services covered by a workers' compensation claim",
     ],
+    excludedCodes: ["D6010", "D6057", "D6058", "D8090"],
+    excludedCategories: ["Implant Services"],
     predeterminationRequiredOver: 300,
     predeterminationNote:
       "The trust reviews any plan above the stated amount, and periodontal surgery is reviewed at any amount with a full pocket chart attached.",
