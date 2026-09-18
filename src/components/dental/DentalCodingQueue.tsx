@@ -30,6 +30,8 @@ import {
   type CDTRequirement,
 } from "../../data/dental";
 import { useDentalTrack, type DentalClaimLine } from "./DentalTrackStore";
+import { Odontogram } from "./Odontogram";
+import { PerioChart } from "./PerioChart";
 
 const style = {
   card: "rounded-xl border border-slate-200 bg-white shadow-sm",
@@ -45,6 +47,7 @@ export function DentalCodingQueue() {
   const [activeCategory, setActiveCategory] = useState<string>(CDT_CATEGORY_ORDER[0] ?? "Diagnostic");
   const [expandedCode, setExpandedCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"coding" | "perio">("coding");
 
   // ── line draft ──────────────────────────────────────────────────────────
   const [draft, setDraft] = useState<Partial<DentalClaimLine> & { code?: string }>({
@@ -69,6 +72,24 @@ export function DentalCodingQueue() {
       priorPlacementDate: undefined,
     }));
     setExpandedCode((e) => (e === code.code ? null : code.code));
+  };
+
+  // ── odontogram wiring: chart clicks populate the same draft state ────────
+  const selectTooth = (tooth: string) => {
+    const t = findTooth(tooth);
+    setDraft((d) => ({ ...d, tooth, surfaces: undefined, quadrant: t?.quadrantArea ?? d.quadrant }));
+  };
+
+  const toggleSurface = (surface: string) => {
+    setDraft((d) => {
+      const current = (d.surfaces ?? "").split("");
+      const next = current.includes(surface) ? current.filter((x) => x !== surface) : [...current, surface];
+      return { ...d, surfaces: next.join("") };
+    });
+  };
+
+  const selectQuadrant = (area: string) => {
+    setDraft((d) => ({ ...d, quadrant: area }));
   };
 
   const requires = currentCode?.requires ?? [];
@@ -243,14 +264,39 @@ export function DentalCodingQueue() {
         </div>
       </div>
 
-      {/* ── Right: line builder ─────────────────────────────────────────── */}
-      <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-        <div className="flex items-center justify-between">
+      {/* ── Right: line builder / perio chart ─────────────────────────── */}
+      <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden pr-1">
+        <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-bold text-slate-800">Dental Coding Workspace</h3>
-          <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
-            {state.lines.length} line{state.lines.length === 1 ? "" : "s"} on claim
-          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setMode("coding")}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                mode === "coding" ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Claim coding
+            </button>
+            <button
+              onClick={() => setMode("perio")}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                mode === "perio" ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Perio chart
+            </button>
+            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+              {state.lines.length} line{state.lines.length === 1 ? "" : "s"} on claim
+            </span>
+          </div>
         </div>
+
+        {mode === "perio" ? (
+          <div className="min-h-0 flex-1">
+            <PerioChart />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 overflow-y-auto pr-1">
 
         {!currentCode && (
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center">
@@ -290,6 +336,19 @@ export function DentalCodingQueue() {
                     {w}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {(needs("tooth") || needs("surface") || needs("quadrant") || needs("arch") || needs("oral-cavity-area")) && (
+              <div className="mt-3">
+                <Odontogram
+                  selectedTooth={draft.tooth}
+                  onToothSelect={selectTooth}
+                  selectedSurfaces={draft.surfaces}
+                  onSurfaceToggle={toggleSurface}
+                  selectedQuadrant={draft.quadrant}
+                  onQuadrantSelect={selectQuadrant}
+                />
               </div>
             )}
 
@@ -474,6 +533,8 @@ export function DentalCodingQueue() {
             })}
           </div>
         </div>
+          </div>
+        )}
       </div>
     </div>
   );

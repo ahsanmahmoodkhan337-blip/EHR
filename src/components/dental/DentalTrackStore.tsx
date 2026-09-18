@@ -68,6 +68,23 @@ export type DentalLineResolution =
   | "write-off"
   | "closed";
 
+/** The six standard probing sites charted per tooth (buccal and lingual thirds). */
+export type PerioSite = "mb" | "b" | "db" | "ml" | "l" | "dl";
+
+/** Per-tooth periodontal findings, keyed by Universal designation. */
+export interface PerioToothEntry {
+  /** Probing depths in mm per site. Missing sites are unmeasured. */
+  probing: Partial<Record<PerioSite, number | null>>;
+  /** 0–3 (0 = normal, 3 = >1 mm of horizontal movement). */
+  mobility: number | null;
+  /** 0–3 furcation involvement — only meaningful on multi-rooted (molar) teeth. */
+  furcation: number | null;
+  /** Bleeding on probing. */
+  bleeding: boolean;
+  /** Gingival recession in mm (positive = recession). */
+  recession: number | null;
+}
+
 export interface DentalTrackState {
   version: 1;
   /** null = no case loaded (case-select screen). */
@@ -83,6 +100,8 @@ export interface DentalTrackState {
   rubricByCriterion: Record<string, number>;
   arCallLog: DentalCallLogEntry[];
   lineResolutions: Record<string, DentalLineResolution>;
+  /** Periodontal chart readings, keyed by Universal designation. */
+  perio: Record<string, PerioToothEntry>;
 }
 
 const STORAGE_PREFIX = "hh_dental_track_";
@@ -100,6 +119,7 @@ function freshState(): DentalTrackState {
     rubricByCriterion: {},
     arCallLog: [],
     lineResolutions: {},
+    perio: {},
   };
 }
 
@@ -140,6 +160,8 @@ interface DentalTrackApi {
   logCall: (objective: string, note: string) => void;
   resolveLine: (lineId: string, resolution: DentalLineResolution) => void;
   triggerTrap: (trapId: string) => void;
+  // perio
+  setPerioTooth: (tooth: string, patch: Partial<PerioToothEntry>) => void;
   // scoring
   scoreTally: { maxPoints: number; earned: number; passingPoints: number; criteria: { key: string; criterion: string; points: number; earned: number }[] };
   traps: CaseTrap[];
@@ -264,6 +286,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
       rubricByCriterion: {},
       arCallLog: [],
       lineResolutions: {},
+      perio: {},
     }));
   }, []);
 
@@ -302,6 +325,13 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setState((s) => (s.trapsTriggered.includes(trapId) ? s : { ...s, trapsTriggered: [...s.trapsTriggered, trapId] }));
   }, []);
 
+  const setPerioTooth = useCallback((tooth: string, patch: Partial<PerioToothEntry>) => {
+    setState((s) => {
+      const existing = s.perio[tooth] ?? { probing: {}, mobility: null, furcation: null, bleeding: false, recession: null };
+      return { ...s, perio: { ...s.perio, [tooth]: { ...existing, ...patch } } };
+    });
+  }, []);
+
   const traps = useMemo(() => activeCase?.traps ?? [], [activeCase]);
 
   const scoreTally = useMemo(() => {
@@ -332,6 +362,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     logCall,
     resolveLine,
     triggerTrap,
+    setPerioTooth,
     scoreTally,
     traps,
   };
