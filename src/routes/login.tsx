@@ -251,6 +251,9 @@ function LoginPage() {
           <div className="mt-4 text-center text-xs text-slate-400">
             <Link to="/" className="underline hover:text-slate-600">Back to home</Link>
           </div>
+          <div className="mt-2 text-center text-[10px] text-slate-300">
+            Build v3 · cross-device login
+          </div>
         </div>
       </div>
 
