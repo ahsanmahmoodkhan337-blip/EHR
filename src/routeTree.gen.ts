@@ -15,6 +15,7 @@ import { Route as InstructorRouteImport } from './routes/instructor'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DentalRouteImport } from './routes/dental'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -46,11 +47,17 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DentalRoute = DentalRouteImport.update({
+  id: '/dental',
+  path: '/dental',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/quiz': typeof QuizRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/quiz': typeof QuizRoute
@@ -68,22 +76,24 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/quiz': typeof QuizRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/access' | '/admin' | '/instructor' | '/login' | '/quiz'
+  fullPaths: '/' | '/access' | '/admin' | '/dental' | '/instructor' | '/login' | '/quiz'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/access' | '/admin' | '/instructor' | '/login' | '/quiz'
-  id: '__root__' | '/' | '/access' | '/admin' | '/instructor' | '/login' | '/quiz'
+  to: '/' | '/access' | '/admin' | '/dental' | '/instructor' | '/login' | '/quiz'
+  id: '__root__' | '/' | '/access' | '/admin' | '/dental' | '/instructor' | '/login' | '/quiz'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessRoute: typeof AccessRoute
   AdminRoute: typeof AdminRoute
+  DentalRoute: typeof DentalRoute
   InstructorRoute: typeof InstructorRoute
   LoginRoute: typeof LoginRoute
   QuizRoute: typeof QuizRoute
@@ -119,6 +129,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dental': {
+      id: '/dental'
+      path: '/dental'
+      fullPath: '/dental'
+      preLoaderRoute: typeof DentalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/access': {
       id: '/access'
       path: '/access'
@@ -140,6 +157,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessRoute: AccessRoute,
   AdminRoute: AdminRoute,
+  DentalRoute: DentalRoute,
   InstructorRoute: InstructorRoute,
   LoginRoute: LoginRoute,
   QuizRoute: QuizRoute,
