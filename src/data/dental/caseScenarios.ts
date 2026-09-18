@@ -97,6 +97,12 @@ export interface ExpectedLineOutcome {
   contractualWriteOffUsd: number;
   planPaysUsd: number;
   patientOwesUsd: number;
+  /**
+   * Allowance of the downgrade benchmark, where an alternate benefit applies.
+   * Illustrative teaching figure — fed to `evaluateClaim()` so the downgrade
+   * maths reproduces this line exactly. Absent where no downgrade applies.
+   */
+  alternateBenefitAllowedUsd?: number;
   /** Denial or adjustment applied, if any. */
   denialId?: string;
   explanation: string;
@@ -594,6 +600,7 @@ const CASE_CROWN_DOWNGRADE: DentalCaseScenario = {
       code: "D2740",
       chargedUsd: 1320,
       allowedUsd: 1100,
+      alternateBenefitAllowedUsd: 980,
       contractualWriteOffUsd: 220,
       planPaysUsd: 490,
       patientOwesUsd: 610,
