@@ -30,6 +30,24 @@ export interface AccessRequest {
   durationLabel?: string;
 }
 
+// ─── Phone Normalization ──────────────────────────────────────────
+//
+// Phones arrive in wildly inconsistent formats (e.g. 03105265337,
+// +923117563571, 00923117563571, 3117563571). Exact-string matching
+// against these breaks login for anyone who formats their number even
+// slightly differently from how it was stored. Normalize to a single
+// canonical digit form before any comparison.
+
+export function normalizePhone(phone: string): string {
+  let d = (phone || "").replace(/\D/g, "");
+  // Collapse Pakistani country-code / leading-zero variants so
+  // 03105265337 == +923105265337 == 00923105265337 == 3105265337
+  if (d.startsWith("0092")) d = d.slice(4);
+  else if (d.startsWith("92") && d.length === 12) d = d.slice(2);
+  else if (d.startsWith("0") && d.length === 11) d = d.slice(1);
+  return d;
+}
+
 // ─── Supabase ↔ localStorage sync ──────────────────────────────────
 
 // Sync all requests from Supabase to localStorage cache
@@ -209,7 +227,8 @@ export function revokeApprovedPhone(phone: string): void {
 }
 
 export function isPhoneApproved(phone: string): boolean {
-  return getApprovedPhones().includes(phone);
+  const target = normalizePhone(phone);
+  return getApprovedPhones().some((p) => normalizePhone(p) === target);
 }
 
 // ─── Login Session ────────────────────────────────────────────────
@@ -278,14 +297,16 @@ export function clearSession(): void {
 // ─── Subscription Expiry ──────────────────────────────────────────
 
 export function getSubscriptionEndDate(phone: string): string | null {
+  const target = normalizePhone(phone);
   const requests = getAccessRequests();
-  const req = requests.find((r) => r.phone === phone && r.status === "approved");
+  const req = requests.find((r) => normalizePhone(r.phone) === target && r.status === "approved");
   return req?.subscriptionEndDate ?? null;
 }
 
 export function getDurationLabel(phone: string): string | null {
+  const target = normalizePhone(phone);
   const requests = getAccessRequests();
-  const req = requests.find((r) => r.phone === phone && r.status === "approved");
+  const req = requests.find((r) => normalizePhone(r.phone) === target && r.status === "approved");
   return req?.durationLabel ?? null;
 }
 

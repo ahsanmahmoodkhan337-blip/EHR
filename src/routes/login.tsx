@@ -18,6 +18,8 @@ import {
   isPhoneApproved,
   getAccessRequests,
   setLoggedInPhone,
+  syncFromSupabase,
+  normalizePhone,
   type AccessRequest,
   isSubscriptionExpired,
   getSubscriptionStatus,
@@ -40,7 +42,7 @@ function LoginPage() {
   const [studentName, setStudentName] = useState("");
   const [expiryWarning, setExpiryWarning] = useState<string | null>(null);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const cleaned = phone.trim();
     if (!cleaned) {
       setError("Please enter your phone number");
@@ -48,6 +50,11 @@ function LoginPage() {
     }
 
     setError("");
+
+    // Pull the latest approved list from Supabase before checking, so a
+    // student who was just approved on the admin's device can log in from
+    // theirs (localStorage is per-device and may be stale/empty).
+    await syncFromSupabase();
 
     // Check if approved
     if (isPhoneApproved(cleaned)) {
@@ -79,7 +86,8 @@ function LoginPage() {
 
     // Check if there's a pending request
     const requests = getAccessRequests();
-    const existing = requests.find((r) => r.phone === cleaned);
+    const target = normalizePhone(cleaned);
+    const existing = requests.find((r) => normalizePhone(r.phone) === target);
     if (existing) {
       setRequestInfo(existing);
       if (existing.status === "pending") {
