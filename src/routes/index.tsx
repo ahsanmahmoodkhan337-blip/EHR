@@ -1003,9 +1003,9 @@ function LabsTab({ patientId }: { patientId: string }) {
 
 function PublicLandingPage() {
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-sky-50 to-blue-100">
+    <div className="min-h-dvh brand-gradient">
       {/* Nav */}
-      <nav className="flex items-center justify-between border-b border-sky-200 bg-white/80 px-4 py-3 backdrop-blur">
+      <nav className="flex items-center justify-between border-b border-blue-200 bg-white/80 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <img
             src="/healthcarehustlers-logo.png"
@@ -1015,10 +1015,10 @@ function PublicLandingPage() {
           />
         </div>
         <nav className="flex items-center gap-2 text-xs">
-          <Link to="/login" className="rounded-lg border border-sky-200 px-3 py-1.5 font-medium text-sky-600 hover:bg-sky-50">
+          <Link to="/login" className="rounded-lg border border-blue-200 px-3 py-1.5 font-medium text-blue-600 hover:bg-blue-50">
             Student Login
           </Link>
-          <Link to="/admin" className="rounded-lg bg-sky-500 px-3 py-1.5 font-medium text-white hover:bg-sky-600">
+          <Link to="/admin" className="rounded-lg bg-blue-600 px-3 py-1.5 font-medium text-white hover:bg-blue-700">
             Admin Panel
           </Link>
         </nav>
@@ -1044,18 +1044,18 @@ function PublicLandingPage() {
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             to="/access"
-            className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-600"
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700"
           >
             Enroll Now — 20$/ 5500 pkr
           </Link>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-6 py-3 text-sm font-semibold text-sky-600 hover:bg-sky-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-6 py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50"
           >
             Student Login
           </Link>
         </div>
-        <p className="mt-4 text-center text-xs text-sky-600">
+        <p className="mt-4 text-center text-xs text-blue-600">
           Note: 20$/ 5500 pkr provides access to whole RCM
         </p>
       </section>
@@ -1071,7 +1071,7 @@ function PublicLandingPage() {
         <div className="mb-8 flex items-center justify-center gap-1 overflow-x-auto rounded-xl bg-white p-4 shadow-sm">
           {["📋 Scribe", "🔍 Coder", "📄 Prior Auth", "💰 Biller", "📞 AR Voice"].map((stage, i) => (
             <div key={stage} className="flex items-center gap-1">
-              <div className="whitespace-nowrap rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">
+              <div className="whitespace-nowrap rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
                 {stage}
               </div>
               {i < 4 && <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />}
@@ -1157,7 +1157,7 @@ function PublicLandingPage() {
               { n: "4", title: "Practice!", desc: "Log in with your phone number and start the pipeline" },
             ].map((step) => (
               <div key={step.n} className="rounded-xl border border-slate-200 p-4">
-                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-lg font-bold text-sky-600">
+                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-600">
                   {step.n}
                 </div>
                 <h3 className="font-semibold text-slate-700">{step.title}</h3>
@@ -1169,7 +1169,7 @@ function PublicLandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-sky-200 bg-white/60 px-4 py-6 text-center text-xs text-slate-400">
+      <footer className="border-t border-blue-200 bg-white/60 px-4 py-6 text-center text-xs text-slate-400">
         www.healthcarehustlers.org — Healthcare Hustlers EHR Simulation Portal
       </footer>
     </div>
@@ -1483,7 +1483,7 @@ function Home() {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-slate-50">
         <div className="text-center">
-          <Activity className="mx-auto h-8 w-8 animate-pulse text-sky-500" />
+          <Activity className="mx-auto h-8 w-8 animate-pulse text-blue-500" />
           <p className="mt-3 text-sm text-slate-500">Loading...</p>
         </div>
       </div>

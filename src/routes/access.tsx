@@ -110,7 +110,7 @@ function AccessPage() {
 
   if (submitted) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 p-4">
+      <div className="brand-gradient flex min-h-dvh flex-col items-center justify-center p-4">
         <div className="w-full max-w-md rounded-2xl border border-green-200 bg-white p-8 text-center shadow-lg">
           <CheckCircle2 className="mx-auto mb-4 h-16 w-16 text-green-500" />
           <h2 className="text-xl font-bold text-slate-800">Request Submitted!</h2>
@@ -118,11 +118,11 @@ function AccessPage() {
             Your access request has been received. An admin will review your payment and approve your account within 24 hours.
           </p>
           <p className="mt-4 text-sm text-slate-500">
-            Your Login ID: <span className="font-bold text-sky-600">{formData.phone}</span>
+            Your Login ID: <span className="font-bold text-blue-600">{formData.phone}</span>
           </p>
           <Link
             to="/login"
-            className="mt-6 inline-block rounded-lg bg-sky-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-sky-600"
+            className="mt-6 inline-block rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
           >
             Go to Login
           </Link>
@@ -135,9 +135,9 @@ function AccessPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-sky-50 to-blue-100">
+    <div className="brand-gradient min-h-dvh">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-sky-200 bg-white/80 px-4 py-3 backdrop-blur">
+      <header className="flex items-center justify-between border-b border-blue-100 bg-white/80 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <img
             src="/healthcarehustlers-logo.png"
@@ -147,8 +147,8 @@ function AccessPage() {
           />
         </div>
         <nav className="flex items-center gap-3 text-xs">
-          <Link to="/login" className="font-medium text-sky-600 hover:text-sky-700">Login</Link>
-          <Link to="/" className="rounded-lg bg-sky-500 px-3 py-1.5 font-medium text-white hover:bg-sky-600">Home</Link>
+          <Link to="/login" className="font-medium text-blue-600 hover:text-blue-700">Login</Link>
+          <Link to="/" className="rounded-lg bg-blue-600 px-3 py-1.5 font-medium text-white hover:bg-blue-700">Home</Link>
         </nav>
       </header>
 
@@ -162,8 +162,8 @@ function AccessPage() {
 
           {/* ─── Tracks included ─── */}
           <div className="mx-auto mt-5 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-left">
-              <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Medical RCM</p>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-left">
+              <p className="text-xs font-bold uppercase tracking-wide text-blue-700">Medical RCM</p>
               <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
                 Patient registration, eligibility, scribe/SOAP charting, ICD-10 &amp; CPT coding,
                 CMS-1500 billing, prior authorization, and AR voice calling.
@@ -191,7 +191,7 @@ function AccessPage() {
                 key={step.number}
                 className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
               >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-600">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
                   {step.number}
                 </div>
                 <div>
@@ -212,8 +212,8 @@ function AccessPage() {
                 key={method.id}
                 className={`rounded-xl border-2 p-4 transition-all ${
                   formData.paymentMethod === method.id
-                    ? "border-sky-400 bg-sky-50 shadow-md"
-                    : "border-slate-200 bg-white hover:border-sky-200"
+                    ? "border-blue-400 bg-blue-50 shadow-md"
+                    : "border-slate-200 bg-white hover:border-blue-200"
                 }`}
               >
                 <div className="mb-2 flex items-center gap-2">
@@ -232,7 +232,7 @@ function AccessPage() {
                   }
                   className={`mt-3 w-full rounded-lg py-1.5 text-xs font-medium transition-colors ${
                     formData.paymentMethod === method.id
-                      ? "bg-sky-500 text-white"
+                      ? "bg-blue-600 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
@@ -257,7 +257,7 @@ function AccessPage() {
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   placeholder="John Doe"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
                 />
               </div>
               <div>
@@ -269,7 +269,7 @@ function AccessPage() {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="03001234567"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
                 />
               </div>
               <div>
@@ -279,7 +279,7 @@ function AccessPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="student@example.com"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
                 />
               </div>
               <div>
@@ -292,7 +292,7 @@ function AccessPage() {
                       paymentMethod: e.target.value as AccessRequest["paymentMethod"],
                     })
                   }
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
                 >
                   <option value="easypaisa">EasyPaisa</option>
                   <option value="bank-islami">Bank Islami</option>
@@ -308,7 +308,7 @@ function AccessPage() {
                   value={formData.transactionId}
                   onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
                   placeholder="Enter the transaction/reference ID from your payment"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
                 />
               </div>
             </div>
@@ -321,10 +321,10 @@ function AccessPage() {
               </p>
             </div>
 
-            {/* ─── Device-Specific Disclaimer ─── */}
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-              <p className="font-medium">⚠ Important: Device-Specific Access</p>
-              <p className="mt-1">Your access is tied to the device you register from. To login from a different device (e.g., phone vs desktop), an admin must share an access key with you.</p>
+            {/* ─── Cross-Device Access Note ─── */}
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700">
+              <p className="font-medium">ℹ Cross-Device Access</p>
+              <p className="mt-1">Your access is tied to your phone number, not a single device. Once an admin approves you, log in from any device with the same number.</p>
             </div>
 
             {/* ─── WhatsApp Receipt Confirmation ─── */}
@@ -382,7 +382,7 @@ function AccessPage() {
               disabled={!hasConfirmedReceipt}
               className={`flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-medium text-white transition-colors ${
                 hasConfirmedReceipt
-                  ? "bg-sky-500 hover:bg-sky-600"
+                  ? "bg-blue-600 hover:bg-blue-700"
                   : "bg-slate-300 cursor-not-allowed"
               }`}
             >
