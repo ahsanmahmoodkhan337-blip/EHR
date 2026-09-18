@@ -270,7 +270,7 @@ const STANDARD_FREQUENCIES: FrequencyLimit[] = [
     label: "Crown and onlay replacement",
     // D6750 is deliberately absent: a bridge retainer crown is replaced with
     // the bridge, so it is governed by the prosthetic replacement rule below.
-    appliesToCodes: ["D2740", "D2750", "D2751", "D2790"],
+    appliesToCodes: ["D2740", "D2750", "D2751", "D2790", "D2791", "D2792"],
     timesAllowed: 1,
     windowMonths: 60,
     scope: "per-tooth",
@@ -388,13 +388,55 @@ export const DENTAL_PLANS: DentalPlan[] = [
     },
     alternateBenefits: [
       {
-        id: "ALT-POSTERIOR-COMPOSITE",
-        label: "Posterior composite paid at the amalgam allowance",
-        triggerCodes: ["D2391", "D2392", "D2393", "D2394"],
+        id: "ALT-POSTERIOR-COMPOSITE-1S",
+        label: "Posterior 1-surface composite paid at the 1-surface amalgam allowance",
+        triggerCodes: ["D2391"],
+        paidAtCode: "D2140",
+        appliesTo: "posterior-only",
+        explanation:
+          "On back teeth the plan considers a metal filling an adequate restoration, so it pays the amalgam allowance for the same number of surfaces and the patient owes the difference.",
+        studentAction: [
+          "Bill the composite code that was actually performed — never substitute the amalgam code.",
+          "Expect the payment to come back reduced with an adjustment, not denied.",
+          "Quote the difference to the patient before treatment and document that you did.",
+        ],
+      },
+      {
+        id: "ALT-POSTERIOR-COMPOSITE-2S",
+        label: "Posterior 2-surface composite paid at the 2-surface amalgam allowance",
+        triggerCodes: ["D2392"],
         paidAtCode: "D2150",
         appliesTo: "posterior-only",
         explanation:
-          "On back teeth the plan considers a metal filling an adequate restoration, so it pays the matching amalgam allowance for the same number of surfaces and the patient owes the difference.",
+          "On back teeth the plan considers a metal filling an adequate restoration, so it pays the amalgam allowance for the same number of surfaces and the patient owes the difference.",
+        studentAction: [
+          "Bill the composite code that was actually performed — never substitute the amalgam code.",
+          "Expect the payment to come back reduced with an adjustment, not denied.",
+          "Quote the difference to the patient before treatment and document that you did.",
+        ],
+      },
+      {
+        id: "ALT-POSTERIOR-COMPOSITE-3S",
+        label: "Posterior 3-surface composite paid at the 3-surface amalgam allowance",
+        triggerCodes: ["D2393"],
+        paidAtCode: "D2160",
+        appliesTo: "posterior-only",
+        explanation:
+          "On back teeth the plan considers a metal filling an adequate restoration, so it pays the amalgam allowance for the same number of surfaces and the patient owes the difference.",
+        studentAction: [
+          "Bill the composite code that was actually performed — never substitute the amalgam code.",
+          "Expect the payment to come back reduced with an adjustment, not denied.",
+          "Quote the difference to the patient before treatment and document that you did.",
+        ],
+      },
+      {
+        id: "ALT-POSTERIOR-COMPOSITE-4S",
+        label: "Posterior 4+ surface composite paid at the 4+ surface amalgam allowance",
+        triggerCodes: ["D2394"],
+        paidAtCode: "D2161",
+        appliesTo: "posterior-only",
+        explanation:
+          "On back teeth the plan considers a metal filling an adequate restoration, so it pays the amalgam allowance for the same number of surfaces and the patient owes the difference.",
         studentAction: [
           "Bill the composite code that was actually performed — never substitute the amalgam code.",
           "Expect the payment to come back reduced with an adjustment, not denied.",
@@ -403,12 +445,12 @@ export const DENTAL_PLANS: DentalPlan[] = [
       },
       {
         id: "ALT-POSTERIOR-CERAMIC-CROWN",
-        label: "Posterior ceramic crown paid at the full cast metal allowance",
+        label: "Posterior ceramic crown paid at the base metal crown allowance",
         triggerCodes: ["D2740"],
-        paidAtCode: "D2790",
+        paidAtCode: "D2791",
         appliesTo: "posterior-only",
         explanation:
-          "The plan treats a cast metal crown as sufficient on back teeth. An all-ceramic crown is still covered, but only up to the metal crown allowance.",
+          "The plan treats a full cast base metal crown as sufficient on back teeth. An all-ceramic crown is still covered, but only up to the base metal crown allowance.",
         studentAction: [
           "Send a predetermination so the patient sees the downgrade in writing before the tooth is prepared.",
           "Bill the crown that was delivered.",

@@ -228,7 +228,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     payerRemark: "Replacement of this restoration is not payable within the plan's stated replacement interval.",
     typicalTrigger:
       "Replacing a five-year replacement-window crown at year four, often one placed by a previous dentist that the practice did not know about.",
-    commonCodes: ["D2740", "D2750", "D2751", "D2790", "D6750"],
+    commonCodes: ["D2740", "D2750", "D2751", "D2790", "D2791", "D2792", "D6750"],
     correctiveActions: [
       "Ask the payer for the paid date and the servicing provider on the prior crown.",
       "If the crown failed because of new decay or fracture rather than normal wear, appeal with radiographs and a narrative describing the failure.",

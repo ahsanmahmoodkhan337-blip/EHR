@@ -608,13 +608,41 @@ export const CDT_CODES: CDTCode[] = [
     code: "D2790",
     shortName: "Crown, full cast high noble metal",
     teachingDescription:
-      "A full gold-coloured cast metal cap with no porcelain, durable and usually the benchmark a posterior downgrade pays to.",
+      "A full gold-alloy cast metal cap with no porcelain. Because of the precious-metal content this is the costliest cast crown, so it is not the level a plan pays to when it downgrades a posterior all-ceramic crown.",
     category: "Restorative",
     typicalBenefitClass: "Major",
     requires: ["tooth"],
-    illustrativeFeeUsd: 1245,
+    illustrativeFeeUsd: 1420,
     frequencyRuleKey: "crown-replacement",
     predeterminationCommonlyRequested: true,
+    teachingNotes:
+      "Not the downgrade benchmark. When a plan lowers a posterior ceramic crown to a metal allowance, it pays the base-metal (D2791) level, not this gold one.",
+  },
+  {
+    code: "D2791",
+    shortName: "Crown, full cast base metal",
+    teachingDescription:
+      "A full metal cap cast in a non-precious (base) alloy with no porcelain. The least expensive cast crown, and the level most plans pay to when they downgrade an all-ceramic crown on a back tooth.",
+    category: "Restorative",
+    typicalBenefitClass: "Major",
+    requires: ["tooth"],
+    illustrativeFeeUsd: 1050,
+    frequencyRuleKey: "crown-replacement",
+    predeterminationCommonlyRequested: true,
+    commonDenials: ["DEN-FREQ-CROWN"],
+  },
+  {
+    code: "D2792",
+    shortName: "Crown, full cast noble metal",
+    teachingDescription:
+      "A full metal cap cast in a semi-precious (noble) alloy with no porcelain, sitting between base metal and high noble metal in cost.",
+    category: "Restorative",
+    typicalBenefitClass: "Major",
+    requires: ["tooth"],
+    illustrativeFeeUsd: 1185,
+    frequencyRuleKey: "crown-replacement",
+    predeterminationCommonlyRequested: true,
+    commonDenials: ["DEN-FREQ-CROWN"],
   },
   {
     code: "D2920",
