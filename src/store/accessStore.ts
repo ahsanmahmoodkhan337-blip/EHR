@@ -55,8 +55,15 @@ export function normalizePhone(phone: string): string {
 // ─── Supabase ↔ localStorage sync ──────────────────────────────────
 
 // Sync all requests from Supabase to localStorage cache
+let lastSyncError: string | null = null;
+export function getLastSyncError(): string | null {
+  return lastSyncError;
+}
 export async function syncFromSupabase(): Promise<void> {
-  if (!supabase) return; // local-only mode — localStorage cache is the source of truth
+  if (!supabase) {
+    lastSyncError = "Supabase is not configured (missing keys).";
+    return; // local-only mode — localStorage cache is the source of truth
+  }
   try {
     const { data, error } = await supabase
       .from("access_requests")
@@ -64,10 +71,12 @@ export async function syncFromSupabase(): Promise<void> {
       .order("submitted_at", { ascending: false });
 
     if (error) {
+      lastSyncError = error.message;
       console.warn("Supabase sync failed, using localStorage cache:", error.message);
       return;
     }
 
+    lastSyncError = null;
     if (data) {
       const mapped: AccessRequest[] = data.map((r: any) => ({
         id: r.id,
@@ -90,6 +99,7 @@ export async function syncFromSupabase(): Promise<void> {
       localStorage.setItem(APPROVED_PHONES_KEY, JSON.stringify([...new Set(approved)]));
     }
   } catch (e) {
+    lastSyncError = e instanceof Error ? e.message : String(e);
     console.warn("Supabase sync error, using localStorage cache:", e);
   }
 }

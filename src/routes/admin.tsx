@@ -32,6 +32,7 @@ import {
   getAccessRequests,
   updateRequestStatus,
   getApprovedPhones,
+  getLastSyncError,
   getSessionTimeoutMinutes,
   setSessionTimeoutMinutes,
   type AccessRequest,
@@ -62,6 +63,7 @@ function AdminPage() {
   const [passwordError, setPasswordError] = useState("");
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [approvedPhones, setApprovedPhones] = useState<string[]>([]);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [pins, setPins] = useState<StagePinMap>({ scribe: "1111", coder: "2222", biller: "3333", "prior-auth": "4444", "ar-voice": "5555" });
   const [editPinRole, setEditPinRole] = useState<Role | null>(null);
@@ -83,6 +85,7 @@ function AdminPage() {
         m.syncFromSupabase().then(() => {
           setRequests(getAccessRequests());
           setApprovedPhones(getApprovedPhones());
+          setSyncError(m.getLastSyncError());
         });
       });
       setPins(getAllPins());
@@ -242,6 +245,12 @@ function AdminPage() {
       </header>
 
       <div className="mx-auto max-w-5xl p-4 py-6">
+        {syncError && (
+          <div className="mb-4 rounded-xl border border-red-700 bg-red-900/40 p-3 text-sm text-red-200">
+            <strong>Database connection error:</strong> {syncError}
+            <div className="mt-1 text-xs text-red-300">The approved list could not load from the server. This usually means this device cannot reach Supabase (network/DNS).</div>
+          </div>
+        )}
         {/* Stats */}
         <div className="mb-6 grid grid-cols-3 gap-4">
           <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">

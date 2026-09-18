@@ -19,6 +19,7 @@ import {
   getAccessRequests,
   setLoggedInPhone,
   syncFromSupabase,
+  getLastSyncError,
   normalizePhone,
   type AccessRequest,
   isSubscriptionExpired,
@@ -41,6 +42,7 @@ function LoginPage() {
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [studentName, setStudentName] = useState("");
   const [expiryWarning, setExpiryWarning] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const handleLogin = async () => {
     const cleaned = phone.trim();
@@ -55,6 +57,7 @@ function LoginPage() {
     // student who was just approved on the admin's device can log in from
     // theirs (localStorage is per-device and may be stale/empty).
     await syncFromSupabase();
+    setSyncError(getLastSyncError());
 
     // Check if approved
     if (isPhoneApproved(cleaned)) {
@@ -173,6 +176,9 @@ function LoginPage() {
               <p className="mt-1 text-sm text-red-600">
                 {expiryWarning || "No account found for this phone number. Please submit an access request first."}
               </p>
+              {syncError && (
+                <p className="mt-2 text-xs font-medium text-red-500">Could not reach server: {syncError}</p>
+              )}
               <p className="mt-2 text-[10px] text-slate-400">Note: Access works across devices. If you were just approved, refresh this page and try again — or contact us on WhatsApp.</p>
               {!expiryWarning && (
                 <Link
@@ -252,7 +258,7 @@ function LoginPage() {
             <Link to="/" className="underline hover:text-slate-600">Back to home</Link>
           </div>
           <div className="mt-2 text-center text-[10px] text-slate-300">
-            Build v3 · cross-device login
+            Build v4 · connection diagnostics
           </div>
         </div>
       </div>
