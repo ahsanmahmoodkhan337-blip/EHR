@@ -12,11 +12,10 @@
  * - Right:  Patient search + toggle + profile + logout
  */
 
-import { useState, useEffect, useRef } from "react";
-import { Building2, PanelRightClose, LogOut, Timer, Home } from "lucide-react";
+import { Building2, PanelRightClose, LogOut, Timer, Home, Smile } from "lucide-react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
-import { getLoggedInPhone, logout } from "../../store/accessStore";
+import { logout } from "../../store/accessStore";
 import { RoleSwitcher } from "../RoleSwitcher";
 import { DarkModeToggle } from "../DarkModeToggle";
 
@@ -33,7 +32,6 @@ interface HeaderProps {
 }
 
 export function Header({
-  businessName,
   selectedPatientId,
   onPatientSelect,
   showRightPanel,
@@ -43,7 +41,6 @@ export function Header({
   examTimeRemaining,
   onToggleExamMode,
 }: HeaderProps) {
-  const loggedInPhone = getLoggedInPhone();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -74,6 +71,14 @@ export function Header({
           className="h-7 w-auto"
           style={{ maxWidth: "140px" }}
         />
+        <Link
+          to="/dental"
+          className="flex items-center gap-1.5 rounded-lg bg-sky-600/90 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-sky-500"
+          title="Dental RCM track"
+        >
+          <Smile className="h-3.5 w-3.5" />
+          Dental
+        </Link>
       </div>
 
       {/* ─── Center: Role Switcher ─── */}
