@@ -7,7 +7,7 @@ umask 002
 mkdir -p .run
 
 npm run build
-setsid nohup npx vite preview --host 0.0.0.0 --port 3000 > .run/server.log 2>&1 &
+setsid nohup node serve.mjs > .run/server.log 2>&1 &
 
 for _ in $(seq 1 50); do
   if curl -sf -o /dev/null http://localhost:3000; then
