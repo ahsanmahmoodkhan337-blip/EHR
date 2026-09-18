@@ -40,11 +40,15 @@ export interface AccessRequest {
 
 export function normalizePhone(phone: string): string {
   let d = (phone || "").replace(/\D/g, "");
-  // Collapse Pakistani country-code / leading-zero variants so
-  // 03105265337 == +923105265337 == 00923105265337 == 3105265337
-  if (d.startsWith("0092")) d = d.slice(4);
-  else if (d.startsWith("92") && d.length === 12) d = d.slice(2);
-  else if (d.startsWith("0") && d.length === 11) d = d.slice(1);
+  // Strip international dialing prefix (00)
+  if (d.startsWith("00")) d = d.slice(2);
+  // Strip common country codes (PK 92, Saudi 966, Qatar 974, India 91) so
+  // 03105265337 == +923105265337 == 00923105265337 == 3105265337 and
+  // +966559091460 == 0559091460, +97466047531 == 0097466047531.
+  const cc = d.match(/^(92|966|974|91)/);
+  if (cc && d.length >= 11) d = d.slice(cc[0].length);
+  // Strip leading zero(es) from local format
+  if (d.startsWith("0")) d = d.replace(/^0+/, "");
   return d;
 }
 
