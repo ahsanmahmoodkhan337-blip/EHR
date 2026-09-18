@@ -113,7 +113,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 p-4">
+    <div className="brand-gradient flex min-h-dvh flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="mb-8 text-center">
@@ -139,7 +139,7 @@ function LoginPage() {
             </p>
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700">
+                <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
                   Medical
                 </span>
                 <span className="text-[11px] text-slate-600">
@@ -222,7 +222,7 @@ function LoginPage() {
                       setStatus("idle");
                     }}
                     placeholder="e.g. 03001234567"
-                    className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
                   />
                 </div>
                 {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
@@ -230,7 +230,7 @@ function LoginPage() {
 
               <button
                 onClick={handleLogin}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sky-600"
+                className="btn-primary w-full"
               >
                 <LogIn className="h-4 w-4" />
                 Sign In
@@ -247,7 +247,7 @@ function LoginPage() {
 
               <Link
                 to="/access"
-                className="block rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-center text-sm font-medium text-sky-700 transition-colors hover:bg-sky-100"
+                className="btn-secondary w-full"
               >
                 Request Access & Enroll
               </Link>
