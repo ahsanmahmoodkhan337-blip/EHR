@@ -13,6 +13,7 @@ imports React or touches UI.
 | `coverage.ts` | Runnable adjudication engine — `evaluateCoverage()` for one claim line, `evaluateClaim()` for a whole claim, returning a verdict per step of `ADJUDICATION_ORDER` |
 | `attachmentRequirements.ts` | Structured map from CDT code → required attachments (radiographs, perio charting, narrative, …) plus the predetermination-candidate list with per-code guidance |
 | `predeterminationRules.ts` | Three predetermination scenarios: the payer's line-by-line estimate (allowed / downgraded / excluded / frequency-limited) and the trap around requesting one vs submitting directly |
+| `eraRemittance.ts` | ERA (835) remittance schema + sample remittances (clean-paid, and a downgrade + denial). `EraServiceLine.status` is `paid | downgraded | denied`, with a downgrade carried as `paidAtAllowedUsd` — never a denial. CAS reason codes map to `denialReasons.ts` ids. **Schema authored by Frontend Engineer as a reference; content specialist extends the samples.** |
 
 Import from the barrel:
 

@@ -137,3 +137,17 @@ export {
   findPredeterminationScenario,
   predeterminationScenariosByVerdict,
 } from "./predeterminationRules";
+export type {
+  EraAdjustment,
+  EraAdjustmentGroup,
+  EraClaim,
+  EraLineStatus,
+  EraRemittance,
+  EraServiceLine,
+} from "./eraRemittance";
+export {
+  ERA_REMITTANCES,
+  ERA_REMITTANCE_INDEX,
+  findEraRemittance,
+  eraRemittancesForPlan,
+} from "./eraRemittance";

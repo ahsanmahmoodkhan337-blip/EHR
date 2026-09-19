@@ -10,9 +10,10 @@
 
 import { useMemo } from "react";
 import { CheckCircle2, Clock, FileText, Send, AlertTriangle, RotateCcw, Phone, User, ArrowRight } from "lucide-react";
-import { findCDT, findDenial } from "../../data/dental";
+import { eraRemittancesForPlan, findCDT, findDenial } from "../../data/dental";
 import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
 import { adjudicateDentalClaim } from "./adjudication";
+import { DentalEraRemittance } from "./DentalEraRemittance";
 
 type ClaimStage = "created" | "sent" | "pending" | "settled";
 
@@ -37,8 +38,10 @@ function lineStatus(resolution: DentalLineResolution | undefined, denied: boolea
 }
 
 export function DentalClaimQueue() {
-  const { state, activeCase, goTo } = useDentalTrack();
+  const { state, activeCase, planId, goTo } = useDentalTrack();
   const adjudication = useMemo(() => adjudicateDentalClaim(state.lines, activeCase), [state.lines, activeCase]);
+
+  const remittances = useMemo(() => eraRemittancesForPlan(planId), [planId]);
 
   const hasLines = state.lines.length > 0;
   const sent = state.claimSubmitted;
@@ -148,6 +151,26 @@ export function DentalClaimQueue() {
           );
         })}
       </div>
+
+      {/* ERA (835) remittance — the payer's response once the claim is sent */}
+      {sent && remittances.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">ERA (835) remittance</h3>
+              <p className="text-[10px] text-slate-400">Read the payer's electronic remittance and reconcile it against your claim.</p>
+            </div>
+            <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
+              {remittances.length} sample{remittances.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {remittances.map((r) => (
+              <DentalEraRemittance key={r.id} remittance={r} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <p className="mt-3 flex items-center gap-1 text-[9px] text-slate-400">
         <Phone className="h-3 w-3 shrink-0" />

@@ -45,6 +45,7 @@ import {
 } from "../../data/dental";
 import { adjudicateDentalClaim, type TraceStep } from "./adjudication";
 import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
+import { DentalClaimScrub } from "./DentalClaimScrub";
 
 /** Illustrative billing-provider block for the claim form (fictional practice). */
 const BILLING_PROVIDER = {
@@ -248,6 +249,9 @@ export function DentalBillingLedger() {
         <Totals k="Contractual write-off" v={fmtUsd(adjudication.totals.writeOffUsd)} dim />
         <Totals k="Plan pays" v={fmtUsd(adjudication.totals.planPaysUsd)} green />
         <Totals k="Patient owes" v={fmtUsd(adjudication.totals.patientOwesUsd)} red />
+        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          Edit checks <DentalClaimScrub compact />
+        </span>
         <button
           onClick={() => goTo("claims")}
           className="ml-auto flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
