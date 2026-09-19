@@ -15,6 +15,7 @@ import {
   BookOpen,
   CalendarClock,
   CheckCircle2,
+  ClipboardCheck,
   ClipboardList,
   FileText,
   ListChecks,
@@ -32,12 +33,14 @@ import { DentalAR } from "./DentalAR";
 import { DentalTreatmentPlan } from "./DentalTreatmentPlan";
 import { DentalPatientLedger } from "./DentalPatientLedger";
 import { DentalClaimQueue } from "./DentalClaimQueue";
+import { DentalPredetermination } from "./DentalPredetermination";
 import { adjudicateDentalClaim } from "./adjudication";
 
 const STAGES: { id: DentalStageName; label: string; icon: ReactNode }[] = [
   { id: "case-select", label: "Case", icon: <BookOpen className="h-3.5 w-3.5" /> },
   { id: "briefing", label: "Briefing", icon: <ClipboardList className="h-3.5 w-3.5" /> },
   { id: "planning", label: "Plan", icon: <CalendarClock className="h-3.5 w-3.5" /> },
+  { id: "predetermination", label: "Predetermine", icon: <ClipboardCheck className="h-3.5 w-3.5" /> },
   { id: "coding", label: "Coding", icon: <Stethoscope className="h-3.5 w-3.5" /> },
   { id: "claim", label: "Claim", icon: <FileText className="h-3.5 w-3.5" /> },
   { id: "claims", label: "Claims", icon: <ListChecks className="h-3.5 w-3.5" /> },
@@ -84,6 +87,7 @@ export function DentalCaseRunner() {
         {state.stage === "case-select" && <CaseSelect />}
         {state.stage === "briefing" && <Briefing />}
         {state.stage === "planning" && <DentalTreatmentPlan />}
+        {state.stage === "predetermination" && <DentalPredetermination />}
         {state.stage === "coding" && <DentalCodingQueue />}
         {state.stage === "claim" && <DentalBillingLedger />}
         {state.stage === "claims" && <DentalClaimQueue />}
