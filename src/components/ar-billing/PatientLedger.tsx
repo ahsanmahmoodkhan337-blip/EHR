@@ -91,19 +91,23 @@ export function PatientLedger() {
 
             {/* Transactions Table */}
             <div className="overflow-x-auto mb-3">
-              <table className="w-full text-[9px]">
-                <thead><tr className="border-b border-slate-200 text-left text-slate-500"><th className="pb-1 pr-2">Date</th><th className="pb-1 pr-2">Service</th><th className="pb-1 pr-2">CPT</th><th className="pb-1 pr-2">Billed</th><th className="pb-1 pr-2">Allowed</th><th className="pb-1 pr-2">Ins Paid</th><th className="pb-1 pr-2">Pt Due</th><th className="pb-1">Bal</th></tr></thead>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th><th>Service</th><th>CPT</th><th className="num">Billed</th><th className="num">Allowed</th><th className="num">Ins Paid</th><th className="num">Pt Due</th><th className="num">Bal</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {transactions.map((t, i) => (
-                    <tr key={i} className="border-b border-slate-50 hover:bg-slate-50">
-                      <td className="py-1 pr-2 text-slate-400">{new Date(t.date).toLocaleDateString()}</td>
-                      <td className="py-1 pr-2 text-slate-600">{t.service}</td>
-                      <td className="py-1 pr-2 font-mono text-slate-500">{t.cpt}</td>
-                      <td className="py-1 pr-2">${t.billed}</td>
-                      <td className="py-1 pr-2">${t.allowed}</td>
-                      <td className="py-1 pr-2 text-green-600">${t.insurancePaid}</td>
-                      <td className="py-1 pr-2">${t.patientDue}</td>
-                      <td className={`py-1 font-bold ${t.balance > 0 ? "text-red-600" : "text-green-600"}`}>${t.balance}</td>
+                    <tr key={i}>
+                      <td className="text-slate-400">{new Date(t.date).toLocaleDateString()}</td>
+                      <td className="text-slate-600">{t.service}</td>
+                      <td className="font-mono text-slate-500">{t.cpt}</td>
+                      <td className="num">${t.billed}</td>
+                      <td className="num">${t.allowed}</td>
+                      <td className="num text-green-600">${t.insurancePaid}</td>
+                      <td className="num">${t.patientDue}</td>
+                      <td className={`num font-bold ${t.balance > 0 ? "text-red-600" : "text-green-600"}`}>${t.balance}</td>
                     </tr>
                   ))}
                 </tbody>

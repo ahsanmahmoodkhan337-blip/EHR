@@ -227,9 +227,9 @@ export default function ARVoiceSimulator() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <PhoneCall className="h-4 w-4 text-sky-600" />
+          <PhoneCall className="h-4 w-4 text-blue-600" />
           <h2 className="text-sm font-bold text-slate-800">AR Voice Specialist</h2>
-          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-medium text-sky-700">Stage 5</span>
+          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">Stage 5</span>
           <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
             {arCalls.length} Calls
           </span>
@@ -255,7 +255,7 @@ export default function ARVoiceSimulator() {
             onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-1.5 whitespace-nowrap px-2.5 py-2 text-[10px] font-medium border-b-2 transition-colors ${
               activeTab === tab.key
-                ? "border-sky-600 text-sky-700 bg-white"
+                ? "border-blue-600 text-blue-700 bg-white"
                 : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
@@ -356,12 +356,12 @@ export default function ARVoiceSimulator() {
                 </div>
 
                 {/* Practice tip */}
-                <div className="rounded-lg border border-sky-100 bg-sky-50 p-3">
-                  <p className="text-[10px] font-medium text-sky-700">
+                <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
+                  <p className="text-[10px] font-medium text-blue-700">
                     <ClipboardList className="mr-1 inline h-3 w-3" />
                     RCM Pro Tip
                   </p>
-                  <p className="mt-1 text-[10px] text-sky-600">
+                  <p className="mt-1 text-[10px] text-blue-600">
                     The aging ledger should be reviewed DAILY. Focus on the 90+ day bucket first — these claims are
                     at highest risk of becoming non-collectible. A good AR team keeps &lt;15% of total AR in the 90+ bucket.
                     Current: {ledgerTotal.totalAmount > 0 ? (ledgerData[3].totalAmount / ledgerTotal.totalAmount * 100).toFixed(0) : "0"}%.
@@ -490,7 +490,7 @@ export default function ARVoiceSimulator() {
                             className={`flex items-center gap-1 rounded px-2 py-1 text-[9px] font-medium transition-colors ${
                               isCurrentlyPlaying(`Claim ${claim.id.slice(-8)}.`)
                                 ? "bg-red-100 text-red-700 animate-pulse"
-                                : "bg-sky-100 text-sky-700 hover:bg-sky-200"
+                                : "bg-blue-100 text-blue-700 hover:bg-blue-200"
                             }`}
                           >
                             {isCurrentlyPlaying(`Claim ${claim.id.slice(-8)}.`) ? (
@@ -574,7 +574,7 @@ export default function ARVoiceSimulator() {
               <select
                 value={scriptBucket}
                 onChange={(e) => setScriptBucket(e.target.value)}
-                className="rounded border border-slate-200 px-2 py-1 text-[10px] outline-none focus:border-sky-300"
+                className="rounded border border-slate-200 px-2 py-1 text-[10px] outline-none focus:border-blue-300"
               >
                 {Object.entries(BUCKET_SCRIPTS).map(([key]) => (
                   <option key={key} value={key}>{AGING_LEDGER_DATA.find(d => d.bucket === key)?.label || key}</option>
@@ -583,16 +583,16 @@ export default function ARVoiceSimulator() {
             </div>
 
             {BUCKET_SCRIPTS[scriptBucket] && (
-              <div className="rounded-xl border border-sky-200 bg-white p-4 shadow-sm">
+              <div className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
-                  <Phone className="h-4 w-4 text-sky-600" />
-                  <p className="text-xs font-semibold text-sky-700">{BUCKET_SCRIPTS[scriptBucket].bucket} — Call Script</p>
+                  <Phone className="h-4 w-4 text-blue-600" />
+                  <p className="text-xs font-semibold text-blue-700">{BUCKET_SCRIPTS[scriptBucket].bucket} — Call Script</p>
                 </div>
 
                 {/* Opening */}
-                <div className="mb-3 rounded-lg border border-sky-100 bg-sky-50 p-3">
+                <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold text-sky-700">Opening Statement</p>
+                    <p className="text-[10px] font-semibold text-blue-700">Opening Statement</p>
                     <button
                       onClick={() => {
                         if (isCurrentlyPlaying(BUCKET_SCRIPTS[scriptBucket].opening)) {
@@ -604,7 +604,7 @@ export default function ARVoiceSimulator() {
                       className={`flex items-center gap-1 rounded px-2 py-1 text-[9px] font-medium transition-colors ${
                         isCurrentlyPlaying(BUCKET_SCRIPTS[scriptBucket].opening)
                           ? "bg-red-100 text-red-700 animate-pulse"
-                          : "bg-sky-100 text-sky-700 hover:bg-sky-200"
+                          : "bg-blue-100 text-blue-700 hover:bg-blue-200"
                       }`}
                       title={voicesLoaded ? "Play audio in American English" : "Loading voices..."}
                     >
@@ -615,7 +615,7 @@ export default function ARVoiceSimulator() {
                       )}
                     </button>
                   </div>
-                  <p className="mt-1 text-[10px] text-sky-600 leading-relaxed">{BUCKET_SCRIPTS[scriptBucket].opening}</p>
+                  <p className="mt-1 text-[10px] text-blue-600 leading-relaxed">{BUCKET_SCRIPTS[scriptBucket].opening}</p>
                 </div>
 
                 {/* Key questions */}
@@ -624,7 +624,7 @@ export default function ARVoiceSimulator() {
                   <div className="space-y-1">
                     {BUCKET_SCRIPTS[scriptBucket].questions.map((q, i) => (
                       <div key={i} className="flex items-center gap-1.5 text-[10px] text-slate-600">
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-sky-100 text-[8px] font-bold text-sky-600">{i + 1}</span>
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-100 text-[8px] font-bold text-blue-600">{i + 1}</span>
                         {q}
                       </div>
                     ))}
@@ -688,9 +688,9 @@ export default function ARVoiceSimulator() {
         {/* ═══ TAB: APPEAL LETTERS ═══ */}
         {activeTab === "appeals" && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-sky-200 bg-white p-4 shadow-sm">
+            <div className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-4 w-4 text-sky-600" />
+                <FileText className="h-4 w-4 text-blue-600" />
                 <p className="text-xs font-semibold text-slate-700">Appeal Letter Generator</p>
               </div>
 
@@ -700,7 +700,7 @@ export default function ARVoiceSimulator() {
                 <select
                   value={selectedAppeal}
                   onChange={(e) => setSelectedAppeal(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-sky-400"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-blue-400"
                 >
                   {APPEAL_TEMPLATES.map((t) => (
                     <option key={t.id} value={t.id}>{t.title}</option>
@@ -717,7 +717,7 @@ export default function ARVoiceSimulator() {
                     value={appealPatientName}
                     onChange={(e) => setAppealPatientName(e.target.value)}
                     placeholder="Enter patient name..."
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-sky-400"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-blue-400"
                   />
                 </div>
                 <div>
@@ -727,7 +727,7 @@ export default function ARVoiceSimulator() {
                     value={appealClaimId}
                     onChange={(e) => setAppealClaimId(e.target.value)}
                     placeholder="Enter claim ID..."
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-sky-400"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-blue-400"
                   />
                 </div>
               </div>
@@ -739,7 +739,7 @@ export default function ARVoiceSimulator() {
                     <p className="text-[10px] font-semibold text-slate-600">{template.title}</p>
                     <button
                       onClick={handleCopyAppeal}
-                      className="flex items-center gap-1 rounded bg-sky-600 px-2 py-1 text-[9px] font-medium text-white hover:bg-sky-500"
+                      className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-[9px] font-medium text-white hover:bg-blue-500"
                     >
                       {copiedAppeal ? <Check className="h-2.5 w-2.5" /> : <Copy className="h-2.5 w-2.5" />}
                       {copiedAppeal ? "Copied!" : "Copy Letter"}
@@ -758,12 +758,12 @@ export default function ARVoiceSimulator() {
             </div>
 
             {/* Practice tip */}
-            <div className="rounded-lg border border-sky-100 bg-sky-50 p-3">
-              <p className="text-[10px] font-medium text-sky-700">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
+              <p className="text-[10px] font-medium text-blue-700">
                 <FileText className="mr-1 inline h-3 w-3" />
                 Writing Tips
               </p>
-              <ul className="mt-1 space-y-0.5 text-[10px] text-sky-600">
+              <ul className="mt-1 space-y-0.5 text-[10px] text-blue-600">
                 <li>• Keep it to one page — appeals reviewers are busy</li>
                 <li>• Reference the specific denial code (CO-16, CO-50, etc.)</li>
                 <li>• Attach supporting documentation with a checklist</li>
@@ -785,7 +785,7 @@ export default function ARVoiceSimulator() {
                   onClick={() => setSelectedScenario(i)}
                   className={`rounded-lg border p-2 text-left text-[10px] transition-colors ${
                     selectedScenario === i
-                      ? "border-sky-300 bg-sky-50"
+                      ? "border-blue-300 bg-blue-50"
                       : "border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -803,8 +803,8 @@ export default function ARVoiceSimulator() {
               ))}
             </div>
 
-            <div className="rounded-xl border border-sky-200 bg-white p-4 shadow-sm">
-              <p className="mb-2 text-xs font-semibold text-sky-700">{AR_SCENARIOS[selectedScenario].title}</p>
+            <div className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
+              <p className="mb-2 text-xs font-semibold text-blue-700">{AR_SCENARIOS[selectedScenario].title}</p>
 
               {/* Description */}
               <div className="mb-3 rounded-lg bg-amber-50 p-3">
@@ -813,9 +813,9 @@ export default function ARVoiceSimulator() {
               </div>
 
               {/* Script */}
-              <div className="mb-3 rounded-lg border border-sky-100 bg-sky-50 p-3">
+              <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] font-semibold text-sky-700">
+                  <p className="text-[10px] font-semibold text-blue-700">
                     <Phone className="mr-1 inline h-3 w-3" />
                     What to Say
                   </p>
@@ -830,7 +830,7 @@ export default function ARVoiceSimulator() {
                     className={`flex items-center gap-1 rounded px-2 py-1 text-[9px] font-medium transition-colors ${
                       isCurrentlyPlaying(AR_SCENARIOS[selectedScenario].script)
                         ? "bg-red-100 text-red-700 animate-pulse"
-                        : "bg-sky-100 text-sky-700 hover:bg-sky-200"
+                        : "bg-blue-100 text-blue-700 hover:bg-blue-200"
                     }`}
                     title="Play scenario script in American English"
                   >
@@ -841,7 +841,7 @@ export default function ARVoiceSimulator() {
                     )}
                   </button>
                 </div>
-                <p className="text-[10px] text-sky-600 leading-relaxed">{AR_SCENARIOS[selectedScenario].script}</p>
+                <p className="text-[10px] text-blue-600 leading-relaxed">{AR_SCENARIOS[selectedScenario].script}</p>
               </div>
 
               {/* Resolution */}
@@ -861,7 +861,7 @@ export default function ARVoiceSimulator() {
                   onChange={(e) => setScenarioNote(e.target.value)}
                   placeholder="Write your call notes here... What would you say differently?"
                   rows={2}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-sky-400 resize-none"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-blue-400 resize-none"
                 />
               </div>
             </div>
@@ -911,7 +911,7 @@ export default function ARVoiceSimulator() {
               {INSURANCE_CARRIERS.map((carrier) => (
                 <div key={carrier.name} className="rounded-lg border border-slate-200 bg-white p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <Building2 className="h-4 w-4 text-sky-600" />
+                    <Building2 className="h-4 w-4 text-blue-600" />
                     <p className="text-[11px] font-semibold text-slate-700">{carrier.name}</p>
                   </div>
                   <div className="space-y-1 text-[10px]">
@@ -928,19 +928,19 @@ export default function ARVoiceSimulator() {
                       <span className="text-slate-600">{carrier.department} | {carrier.waitTime}</span>
                     </div>
                   </div>
-                  <div className="mt-2 rounded bg-sky-50 p-2 text-[9px] text-sky-600">
+                  <div className="mt-2 rounded bg-blue-50 p-2 text-[9px] text-blue-600">
                     {carrier.notes}
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="rounded-lg border border-sky-100 bg-sky-50 p-3">
-              <p className="text-[10px] font-medium text-sky-700">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
+              <p className="text-[10px] font-medium text-blue-700">
                 <Phone className="mr-1 inline h-3 w-3" />
                 Call Prep Checklist
               </p>
-              <ul className="mt-1 space-y-0.5 text-[10px] text-sky-600">
+              <ul className="mt-1 space-y-0.5 text-[10px] text-blue-600">
                 <li>✓ Have patient ID, claim number, and DOS ready before dialing</li>
                 <li>✓ Know the denial code and what you're asking for</li>
                 <li>✓ Get a reference number for every call</li>

@@ -45,7 +45,7 @@ export function VitalsFlowsheet() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[10px] font-medium text-sky-600 hover:bg-sky-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100">
         <TrendingUp className="h-3.5 w-3.5" /> Vitals Flowsheet
       </button>
       {showPanel && (
@@ -55,7 +55,7 @@ export function VitalsFlowsheet() {
               <div><h3 className="text-sm font-bold text-slate-800">Vitals Flowsheet</h3><p className="text-[9px] text-slate-400">Trend analysis over time</p></div>
               <div className="flex items-center gap-2">
                 {["3m","6m","1y"].map(r => (
-                  <button key={r} onClick={() => setDateRange(r as any)} className={`rounded-lg px-2 py-1 text-[9px] ${dateRange === r ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-500"}`}>{r === "3m" ? "3 mo" : r === "6m" ? "6 mo" : "1 yr"}</button>
+                  <button key={r} onClick={() => setDateRange(r as any)} className={`rounded-lg px-2 py-1 text-[9px] ${dateRange === r ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"}`}>{r === "3m" ? "3 mo" : r === "6m" ? "6 mo" : "1 yr"}</button>
                 ))}
                 <button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button>
               </div>
@@ -64,7 +64,7 @@ export function VitalsFlowsheet() {
             {/* Chart toggles */}
             <div className="flex gap-1 mb-3">
               {Object.entries(charts).map(([k, v]) => (
-                <button key={k} onClick={() => setCharts(c => ({ ...c, [k]: !c[k as keyof typeof c] }))} className={`rounded-lg px-2 py-1 text-[9px] ${v ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-500"}`}>{k.toUpperCase()}</button>
+                <button key={k} onClick={() => setCharts(c => ({ ...c, [k]: !c[k as keyof typeof c] }))} className={`rounded-lg px-2 py-1 text-[9px] ${v ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"}`}>{k.toUpperCase()}</button>
               ))}
             </div>
 

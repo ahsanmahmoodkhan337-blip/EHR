@@ -103,14 +103,14 @@ export function DentalBillingLedger() {
               <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">{code}</code>
               <span className="text-[11px] font-medium text-slate-700">{cdt?.shortName ?? "Unknown code"}</span>
               {claimLine.tooth && (
-                <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] text-sky-700">
+                <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] text-blue-700">
                   Tooth #{claimLine.tooth}
                   {claimLine.surfaces ? ` · ${claimLine.surfaces}` : ""}
                   {tooth ? ` (${tooth.name})` : ""}
                 </span>
               )}
               {claimLine.quadrant && (
-                <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] text-sky-700">Area {claimLine.quadrant}</span>
+                <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] text-blue-700">Area {claimLine.quadrant}</span>
               )}
               <span className="text-[9px] text-slate-400">DOS {claimLine.dateOfService}</span>
               <span className="ml-auto text-[11px] font-semibold text-slate-700">${claimLine.feeUsd.toFixed(2)}</span>
@@ -227,7 +227,7 @@ export function DentalBillingLedger() {
             {/* trace toggle */}
             <button
               onClick={() => setOpenTrace((o) => ({ ...o, [lineId]: !open }))}
-              className="flex w-full items-center gap-1 border-t border-slate-100 px-3 py-1.5 text-left text-[10px] font-semibold text-sky-700 hover:bg-sky-50"
+              className="flex w-full items-center gap-1 border-t border-slate-100 px-3 py-1.5 text-left text-[10px] font-semibold text-blue-700 hover:bg-blue-50"
             >
               {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               Adjudication trace ({result.steps.length} steps, walked in payer order)
@@ -280,7 +280,7 @@ function ClaimFormHeader({
         </div>
         <div className="flex items-center gap-1.5">
           {plan && (
-            <span className="rounded bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+            <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
               {plan.payerName} · {plan.planName}
             </span>
           )}
@@ -293,7 +293,7 @@ function ClaimFormHeader({
       {/* four blocks: payer / subscriber / patient / billing provider */}
       <div className="grid grid-cols-1 gap-3 px-3 py-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <ClaimBlock
-          icon={<Landmark className="h-3.5 w-3.5 text-sky-600" />}
+          icon={<Landmark className="h-3.5 w-3.5 text-blue-600" />}
           title="Insurance / Plan"
           rows={[
             ["Plan", plan ? `${plan.planName} (${plan.planType})` : "—"],
@@ -616,24 +616,24 @@ function TraceTable({ rows }: { rows: TraceStep[] }) {
     "n/a": "bg-slate-100 text-slate-400",
   };
   return (
-    <div className="border-t border-slate-100 bg-white px-3 py-2">
-      <table className="w-full text-left text-[10px]">
+    <div className="overflow-x-auto border-t border-slate-100 bg-white px-3 py-2">
+      <table className="data-table">
         <thead>
-          <tr className="text-slate-400">
-            <th className="py-1 pr-2 font-semibold">#</th>
-            <th className="py-1 pr-2 font-semibold">Rule</th>
-            <th className="py-1 pr-2 font-semibold">Verdict</th>
+          <tr>
+            <th>#</th>
+            <th>Rule</th>
+            <th>Verdict</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.step} className="align-top">
-              <td className="py-1 pr-2 text-slate-400">{r.step}</td>
-              <td className="py-1 pr-2">
+              <td className="text-slate-400">{r.step}</td>
+              <td>
                 <span className="font-medium text-slate-700">{r.rule}</span>
                 <span className="block max-w-md leading-snug text-slate-500">{r.explanation}</span>
               </td>
-              <td className="py-1 pr-2">
+              <td>
                 <span className={`inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${badge[r.verdict]}`}>
                   {r.verdict}
                 </span>

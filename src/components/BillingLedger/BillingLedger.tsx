@@ -397,7 +397,7 @@ export function BillingLedger() {
                   <button onClick={simulateDenial} className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 hover:bg-red-100">
                     <AlertTriangle className="h-3.5 w-3.5" /> Simulate Denial (Path B)
                   </button>
-                  <button onClick={runScrubber} className="flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-xs font-medium text-sky-700 hover:bg-sky-100">
+                  <button onClick={runScrubber} className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
                     <Search className="h-3.5 w-3.5" /> Run Clearinghouse Scrubber
                   </button>
                   {/* Phase 3: Transmit 837P */}
@@ -520,7 +520,7 @@ export function BillingLedger() {
                   <div key={d.code} className="rounded-lg border border-slate-200 bg-white p-3 text-xs">
                     <div className="flex items-center gap-2">
                       <span className={`font-mono font-bold text-sm ${
-                        d.category === "CO" ? "text-red-600" : d.category === "PR" ? "text-amber-600" : "text-sky-600"
+                        d.category === "CO" ? "text-red-600" : d.category === "PR" ? "text-amber-600" : "text-blue-600"
                       }`}>{d.code}</span>
                       <span className="text-slate-500 text-[10px]">({d.category === "CO" ? "Contractual" : d.category === "PR" ? "Patient Responsibility" : "Organizational"})</span>
                     </div>

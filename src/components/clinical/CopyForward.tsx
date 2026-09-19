@@ -28,7 +28,7 @@ export function CopyForward() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[10px] font-medium text-sky-600 hover:bg-sky-100"><Copy className="h-3.5 w-3.5" /> Copy Forward</button>
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100"><Copy className="h-3.5 w-3.5" /> Copy Forward</button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
@@ -51,7 +51,7 @@ export function CopyForward() {
             )}
 
             <div className="flex gap-2">
-              <button onClick={() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="flex-1 rounded-lg bg-sky-600 px-4 py-2.5 text-[10px] font-medium text-white">{copied ? <CheckCircle2 className="h-3.5 w-3.5 inline mr-1" /> : <Copy className="h-3.5 w-3.5 inline mr-1" />}{copied ? "Copied!" : "Accept All"}</button>
+              <button onClick={() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-[10px] font-medium text-white">{copied ? <CheckCircle2 className="h-3.5 w-3.5 inline mr-1" /> : <Copy className="h-3.5 w-3.5 inline mr-1" />}{copied ? "Copied!" : "Accept All"}</button>
               <button onClick={() => setShowDiff(!showDiff)} className="rounded-lg border px-4 py-2.5 text-[10px]"><Eye className="h-3 w-3 inline mr-1" />Diff</button>
               <button className="rounded-lg border px-4 py-2.5 text-[10px] text-red-500">Clear All</button>
             </div>

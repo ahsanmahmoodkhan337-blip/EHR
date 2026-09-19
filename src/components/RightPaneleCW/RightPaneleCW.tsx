@@ -65,7 +65,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
         </h2>
         {displayName ? (
           <div className="mt-1">
-            <span className="inline-block rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+            <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
               New Patient — Appointment Visit
             </span>
           </div>
@@ -308,8 +308,8 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
       )}
       {sharedImaging && sharedImaging.length > 0 && (
         <div className="border-b border-slate-200 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-600 mb-1">Imaging</p>
-          <div className="flex flex-wrap gap-1">{sharedImaging.map((item, i) => <span key={i} className="rounded bg-sky-50 px-1.5 py-0.5 text-[10px] text-sky-700">{item}</span>)}</div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 mb-1">Imaging</p>
+          <div className="flex flex-wrap gap-1">{sharedImaging.map((item, i) => <span key={i} className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700">{item}</span>)}</div>
         </div>
       )}
 

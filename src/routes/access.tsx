@@ -35,7 +35,7 @@ const PAYMENT_METHODS = [
     id: "bank-islami",
     name: "Bank Islami",
     icon: <Building2 className="h-8 w-8" />,
-    color: "bg-sky-100 border-sky-200 text-sky-700",
+    color: "bg-blue-100 border-blue-200 text-blue-700",
     details: "Bank Name: Bank Islami Pakistan LTD.\nAccount Title: Ahsan Mahmood Khan\nAccount Number: PK98BKIP0303800235070201\nAmount: 20$ / 5500 PKR",
     warning: "\u26a0\ufe0f Transfer the enrollment fee of 20$ / 5500 PKR and capture your electronic transaction bank receipt.",
   },
