@@ -340,6 +340,38 @@ export const AR_SCENARIOS: ARScenario[] = [
     script: "Hello, this is [Name] calling about claim #[ClaimID] submitted on [Date]. We haven't received any response — no payment, no denial, no request for information. Can you please check the status of this claim and let me know if additional information is needed?",
     resolution: "Ask if the claim was received. If not, resubmit with corrected submission method (electronic or paper). If received, ask for the expected processing timeline and a tracking reference number."
   },
+  {
+    id: "denied-medical-necessity",
+    type: "denied",
+    title: "Denied — Medical Necessity (CO-50)",
+    description: "The visit was denied because the diagnosis on the claim does not support the level of service billed.",
+    script: "Hi, I'm calling about denial code CO-50 on claim #[ClaimID] for [PatientName]. The higher-level visit was denied for medical necessity. Can you tell me whether the issue is the diagnosis codes or the documentation, so we can correct the right thing?",
+    resolution: "Confirm whether the diagnosis or the documentation is the problem. Usually the definitive diagnosis is in the note but never reached the claim — correct the diagnosis codes and resubmit as a corrected claim rather than appealing."
+  },
+  {
+    id: "denied-bundling-cci",
+    type: "denied",
+    title: "Denied — Bundling / Claim Edit (CO-236)",
+    description: "One procedure was denied because the payer's claim edit treats it as part of another service on the same day.",
+    script: "Hello, this is [Name] from [Practice] about denial code CO-236 on claim #[ClaimID]. We billed two procedures for [PatientName]. Can you confirm which pair the edit applied to, and whether a corrected claim with the right single service would resolve it?",
+    resolution: "Ask which two codes the edit paired. If the note describes only one service on the same site, bill only that service and write off the other as a contractual adjustment. Do not appeal a same-site bundling edit."
+  },
+  {
+    id: "denied-benefit-exhausted",
+    type: "denied",
+    title: "Denied — Benefit Exhausted (CO-97)",
+    description: "The service was covered but the plan's allowance for that category has been used up.",
+    script: "Good morning, I'm calling about denial code CO-97 on claim #[ClaimID] for [PatientName]. We show this as a covered service, but the denial says the benefit is exhausted. Can you confirm how many visits or dollars remain in this category, and when it resets?",
+    resolution: "Confirm the benefit limit and the reset date. A true benefit-exhausted denial is not appealable on necessity grounds — move the balance to the patient and check whether the plan allows a coverage decision for additional visits."
+  },
+  {
+    id: "denied-prior-auth",
+    type: "denied",
+    title: "Denied — Missing Prior Authorization (CO-119)",
+    description: "The service requires prior authorization and none was on file when the claim processed.",
+    script: "Hi, I'm calling about denial code CO-119 on claim #[ClaimID] for [PatientName]. The service required prior authorization. Can you tell me whether you accept a retrospective review, and what documentation you need to consider one?",
+    resolution: "Ask whether retrospective review is available and what clinical documentation is required. Submit the clinical package showing the medical necessity, and once approved reference the authorization number on the corrected claim."
+  },
 ];
 
 // ─── Bucket Call Scripts ────────────────────────────────────────────
