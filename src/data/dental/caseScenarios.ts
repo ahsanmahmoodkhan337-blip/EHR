@@ -1,8 +1,8 @@
 /**
  * Dental Case Scenarios — Graded Teaching Cases for the Dental RCM Track
  *
- * Three cases of increasing difficulty, each written to run through the same
- * seven-stage spine as the medical track: registration, eligibility and
+ * Seven graded cases of increasing difficulty, each written to run through the
+ * same seven-stage spine as the medical track: registration, eligibility and
  * predetermination, clinical charting, coding, claim submission, review and
  * accounts receivable follow-up.
  *
@@ -899,10 +899,826 @@ const CASE_PERIO_IMPLANT: DentalCaseScenario = {
   ],
 };
 
+/* =================================================================== */
+/* CASE 4 — INTERMEDIATE: restorative downgrade + aged-out fluoride     */
+/* =================================================================== */
+
+const CASE_POSTERIOR_COMPOSITE_DOWNGRADE: DentalCaseScenario = {
+  id: "DCASE-004",
+  title: "A tooth-coloured filling that pays like a metal one — plus a fluoride benefit that has aged out",
+  difficulty: "intermediate",
+  estimatedMinutes: 30,
+  planId: "PLAN-CASCADIA-PPO",
+  patient: {
+    id: "DPT-1004",
+    firstName: "Zara",
+    lastName: "Abbasi",
+    dateOfBirth: "2010-08-21",
+    ageAtServiceDate: 16,
+    gender: "Female",
+    phone: "(555) 0133-274",
+    address: "211 Cedar Lane, Riverbend, ST 00000",
+    subscriberName: "Abbasi, Sana (mother)",
+    relationshipToSubscriber: "child",
+    memberId: "CDG550118902",
+    coverageEffectiveDate: "2021-01-01",
+    monthsCoveredAtServiceDate: 74,
+  },
+  briefing:
+    "A teenager returns from orthodontics with decay on a lower back tooth. The parent wants a tooth-coloured filling and assumes it is paid in full. Two plan rules change that arithmetic before a single impression is taken: a posterior composite is paid at the metal-filling allowance, and the fluoride the hygienist recommends is past the plan's age cap.",
+  registrationNotes: [
+    "Dependent child; the subscriber is her mother. Claim must carry the subscriber's details.",
+    "Orthodontic treatment completed last year; patient now in retainers.",
+    "The parent states the family has never had a filling denied before and expects the visit to be fully covered.",
+  ],
+  eligibilitySnapshot: {
+    status: "Active. Dependent child, eligible through the end of the month in which she turns 26.",
+    remainingAnnualMaximumUsd: 1500,
+    deductibleMetUsd: 0,
+    paidHistory: [
+      { code: "D1110", date: "2026-09-15", note: "Recall cleaning six months ago; no fluoride that visit." },
+    ],
+    representativeNotes: [
+      "Basic services pay at 80 percent after the 50 dollar deductible.",
+      "Posterior tooth-coloured fillings are paid at the matching amalgam allowance under an alternate benefit provision.",
+      "Fluoride is covered to age 15 inclusive. The patient is 16 on the date of service.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Routine recall, plus a spot the orthodontist asked us to watch on the lower right.",
+    findings: [
+      "Lower right first molar: an active cavity on the biting surface and the side facing the cheek, confirmed clinically.",
+      "No other new decay. Existing fillings intact.",
+      "High caries risk due to completed orthodontic treatment and a history of decalcification during treatment.",
+      "Probing depths within normal limits.",
+    ],
+    radiographicFindings: [
+      "Bitewing images show a two-surface cavity on the lower right first molar, into dentin but not near the nerve.",
+    ],
+    diagnosisNarrative:
+      "Two-surface decay on the lower right first molar requiring a tooth-coloured filling. Fluoride varnish indicated as a preventive measure for orthodontic decalcification risk.",
+    treatmentPerformed: [
+      "Two-surface tooth-coloured filling placed on the lower right first molar.",
+      "Fluoride varnish applied to reduce decalcification risk.",
+    ],
+  },
+  procedures: [
+    {
+      line: 1,
+      code: "D2392",
+      tooth: "30",
+      surfaces: "MO",
+      dateOfService: "2027-03-04",
+      feeUsd: 248,
+      expectedNote:
+        "Two-surface posterior composite actually delivered. Bill the composite, not the amalgam; expect the allowance at the metal-filling level.",
+    },
+    {
+      line: 2,
+      code: "D1206",
+      dateOfService: "2027-03-04",
+      feeUsd: 44,
+      expectedNote: "Fluoride varnish. Clinically indicated, but the patient is past the plan's age cap — quote it before it is applied.",
+    },
+  ],
+  traps: [
+    {
+      id: "TRAP-4A",
+      stage: "coding",
+      title: "Reporting the amalgam code to match the downgrade",
+      commonMistake: "Knowing the plan pays at the metal-filling level, the student bills the amalgam code instead of the composite.",
+      whyItIsWrong:
+        "The claim must describe the filling actually placed. Reporting an amalgam that was not placed misstates the record and hides the upgrade difference from the parent.",
+      correctAction: "Bill the composite code, expect the reduced allowance, and bill the difference to the patient as an upgrade.",
+      producesDenialId: "DEN-ALT-BENEFIT",
+      pointsAtStake: 20,
+    },
+    {
+      id: "TRAP-4B",
+      stage: "coding",
+      title: "Overstating the surfaces to offset the downgrade",
+      commonMistake: "The student lists three surfaces on the claim because the filling felt large and they want to soften the downgrade.",
+      whyItIsWrong:
+        "The surfaces on the claim must match the clinical note. Two surfaces were restored; a third listed surface is upcoding, and it is exactly what a restorative audit checks first.",
+      correctAction: "Code the surfaces from the note, not from the desired fee.",
+      producesDenialId: "DEN-SURFACE-MISMATCH",
+      pointsAtStake: 15,
+    },
+    {
+      id: "TRAP-4C",
+      stage: "eligibility",
+      title: "Quoting the visit as fully covered",
+      commonMistake: "The student tells the parent preventive and basic are both 'covered', so nothing is owed.",
+      whyItIsWrong:
+        "Covered is not the same as free. The composite is paid at the amalgam allowance with a deductible and 20 percent coinsurance, and the fluoride is not covered at all past the age cap.",
+      correctAction: "Run the downgrade arithmetic and the age check before the appointment and quote the patient's share in writing.",
+      producesDenialId: "DEN-ALT-BENEFIT",
+      pointsAtStake: 15,
+    },
+    {
+      id: "TRAP-4D",
+      stage: "ar-follow-up",
+      title: "Appealing the fluoride denial on clinical grounds",
+      commonMistake: "The student writes an appeal arguing the fluoride was indicated for orthodontic decalcification risk.",
+      whyItIsWrong:
+        "The payer is not disputing the indication. The benefit stops at an age the patient has passed, and no clinical argument changes an age cap.",
+      correctAction: "Move the fluoride balance to the patient, and flag the account so the next over-age patient is quoted in advance.",
+      producesDenialId: "DEN-AGE-LIMIT",
+      pointsAtStake: 10,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "D2392",
+      chargedUsd: 248,
+      allowedUsd: 210,
+      alternateBenefitAllowedUsd: 180,
+      contractualWriteOffUsd: 38,
+      planPaysUsd: 104,
+      patientOwesUsd: 106,
+      denialId: "DEN-ALT-BENEFIT",
+      explanation:
+        "Covered, but benefited at the two-surface amalgam allowance of 180 under the plan's alternate benefit provision. The 50 dollar deductible is taken first: 180 less 50 leaves 130, paid at 80 percent, which is 104. The patient owes the deductible plus the 20 percent coinsurance plus the difference between the composite and amalgam allowances.",
+    },
+    {
+      line: 2,
+      code: "D1206",
+      chargedUsd: 44,
+      allowedUsd: 40,
+      contractualWriteOffUsd: 4,
+      planPaysUsd: 0,
+      patientOwesUsd: 40,
+      denialId: "DEN-AGE-LIMIT",
+      explanation:
+        "Past the plan's fluoride age cap of 15 — the patient is 16 on the date of service. Not payable at any percentage, and no clinical argument changes an age cap. Patient responsibility, quoted beforehand.",
+    },
+  ],
+  expectedTotals: {
+    chargedUsd: 292,
+    allowedUsd: 250,
+    planPaysUsd: 104,
+    patientOwesUsd: 146,
+    writeOffUsd: 42,
+  },
+  arFollowUp: {
+    scenario:
+      "The parent calls, confused that a routine visit produced a bill after she was told the plan 'covers' fillings and fluoride. Nothing was miscoded — two rules were simply not explained in advance.",
+    outcome: "bill-patient",
+    callObjectives: [
+      "Explain the alternate benefit: the filling was covered, just at the metal-filling allowance, and the difference is the patient's upgrade.",
+      "Distinguish the downgrade (a covered service at a lower allowance) from the fluoride (not covered at all past the age cap).",
+      "Show the parent the two specific plan rules that produced the balance.",
+      "Record both rules on the account so the next visit is quoted correctly before treatment.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 100,
+    passingPoints: 70,
+    criteria: [
+      { stage: "eligibility", criterion: "Identified the posterior composite downgrade before treatment", points: 20 },
+      { stage: "eligibility", criterion: "Identified the fluoride age cap before treatment", points: 15 },
+      { stage: "coding", criterion: "Billed the composite actually delivered, not the amalgam code", points: 20 },
+      { stage: "coding", criterion: "Coded the surfaces to match the clinical note", points: 15 },
+      { stage: "claim", criterion: "Submitted a clean claim with the correct surfaces and tooth number", points: 10 },
+      { stage: "ar-follow-up", criterion: "Did not appeal the fluoride age cap; posted both balances correctly", points: 20 },
+    ],
+  },
+  instructorKey: [
+    "This case isolates the downgrade from the age cap so students learn to tell the two apart on one remittance.",
+    "Have students write out the composite arithmetic by hand: allowance 180, less 50 deductible, times 80 percent.",
+    "The surface-count trap is the line between a billing correction and fraud — reinforce that the note drives the code.",
+  ],
+};
+
+/* =================================================================== */
+/* CASE 5 — INTERMEDIATE: endo sequence with an appealable frequency    */
+/* =================================================================== */
+
+const CASE_ENDO_CROWN_FREQUENCY: DentalCaseScenario = {
+  id: "DCASE-005",
+  title: "Root canal through an old crown: the replacement crown is denied, and this time it is worth appealing",
+  difficulty: "intermediate",
+  estimatedMinutes: 40,
+  planId: "PLAN-CASCADIA-PPO",
+  patient: {
+    id: "DPT-1005",
+    firstName: "Kamran",
+    lastName: "Malik",
+    dateOfBirth: "1982-01-20",
+    ageAtServiceDate: 45,
+    gender: "Male",
+    phone: "(555) 0149-206",
+    address: "44 Harbor Road, Riverbend, ST 00000",
+    subscriberName: "Malik, Kamran",
+    relationshipToSubscriber: "self",
+    memberId: "CDG880214633",
+    coverageEffectiveDate: "2022-06-01",
+    monthsCoveredAtServiceDate: 57,
+  },
+  briefing:
+    "A patient presents in pain from a lower molar that already carries a crown placed by a previous dentist. The tooth needs a root canal, a post and core, and a new crown. The practice's own chart shows no crown history, but the payer's does. The root canal and post will pay; the crown will come back denied on frequency — and because the failure is new decay rather than normal wear, that denial is appealable.",
+  registrationNotes: [
+    "Patient states he has had the crown 'for years' but cannot remember the dentist or the exact date.",
+    "The practice's chart does not show the crown because it was placed elsewhere.",
+    "Pre-operative radiograph will be needed to show the decay under the crown.",
+  ],
+  eligibilitySnapshot: {
+    status: "Active. Fifty-seven months of continuous coverage.",
+    remainingAnnualMaximumUsd: 1500,
+    deductibleMetUsd: 0,
+    paidHistory: [
+      {
+        code: "D2740",
+        tooth: "30",
+        date: "2024-02-28",
+        note: "Crown paid on tooth 30 by a previous dentist. The practice's own chart does not show it.",
+      },
+    ],
+    representativeNotes: [
+      "Major services pay at 50 percent after the 50 dollar deductible, once the twelve-month waiting period is satisfied.",
+      "Crowns are limited to one per tooth every sixty months, measured from the seat date of the prior crown — including one placed by another dentist.",
+      "The plan uses the cementation date as the date of service for crowns.",
+      "A predetermination is requested for any plan above 500 dollars.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Dull ache and cold sensitivity in the lower right back tooth, worse over the last week.",
+    findings: [
+      "Lower right first molar carries a full-coverage crown with a small gap at the margin on the cheek side.",
+      "Tooth responds to cold with lingering pain and is tender to percussion.",
+      "No swelling and no sinus tract.",
+    ],
+    radiographicFindings: [
+      "New decay visible beneath the crown margin, approaching the nerve chamber.",
+      "The nerve chamber shows no prior root canal fill material — the tooth was crowned without root canal treatment.",
+      "Bone around the root tips within normal limits.",
+    ],
+    diagnosisNarrative:
+      "Irreversible pulpitis of the lower right first molar secondary to decay under an existing crown. Root canal therapy indicated, followed by a post and core and a replacement crown. The prior crown has failed because of new decay, not normal wear.",
+    treatmentPerformed: [
+      "10 March: root canal therapy completed on the lower right first molar, post and core placed, temporary crown fitted.",
+      "14 April: permanent all-ceramic crown fitted and cemented.",
+    ],
+    providerNarrativeForPayer:
+      "Pre-operative radiograph demonstrates new decay extending under the margin of the existing crown into the pulp. The tooth had not previously had root canal treatment. The prior crown failed due to recurrent decay, not wear; replacement is required to restore the tooth.",
+  },
+  procedures: [
+    {
+      line: 1,
+      code: "D3330",
+      tooth: "30",
+      dateOfService: "2027-03-10",
+      feeUsd: 1285,
+      expectedNote: "Molar root canal. Pre- and post-operative radiographs attached.",
+    },
+    {
+      line: 2,
+      code: "D2954",
+      tooth: "30",
+      dateOfService: "2027-03-10",
+      feeUsd: 315,
+      expectedNote: "Prefabricated post and core on a root-canal-treated tooth. Do not also bill a core buildup on the same tooth.",
+    },
+    {
+      line: 3,
+      code: "D2740",
+      tooth: "30",
+      dateOfService: "2027-04-14",
+      feeUsd: 1320,
+      expectedNote:
+        "Replacement crown on the cementation date. Expect a frequency denial — the prior crown was paid three years ago — and prepare the appeal with the decay radiograph.",
+    },
+  ],
+  predetermination: {
+    required: true,
+    reason:
+      "The combined treatment plan exceeds the plan's review threshold, and the crown history needs to be confirmed in writing before the patient is quoted.",
+    attachmentsExpected: [
+      "Pre-operative radiograph showing the decay under the existing crown",
+      "Narrative stating the prior crown failed from new decay, not wear",
+      "Post-operative radiograph of the completed root canal",
+    ],
+    expectedTurnaroundDays: 14,
+  },
+  traps: [
+    {
+      id: "TRAP-5A",
+      stage: "eligibility",
+      title: "Checking only the practice's chart for a prior crown",
+      commonMistake: "The student sees no crown in the practice chart and assumes the replacement benefit is available.",
+      whyItIsWrong:
+        "The replacement clock follows the tooth, not the dentist. The payer paid for a crown on this tooth three years ago, and only the payer knows about it.",
+      correctAction: "Ask the payer for the crown history on the specific tooth during the eligibility call, then quote accordingly.",
+      producesDenialId: "DEN-FREQ-CROWN",
+      pointsAtStake: 20,
+    },
+    {
+      id: "TRAP-5B",
+      stage: "coding",
+      title: "Billing a core buildup and a post and core together",
+      commonMistake: "The student bills both the buildup and the post and core on the same tooth, treating them as separate steps.",
+      whyItIsWrong:
+        "On a root-canal-treated tooth the post and core is the definitive rebuild. Payers pay one or the other on the same tooth, not both.",
+      correctAction: "Bill the post and core alone on a root-canal-treated tooth; reserve the core buildup for a vital tooth.",
+      producesDenialId: "DEN-BUNDLE-BUILDUP",
+      pointsAtStake: 15,
+    },
+    {
+      id: "TRAP-5C",
+      stage: "ar-follow-up",
+      title: "Treating the crown frequency denial as final",
+      commonMistake: "The student sees 'replacement within the interval' and moves the whole crown balance to the patient without appealing.",
+      whyItIsWrong:
+        "Frequency denials are appealable when the restoration failed because of new decay or fracture rather than normal wear. The pre-operative radiograph here shows exactly that.",
+      correctAction: "Appeal with the radiograph showing the new decay and a narrative describing the failure, within the payer's appeal window.",
+      producesDenialId: "DEN-FREQ-CROWN",
+      pointsAtStake: 20,
+    },
+    {
+      id: "TRAP-5D",
+      stage: "claim",
+      title: "Submitting the root canal without the post-operative film",
+      commonMistake: "The student submits the root canal line with only the pre-operative image, assuming that is enough.",
+      whyItIsWrong:
+        "Root canal claims are judged on the final fill. Without the post-operative film the payer has no evidence the treatment was completed and the line stalls or denies for missing documentation.",
+      correctAction: "Attach both the pre-operative and the post-operative films on the first submission.",
+      producesDenialId: "DEN-DOC-MISSING",
+      pointsAtStake: 15,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "D3330",
+      chargedUsd: 1285,
+      allowedUsd: 1150,
+      contractualWriteOffUsd: 135,
+      planPaysUsd: 550,
+      patientOwesUsd: 600,
+      explanation:
+        "Molar root canal, covered as a major service. The 50 dollar deductible is taken first: 1150 less 50 leaves 1100, paid at 50 percent, which is 550. The patient owes the deductible plus the other half.",
+    },
+    {
+      line: 2,
+      code: "D2954",
+      chargedUsd: 315,
+      allowedUsd: 280,
+      contractualWriteOffUsd: 35,
+      planPaysUsd: 140,
+      patientOwesUsd: 140,
+      explanation:
+        "Prefabricated post and core on a root-canal-treated tooth, supported by the films and narrative. Deductible already satisfied, so 280 is paid at 50 percent, which is 140.",
+    },
+    {
+      line: 3,
+      code: "D2740",
+      chargedUsd: 1320,
+      allowedUsd: 1100,
+      contractualWriteOffUsd: 220,
+      planPaysUsd: 0,
+      patientOwesUsd: 1100,
+      denialId: "DEN-FREQ-CROWN",
+      explanation:
+        "Denied on frequency: the plan paid for a crown on this tooth less than five years ago, and the replacement clock follows the tooth, not the dentist. Appealable because the prior crown failed from new decay — the pre-operative radiograph is the evidence.",
+    },
+  ],
+  expectedTotals: {
+    chargedUsd: 2920,
+    allowedUsd: 2530,
+    planPaysUsd: 690,
+    patientOwesUsd: 1840,
+    writeOffUsd: 390,
+  },
+  arFollowUp: {
+    scenario:
+      "The remittance shows the root canal and post paid, and the crown denied on frequency. A student who stops there leaves a four-figure balance on the patient that a documented appeal would likely reverse.",
+    outcome: "appeal-with-documentation",
+    callObjectives: [
+      "Confirm on the remittance which lines paid and which denied, and note the denial reason for the crown.",
+      "Recognise that this frequency denial is appealable because the failure was new decay.",
+      "Assemble the appeal package: the pre-operative decay radiograph and a narrative in the dentist's own words.",
+      "Confirm the appeal address and deadline with the payer and get a reference number.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 130,
+    passingPoints: 91,
+    criteria: [
+      { stage: "eligibility", criterion: "Requested the payer's crown history for tooth 30", points: 20 },
+      { stage: "eligibility", criterion: "Confirmed the major waiting period was satisfied", points: 10 },
+      { stage: "predetermination", criterion: "Submitted a predetermination with the decay radiograph and narrative", points: 15 },
+      { stage: "coding", criterion: "Billed the post and core without a duplicate buildup", points: 15 },
+      { stage: "claim", criterion: "Attached pre- and post-operative films for the root canal", points: 15 },
+      { stage: "claim", criterion: "Used the cementation date for the crown", points: 15 },
+      { stage: "ar-follow-up", criterion: "Recognised the denial as appealable and prepared the appeal", points: 20 },
+      { stage: "ar-follow-up", criterion: "Did not bill the frequency denial to the patient before appealing", points: 20 },
+    ],
+  },
+  instructorKey: [
+    "The replacement clock is per tooth and follows the patient across dentists — this is the single most expensive thing a practice forgets to check.",
+    "Contrast this appealable frequency denial with the fluoride age cap in Case 4, which cannot be appealed. The difference is whether new clinical evidence can change the answer.",
+    "The post-and-core versus buildup distinction is a frequent audit trigger; have students name which one belongs on a root-canal-treated tooth.",
+  ],
+};
+
+/* =================================================================== */
+/* CASE 6 — ADVANCED: removable prosthodontics + annual maximum         */
+/* =================================================================== */
+
+const CASE_ANNUAL_MAX_DENTURES: DentalCaseScenario = {
+  id: "DCASE-006",
+  title: "Two partials and one annual maximum: the second one pays nothing",
+  difficulty: "advanced",
+  estimatedMinutes: 45,
+  planId: "PLAN-NORTHWIND-TRUST",
+  patient: {
+    id: "DPT-1006",
+    firstName: "Fatima",
+    lastName: "Noor",
+    dateOfBirth: "1965-06-15",
+    ageAtServiceDate: 62,
+    gender: "Female",
+    phone: "(555) 0167-980",
+    address: "77 Bayview Avenue, Harbor City, ST 00000",
+    subscriberName: "Noor, Fatima",
+    relationshipToSubscriber: "self",
+    memberId: "NWT440118772",
+    coverageEffectiveDate: "2024-05-01",
+    monthsCoveredAtServiceDate: 36,
+  },
+  briefing:
+    "A patient needs upper and lower partial dentures after a crown and periodontal work earlier in the year consumed most of her annual maximum. The first partial will pay up to what remains; the second will pass every other rule and still pay nothing. The lesson is sequencing: which partial you submit first changes who owes what, and whether to defer one into the next benefit period.",
+  registrationNotes: [
+    "The patient lost several back teeth over the past two years — after her coverage began, so the missing tooth clause does not apply.",
+    "She had a crown and deep cleaning earlier this benefit year that already drew on the annual maximum.",
+    "The treatment plan will need a predetermination; both partials sit above the plan's review threshold.",
+  ],
+  eligibilitySnapshot: {
+    status: "Active. Thirty-six months of continuous coverage.",
+    remainingAnnualMaximumUsd: 300,
+    deductibleMetUsd: 0,
+    paidHistory: [
+      { code: "D2740", tooth: "14", date: "2027-02-01", note: "Crown paid earlier this benefit year." },
+      { code: "D4341", quadrant: "01", date: "2027-02-01", note: "Scaling and root planing paid earlier this benefit year." },
+    ],
+    representativeNotes: [
+      "Major services pay at 60 percent after a 25 dollar deductible.",
+      "Prosthetic replacement is limited to once every sixty months per arch.",
+      "The plan uses an anniversary benefit period, not a calendar year.",
+      "A predetermination is requested for any plan above 300 dollars.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Difficulty chewing evenly after losing several back teeth, and discomfort from the gaps.",
+    findings: [
+      "Upper arch: first and second molars on both sides missing, first premolars and canines remaining.",
+      "Lower arch: first and second molars missing on both sides.",
+      "Remaining teeth are periodontally stable after earlier therapy.",
+      "Ridge contours adequate for removable partials.",
+    ],
+    radiographicFindings: [
+      "Healed extraction sites in both arches; adequate bone height.",
+      "No pathology at the remaining teeth.",
+    ],
+    diagnosisNarrative:
+      "Multiple missing posterior teeth in both arches with functional difficulty. Upper and lower cast metal partial dentures indicated to restore chewing function.",
+    treatmentPerformed: [
+      "20 May: impressions taken for both arches, bite registration recorded.",
+      "Both partial dentures delivered and adjusted at a later visit.",
+    ],
+    providerNarrativeForPayer:
+      "Cast metal partial dentures for the upper and lower arches to replace missing posterior teeth. All replacement teeth are listed on the claim; the teeth were extracted after the member's coverage effective date.",
+  },
+  procedures: [
+    {
+      line: 1,
+      code: "D5213",
+      quadrant: "10",
+      dateOfService: "2027-05-20",
+      feeUsd: 1925,
+      expectedNote: "Upper cast metal partial. List every tooth replaced; the missing tooth clause does not apply because the teeth were lost after coverage began.",
+    },
+    {
+      line: 2,
+      code: "D5214",
+      quadrant: "20",
+      dateOfService: "2027-05-20",
+      feeUsd: 1925,
+      expectedNote: "Lower cast metal partial. The annual maximum is nearly gone — sequence this line carefully and consider deferring it.",
+    },
+  ],
+  predetermination: {
+    required: true,
+    reason:
+      "Both partials sit above the plan's review threshold, and the remaining annual maximum must be confirmed in writing before the patient is quoted.",
+    attachmentsExpected: [
+      "Radiographs showing the healed extraction sites",
+      "List of every tooth being replaced, with extraction dates",
+      "Treatment plan with the proposed codes and fees",
+    ],
+    expectedTurnaroundDays: 21,
+  },
+  traps: [
+    {
+      id: "TRAP-6A",
+      stage: "eligibility",
+      title: "Quoting without checking the remaining annual maximum",
+      commonMistake: "The student estimates both partials at the major services percentage and gives the patient a single number.",
+      whyItIsWrong:
+        "The annual maximum is applied last and caps the whole claim. With only 300 dollars left, the arithmetic the student used is simply wrong, and the patient is quoted a figure the plan can never pay.",
+      correctAction: "Check the remaining maximum on the eligibility call, then sequence the plan across the current and next benefit period.",
+      producesDenialId: "DEN-ANNUAL-MAX",
+      pointsAtStake: 25,
+    },
+    {
+      id: "TRAP-6B",
+      stage: "ar-follow-up",
+      title: "Appealing the annual maximum denial",
+      commonMistake: "The student writes an appeal arguing the partials were medically necessary.",
+      whyItIsWrong:
+        "The plan is not disputing necessity. The annual maximum was reached, the plan paid what it owed, and there is nothing to appeal.",
+      correctAction: "Bill the patient against the signed estimate, and offer to defer any unscheduled treatment into the next benefit period.",
+      producesDenialId: "DEN-ANNUAL-MAX",
+      pointsAtStake: 20,
+    },
+    {
+      id: "TRAP-6C",
+      stage: "eligibility",
+      title: "Skipping the missing tooth clause on a partial",
+      commonMistake: "The student assumes the missing tooth clause only matters for implants and never checks the extraction dates.",
+      whyItIsWrong:
+        "The clause applies to any replacement of a tooth lost before coverage began — bridge, partial or implant. Here the teeth were lost after coverage, but the student must still establish that rather than assume it.",
+      correctAction: "Ask for the extraction dates, apply the clause to every replacement option, and document the answer.",
+      producesDenialId: "DEN-MISSING-TOOTH",
+      pointsAtStake: 20,
+    },
+    {
+      id: "TRAP-6D",
+      stage: "claim",
+      title: "Billing the partial without listing every replaced tooth",
+      commonMistake: "The student submits the partial line with the arch but no tooth list.",
+      whyItIsWrong:
+        "The missing tooth clause is applied tooth by tooth. Without the list the claim cannot be adjudicated, and it stalls for missing information.",
+      correctAction: "List every tooth being replaced on the claim, with extraction dates where the payer asks for them.",
+      producesDenialId: "DEN-DOC-MISSING",
+      pointsAtStake: 15,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "D5213",
+      chargedUsd: 1925,
+      allowedUsd: 1650,
+      contractualWriteOffUsd: 275,
+      planPaysUsd: 300,
+      patientOwesUsd: 1350,
+      denialId: "DEN-ANNUAL-MAX",
+      explanation:
+        "Covered major service, but only 300 of the annual maximum remained. The 25 dollar deductible is taken first, then 60 percent would be 975, but the plan caps payment at the 300 that was left. The patient owes the balance of the 1650 allowance.",
+    },
+    {
+      line: 2,
+      code: "D5214",
+      chargedUsd: 1925,
+      allowedUsd: 1650,
+      contractualWriteOffUsd: 275,
+      planPaysUsd: 0,
+      patientOwesUsd: 1650,
+      denialId: "DEN-ANNUAL-MAX",
+      explanation:
+        "The annual maximum is now fully exhausted, so this second partial pays nothing even though every other rule passed. There is nothing to appeal — the plan paid what it owed. Offer to defer into the next benefit period.",
+    },
+  ],
+  expectedTotals: {
+    chargedUsd: 3850,
+    allowedUsd: 3300,
+    planPaysUsd: 300,
+    patientOwesUsd: 3000,
+    writeOffUsd: 550,
+  },
+  arFollowUp: {
+    scenario:
+      "The patient is shocked that the second partial pays nothing despite being 'covered'. She believes the office made an error and wants it appealed.",
+    outcome: "bill-patient",
+    callObjectives: [
+      "Show the patient, line by line, how the annual maximum capped the first partial and then paid nothing on the second.",
+      "Explain that the annual maximum is applied last and is not appealable.",
+      "Offer to defer the second partial into the next benefit period if it is clinically safe.",
+      "Document the remaining maximum and set a task to re-verify eligibility when the new period opens.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 120,
+    passingPoints: 84,
+    criteria: [
+      { stage: "eligibility", criterion: "Checked the remaining annual maximum before quoting", points: 25 },
+      { stage: "eligibility", criterion: "Established the extraction dates and applied the missing tooth clause", points: 20 },
+      { stage: "predetermination", criterion: "Submitted a predetermination with the tooth list and extraction dates", points: 15 },
+      { stage: "claim", criterion: "Listed every replaced tooth on the claim", points: 15 },
+      { stage: "claim", criterion: "Sequenced the partials correctly and considered deferring one", points: 15 },
+      { stage: "ar-follow-up", criterion: "Did not appeal the annual maximum; explained it and offered to defer", points: 30 },
+    ],
+  },
+  instructorKey: [
+    "The annual maximum is step eleven. Walk the class through the same two lines with the maximum exhausted versus with 300 remaining, and have them explain why the patient's share changes.",
+    "Sequencing is the hidden skill here: which partial is submitted first changes which line the remaining maximum lands on.",
+    "The missing tooth clause is tested on partials too, not just implants. Students who only check it on implant cases will miss it.",
+  ],
+};
+
+/* =================================================================== */
+/* CASE 7 — BEGINNER: DHMO copay schedule + oral surgery                */
+/* =================================================================== */
+
+const CASE_DHMO_IMPACTION: DentalCaseScenario = {
+  id: "DCASE-007",
+  title: "A copay plan with no annual maximum — and the patient still owes for the extraction",
+  difficulty: "beginner",
+  estimatedMinutes: 25,
+  planId: "PLAN-MERIDIAN-DHMO",
+  patient: {
+    id: "DPT-1007",
+    firstName: "Bilal",
+    lastName: "Hassan",
+    dateOfBirth: "2003-04-10",
+    ageAtServiceDate: 24,
+    gender: "Male",
+    phone: "(555) 0188-115",
+    address: "5 Lighthouse Way, Fairmont, ST 00000",
+    subscriberName: "Hassan, Bilal",
+    relationshipToSubscriber: "self",
+    memberId: "MSC110734908",
+    coverageEffectiveDate: "2025-01-01",
+    monthsCoveredAtServiceDate: 29,
+  },
+  briefing:
+    "A young adult on a copay plan needs a deeply impacted lower third molar removed. The plan has no annual maximum and no deductible, so the front desk assumes nothing is owed. The copay schedule says otherwise, and a specialty referral must be approved before the surgeon is even booked.",
+  registrationNotes: [
+    "Member is assigned to this office under the DHMO plan.",
+    "A referral from the assigned general dentist to an in-network oral surgeon is required before the extraction.",
+    "The patient assumed 'no annual maximum' means no out-of-pocket cost.",
+  ],
+  eligibilitySnapshot: {
+    status: "Active. Assigned to this office on the date of service.",
+    remainingAnnualMaximumUsd: null,
+    deductibleMetUsd: 0,
+    paidHistory: [],
+    representativeNotes: [
+      "This is a copay plan: the patient pays a fixed amount per service from the copay schedule, and the plan pays the rest of the contracted amount.",
+      "There is no annual maximum and no deductible.",
+      "Specialty care requires an approved referral from the assigned general dentist.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Intermittent pain and swelling at the back of the lower left jaw.",
+    findings: [
+      "Lower left third molar is deeply impacted against the second molar, not visible in the mouth.",
+      "Mild swelling of the gum tissue over the site.",
+      "Remaining teeth are healthy.",
+    ],
+    radiographicFindings: [
+      "Panoramic image shows the lower left third molar fully encased in bone, angled toward the second molar.",
+    ],
+    diagnosisNarrative:
+      "Completely bony impaction of the lower left third molar causing recurrent pain. Surgical removal indicated, performed by the referred oral surgeon.",
+    treatmentPerformed: [
+      "Comprehensive evaluation by the assigned general dentist.",
+      "Referral to the in-network oral surgeon, approved in advance.",
+      "Surgical removal of the completely bony impacted lower left third molar by the oral surgeon.",
+    ],
+    providerNarrativeForPayer:
+      "Completely bony impaction of tooth 17 confirmed on panoramic imaging. Referral from the assigned general dentist was approved prior to surgery.",
+  },
+  procedures: [
+    {
+      line: 1,
+      code: "D0150",
+      dateOfService: "2027-06-08",
+      feeUsd: 108,
+      expectedNote: "Comprehensive evaluation for a new patient. Copay is 0 on this schedule.",
+    },
+    {
+      line: 2,
+      code: "D7240",
+      tooth: "17",
+      dateOfService: "2027-06-08",
+      feeUsd: 575,
+      expectedNote: "Completely bony impaction. The impaction level is read from the radiograph, and the fixed copay applies regardless of the fee.",
+    },
+  ],
+  traps: [
+    {
+      id: "TRAP-7A",
+      stage: "eligibility",
+      title: "Assuming no annual maximum means no cost",
+      commonMistake: "The student tells the patient the visit is free because the plan has no annual maximum.",
+      whyItIsWrong:
+        "A copay plan has no annual maximum but a fixed price list instead. The patient owes the copay for each covered service, whatever the fee.",
+      correctAction: "Read the copay schedule for each planned code and quote the patient's total before treatment.",
+      pointsAtStake: 20,
+    },
+    {
+      id: "TRAP-7B",
+      stage: "eligibility",
+      title: "Skipping the assignment and referral check",
+      commonMistake: "The student books the oral surgeon without confirming the member is assigned to this office and the referral is approved.",
+      whyItIsWrong:
+        "Under this plan, specialty care without an approved referral from the assigned general dentist is not covered at all, and the whole surgical fee becomes the patient's cost.",
+      correctAction: "Confirm assignment and get the referral approved in writing before the surgical visit.",
+      producesDenialId: "DEN-NOT-COVERED",
+      pointsAtStake: 25,
+    },
+    {
+      id: "TRAP-7C",
+      stage: "coding",
+      title: "Choosing the impaction level without the radiograph",
+      commonMistake: "The student bills the completely bony impaction code because the surgery was difficult, without checking what the image actually shows.",
+      whyItIsWrong:
+        "The impaction level is judged from the radiograph, not the surgeon's effort. If the image shows a lower level of impaction, the payer pays the lower code.",
+      correctAction: "Match the impaction code to the bone coverage shown on the radiograph, and attach the image.",
+      producesDenialId: "DEN-DOWNCODE-SURGICAL",
+      pointsAtStake: 20,
+    },
+    {
+      id: "TRAP-7D",
+      stage: "ar-follow-up",
+      title: "Appealing the copay as if it were a denial",
+      commonMistake: "The patient questions the copay and the student starts an appeal.",
+      whyItIsWrong:
+        "A copay is a plan design, not a denial. There is nothing to appeal — the fixed amount is what the member agreed to under the plan.",
+      correctAction: "Explain the copay schedule plainly, confirm the amount is correct for the code, and move the balance to the patient.",
+      pointsAtStake: 15,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "D0150",
+      chargedUsd: 108,
+      allowedUsd: 108,
+      contractualWriteOffUsd: 0,
+      planPaysUsd: 108,
+      patientOwesUsd: 0,
+      explanation: "Copay plan: the comprehensive exam carries a 0 dollar patient copay, so the plan pays the full contracted amount.",
+    },
+    {
+      line: 2,
+      code: "D7240",
+      chargedUsd: 575,
+      allowedUsd: 575,
+      contractualWriteOffUsd: 0,
+      planPaysUsd: 310,
+      patientOwesUsd: 265,
+      explanation:
+        "Copay plan: removal of a completely bony impaction carries a 265 dollar fixed patient copay regardless of the fee. No annual maximum does not mean no cost — the copay schedule is the price list, and the patient owes it even though the service is covered.",
+    },
+  ],
+  expectedTotals: {
+    chargedUsd: 683,
+    allowedUsd: 683,
+    planPaysUsd: 418,
+    patientOwesUsd: 265,
+    writeOffUsd: 0,
+  },
+  arFollowUp: {
+    scenario:
+      "The patient calls after the surgery: 'I have dental insurance, why do I owe 265 dollars?' He was told the plan had no annual maximum and assumed everything was free.",
+    outcome: "bill-patient",
+    callObjectives: [
+      "Explain in one sentence what a copay plan is: a fixed price per service instead of percentages and a maximum.",
+      "Point to the specific copay line for the impaction code on the schedule.",
+      "Confirm the referral and assignment were in order so the patient knows the service was covered.",
+      "Record the copay schedule on the account so the next estimate is quoted from it.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 90,
+    passingPoints: 63,
+    criteria: [
+      { stage: "eligibility", criterion: "Confirmed the member's assignment to this office", points: 20 },
+      { stage: "eligibility", criterion: "Obtained the specialty referral approval before surgery", points: 25 },
+      { stage: "eligibility", criterion: "Quoted the copay schedule rather than assuming no cost", points: 20 },
+      { stage: "coding", criterion: "Matched the impaction code to the radiograph", points: 15 },
+      { stage: "ar-follow-up", criterion: "Explained the copay without treating it as an appealable denial", points: 10 },
+    ],
+  },
+  instructorKey: [
+    "This is the contrast case to the PPO work: no annual maximum, no deductible, no percentage — but a fixed price list that still produces a patient bill.",
+    "The assignment and referral rules are what break DHMO claims, not the clinical documentation.",
+    "Use it to teach students to read the plan type before doing any arithmetic, because the arithmetic is entirely different.",
+  ],
+};
+
 export const DENTAL_CASE_SCENARIOS: DentalCaseScenario[] = [
   CASE_HYGIENE_RECALL,
   CASE_CROWN_DOWNGRADE,
   CASE_PERIO_IMPLANT,
+  CASE_POSTERIOR_COMPOSITE_DOWNGRADE,
+  CASE_ENDO_CROWN_FREQUENCY,
+  CASE_ANNUAL_MAX_DENTURES,
+  CASE_DHMO_IMPACTION,
 ];
 
 export const DENTAL_CASE_INDEX: Record<string, DentalCaseScenario> = Object.fromEntries(
