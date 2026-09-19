@@ -14,14 +14,16 @@
  */
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Plus, Search, AlertTriangle, Info, X, FileText } from "lucide-react";
+import { Plus, Search, AlertTriangle, Info, X, FileText, ClipboardCheck } from "lucide-react";
 import {
   ALL_TEETH,
   CDT_CATEGORY_ORDER,
+  attachmentsForCode,
   cdtByCategory,
   findCDT,
   findDenial,
   findTooth,
+  isPredeterminationCandidate,
   ORAL_CAVITY_AREAS,
   searchCDT,
   validateSurfaceCount,
@@ -197,12 +199,13 @@ export function DentalCodingQueue() {
   const warningsForCurrentCode = () => {
     if (!currentCode || draft.code !== currentCode.code) return [];
     const out: string[] = [];
-    if (currentCode.predeterminationCommonlyRequested && !draft.predeterminationOnFile)
+    const reqs = attachmentsForCode(currentCode.code);
+    if (isPredeterminationCandidate(currentCode.code) && !draft.predeterminationOnFile)
       out.push(
-        "Predetermination is commonly requested for this service and none is on file — the plan decision notice may not be honoured. You may submit anyway and feel the consequence downstream.",
+        "This is a commonly-predetermined service and no predetermination is on file — the plan decision notice may not be honoured. You may submit anyway and feel the consequence downstream.",
       );
-    if ((currentCode.commonAttachments?.length ?? 0) > 0 && !(draft.attachments?.length))
-      out.push(`Payers commonly require attachments for this line: ${currentCode.commonAttachments!.join(", ")}.`);
+    if (reqs.length > 0 && !(draft.attachments?.length))
+      out.push(`Payers commonly require attachments for this line: ${reqs.map((r) => r.label).join(", ")}.`);
     if (currentCode.alternateBenefitRisk)
       out.push("Alternate-benefit risk: this plan may pay this service at a lower allowance. That is a reduction, not a denial.");
     return out;
@@ -284,6 +287,12 @@ export function DentalCodingQueue() {
               }`}
             >
               Perio chart
+            </button>
+            <button
+              onClick={() => goTo("predetermination")}
+              className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 hover:bg-blue-100"
+            >
+              <ClipboardCheck className="h-3 w-3" /> Predetermination
             </button>
             <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
               {state.lines.length} line{state.lines.length === 1 ? "" : "s"} on claim

@@ -14,13 +14,15 @@
  */
 
 import { useMemo, useState } from "react";
-import { Plus, Search, CheckCircle2, X, Stethoscope, ArrowRight, Info } from "lucide-react";
+import { Plus, Search, CheckCircle2, X, Stethoscope, ArrowRight, Info, Paperclip, Receipt } from "lucide-react";
 import {
   ALL_TEETH,
   CDT_CATEGORY_ORDER,
+  attachmentsForCode,
   cdtByCategory,
   findCDT,
   findTooth,
+  isPredeterminationCandidate,
   ORAL_CAVITY_AREAS,
   searchCDT,
   type CDTCode,
@@ -111,6 +113,7 @@ export function DentalTreatmentPlan() {
       quadrant: draft.quadrant,
       dateOfService: draft.dateOfService || "2027-02-11",
       feeUsd: draft.feeUsd || currentCode.illustrativeFeeUsd,
+      attachments: [],
       status: "planned",
     };
     addPlanItem(item);
@@ -187,12 +190,20 @@ export function DentalTreatmentPlan() {
               Build the plan, see the insurance estimate, then accept treatment to send it to coding.
             </p>
           </div>
-          <button
-            onClick={accept}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" /> Accept treatment →
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => goTo("predetermination")}
+              className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+            >
+              <Receipt className="h-3.5 w-3.5" /> Predetermination
+            </button>
+            <button
+              onClick={accept}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" /> Accept treatment →
+            </button>
+          </div>
         </div>
 
         {/* case hint */}
@@ -340,40 +351,68 @@ export function DentalTreatmentPlan() {
             {planned.map((p) => {
               const c = findCDT(p.code);
               const est = estimate.lines.find((l) => l.lineId === p.id);
+              const reqs = attachmentsForCode(p.code);
+              const gathered = (p.attachments ?? []).filter((a) => reqs.some((r) => r.type === a)).length;
+              const missing = reqs.length - gathered;
+              const candidate = isPredeterminationCandidate(p.code);
               return (
-                <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-800">
-                      {p.code} {c ? `· ${c.shortName}` : ""}
-                    </p>
-                    <p className="truncate text-[10px] text-slate-500">
-                      DOS {p.dateOfService}
-                      {p.tooth ? ` · #${p.tooth}` : ""}
-                      {p.surfaces ? ` · ${p.surfaces}` : ""}
-                      {p.quadrant ? ` · ${p.quadrant}` : ""}
-                    </p>
+                <div key={p.id} className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-slate-800">
+                        {p.code} {c ? `· ${c.shortName}` : ""}
+                      </p>
+                      <p className="truncate text-[10px] text-slate-500">
+                        DOS {p.dateOfService}
+                        {p.tooth ? ` · #${p.tooth}` : ""}
+                        {p.surfaces ? ` · ${p.surfaces}` : ""}
+                        {p.quadrant ? ` · ${p.quadrant}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="text-right text-[10px] leading-tight">
+                        <span className="block text-slate-500">fee {fmtDollar(p.feeUsd)}</span>
+                        {est ? (
+                          <span className="block">
+                            <span className="text-emerald-600">plan {fmtDollar(est.result.planPaysUsd)}</span>
+                            {" / "}
+                            <span className="text-red-600">pt {fmtDollar(est.result.patientOwesUsd)}</span>
+                          </span>
+                        ) : (
+                          <span className="block text-slate-400">—</span>
+                        )}
+                      </span>
+                      <button
+                        onClick={() => removePlanItem(p.id)}
+                        className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                        aria-label="Remove"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-right text-[10px] leading-tight">
-                      <span className="block text-slate-500">fee {fmtDollar(p.feeUsd)}</span>
-                      {est ? (
-                        <span className="block">
-                          <span className="text-emerald-600">plan {fmtDollar(est.result.planPaysUsd)}</span>
-                          {" / "}
-                          <span className="text-red-600">pt {fmtDollar(est.result.patientOwesUsd)}</span>
+                  {(reqs.length > 0 || candidate) && (
+                    <div className="mt-1 flex flex-wrap items-center gap-2 border-t border-slate-200/70 pt-1">
+                      {reqs.length > 0 && (
+                        <span
+                          className={`flex items-center gap-1 text-[9px] font-medium ${
+                            missing > 0 ? "text-red-600" : "text-emerald-600"
+                          }`}
+                        >
+                          <Paperclip className="h-3 w-3" />
+                          {gathered}/{reqs.length} attachments{missing > 0 ? ` · ${missing} missing` : " gathered"}
                         </span>
-                      ) : (
-                        <span className="block text-slate-400">—</span>
                       )}
-                    </span>
-                    <button
-                      onClick={() => removePlanItem(p.id)}
-                      className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                      aria-label="Remove"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                      {candidate && (
+                        <button
+                          onClick={() => goTo("predetermination")}
+                          className="ml-auto flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700 hover:bg-blue-200"
+                        >
+                          <Receipt className="h-3 w-3" /> Predetermine
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

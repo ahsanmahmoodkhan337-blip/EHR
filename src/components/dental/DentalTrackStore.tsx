@@ -34,6 +34,7 @@ export type DentalStageName =
   | "case-select"
   | "briefing"
   | "planning"
+  | "predetermination"
   | "coding"
   | "claim"
   | "claims"
@@ -98,6 +99,8 @@ export interface TxPlanItem {
   dateOfService: string;
   feeUsd: number;
   note?: string;
+  /** Attachment types (attachmentRequirements.ts) gathered before treatment. */
+  attachments: string[];
   /** "planned" = sitting in the plan; "accepted" = moved onto the claim. */
   status: "planned" | "accepted";
 }
@@ -130,6 +133,8 @@ export interface DentalTrackState {
   completedAt: string | null;
   lines: DentalClaimLine[];
   claimSubmitted: boolean;
+  /** Predetermination scenario (id) the student last requested, if any. */
+  predeterminationScenarioId: string | null;
   /** Case-stage traps the student triggered (revealed in debrief), by trap id. */
   trapsTriggered: string[];
   /** Rubric points earned, keyed `stage-index`. */
@@ -157,6 +162,7 @@ function freshState(): DentalTrackState {
     completedAt: null,
     lines: [],
     claimSubmitted: false,
+    predeterminationScenarioId: null,
     trapsTriggered: [],
     rubricByCriterion: {},
     arCallLog: [],
@@ -196,6 +202,8 @@ interface DentalTrackApi {
   beginCase: () => void;
   goTo: (stage: DentalStageName) => void;
   resetTrack: () => void;
+  // predetermination
+  requestPredetermination: (scenarioId: string) => void;
   // coding
   addLine: (line: DentalClaimLine) => void;
   updateLine: (id: string, patch: Partial<DentalClaimLine>) => void;
@@ -320,6 +328,11 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, stage }));
   }, []);
 
+  /** Record a requested predetermination scenario and jump to that stage. */
+  const requestPredetermination = useCallback((scenarioId: string) => {
+    setState((s) => ({ ...s, predeterminationScenarioId: scenarioId, stage: "predetermination" }));
+  }, []);
+
   const selectCase = useCallback((caseId: string | null) => {
     const found = caseId ? findCase(caseId) : undefined;
     if (caseId && !found) return;
@@ -337,6 +350,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
       stage: "planning",
       lines: [],
       claimSubmitted: false,
+      predeterminationScenarioId: null,
       trapsTriggered: [],
       rubricByCriterion: {},
       arCallLog: [],
@@ -416,7 +430,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
         dateOfService: p.dateOfService,
         feeUsd: p.feeUsd,
         predeterminationOnFile: false,
-        attachments: [],
+        attachments: p.attachments ?? [],
         note: p.note,
       }));
       return {
@@ -468,6 +482,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     beginCase,
     goTo,
     resetTrack,
+    requestPredetermination,
     addLine,
     updateLine,
     removeLine,

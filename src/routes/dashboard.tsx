@@ -40,6 +40,7 @@ const DENTAL_STAGE_LABELS: Record<DentalStageName, string> = {
   "case-select": "Select a case",
   briefing: "Briefing",
   planning: "Treatment plan",
+  predetermination: "Predetermination",
   coding: "Coding",
   claim: "Claim",
   claims: "Claim status",
