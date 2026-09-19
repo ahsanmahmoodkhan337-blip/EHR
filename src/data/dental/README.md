@@ -11,11 +11,13 @@ imports React or touches UI.
 | `caseScenarios.ts` | Seven graded cases (beginner / intermediate / advanced) with deliberate traps, expected line-by-line adjudication and grading rubrics |
 | `toothNotation.ts` | Universal / FDI / Palmer cross-reference for all 52 teeth, surfaces, quadrants, oral-cavity areas, and a surface validator |
 | `coverage.ts` | Runnable adjudication engine — `evaluateCoverage()` for one claim line, `evaluateClaim()` for a whole claim, returning a verdict per step of `ADJUDICATION_ORDER` |
+| `attachmentRequirements.ts` | Structured map from CDT code → required attachments (radiographs, perio charting, narrative, …) plus the predetermination-candidate list with per-code guidance |
+| `predeterminationRules.ts` | Three predetermination scenarios: the payer's line-by-line estimate (allowed / downgraded / excluded / frequency-limited) and the trap around requesting one vs submitting directly |
 
 Import from the barrel:
 
 ```ts
-import { CDT_CODES, DENTAL_PLANS, DENTAL_CASE_SCENARIOS, findTooth, evaluateClaim } from "~/data/dental";
+import { CDT_CODES, DENTAL_PLANS, DENTAL_CASE_SCENARIOS, findTooth, evaluateClaim, attachmentsForCode, PREDETERMINATION_SCENARIOS } from "~/data/dental";
 ```
 
 ## The evaluator is the entry point for adjudication
@@ -57,6 +59,48 @@ the American Dental Association.** This repository does not hold a CDT licence.
   particular CARC reflects common practice, which varies by payer.
 - Students will do this work for money. A wrong rule teaches a harmful habit —
   prefer omitting something over inventing it.
+
+## Predetermination & attachment workflow
+
+`attachmentRequirements.ts` and `predeterminationRules.ts` are the content half of
+the predetermination / attachment-requirement UI (business-plan item 4). The
+frontend should drive from these two files rather than from the loose
+`CDTCode.commonAttachments` hint.
+
+### How the UI should consume it
+
+1. **When the treatment plan changes**, for each planned CDT code call
+   `attachmentsForCode(code)` and show the result as the "what to attach" list.
+   Each `AttachmentRequirement` carries `type` (for an icon/category),
+   `when`/`condition` (always vs conditional), `whyRequired` (the plain-language
+   reason to show the student), and `missingDenialId` (the denial the payer
+   returns if the attachment is skipped).
+2. **When deciding predetermine-vs-submit**, call
+   `isPredeterminationCandidate(code)` and, for the reason, read the matching
+   `PREDETERMINATION_CANDIDATES` entry's `driver` and `guidance`. The five
+   drivers are `high-fee`, `cosmetic`, `removable-appliance`, `surgical` and
+   `frequency-sensitive`.
+3. **The scenarios are the teaching layer.** `PREDETERMINATION_SCENARIOS`
+   supplies three complete walks of the estimate workflow, each with a
+   line-by-line estimate (`estimate`) whose verdicts cover `allowed`,
+   `downgraded`, `excluded` and `frequency-limited`, plus a `trap` that states
+   the mistake, its consequence and the correct action. Render these as
+   interactive exercises; the estimate lines are already arithmetic-consistent
+   so a "did the student catch the downgrade?" check can be computed.
+
+### Schema notes
+
+- `AttachmentRequirement` is one row per (code, attachment). Group with
+  `ATTACHMENT_REQUIREMENTS_BY_CODE` or `attachmentsForCode()`.
+- `PredeterminationEstimateLine` mirrors `ExpectedLineOutcome` from
+  `caseScenarios.ts` so the same rendering code can draw both a claim outcome
+  and a pre-treatment estimate. The `verdict` field is the extra discriminator
+  (`allowed` / `downgraded` / `excluded` / `frequency-limited`), and
+  `paidAtAllowedUsd` records the downgrade benchmark where one applies.
+- **A downgrade is not a denial.** In `PRED-01` the line carries
+  `denialId: "DEN-ALT-BENEFIT"` and a `paidAtAllowedUsd`, but the money is an
+  adjustment that leaves the patient a documented upgrade balance — the UI must
+  render it as an adjustment, not as a rejected line.
 
 ## Notes for the UI work
 

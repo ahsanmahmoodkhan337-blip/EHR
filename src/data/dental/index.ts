@@ -108,3 +108,32 @@ export type {
   ClaimEvaluationResult,
 } from "./coverage";
 export { evaluateCoverage, evaluateClaim } from "./coverage";
+export type {
+  AttachmentType,
+  AttachmentWhen,
+  AttachmentRequirement,
+  PredeterminationDriver,
+  PredeterminationCandidate,
+} from "./attachmentRequirements";
+export {
+  ATTACHMENT_TYPE_LABELS,
+  ATTACHMENT_REQUIREMENTS,
+  ATTACHMENT_REQUIREMENTS_BY_CODE,
+  PREDETERMINATION_CANDIDATES,
+  PREDETERMINATION_CANDIDATE_INDEX,
+  attachmentsForCode,
+  attachmentTypesFor,
+  isPredeterminationCandidate,
+  predeterminationDriverFor,
+} from "./attachmentRequirements";
+export type {
+  PredeterminationVerdict,
+  PredeterminationEstimateLine,
+  PredeterminationScenario,
+} from "./predeterminationRules";
+export {
+  PREDETERMINATION_SCENARIOS,
+  PREDETERMINATION_SCENARIO_INDEX,
+  findPredeterminationScenario,
+  predeterminationScenariosByVerdict,
+} from "./predeterminationRules";
