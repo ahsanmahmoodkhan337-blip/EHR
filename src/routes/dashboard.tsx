@@ -73,8 +73,20 @@ function DashboardPage() {
   const phone = getLoggedInPhone();
 
   if (!loggedIn || !phone) {
-    navigate({ to: "/login" });
-    return null;
+    return (
+      <div className="brand-gradient flex min-h-dvh flex-col items-center justify-center p-4">
+        <div className="surface-card max-w-sm w-full p-8 text-center">
+          <Sparkles className="mx-auto mb-3 h-8 w-8 text-blue-500" />
+          <h1 className="text-base font-bold text-slate-800">Student Dashboard</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Sign in to see your tracks and pick up where you left off.
+          </p>
+          <Link to="/login" className="btn-primary mt-4 w-full">
+            Sign in
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   // ── read persisted state (no providers needed) ──────────────────────
