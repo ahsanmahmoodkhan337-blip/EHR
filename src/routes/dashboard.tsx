@@ -192,9 +192,14 @@ function DashboardPage() {
                   </span>
                 )}
               </div>
-              <Link to="/" className="btn-primary px-3 py-1.5 text-xs">
-                {medicalDone === 0 ? "Start" : "Resume"} <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link to="/medical-cases" className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                  Graded cases
+                </Link>
+                <Link to="/" className="btn-primary px-3 py-1.5 text-xs">
+                  {medicalDone === 0 ? "Start" : "Resume"} <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
 

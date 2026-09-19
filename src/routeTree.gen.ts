@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MedicalCasesRouteImport } from './routes/medical-cases'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as InstructorRouteImport } from './routes/instructor'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -21,6 +22,11 @@ import { Route as DentalRouteImport } from './routes/dental'
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MedicalCasesRoute = MedicalCasesRouteImport.update({
+  id: '/medical-cases',
+  path: '/medical-cases',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuizRoute = QuizRouteImport.update({
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
+  '/medical-cases': typeof MedicalCasesRoute
   '/quiz': typeof QuizRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
+  '/medical-cases': typeof MedicalCasesRoute
   '/quiz': typeof QuizRoute
 }
 export interface FileRoutesById {
@@ -88,14 +96,15 @@ export interface FileRoutesById {
   '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
+  '/medical-cases': typeof MedicalCasesRoute
   '/quiz': typeof QuizRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/quiz'
+  fullPaths: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/quiz'
-  id: '__root__' | '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/quiz'
+  to: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz'
+  id: '__root__' | '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +115,7 @@ export interface RootRouteChildren {
   DentalRoute: typeof DentalRoute
   InstructorRoute: typeof InstructorRoute
   LoginRoute: typeof LoginRoute
+  MedicalCasesRoute: typeof MedicalCasesRoute
   QuizRoute: typeof QuizRoute
 }
 
@@ -116,6 +126,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/medical-cases': {
+      id: '/medical-cases'
+      path: '/medical-cases'
+      fullPath: '/medical-cases'
+      preLoaderRoute: typeof MedicalCasesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quiz': {
@@ -178,6 +195,7 @@ const rootRouteChildren: RootRouteChildren = {
   DentalRoute: DentalRoute,
   InstructorRoute: InstructorRoute,
   LoginRoute: LoginRoute,
+  MedicalCasesRoute: MedicalCasesRoute,
   QuizRoute: QuizRoute,
 }
 export const routeTree = rootRouteImport
