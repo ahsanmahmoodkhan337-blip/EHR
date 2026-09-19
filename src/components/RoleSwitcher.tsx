@@ -39,7 +39,7 @@ export function RoleSwitcher() {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 transition-colors"
       >
-        <Users className="h-4 w-4 text-sky-400" />
+        <Users className="h-4 w-4 text-blue-400" />
         <span>{getRoleLabel(currentRole)}</span>
         <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${
           open ? "rotate-180" : ""
@@ -57,12 +57,12 @@ export function RoleSwitcher() {
               }}
               className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium transition-colors ${
                 currentRole === role
-                  ? "bg-sky-600/20 text-sky-300"
+                  ? "bg-blue-600/20 text-blue-300"
                   : "text-slate-300 hover:bg-slate-700 hover:text-white"
               }`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${
-                currentRole === role ? "bg-sky-400" : "bg-slate-500"
+                currentRole === role ? "bg-blue-400" : "bg-slate-500"
               }`} />
               {getRoleLabel(role)}
             </button>

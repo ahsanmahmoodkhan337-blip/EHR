@@ -26,7 +26,7 @@ const STEPS: { id: ClaimStage; label: string; icon: React.ReactNode }[] = [
 function lineStatus(resolution: DentalLineResolution | undefined, denied: boolean, payable: boolean): { label: string; tone: string } {
   if (denied) {
     if (resolution === "appealed") return { label: "Appealed", tone: "bg-amber-50 text-amber-700" };
-    if (resolution === "resubmitted") return { label: "Resubmitted", tone: "bg-sky-50 text-sky-700" };
+    if (resolution === "resubmitted") return { label: "Resubmitted", tone: "bg-blue-50 text-blue-700" };
     if (resolution === "billed-patient") return { label: "Billed patient", tone: "bg-purple-50 text-purple-700" };
     if (resolution === "write-off") return { label: "Written off", tone: "bg-slate-100 text-slate-600" };
     if (resolution === "closed") return { label: "Closed", tone: "bg-slate-100 text-slate-600" };

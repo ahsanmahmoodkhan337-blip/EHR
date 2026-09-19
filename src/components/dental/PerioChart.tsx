@@ -32,7 +32,7 @@ const EMPTY_ENTRY: PerioToothEntry = {
   recession: null,
 };
 
-const cell = "w-9 rounded border border-slate-200 px-0.5 py-1 text-center text-[10px] text-slate-700 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+const cell = "w-9 rounded border border-slate-200 px-0.5 py-1 text-center text-[10px] text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
 export function PerioChart() {
   const { state, setPerioTooth, activeCase } = useDentalTrack();
@@ -67,7 +67,7 @@ export function PerioChart() {
               type="button"
               onClick={() => setDentition(d)}
               className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                dentition === d ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                dentition === d ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               {d === "permanent" ? "Permanent" : "Primary"}
@@ -173,7 +173,7 @@ export function PerioChart() {
                       type="checkbox"
                       checked={e.bleeding}
                       onChange={(ev) => setPerioTooth(t.universal, { bleeding: ev.target.checked })}
-                      className="h-3.5 w-3.5 accent-sky-600"
+                      className="h-3.5 w-3.5 accent-blue-600"
                       aria-label={`${t.universal} bleeding on probing`}
                     />
                   </td>

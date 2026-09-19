@@ -37,7 +37,7 @@ const style = {
   card: "rounded-xl border border-slate-200 bg-white shadow-sm",
   label: "text-[10px] font-semibold uppercase tracking-wider text-slate-500",
   input:
-    "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500",
+    "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
 };
 
 export function DentalCodingQueue() {
@@ -231,7 +231,7 @@ export function DentalCodingQueue() {
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      activeCategory === cat ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      activeCategory === cat ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
                     {cat}
@@ -272,7 +272,7 @@ export function DentalCodingQueue() {
             <button
               onClick={() => setMode("coding")}
               className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                mode === "coding" ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                mode === "coding" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               Claim coding
@@ -280,12 +280,12 @@ export function DentalCodingQueue() {
             <button
               onClick={() => setMode("perio")}
               className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                mode === "perio" ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                mode === "perio" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               Perio chart
             </button>
-            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
               {state.lines.length} line{state.lines.length === 1 ? "" : "s"} on claim
             </span>
           </div>
@@ -451,13 +451,13 @@ export function DentalCodingQueue() {
             )}
 
             {riskDenials.length > 0 && (
-              <div className="mt-2 rounded-lg border border-sky-100 bg-sky-50 p-2">
-                <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-sky-700">
+              <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 p-2">
+                <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-blue-700">
                   <Info className="h-3 w-3" /> What usually goes wrong with this code
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {riskDenials.map((d) => (
-                    <span key={d.id} className="rounded-full bg-white px-1.5 py-0.5 text-[9px] text-sky-700 ring-1 ring-sky-100">
+                    <span key={d.id} className="rounded-full bg-white px-1.5 py-0.5 text-[9px] text-blue-700 ring-1 ring-blue-100">
                       {d.title}
                     </span>
                   ))}
@@ -468,7 +468,7 @@ export function DentalCodingQueue() {
             <div className="mt-3 flex items-center gap-2">
               <button
                 onClick={addLineToClaim}
-                className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500"
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500"
               >
                 <Plus className="h-3.5 w-3.5" /> Add line to claim
               </button>
@@ -575,7 +575,7 @@ function SurfacePicker({
           type="button"
           onClick={() => toggle(s)}
           className={`h-6 w-6 rounded-md text-[10px] font-bold ${
-            selected.includes(s) ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+            selected.includes(s) ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
           }`}
           title={SURFACE_NAMES[s] ?? s}
         >
@@ -613,18 +613,18 @@ function CodeRow({
   return (
     <div
       className={`mb-1 rounded-lg border p-2 transition-colors ${
-        selected ? "border-sky-300 bg-sky-50" : "border-slate-100 bg-white hover:border-slate-200"
+        selected ? "border-blue-300 bg-blue-50" : "border-slate-100 bg-white hover:border-slate-200"
       }`}
     >
       <div className="flex items-center gap-2">
         <code className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">{code.code}</code>
         <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-700">{code.shortName}</span>
         <span className="shrink-0 text-[9px] text-amber-600">${code.illustrativeFeeUsd}</span>
-        <button onClick={onSelect} className="shrink-0 rounded bg-sky-600 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-sky-500">
+        <button onClick={onSelect} className="shrink-0 rounded bg-blue-600 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-blue-500">
           {selected ? "Editing" : "Use"}
         </button>
       </div>
-      <button onClick={onToggle} className="mt-0.5 text-left text-[9px] text-slate-400 hover:text-sky-600">
+      <button onClick={onToggle} className="mt-0.5 text-left text-[9px] text-slate-400 hover:text-blue-600">
         {expanded ? "hide details ▲" : "details ▼"}
       </button>
       {expanded && (

@@ -176,7 +176,7 @@ export function DentalAR() {
                   <span className="font-semibold text-slate-600">Prevention: </span>
                   {denial.prevention}
                 </p>
-                <p className="rounded bg-sky-50 px-2 py-1 text-[9px] italic text-sky-700">Debrief: {denial.teachingPoint}</p>
+                <p className="rounded bg-blue-50 px-2 py-1 text-[9px] italic text-blue-700">Debrief: {denial.teachingPoint}</p>
               </div>
 
               {/* resolution area */}
@@ -197,7 +197,7 @@ export function DentalAR() {
 
                     <button
                       onClick={() => resolveLine(lineId, primary.res)}
-                      className="rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-sky-500"
+                      className="rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-500"
                     >
                       {primary.label}
                     </button>

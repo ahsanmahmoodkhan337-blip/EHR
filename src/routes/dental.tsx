@@ -43,12 +43,12 @@ function DentalTrackShell() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
         <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <Smile className="mx-auto mb-3 h-8 w-8 text-sky-500" />
+          <Smile className="mx-auto mb-3 h-8 w-8 text-blue-500" />
           <h1 className="text-sm font-bold text-slate-800">Dental RCM Track</h1>
           <p className="mt-1 text-xs text-slate-500">Log in to practice the dental revenue cycle.</p>
           <Link
             to="/login"
-            className="mt-4 inline-block rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-500"
+            className="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500"
           >
             Log in
           </Link>
@@ -69,7 +69,7 @@ function DentalTrackShell() {
             <Home className="h-4 w-4" />
           </Link>
           <img src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers" className="h-7 w-auto" style={{ maxWidth: "120px" }} />
-          <span className="rounded bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+          <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
             Dental RCM
           </span>
         </div>

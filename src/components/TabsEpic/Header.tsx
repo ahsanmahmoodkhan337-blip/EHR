@@ -99,7 +99,7 @@ export function Header({
           onClick={onToggleRightPanel}
           className={`hidden rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors sm:flex items-center gap-1.5 ${
             showRightPanel
-              ? "bg-sky-600 text-white hover:bg-sky-500"
+              ? "bg-blue-600 text-white hover:bg-blue-500"
               : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white"
           }`}
           aria-label={showRightPanel ? "Hide patient summary panel" : "Show patient summary panel"}
@@ -130,7 +130,7 @@ export function Header({
 
         {/* User avatar */}
         <div className="group relative flex items-center gap-2 rounded-lg bg-slate-800 px-2 py-1.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500 text-xs font-bold text-white">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
             DR
           </div>
           <div className="hidden text-xs lg:block">

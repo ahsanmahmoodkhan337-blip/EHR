@@ -42,7 +42,7 @@ interface OdontogramProps {
 
 /** Quadrant tint for visual grouping on the chart. */
 const QUADRANT_TINT: Record<string, string> = {
-  "01": "text-sky-700",
+  "01": "text-blue-700",
   "02": "text-violet-700",
   "03": "text-amber-700",
   "04": "text-emerald-700",
@@ -87,7 +87,7 @@ export function Odontogram({
               type="button"
               onClick={() => setDentition(d)}
               className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                dentition === d ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                dentition === d ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               {d === "permanent" ? "Permanent (1–32)" : "Primary (A–T)"}
@@ -125,7 +125,7 @@ export function Odontogram({
       <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2">
         {selected ? (
           <>
-            <span className="rounded bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700">
+            <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
               #{selected.universal}
             </span>
             <span className="text-[11px] font-medium text-slate-700">{selected.name}</span>
@@ -152,7 +152,7 @@ export function Odontogram({
                 onClick={() => onSurfaceToggle(code)}
                 title={`${surfaceInfo?.name ?? code} — ${surfaceInfo?.teachingNote ?? ""}`}
                 className={`h-7 w-7 rounded-md text-[10px] font-bold ${
-                  active ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                 }`}
               >
                 {code}
@@ -165,7 +165,7 @@ export function Odontogram({
 
       {/* ── notation teaching points ─────────────────────────────────────── */}
       <details className="mt-2 border-t border-slate-100 pt-1.5">
-        <summary className="cursor-pointer text-[9px] font-semibold uppercase tracking-wide text-slate-400 hover:text-sky-600">
+        <summary className="cursor-pointer text-[9px] font-semibold uppercase tracking-wide text-slate-400 hover:text-blue-600">
           Notation reminders
         </summary>
         <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[9px] leading-relaxed text-slate-500">
@@ -207,10 +207,10 @@ function ToothRow({
               title={`#${t.universal} ${t.name} (FDI ${t.fdi} · Palmer ${t.palmer})`}
               className={`flex h-10 items-center justify-center rounded-md border text-[10px] font-bold transition-colors ${width} ${
                 isSelected
-                  ? "border-sky-600 bg-sky-600 text-white shadow-sm"
+                  ? "border-blue-600 bg-blue-600 text-white shadow-sm"
                   : inQuadrant
-                    ? `border-slate-300 bg-slate-50 ${QUADRANT_TINT[t.quadrantArea] ?? "text-slate-600"} hover:border-sky-400`
-                    : "border-slate-200 bg-white text-slate-400 hover:border-sky-400 hover:text-sky-600"
+                    ? `border-slate-300 bg-slate-50 ${QUADRANT_TINT[t.quadrantArea] ?? "text-slate-600"} hover:border-blue-400`
+                    : "border-slate-200 bg-white text-slate-400 hover:border-blue-400 hover:text-blue-600"
               }`}
             >
               {t.universal}

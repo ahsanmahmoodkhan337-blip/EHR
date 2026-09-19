@@ -618,8 +618,8 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                       title={m.description}
                                       className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
                                         isActive
-                                          ? "bg-sky-100 text-sky-700 border border-sky-200"
-                                          : "bg-white text-slate-400 border border-slate-200 hover:border-sky-200"
+                                          ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                          : "bg-white text-slate-400 border border-slate-200 hover:border-blue-200"
                                       }`}
                                     >
                                       -{m.code}
@@ -791,7 +791,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                             {selectedCodeDetails.category}
                           </span>
                           {"rvu" in selectedCodeDetails && (
-                            <span className="rounded bg-sky-100 px-2 py-1 text-[10px] font-medium text-sky-700">
+                            <span className="rounded bg-blue-100 px-2 py-1 text-[10px] font-medium text-blue-700">
                               RVU: {selectedCodeDetails.rvu}
                             </span>
                           )}
@@ -851,8 +851,8 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                           </div>
                         )}
                         {"laterality" in selectedCodeDetails && selectedCodeDetails.laterality && selectedCodeDetails.laterality !== "none" && (
-                          <div className="rounded-lg border border-sky-100 bg-sky-50 p-2">
-                            <p className="text-[9px] font-semibold text-sky-600 mb-1">🔵 Laterality: {selectedCodeDetails.laterality}</p>
+                          <div className="rounded-lg border border-blue-100 bg-blue-50 p-2">
+                            <p className="text-[9px] font-semibold text-blue-600 mb-1">🔵 Laterality: {selectedCodeDetails.laterality}</p>
                           </div>
                         )}
                         {"globalDays" in selectedCodeDetails && selectedCodeDetails.globalDays !== undefined && (
@@ -883,9 +883,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                     <p className="mt-0.5 opacity-80">{c.desc}</p>
                   </div>
                 ))}
-                <div className="mt-3 rounded-lg bg-sky-50 border border-sky-200 p-3">
-                  <p className="text-[10px] font-semibold text-sky-700 mb-1"> Coding Tip</p>
-                  <p className="text-[10px] text-sky-600">Always code the definitive diagnosis over symptoms. When a definitive diagnosis is established, do not code the symptom that led to it — unless the symptom is a separate condition.</p>
+                <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 p-3">
+                  <p className="text-[10px] font-semibold text-blue-700 mb-1"> Coding Tip</p>
+                  <p className="text-[10px] text-blue-600">Always code the definitive diagnosis over symptoms. When a definitive diagnosis is established, do not code the symptom that led to it — unless the symptom is a separate condition.</p>
                 </div>
               </div>
             )}
@@ -947,18 +947,18 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
           {/* ─── Right Sidebar: E/M Calculator ─── */}
           <div className="hidden w-64 border-l border-slate-200 bg-slate-50 p-4 lg:block overflow-y-auto">
             <div className="flex items-center gap-1.5 mb-3">
-              <Info className="h-3.5 w-3.5 text-sky-500" />
+              <Info className="h-3.5 w-3.5 text-blue-500" />
               <span className="text-[10px] font-semibold text-slate-500">E/M Level Calculator</span>
             </div>
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] text-slate-500">Problems Addressed</label>
-                <input type="range" min="1" max="4" value={emProblems} onChange={(e) => setEmProblems(Number(e.target.value))} className="w-full accent-sky-500" />
+                <input type="range" min="1" max="4" value={emProblems} onChange={(e) => setEmProblems(Number(e.target.value))} className="w-full accent-blue-500" />
                 <span className="text-[10px] text-slate-400">{emProblems}</span>
               </div>
               <div>
                 <label className="text-[10px] text-slate-500">Data Reviewed</label>
-                <input type="range" min="1" max="4" value={emData} onChange={(e) => setEmData(Number(e.target.value))} className="w-full accent-sky-500" />
+                <input type="range" min="1" max="4" value={emData} onChange={(e) => setEmData(Number(e.target.value))} className="w-full accent-blue-500" />
                 <span className="text-[10px] text-slate-400">{emData}</span>
               </div>
               <div>
@@ -971,7 +971,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
               </div>
               <div className="rounded-lg bg-white p-3 text-center shadow-sm">
                 <p className="text-[10px] text-slate-400">Recommended Code</p>
-                <p className="text-xl font-bold text-sky-600">{emLevel.code}</p>
+                <p className="text-xl font-bold text-blue-600">{emLevel.code}</p>
                 <p className="text-[10px] text-slate-500">{emLevel.name}</p>
               </div>
             </div>
