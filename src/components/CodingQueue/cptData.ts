@@ -385,6 +385,82 @@ export const CPT_CODES: CPTCode[] = [
     notes: "Level 5 ED visit. Highest complexity. Immediate threat to life or function.",
     globalDays: 0,
   },
+
+  // ─── Therapeutic Injections / Skin Procedures ────────────────────
+  {
+    code: "20610",
+    description: "Therapeutic injection into a large joint, without imaging guidance",
+    category: "Medicine",
+    rvu: 1.6,
+    medicareRate: 58.00,
+    commercialRate: 120.00,
+    notes: "Aspiration and/or injection of a large joint (knee, shoulder, hip) for pain or inflammation. Modifier 25 goes on a same-day E/M, never on this code.",
+    globalDays: 0,
+  },
+  {
+    code: "17000",
+    description: "Destruction of a benign or pre-cancerous skin spot, first spot",
+    category: "Surgery",
+    rvu: 1.2,
+    medicareRate: 52.00,
+    commercialRate: 105.00,
+    notes: "Freezing or other destruction of a pre-cancerous lesion. A same-day sample of the same spot is generally not separately payable.",
+    globalDays: 0,
+  },
+  {
+    code: "11102",
+    description: "Skin sample (biopsy), single spot, shave technique",
+    category: "Surgery",
+    rvu: 1.0,
+    medicareRate: 45.00,
+    commercialRate: 95.00,
+    notes: "Sampling of a single skin spot. Do not bill with a destruction of the same spot on the same day.",
+    globalDays: 0,
+  },
+
+  // ─── Radiology — Advanced Imaging (prior-auth on some plans) ─────
+  {
+    code: "72141",
+    description: "MRI of the lower spine, without contrast",
+    category: "Radiology",
+    rvu: 4.5,
+    medicareRate: 240.00,
+    commercialRate: 460.00,
+    notes: "Lumbar MRI without dye. Frequently requires prior authorisation on HMO and Medicare Advantage plans.",
+    globalDays: 0,
+  },
+  {
+    code: "71250",
+    description: "CT scan of the chest, without contrast",
+    category: "Radiology",
+    rvu: 3.0,
+    medicareRate: 150.00,
+    commercialRate: 310.00,
+    notes: "Non-contrast chest CT. Check for a prior-authorisation requirement before scheduling.",
+    globalDays: 0,
+  },
+
+  // ─── Physical / Occupational Therapy ─────────────────────────────
+  {
+    code: "97110",
+    description: "Therapeutic exercise, one-on-one, reported per 15-minute unit",
+    category: "Medicine",
+    rvu: 0.45,
+    medicareRate: 22.00,
+    commercialRate: 38.00,
+    notes: "Strengthening, range-of-motion and endurance exercise. Watch the plan's annual visit limit.",
+    globalDays: 0,
+  },
+  {
+    code: "97140",
+    description: "Manual therapy, one-on-one, reported per 15-minute unit",
+    category: "Medicine",
+    rvu: 0.45,
+    medicareRate: 22.00,
+    commercialRate: 38.00,
+    notes: "Hands-on soft-tissue and joint mobilisation. Same unit rules and visit limits as other therapy codes.",
+    globalDays: 0,
+  },
 ];
 
 export function searchCPT(query: string): CPTCode[] {

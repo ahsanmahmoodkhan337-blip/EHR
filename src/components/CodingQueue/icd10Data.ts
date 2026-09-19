@@ -652,6 +652,75 @@ export const ICD10_CODES: ICD10Code[] = [
     codeFirst: "Code neoplasm first (C00-D49)",
     laterality: "none",
   },
+
+  // ─── Diabetes with complications (additional) ────────────────────
+  {
+    code: "E11.22",
+    description: "Type 2 diabetes with diabetic chronic kidney disease",
+    chapter: "Endocrine",
+    category: "Diabetes with complications",
+    medicareRate: 135.00,
+    commercialRate: 245.00,
+    notes: "Combined code for type 2 diabetes with kidney damage. Use an additional code (N18.-) for the CKD stage.",
+    useAdditional: ["N18.- (CKD stage)"],
+    laterality: "none",
+  },
+
+  // ─── Musculoskeletal additions ───────────────────────────────────
+  {
+    code: "M17.0",
+    description: "Osteoarthritis of both knees",
+    chapter: "Musculoskeletal",
+    category: "Osteoarthritis",
+    medicareRate: 85.00,
+    commercialRate: 150.00,
+    notes: "Bilateral knee osteoarthritis. Use the unilateral codes (M17.11 / M17.12) when only one knee is affected.",
+    laterality: "bilateral",
+  },
+  {
+    code: "M25.572",
+    description: "Pain in the left ankle and joints of the left foot",
+    chapter: "Musculoskeletal",
+    category: "Pain",
+    medicareRate: 36.00,
+    commercialRate: 70.00,
+    notes: "Left-sided ankle and foot joint pain. Laterality is carried in the sixth character.",
+    laterality: "left",
+  },
+  {
+    code: "M51.16",
+    description: "Intervertebral disc disorder with nerve root symptoms, lower back region",
+    chapter: "Musculoskeletal",
+    category: "Back pain",
+    medicareRate: 92.00,
+    commercialRate: 165.00,
+    notes: "Lumbar disc disorder with radiculopathy (pain travelling down the leg).",
+    laterality: "none",
+  },
+
+  // ─── Skin ────────────────────────────────────────────────────────
+  {
+    code: "L57.0",
+    description: "Actinic keratosis (sun-damaged, pre-cancerous skin spot)",
+    chapter: "Skin",
+    category: "Skin disorders",
+    medicareRate: 48.00,
+    commercialRate: 95.00,
+    notes: "Rough, scaly spot caused by sun exposure. Pre-cancerous and commonly treated by destruction.",
+    laterality: "none",
+  },
+
+  // ─── Z codes addition ────────────────────────────────────────────
+  {
+    code: "Z00.00",
+    description: "General adult medical examination without abnormal findings",
+    chapter: "Z Codes",
+    category: "Preventive",
+    medicareRate: 55.00,
+    commercialRate: 110.00,
+    notes: "Routine adult physical with no abnormal findings. Pair with the preventive visit code, not a problem E/M.",
+    laterality: "none",
+  },
 ];
 
 export function searchICD10(query: string): ICD10Code[] {
