@@ -20,6 +20,7 @@ import {
   logout,
 } from "../store/accessStore";
 import { loadUserData } from "../store/persistence";
+import { getSharingSignal } from "../store/accountSecurity";
 import type { PipelineState, Role } from "../store/pipelineStore";
 import type { DentalTrackState, DentalStageName } from "../components/dental/DentalTrackStore";
 
@@ -95,6 +96,7 @@ function DashboardPage() {
   const dental = readDentalState(phone);
 
   const subStatus = getSubscriptionStatus(phone);
+  const signal = getSharingSignal(phone);
 
   // Medical progress
   const currentRole: Role | "complete" = pipeline?.stage ?? "scribe";
@@ -243,6 +245,23 @@ function DashboardPage() {
         <p className="mt-6 text-center text-[11px] text-slate-400">
           Everything saves automatically to your account — you can switch tracks anytime.
         </p>
+
+        {/* Account activity — device-binding signal (detection-only, non-blocking). */}
+        <div className="mt-2 text-center text-[10px] text-slate-400">
+          {signal.distinctDeviceCount > 0 ? (
+            <span>
+              Signed in on {signal.distinctDeviceCount} device{signal.distinctDeviceCount === 1 ? "" : "s"}
+              {signal.lastLoginAt ? ` · last sign-in ${new Date(signal.lastLoginAt).toLocaleString()}` : ""}
+            </span>
+          ) : (
+            <span>First sign-in on this device</span>
+          )}
+          {signal.flagged && (
+            <span className="ml-1 text-amber-500" title="This account has been used from more than one device or had overlapping sessions.">
+              (multi-device)
+            </span>
+          )}
+        </div>
       </main>
     </div>
   );

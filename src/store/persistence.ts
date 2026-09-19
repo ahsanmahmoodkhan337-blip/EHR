@@ -18,6 +18,7 @@ import { supabase } from "./supabase";
 import type { CaseState } from "./patientStore";
 import type { PipelineState, DeniedClaim, ARCallRecord, PARecordStore, Role } from "./pipelineStore";
 import type { Appointment } from "../components/TabsEpic/DailySchedule";
+import type { AccountSecurityState } from "./accountSecurity";
 
 const STORAGE_PREFIX = "hh_userdata_";
 const BLOB_VERSION = 1;
@@ -32,6 +33,7 @@ export interface PersistedUserData {
   deniedClaims?: DeniedClaim[];
   arCalls?: ARCallRecord[];
   paRecords?: PARecordStore[];
+  security?: AccountSecurityState;
 }
 
 /** localStorage key for a given phone. */
