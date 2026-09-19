@@ -249,10 +249,10 @@ export function DentalBillingLedger() {
         <Totals k="Plan pays" v={fmtUsd(adjudication.totals.planPaysUsd)} green />
         <Totals k="Patient owes" v={fmtUsd(adjudication.totals.patientOwesUsd)} red />
         <button
-          onClick={() => goTo("ar")}
+          onClick={() => goTo("claims")}
           className="ml-auto flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
         >
-          <Phone className="h-3.5 w-3.5" /> Advance to AR Follow-up →
+          <Phone className="h-3.5 w-3.5" /> View claim status →
         </button>
       </div>
     </div>

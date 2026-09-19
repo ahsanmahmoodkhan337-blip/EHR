@@ -13,27 +13,36 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
+  CalendarClock,
   CheckCircle2,
   ClipboardList,
   FileText,
+  ListChecks,
   Phone,
   RotateCcw,
   Stethoscope,
   Trophy,
+  Wallet,
 } from "lucide-react";
 import { DENTAL_CASE_SCENARIOS, findPlan, type DentalCaseScenario } from "../../data/dental";
 import { useDentalTrack, type DentalStageName } from "./DentalTrackStore";
 import { DentalCodingQueue } from "./DentalCodingQueue";
 import { DentalBillingLedger } from "./DentalBillingLedger";
 import { DentalAR } from "./DentalAR";
+import { DentalTreatmentPlan } from "./DentalTreatmentPlan";
+import { DentalPatientLedger } from "./DentalPatientLedger";
+import { DentalClaimQueue } from "./DentalClaimQueue";
 import { adjudicateDentalClaim } from "./adjudication";
 
 const STAGES: { id: DentalStageName; label: string; icon: ReactNode }[] = [
   { id: "case-select", label: "Case", icon: <BookOpen className="h-3.5 w-3.5" /> },
   { id: "briefing", label: "Briefing", icon: <ClipboardList className="h-3.5 w-3.5" /> },
+  { id: "planning", label: "Plan", icon: <CalendarClock className="h-3.5 w-3.5" /> },
   { id: "coding", label: "Coding", icon: <Stethoscope className="h-3.5 w-3.5" /> },
   { id: "claim", label: "Claim", icon: <FileText className="h-3.5 w-3.5" /> },
+  { id: "claims", label: "Claims", icon: <ListChecks className="h-3.5 w-3.5" /> },
   { id: "ar", label: "AR", icon: <Phone className="h-3.5 w-3.5" /> },
+  { id: "ledger", label: "Ledger", icon: <Wallet className="h-3.5 w-3.5" /> },
   { id: "debrief", label: "Debrief", icon: <Trophy className="h-3.5 w-3.5" /> },
 ];
 
@@ -74,9 +83,12 @@ export function DentalCaseRunner() {
       <div className="min-h-0 flex-1 overflow-hidden">
         {state.stage === "case-select" && <CaseSelect />}
         {state.stage === "briefing" && <Briefing />}
+        {state.stage === "planning" && <DentalTreatmentPlan />}
         {state.stage === "coding" && <DentalCodingQueue />}
         {state.stage === "claim" && <DentalBillingLedger />}
+        {state.stage === "claims" && <DentalClaimQueue />}
         {state.stage === "ar" && <DentalAR />}
+        {state.stage === "ledger" && <DentalPatientLedger />}
         {state.stage === "debrief" && <Debrief />}
       </div>
     </div>
@@ -241,7 +253,7 @@ function Briefing() {
           onClick={beginCase}
           className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
         >
-          Start coding <ArrowRight className="h-3.5 w-3.5" />
+          Start treatment plan <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>
