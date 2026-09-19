@@ -33,9 +33,12 @@ import { getLoggedInPhone } from "../../store/accessStore";
 export type DentalStageName =
   | "case-select"
   | "briefing"
+  | "planning"
   | "coding"
   | "claim"
+  | "claims"
   | "ar"
+  | "ledger"
   | "debrief";
 
 /** A single CDT line the student is building in the coding stage. */
@@ -85,6 +88,39 @@ export interface PerioToothEntry {
   recession: number | null;
 }
 
+/** A planned (not yet completed) treatment item in the treatment-planning stage. */
+export interface TxPlanItem {
+  id: string;
+  code: string;
+  tooth?: string;
+  surfaces?: string;
+  quadrant?: string;
+  dateOfService: string;
+  feeUsd: number;
+  note?: string;
+  /** "planned" = sitting in the plan; "accepted" = moved onto the claim. */
+  status: "planned" | "accepted";
+}
+
+/** A patient or insurance payment posted to the ledger. */
+export interface DentalPayment {
+  id: string;
+  amountUsd: number;
+  source: "patient" | "insurance";
+  method: string;
+  at: string;
+  note?: string;
+}
+
+/** A ledger adjustment (contractual write-off, courtesy, etc.). Positive = credit. */
+export interface DentalAdjustment {
+  id: string;
+  amountUsd: number;
+  type: "contractual-write-off" | "courtesy" | "other";
+  at: string;
+  note?: string;
+}
+
 export interface DentalTrackState {
   version: 1;
   /** null = no case loaded (case-select screen). */
@@ -102,6 +138,12 @@ export interface DentalTrackState {
   lineResolutions: Record<string, DentalLineResolution>;
   /** Periodontal chart readings, keyed by Universal designation. */
   perio: Record<string, PerioToothEntry>;
+  /** Treatment plan items (planning stage → seeding coding). */
+  txPlan: TxPlanItem[];
+  /** Posted payments (ledger). */
+  payments: DentalPayment[];
+  /** Posted adjustments / write-offs (ledger). */
+  adjustments: DentalAdjustment[];
 }
 
 const STORAGE_PREFIX = "hh_dental_track_";
@@ -120,6 +162,9 @@ function freshState(): DentalTrackState {
     arCallLog: [],
     lineResolutions: {},
     perio: {},
+    txPlan: [],
+    payments: [],
+    adjustments: [],
   };
 }
 
@@ -162,6 +207,16 @@ interface DentalTrackApi {
   triggerTrap: (trapId: string) => void;
   // perio
   setPerioTooth: (tooth: string, patch: Partial<PerioToothEntry>) => void;
+  // treatment planning
+  addPlanItem: (item: TxPlanItem) => void;
+  updatePlanItem: (id: string, patch: Partial<TxPlanItem>) => void;
+  removePlanItem: (id: string) => void;
+  acceptPlan: () => void;
+  // ledger
+  postPayment: (payment: DentalPayment) => void;
+  postAdjustment: (adjustment: DentalAdjustment) => void;
+  removePayment: (id: string) => void;
+  removeAdjustment: (id: string) => void;
   // scoring
   scoreTally: { maxPoints: number; earned: number; passingPoints: number; criteria: { key: string; criterion: string; points: number; earned: number }[] };
   traps: CaseTrap[];
@@ -279,7 +334,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setState((s) => ({
       ...s,
       startedAt: new Date().toISOString(),
-      stage: "coding",
+      stage: "planning",
       lines: [],
       claimSubmitted: false,
       trapsTriggered: [],
@@ -287,6 +342,9 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
       arCallLog: [],
       lineResolutions: {},
       perio: {},
+      txPlan: [],
+      payments: [],
+      adjustments: [],
     }));
   }, []);
 
@@ -332,6 +390,61 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // ── treatment planning ───────────────────────────────────────────────
+  const addPlanItem = useCallback((item: TxPlanItem) => {
+    setState((s) => ({ ...s, txPlan: [...s.txPlan, item] }));
+  }, []);
+
+  const updatePlanItem = useCallback((id: string, patch: Partial<TxPlanItem>) => {
+    setState((s) => ({ ...s, txPlan: s.txPlan.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
+  }, []);
+
+  const removePlanItem = useCallback((id: string) => {
+    setState((s) => ({ ...s, txPlan: s.txPlan.filter((p) => p.id !== id) }));
+  }, []);
+
+  /** Move every planned item onto the claim (seeds coding) and mark them accepted. */
+  const acceptPlan = useCallback(() => {
+    setState((s) => {
+      const planned = s.txPlan.filter((p) => p.status === "planned");
+      const lines: DentalClaimLine[] = planned.map((p) => ({
+        id: p.id,
+        code: p.code,
+        tooth: p.tooth,
+        surfaces: p.surfaces,
+        quadrant: p.quadrant,
+        dateOfService: p.dateOfService,
+        feeUsd: p.feeUsd,
+        predeterminationOnFile: false,
+        attachments: [],
+        note: p.note,
+      }));
+      return {
+        ...s,
+        lines,
+        txPlan: s.txPlan.map((p) => (p.status === "planned" ? { ...p, status: "accepted" as const } : p)),
+        stage: "coding",
+      };
+    });
+  }, []);
+
+  // ── ledger ───────────────────────────────────────────────────────────
+  const postPayment = useCallback((payment: DentalPayment) => {
+    setState((s) => ({ ...s, payments: [...s.payments, payment] }));
+  }, []);
+
+  const postAdjustment = useCallback((adjustment: DentalAdjustment) => {
+    setState((s) => ({ ...s, adjustments: [...s.adjustments, adjustment] }));
+  }, []);
+
+  const removePayment = useCallback((id: string) => {
+    setState((s) => ({ ...s, payments: s.payments.filter((p) => p.id !== id) }));
+  }, []);
+
+  const removeAdjustment = useCallback((id: string) => {
+    setState((s) => ({ ...s, adjustments: s.adjustments.filter((a) => a.id !== id) }));
+  }, []);
+
   const traps = useMemo(() => activeCase?.traps ?? [], [activeCase]);
 
   const scoreTally = useMemo(() => {
@@ -363,6 +476,14 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     resolveLine,
     triggerTrap,
     setPerioTooth,
+    addPlanItem,
+    updatePlanItem,
+    removePlanItem,
+    acceptPlan,
+    postPayment,
+    postAdjustment,
+    removePayment,
+    removeAdjustment,
     scoreTally,
     traps,
   };

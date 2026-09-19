@@ -115,11 +115,11 @@ export function DentalAR() {
           </p>
         </div>
         <button
-          onClick={() => goTo("debrief")}
+          onClick={() => goTo("ledger")}
           disabled={!allResolved}
           className="rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {allResolved ? "Finish & debrief →" : "Resolve all lines to finish"}
+          {allResolved ? "Post to ledger →" : "Resolve all lines to finish"}
         </button>
       </div>
 

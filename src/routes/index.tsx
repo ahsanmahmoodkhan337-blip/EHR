@@ -1037,9 +1037,10 @@ function PublicLandingPage() {
           EHR & RCM Simulation Portal
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-500">
-          Master the complete patient encounter lifecycle — from clinical charting to claim payment.
+          Master the complete <strong>medical and dental</strong> revenue cycle — from clinical charting to claim payment.
           Practice as a <strong>Scribe</strong>, <strong>Medical Coder</strong>, <strong>Biller</strong>,
-          <strong> Prior Auth Specialist</strong>, and <strong>AR Voice Agent</strong> in one unified simulation.
+          <strong>Prior Auth Specialist</strong>, and <strong>AR Voice Agent</strong> — or switch to the dental track for
+          <strong> CDT coding</strong>, <strong>perio charting</strong>, and <strong>dental claim appeals</strong>.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
@@ -1056,14 +1057,14 @@ function PublicLandingPage() {
           </Link>
         </div>
         <p className="mt-4 text-center text-xs text-blue-600">
-          Note: 20$/ 5500 pkr provides access to whole RCM
+          Note: 20$/ 5500 pkr provides access to both the medical and dental RCM tracks
         </p>
       </section>
 
       {/* Pipeline Features — 5 Stages */}
       <section className="mx-auto max-w-5xl px-4 pb-8">
         <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold text-slate-700">The 5-Stage RCM Pipeline</h2>
+          <h2 className="text-2xl font-bold text-slate-700">The Medical RCM Pipeline</h2>
           <p className="mt-2 text-sm text-slate-400">Follow a patient encounter from exam room to final payment</p>
         </div>
 
@@ -1142,6 +1143,39 @@ function PublicLandingPage() {
               <p className="mt-1 text-xs leading-relaxed text-slate-500">{feat.desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Dental Track */}
+      <section className="mx-auto max-w-5xl px-4 pb-8">
+        <div className="rounded-2xl border border-teal-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-slate-700">Dental RCM Track</h2>
+                <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
+                  Included in the same access
+                </span>
+              </div>
+              <p className="mt-1 max-w-2xl text-sm text-slate-500">
+                A second full revenue cycle for dental billing and coding — built on Dentrix, Eaglesoft, and Open Dental
+                workflows. Practice <strong>CDT procedure selection</strong> with tooth/surface/quadrant notation, a visual
+                <strong> odontogram + perio chart</strong>, an <strong>ADA-style claim form</strong>, a 12-step benefit
+                adjudication engine (annual maximums, frequency limits, waiting periods, downgrade-as-downgrade), and
+                <strong> denial → appeal</strong> resolution.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+            {["CDT Coding", "Odontogram + Perio", "ADA Claim Form", "Denial → Appeal"].map((f) => (
+              <div key={f} className="rounded-lg bg-teal-50 px-3 py-2 text-center text-xs font-semibold text-teal-700">
+                {f}
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] text-slate-400">
+            Switch between the Medical and Dental tracks from inside the simulator — both are unlocked with the same login.
+          </p>
         </div>
       </section>
 
