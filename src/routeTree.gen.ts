@@ -14,6 +14,7 @@ import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as InstructorRouteImport } from './routes/instructor'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccessRouteImport } from './routes/access'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DentalRouteImport } from './routes/dental'
 
@@ -42,6 +43,11 @@ const AccessRoute = AccessRouteImport.update({
   path: '/access',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
@@ -83,16 +92,17 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/access' | '/admin' | '/dental' | '/instructor' | '/login' | '/quiz'
+  fullPaths: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/quiz'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/access' | '/admin' | '/dental' | '/instructor' | '/login' | '/quiz'
-  id: '__root__' | '/' | '/access' | '/admin' | '/dental' | '/instructor' | '/login' | '/quiz'
+  to: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/quiz'
+  id: '__root__' | '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/quiz'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessRoute: typeof AccessRoute
   AdminRoute: typeof AdminRoute
+  DashboardRoute: typeof DashboardRoute
   DentalRoute: typeof DentalRoute
   InstructorRoute: typeof InstructorRoute
   LoginRoute: typeof LoginRoute
@@ -129,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dental': {
       id: '/dental'
       path: '/dental'
@@ -157,6 +174,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessRoute: AccessRoute,
   AdminRoute: AdminRoute,
+  DashboardRoute: DashboardRoute,
   DentalRoute: DentalRoute,
   InstructorRoute: InstructorRoute,
   LoginRoute: LoginRoute,
