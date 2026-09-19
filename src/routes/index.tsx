@@ -611,19 +611,21 @@ function SummaryTab({
       {/* Recent Encounters */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Recent Encounters</p>
-        <table className="clinical-table">
-          <thead><tr><th>Date</th><th>Type</th><th>Provider</th><th>Diagnosis</th></tr></thead>
-          <tbody>
-            {(patient.encounters || []).slice(0, 3).map((enc) => (
-              <tr key={enc.id}>
-                <td>{new Date(enc.date).toLocaleDateString()}</td>
-                <td>{enc.type}</td>
-                <td>{enc.provider}</td>
-                <td className="max-w-xs truncate">{enc.diagnosis}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead><tr><th>Date</th><th>Type</th><th>Provider</th><th>Diagnosis</th></tr></thead>
+            <tbody>
+              {(patient.encounters || []).slice(0, 3).map((enc) => (
+                <tr key={enc.id}>
+                  <td>{new Date(enc.date).toLocaleDateString()}</td>
+                  <td>{enc.type}</td>
+                  <td>{enc.provider}</td>
+                  <td className="max-w-xs truncate">{enc.diagnosis}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -664,48 +666,50 @@ function MedicationsTab({ patientId }: { patientId: string }) {
   return (
     <div className="clinical-card">
       <p className="clinical-label mb-3">Medication List</p>
-      <table className="clinical-table">
-        <thead>
-          <tr>
-            <th>Medication</th>
-            <th>Dosage</th>
-            <th>Frequency</th>
-            <th>Route</th>
-            <th>Status</th>
-            <th>Prescribed</th>
-            {isScribe && <th></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {medications.map((med) => (
-            <tr key={med.id}>
-              <td className="font-medium">{med.name}</td>
-              <td>{med.dosage}</td>
-              <td>{med.frequency}</td>
-              <td>{med.route}</td>
-              <td>
-                <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-                  med.status === "active"
-                    ? "bg-green-100 text-green-700"
-                    : med.status === "discontinued"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-amber-100 text-amber-700"
-                }`}>
-                  {med.status}
-                </span>
-              </td>
-              <td className="text-xs text-slate-500">
-                {new Date(med.prescribedDate).toLocaleDateString()}
-              </td>
-              {isScribe && (
-                <td>
-                  <button onClick={() => removeMedication(med.id)} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
-                </td>
-              )}
+      <div className="overflow-x-auto">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Medication</th>
+              <th>Dosage</th>
+              <th>Frequency</th>
+              <th>Route</th>
+              <th>Status</th>
+              <th>Prescribed</th>
+              {isScribe && <th></th>}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {medications.map((med) => (
+              <tr key={med.id}>
+                <td className="font-medium">{med.name}</td>
+                <td>{med.dosage}</td>
+                <td>{med.frequency}</td>
+                <td>{med.route}</td>
+                <td>
+                  <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                    med.status === "active"
+                      ? "bg-green-100 text-green-700"
+                      : med.status === "discontinued"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-amber-100 text-amber-700"
+                  }`}>
+                    {med.status}
+                  </span>
+                </td>
+                <td className="text-xs text-slate-500">
+                  {new Date(med.prescribedDate).toLocaleDateString()}
+                </td>
+                {isScribe && (
+                  <td>
+                    <button onClick={() => removeMedication(med.id)} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {isScribe && (
         <div className="mt-3 space-y-1.5 rounded border border-dashed border-slate-300 p-2">
           <div className="grid grid-cols-3 gap-1">
@@ -816,97 +820,99 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       <div className="clinical-card col-span-2">
         <p className="clinical-label mb-3">Vital Signs</p>
-        <table className="clinical-table">
-          <thead>
-            <tr>
-              <th>Measurement</th>
-              <th>Value</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Blood Pressure</td>
-              <td className="font-medium">
-                {isScribe ? (
-                  <input
-                    type="text"
-                    value={vitals.bloodPressure}
-                    onChange={(e) => updateVital("bloodPressure", e.target.value)}
-                    className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
-                  />
-                ) : (
-                  <>{patient.vitals.bloodPressure} mmHg</>
-                )}
-              </td>
-              <td><span className={bpBadge.className}>{bpBadge.label}</span></td>
-            </tr>
-            <tr>
-              <td>Heart Rate</td>
-              <td className="font-medium">
-                {isScribe ? (
-                  <input
-                    type="text"
-                    value={vitals.heartRate}
-                    onChange={(e) => updateVital("heartRate", e.target.value)}
-                    className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
-                  />
-                ) : (
-                  <>{patient.vitals.heartRate} bpm</>
-                )}
-              </td>
-              <td><span className={hrBadge.className}>{hrBadge.label}</span></td>
-            </tr>
-            <tr>
-              <td>Temperature</td>
-              <td className="font-medium">
-                {isScribe ? (
-                  <input
-                    type="text"
-                    value={vitals.temperature}
-                    onChange={(e) => updateVital("temperature", e.target.value)}
-                    className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
-                  />
-                ) : (
-                  <>{patient.vitals.temperature} °F</>
-                )}
-              </td>
-              <td><span className={tempBadge.className}>{tempBadge.label}</span></td>
-            </tr>
-            <tr>
-              <td>Respiratory Rate</td>
-              <td className="font-medium">
-                {isScribe ? (
-                  <input
-                    type="text"
-                    value={vitals.respiratoryRate}
-                    onChange={(e) => updateVital("respiratoryRate", e.target.value)}
-                    className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
-                  />
-                ) : (
-                  <>{patient.vitals.respiratoryRate} /min</>
-                )}
-              </td>
-              <td><span className={rrBadge.className}>{rrBadge.label}</span></td>
-            </tr>
-            <tr>
-              <td>Oxygen Saturation</td>
-              <td className="font-medium">
-                {isScribe ? (
-                  <input
-                    type="text"
-                    value={vitals.oxygenSaturation}
-                    onChange={(e) => updateVital("oxygenSaturation", e.target.value)}
-                    className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
-                  />
-                ) : (
-                  <>{patient.vitals.oxygenSaturation}%</>
-                )}
-              </td>
-              <td><span className={o2Badge.className}>{o2Badge.label}</span></td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Measurement</th>
+                <th>Value</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Blood Pressure</td>
+                <td className="font-medium">
+                  {isScribe ? (
+                    <input
+                      type="text"
+                      value={vitals.bloodPressure}
+                      onChange={(e) => updateVital("bloodPressure", e.target.value)}
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                    />
+                  ) : (
+                    <>{patient.vitals.bloodPressure} mmHg</>
+                  )}
+                </td>
+                <td><span className={bpBadge.className}>{bpBadge.label}</span></td>
+              </tr>
+              <tr>
+                <td>Heart Rate</td>
+                <td className="font-medium">
+                  {isScribe ? (
+                    <input
+                      type="text"
+                      value={vitals.heartRate}
+                      onChange={(e) => updateVital("heartRate", e.target.value)}
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                    />
+                  ) : (
+                    <>{patient.vitals.heartRate} bpm</>
+                  )}
+                </td>
+                <td><span className={hrBadge.className}>{hrBadge.label}</span></td>
+              </tr>
+              <tr>
+                <td>Temperature</td>
+                <td className="font-medium">
+                  {isScribe ? (
+                    <input
+                      type="text"
+                      value={vitals.temperature}
+                      onChange={(e) => updateVital("temperature", e.target.value)}
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                    />
+                  ) : (
+                    <>{patient.vitals.temperature} °F</>
+                  )}
+                </td>
+                <td><span className={tempBadge.className}>{tempBadge.label}</span></td>
+              </tr>
+              <tr>
+                <td>Respiratory Rate</td>
+                <td className="font-medium">
+                  {isScribe ? (
+                    <input
+                      type="text"
+                      value={vitals.respiratoryRate}
+                      onChange={(e) => updateVital("respiratoryRate", e.target.value)}
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                    />
+                  ) : (
+                    <>{patient.vitals.respiratoryRate} /min</>
+                  )}
+                </td>
+                <td><span className={rrBadge.className}>{rrBadge.label}</span></td>
+              </tr>
+              <tr>
+                <td>Oxygen Saturation</td>
+                <td className="font-medium">
+                  {isScribe ? (
+                    <input
+                      type="text"
+                      value={vitals.oxygenSaturation}
+                      onChange={(e) => updateVital("oxygenSaturation", e.target.value)}
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                    />
+                  ) : (
+                    <>{patient.vitals.oxygenSaturation}%</>
+                  )}
+                </td>
+                <td><span className={o2Badge.className}>{o2Badge.label}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <div className="clinical-card">
         <p className="clinical-label mb-2">Recorded</p>
@@ -943,55 +949,57 @@ function LabsTab({ patientId }: { patientId: string }) {
   return (
     <div className="clinical-card">
       <p className="clinical-label mb-3">Lab Results</p>
-      <table className="clinical-table">
-        <thead>
-          <tr>
-            <th>Test</th>
-            <th>Value</th>
-            <th>Unit</th>
-            <th>Reference Range</th>
-            <th>Status</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(patient.labResults || []).map((lab) => (
-            <tr key={lab.id}>
-              <td className="font-medium">{lab.testName}</td>
-              <td>
-                {isScribe ? (
-                  <input
-                    type="text"
-                    value={editLabValues[lab.id] ?? lab.value}
-                    onChange={(e) => updateLabValue(lab.id, e.target.value)}
-                    className="w-20 rounded border border-slate-200 px-2 py-0.5 text-sm outline-none focus:border-blue-400"
-                  />
-                ) : (
-                  <>{lab.value}</>
-                )}
-              </td>
-              <td className="text-xs text-slate-500">{lab.unit}</td>
-              <td className="text-xs text-slate-500">{lab.referenceRange}</td>
-              <td>
-                <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-                  lab.status === "normal"
-                    ? "bg-green-100 text-green-700"
-                    : lab.status === "abnormal"
-                      ? "bg-amber-100 text-amber-700"
-                      : lab.status === "critical"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-slate-100 text-slate-500"
-                }`}>
-                  {lab.status}
-                </span>
-              </td>
-              <td className="text-xs text-slate-500">
-                {new Date(lab.date).toLocaleDateString()}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Value</th>
+              <th>Unit</th>
+              <th>Reference Range</th>
+              <th>Status</th>
+              <th>Date</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {(patient.labResults || []).map((lab) => (
+              <tr key={lab.id}>
+                <td className="font-medium">{lab.testName}</td>
+                <td>
+                  {isScribe ? (
+                    <input
+                      type="text"
+                      value={editLabValues[lab.id] ?? lab.value}
+                      onChange={(e) => updateLabValue(lab.id, e.target.value)}
+                      className="w-20 rounded border border-slate-200 px-2 py-0.5 text-sm outline-none focus:border-blue-400"
+                    />
+                  ) : (
+                    <>{lab.value}</>
+                  )}
+                </td>
+                <td className="text-xs text-slate-500">{lab.unit}</td>
+                <td className="text-xs text-slate-500">{lab.referenceRange}</td>
+                <td>
+                  <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                    lab.status === "normal"
+                      ? "bg-green-100 text-green-700"
+                      : lab.status === "abnormal"
+                        ? "bg-amber-100 text-amber-700"
+                        : lab.status === "critical"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-slate-100 text-slate-500"
+                  }`}>
+                    {lab.status}
+                  </span>
+                </td>
+                <td className="text-xs text-slate-500">
+                  {new Date(lab.date).toLocaleDateString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {isScribe && (
         <p className="mt-2 text-[10px] italic text-blue-500">Edit lab values above for charting practice</p>
       )}
