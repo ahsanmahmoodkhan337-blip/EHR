@@ -7,6 +7,7 @@ nothing in this directory imports React or touches UI.
 | --- | --- |
 | `payerScenarios.ts` | Three fictional payer plans (commercial PPO, Medicare Advantage HMO, Medicaid MCO) plus the five benefit scenarios each case exercises: clean-paid, medical-necessity denial, prior-auth-triggered, bundling/claim-edit, and benefit-exhausted |
 | `caseScenarios.ts` | Seven graded cases (beginner / intermediate / advanced) with deliberate traps, expected line-by-line adjudication and grading rubrics |
+| `scribeTemplates.ts` | Dot-phrase (smart-phrase) library by note section (HPI / ROS / PE / A&P / Plan) plus one chief-complaint SOAP skeleton per case, with ICD-10 references that resolve to `icd10Data.ts` |
 
 Import from the barrel:
 
@@ -59,6 +60,37 @@ exercise it rather than duplicate it:
 2. **Conditional prior authorisation (MCASE-005).** A CPT code on the plan's PA
    list (`payerScenarios.ts`), which the coder queue detects and routes to the
    prior-authorisation stage.
+
+## Scribe templates workflow
+
+`scribeTemplates.ts` is the content half of "make scribing more efficient /
+practical" — a dot-phrase library and chief-complaint SOAP skeletons the
+frontend can turn into an autocomplete / template picker.
+
+### How the UI should consume it
+
+1. **Dot-phrase autocomplete** reads `DOT_PHRASES`. Trigger on a leading `.`,
+   match against `shortcode`, and insert `expansion`. Group the picker by
+   `section` using `dotPhrasesBySection()`. Show `teachingNote` as the hint.
+2. **Template picker** reads `CHIEF_COMPLAINT_TEMPLATES`. Choosing a complaint
+   seeds the note with the SOAP skeleton: `subjective.hpiPrompt` become the
+   fields the scribe fills, `subjective.ros` and `objective.exam` prefill the
+   ROS/PE blocks, and `assessment` seeds the diagnosis lines.
+3. **Diagnosis lines resolve.** Each `TemplateDiagnosisField.code` is guaranteed
+   to exist in `ICD10_CODES` (`icd10Data.ts`), so the UI can look up the full
+   description, chapter, and coding guidelines and display them alongside the
+   scribe's plain-language `label`.
+4. **`templateForCase(caseId)`** ties a template to its graded case, so a case
+   runner can open the matching skeleton when the student reaches the
+   scribe/provider stage.
+
+### Schema notes
+
+- `usesShortcodes` on a template lists the dot-phrases its ROS / exam / plan text
+  was drawn from, so the UI can offer to insert them rather than paste inline.
+- `label` fields are original paraphrases, never the official ICD-10 descriptor.
+  The `code` is the only machine-resolvable reference.
+- All seven templates map one-to-one onto `MEDICAL_CASE_SCENARIOS` by `caseId`.
 
 ## Notes for the UI work
 

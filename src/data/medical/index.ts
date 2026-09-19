@@ -57,3 +57,19 @@ export {
   casesByDifficulty,
   trapsForStage,
 } from "./caseScenarios";
+export type {
+  NoteSection,
+  DotPhrase,
+  TemplateDiagnosisField,
+  ChiefComplaintTemplate,
+} from "./scribeTemplates";
+export {
+  DOT_PHRASES,
+  DOT_PHRASE_INDEX,
+  CHIEF_COMPLAINT_TEMPLATES,
+  CHIEF_COMPLAINT_TEMPLATE_INDEX,
+  findDotPhrase,
+  dotPhrasesBySection,
+  findChiefComplaintTemplate,
+  templateForCase,
+} from "./scribeTemplates";
