@@ -28,6 +28,7 @@ import {
   getDurationLabel,
   revokeApprovedPhone,
 } from "../store/accessStore";
+import { recordLogin } from "../store/accountSecurity";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -70,6 +71,9 @@ function LoginPage() {
       }
 
       setLoggedInPhone(cleaned);
+
+      // Record device binding + session + login log (detection-only, never blocks).
+      await recordLogin(cleaned);
 
       // Show expiry warning if < 30 days
       const days = getDaysRemaining(cleaned);
