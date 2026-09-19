@@ -10,7 +10,7 @@
  *   benefitRules.ts   Fictional payer plans: maximums, frequencies, waiting
  *                     periods, missing tooth clause, alternate benefits
  *   denialReasons.ts  Dental denials with ordered corrective actions
- *   caseScenarios.ts  Three graded cases with deliberate teaching traps
+ *   caseScenarios.ts  Seven graded cases with deliberate teaching traps
  *   toothNotation.ts  Universal / FDI / Palmer cross-reference and surfaces
  *
  * See README.md in this directory for the copyright rules that govern any

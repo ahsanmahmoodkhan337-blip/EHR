@@ -8,7 +8,7 @@ imports React or touches UI.
 | `cdtCodes.ts` | CDT teaching subset (99 codes) with original descriptions, claim-line requirements, illustrative fees, attachment expectations and links to likely denials |
 | `benefitRules.ts` | Three fictional payer plans: annual maximum, deductible, coinsurance by class, frequency limits, age limits, waiting periods, missing tooth clause, alternate benefit provisions, coordination of benefits, plus the 12-step adjudication order |
 | `denialReasons.ts` | 39 dental denial scenarios with ordered corrective actions, appealability, and whether the balance is patient-billable |
-| `caseScenarios.ts` | Three graded cases (beginner / intermediate / advanced) with deliberate traps, expected line-by-line adjudication and grading rubrics |
+| `caseScenarios.ts` | Seven graded cases (beginner / intermediate / advanced) with deliberate traps, expected line-by-line adjudication and grading rubrics |
 | `toothNotation.ts` | Universal / FDI / Palmer cross-reference for all 52 teeth, surfaces, quadrants, oral-cavity areas, and a surface validator |
 | `coverage.ts` | Runnable adjudication engine — `evaluateCoverage()` for one claim line, `evaluateClaim()` for a whole claim, returning a verdict per step of `ADJUDICATION_ORDER` |
 
