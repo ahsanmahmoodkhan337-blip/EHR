@@ -83,7 +83,7 @@ function LoginPage() {
       if (!localStorage.getItem("hh_student_name")) {
         localStorage.setItem("hh_student_name", cleaned);
       }
-      navigate({ to: "/" });
+      navigate({ to: "/dashboard" });
       return;
     }
 
@@ -108,7 +108,7 @@ function LoginPage() {
   const handleSaveName = () => {
     if (studentName.trim()) {
       localStorage.setItem("hh_student_name", studentName.trim());
-      navigate({ to: "/" });
+      navigate({ to: "/dashboard" });
     }
   };
 
