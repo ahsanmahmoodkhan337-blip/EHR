@@ -153,12 +153,12 @@
   }
   .app-shell-body {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     overflow: hidden;
   }
-  @media (max-width: 1024px) {
+  @media (max-width: 1023.98px) {
     .app-shell-body {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 
