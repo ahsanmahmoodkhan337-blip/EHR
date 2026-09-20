@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { ICD10_CODES, searchICD10 } from "../CodingQueue/icd10Data";
 import type { ICD10Code } from "../CodingQueue/icd10Data";
+import { DotPhraseTextarea } from "../scribe/DotPhraseTextarea";
+import { NoteTemplatePicker } from "../scribe/NoteTemplatePicker";
 
 // ─── One-Click Macros ──────────────────────────────────────────────
 
@@ -86,11 +88,17 @@ export interface SoapNoteData {
 
 interface AssessmentPlanStageProps {
   patientName?: string;
+  chiefComplaint?: string;
   note?: SoapNoteData;
   onNoteChange?: (note: SoapNoteData) => void;
 }
 
-export function AssessmentPlanStage({ patientName, note, onNoteChange }: AssessmentPlanStageProps) {
+export function AssessmentPlanStage({
+  patientName,
+  chiefComplaint,
+  note,
+  onNoteChange,
+}: AssessmentPlanStageProps) {
   const [showMacros, setShowMacros] = useState(true);
   const [activeMacroCategory, setActiveMacroCategory] = useState(0);
   const [lastInserted, setLastInserted] = useState("");
@@ -150,6 +158,12 @@ export function AssessmentPlanStage({ patientName, note, onNoteChange }: Assessm
         </button>
       </div>
 
+      {/* Chief-complaint note templates (Epic NoteWriter-style) */}
+      <NoteTemplatePicker
+        chiefComplaint={chiefComplaint}
+        onApply={(next) => updateNote(next)}
+      />
+
       <div className="flex gap-4">
         {/* Main SOAP Note Area */}
         <div className="flex-1 space-y-3">
@@ -169,9 +183,10 @@ export function AssessmentPlanStage({ patientName, note, onNoteChange }: Assessm
                 </button>
               )}
             </div>
-            <textarea
+            <DotPhraseTextarea
               value={currentNote.subjective}
-              onChange={(e) => updateField("subjective", e.target.value)}
+              onChange={(value) => updateField("subjective", value)}
+              section={["HPI", "ROS"]}
               placeholder="Patient's report of symptoms, chief complaint, HPI, review of systems..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />
@@ -193,9 +208,10 @@ export function AssessmentPlanStage({ patientName, note, onNoteChange }: Assessm
                 </button>
               )}
             </div>
-            <textarea
+            <DotPhraseTextarea
               value={currentNote.objective}
-              onChange={(e) => updateField("objective", e.target.value)}
+              onChange={(value) => updateField("objective", value)}
+              section={["PE", "ROS"]}
               placeholder="Vital signs, physical exam findings, lab results, imaging..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />
@@ -217,9 +233,10 @@ export function AssessmentPlanStage({ patientName, note, onNoteChange }: Assessm
                 </button>
               )}
             </div>
-            <textarea
+            <DotPhraseTextarea
               value={currentNote.assessment}
-              onChange={(e) => updateField("assessment", e.target.value)}
+              onChange={(value) => updateField("assessment", value)}
+              section="A&P"
               placeholder="Diagnoses, differentials, clinical impression, problem list updates..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />
@@ -262,9 +279,10 @@ export function AssessmentPlanStage({ patientName, note, onNoteChange }: Assessm
                 </button>
               )}
             </div>
-            <textarea
+            <DotPhraseTextarea
               value={currentNote.plan}
-              onChange={(e) => updateField("plan", e.target.value)}
+              onChange={(value) => updateField("plan", value)}
+              section="Plan"
               placeholder="Medication changes, orders, referrals, follow-up plan, patient education..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />

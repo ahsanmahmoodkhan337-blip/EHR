@@ -1847,6 +1847,7 @@ function Home() {
                     {activeStage === "assessment-plan" && (
                       <AssessmentPlanStage
                         patientName={displayName || `${selectedPatient.firstName} ${selectedPatient.lastName}`}
+                        chiefComplaint={editablePatientData.chiefComplaint || selectedPatient.chiefComplaint}
                         note={soapNote}
                         onNoteChange={setSoapNote}
                       />
