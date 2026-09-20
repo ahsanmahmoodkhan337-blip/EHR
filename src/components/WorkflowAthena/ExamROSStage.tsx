@@ -12,6 +12,7 @@
 import { useState, useEffect } from "react";
 import { Stethoscope, FileText, CheckCircle2, XCircle } from "lucide-react";
 import type { SoapNoteData } from "./AssessmentPlanStage";
+import { DotPhraseTextarea } from "../scribe/DotPhraseTextarea";
 
 // ─── ROS System Definitions ────────────────────────────────────────
 
@@ -255,10 +256,9 @@ export function ExamROSStage({ patientName, note, onNoteChange }: ExamROSStagePr
           <FileText className="h-4 w-4 text-blue-600" />
           <span className="clinical-label">Physical Exam Findings</span>
         </div>
-        <textarea
+        <DotPhraseTextarea
           value={examNotes}
-          onChange={(e) => {
-            const newVal = e.target.value;
+          onChange={(newVal) => {
             setExamNotes(newVal);
             if (onNoteChange && note) {
               const abnormalItems = Object.entries(rosState)
@@ -270,6 +270,7 @@ export function ExamROSStage({ patientName, note, onNoteChange }: ExamROSStagePr
               onNoteChange({ ...note, objective: rosSummary + newVal });
             }
           }}
+          section={["PE", "ROS"]}
           placeholder="Document physical exam findings here...\n\nExample:\n- General: Alert and oriented, in no acute distress\n- HEENT: Normocephalic, mucous membranes moist\n- CV: Regular rate and rhythm, no murmurs\n- Resp: Clear to auscultation bilaterally\n- Abd: Soft, non-tender, non-distended\n- MSK: Full range of motion all extremities\n- Neuro: CN II-XII intact, strength 5/5 all groups"
           className="min-h-[180px] w-full resize-y rounded-lg border border-slate-200 p-3 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
         />
