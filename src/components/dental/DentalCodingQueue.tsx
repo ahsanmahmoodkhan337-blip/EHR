@@ -34,6 +34,7 @@ import {
 import { useDentalTrack, type DentalClaimLine } from "./DentalTrackStore";
 import { Odontogram } from "./Odontogram";
 import { PerioChart } from "./PerioChart";
+import { DentalClaimScrub } from "./DentalClaimScrub";
 
 const style = {
   card: "rounded-xl border border-slate-200 bg-white shadow-sm",
@@ -493,6 +494,12 @@ export function DentalCodingQueue() {
             )}
           </div>
         )}
+
+        {/* claim-scrubbing edit checks (warnings, pre-submit) */}
+        <div className={style.card + " p-3"}>
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Claim scrub</p>
+          <DentalClaimScrub />
+        </div>
 
         {/* claim lines */}
         <div className={style.card + " p-3"}>
