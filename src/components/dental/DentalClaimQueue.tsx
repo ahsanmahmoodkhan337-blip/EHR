@@ -10,10 +10,11 @@
 
 import { useMemo } from "react";
 import { CheckCircle2, Clock, FileText, Send, AlertTriangle, RotateCcw, Phone, User, ArrowRight } from "lucide-react";
-import { ERA_REMITTANCES, findCDT, findDenial } from "../../data/dental";
+import { DENIAL_SCENARIOS, ERA_REMITTANCES, findCDT, findDenial } from "../../data/dental";
 import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
 import { adjudicateDentalClaim } from "./adjudication";
 import { DentalEraRemittance } from "./DentalEraRemittance";
+import { DentalDenialDebrief } from "./DentalDenialDebrief";
 
 type ClaimStage = "created" | "sent" | "pending" | "settled";
 
@@ -43,6 +44,11 @@ export function DentalClaimQueue() {
 
   const remittances = useMemo(
     () => ERA_REMITTANCES.filter((r) => r.payerPlanId === planId),
+    [planId],
+  );
+
+  const denialScenarios = useMemo(
+    () => DENIAL_SCENARIOS.filter((s) => s.planId === planId),
     [planId],
   );
 
@@ -172,6 +178,13 @@ export function DentalClaimQueue() {
               <DentalEraRemittance key={r.id} remittance={r} />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Denial debrief — situations, expected lines, and corrective action */}
+      {sent && denialScenarios.length > 0 && (
+        <div className="mt-4">
+          <DentalDenialDebrief scenarios={denialScenarios} />
         </div>
       )}
 
