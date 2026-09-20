@@ -13,6 +13,7 @@ imports React or touches UI.
 | `coverage.ts` | Runnable adjudication engine — `evaluateCoverage()` for one claim line, `evaluateClaim()` for a whole claim, returning a verdict per step of `ADJUDICATION_ORDER` |
 | `attachmentRequirements.ts` | Structured map from CDT code → required attachments (radiographs, perio charting, narrative, …) plus the predetermination-candidate list with per-code guidance |
 | `predeterminationRules.ts` | Three predetermination scenarios: the payer's line-by-line estimate (allowed / downgraded / excluded / frequency-limited) and the trap around requesting one vs submitting directly |
+| `eraRemittance.ts` | Three sample ERA (835) remittances with line-level CAS adjustments, plus three denial-depth scenarios (missing attachment, COB, non-covered) wired to existing codes and plans |
 
 Import from the barrel:
 
@@ -101,6 +102,44 @@ frontend should drive from these two files rather than from the loose
   `denialId: "DEN-ALT-BENEFIT"` and a `paidAtAllowedUsd`, but the money is an
   adjustment that leaves the patient a documented upgrade balance — the UI must
   render it as an adjustment, not as a rejected line.
+
+## ERA (835) remittance workflow
+
+`eraRemittance.ts` is the content half of "make dental billing better" — teaching
+students to read a remittance line by line instead of looking only at the check
+total.
+
+### How the UI should consume it
+
+1. **Render a remittance** from `ERA_REMITTANCES`. Each `EraClaimLine` carries the
+   four money buckets (`paidUsd`, `patientOwesUsd`, `writeOffUsd`,
+   `providerAdjustmentUsd`) plus an `adjustments` array whose `groupCode` +
+   `reasonCode` resolve to `denialReasons.ts` via `denialId`. Show the CAS codes
+   as chips (e.g. "CO-59") with the `note` as the tooltip.
+2. **The money invariant is what the student checks.** Every line satisfies
+   `chargedUsd = allowedUsd + writeOffUsd` and
+   `allowedUsd = paidUsd + patientOwesUsd + providerAdjustmentUsd`. A "did the
+   student reconcile the remittance?" exercise can be scored by checking whether
+   they spot a line that breaks the pattern they were taught.
+3. **`disposition` is the top-level read**: `paid`, `paid-with-adjustment`, or
+   `denied`. A `paid-with-adjustment` line that carries a CO-59 must be read as
+   *paid at a lower allowance*, never as a denial.
+4. **`DENIAL_SCENARIOS`** are the drill layer — a situation, the expected
+   adjudication lines, and the correct action. Render them as a "what would the
+   remittance say?" exercise.
+
+### Schema notes
+
+- `EraClaimLine` uses a four-bucket model so CO denials (not paid, not billable)
+  are distinguished from PR denials (patient responsibility). The existing
+  `ExpectedLineOutcome` in `caseScenarios.ts` folds both into one
+  `patientOwesUsd`; here the extra `providerAdjustmentUsd` bucket makes the
+  distinction explicit, which is what reading a real remittance requires.
+- `EraClaimLevelAdjustment` is a PLB entry with a signed `amountUsd` (negative =
+  recovery/takeback). `totalPaidUsd` equals the sum of line `paidUsd` plus these
+  signed amounts.
+- `DentalDenialScenario.expectedLines` reuses `EraClaimLine`, so one renderer
+  draws both a remittance and a drill's expected outcome.
 
 ## Notes for the UI work
 
