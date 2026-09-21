@@ -26,7 +26,9 @@
  * console-logged, ready for a future admin screen to read.
  */
 
-import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persistence";
+import { loadUserData, saveUserData, syncUserDataFromSupabase, type PersistedUserData } from "./persistence";
+import { normalizePhone } from "./accessStore";
+import { supabase } from "./supabase";
 
 const DEVICE_ID_KEY = "hh_device_id";
 const MAX_LOG_ENTRIES = 200;
@@ -71,6 +73,24 @@ export interface SharingSignal {
   concurrentLoginDetected: boolean;
   /** ISO timestamp of the most recent login event, if any. */
   lastLoginAt: string | null;
+  /** Roll-up flag: multi-device OR concurrent login observed. */
+  flagged: boolean;
+}
+
+/**
+ * Compact, device-agnostic sharing summary for admin review. Unlike
+ * `SharingSignal`, this has no `currentDeviceId`/`isNewDevice` (those describe
+ * the *reader's* device); it only carries the fields an admin cares about when
+ * scanning the approved-user list for shared accounts.
+ */
+export interface AdminSharingSummary {
+  phone: string;
+  /** Number of distinct devices this phone has logged in from. */
+  distinctDeviceCount: number;
+  /** ISO timestamp of the most recent login event, if any. */
+  lastLoginAt: string | null;
+  /** True when a concurrent (multi-device) login was observed. */
+  concurrentLoginDetected: boolean;
   /** Roll-up flag: multi-device OR concurrent login observed. */
   flagged: boolean;
 }
@@ -206,4 +226,68 @@ export function getSharingSignal(phone: string | null | undefined): SharingSigna
 export function getLoginLog(phone: string | null | undefined): LoginEvent[] {
   if (!phone) return [];
   return loadUserData(phone)?.security?.loginLog ?? [];
+}
+
+/**
+ * Build a device-agnostic summary from a per-phone security state. Pure and
+ * side-effect free so it can back both the local signal and the admin summary.
+ */
+function summarizeSharingState(phone: string, state: AccountSecurityState | null): AdminSharingSummary {
+  const deviceCount = state?.deviceIds.length ?? 0;
+  const sawConcurrent = state?.loginLog.some((e) => e.event === "concurrent-login") ?? false;
+  const last = state?.loginLog[state.loginLog.length - 1] ?? null;
+  return {
+    phone,
+    distinctDeviceCount: deviceCount,
+    lastLoginAt: last?.timestamp ?? null,
+    concurrentLoginDetected: sawConcurrent,
+    flagged: deviceCount > 1 || sawConcurrent,
+  };
+}
+
+/**
+ * Fetch sharing summaries for a list of phones for the admin panel. Reads the
+ * existing `user_data` table (the same blob the student's device already writes
+ * on login via `recordLogin`) — no new table/column. Falls back to whatever is
+ * in this browser's localStorage (usually nothing for other students) when
+ * Supabase is unavailable, so the admin view degrades to "no activity" instead
+ * of breaking. Detection-only: a determined client can still bypass it.
+ *
+ * Keys the result by the EXACT phone strings passed in, but matches Supabase
+ * rows by normalized phone so a student who typed their number differently at
+ * login vs. registration still surfaces their signal.
+ */
+export async function fetchAdminSharingSummaries(
+  phones: string[],
+): Promise<Record<string, AdminSharingSummary>> {
+  const unique = [...new Set(phones.map((p) => (p || "").trim()).filter(Boolean))];
+  const result: Record<string, AdminSharingSummary> = {};
+  for (const p of unique) {
+    result[p] = summarizeSharingState(p, loadUserData(p)?.security ?? null);
+  }
+  if (!supabase || unique.length === 0) return result;
+  try {
+    const { data, error } = await supabase
+      .from("user_data")
+      .select("phone, data")
+      .in("phone", unique);
+    if (error) {
+      console.warn("fetchAdminSharingSummaries: Supabase read failed, using local:", error.message);
+      return result;
+    }
+    const byNormalized = new Map<string, AccountSecurityState | null>();
+    for (const row of (data ?? [])) {
+      const blob = row?.data as PersistedUserData | undefined;
+      byNormalized.set(normalizePhone(String(row?.phone ?? "")), blob?.security ?? null);
+    }
+    for (const p of unique) {
+      const state = byNormalized.get(normalizePhone(p));
+      if (state !== undefined) {
+        result[p] = summarizeSharingState(p, state);
+      }
+    }
+  } catch (e) {
+    console.warn("fetchAdminSharingSummaries: sync failed, using local:", e);
+  }
+  return result;
 }
