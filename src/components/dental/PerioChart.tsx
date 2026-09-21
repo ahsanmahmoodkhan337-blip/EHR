@@ -67,7 +67,7 @@ export function PerioChart() {
               type="button"
               onClick={() => setDentition(d)}
               className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                dentition === d ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                dentition === d ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               {d === "permanent" ? "Permanent" : "Primary"}

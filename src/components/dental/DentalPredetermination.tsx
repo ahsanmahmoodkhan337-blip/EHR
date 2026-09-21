@@ -91,7 +91,7 @@ export function DentalPredetermination() {
       <div className="mb-3 flex items-center justify-between gap-2">
         <div>
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
-            <ClipboardCheck className="h-4 w-4 text-blue-600" /> Predetermination &amp; attachments
+            <ClipboardCheck className="h-4 w-4 text-teal-600" /> Predetermination &amp; attachments
           </h3>
           <p className="text-[10px] text-slate-400">
             Gather the payer's required attachments and put the estimate in writing before treatment.
@@ -146,11 +146,11 @@ export function DentalPredetermination() {
                 </div>
 
                 {candidate && driver && (
-                  <div className="mt-1.5 rounded-md bg-blue-50 px-2 py-1.5 ring-1 ring-blue-100">
-                    <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-blue-700">
+                  <div className="mt-1.5 rounded-md bg-teal-50 px-2 py-1.5 ring-1 ring-teal-100">
+                    <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-teal-700">
                       Predetermination candidate · {DRIVER_LABEL[driver]}
                     </span>
-                    <p className="mt-1 text-[10px] leading-snug text-blue-800">{candidate.guidance}</p>
+                    <p className="mt-1 text-[10px] leading-snug text-teal-800">{candidate.guidance}</p>
                   </div>
                 )}
 
@@ -222,10 +222,10 @@ export function DentalPredetermination() {
       {/* ── selected scenario detail ─────────────────────────────────── */}
       {selectedScenario && (
         <div className="mt-3 space-y-3">
-          <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
-            <p className="text-[11px] font-semibold text-blue-800">{selectedScenario.title}</p>
-            <p className="mt-0.5 text-[10px] leading-snug text-blue-700">{selectedScenario.plannedTreatment}</p>
-            <p className="mt-1.5 text-[10px] leading-snug text-blue-700">
+          <div className="rounded-xl border border-teal-100 bg-teal-50 p-3">
+            <p className="text-[11px] font-semibold text-teal-800">{selectedScenario.title}</p>
+            <p className="mt-0.5 text-[10px] leading-snug text-teal-700">{selectedScenario.plannedTreatment}</p>
+            <p className="mt-1.5 text-[10px] leading-snug text-teal-700">
               <span className="font-semibold">Why predetermine: </span>
               {selectedScenario.predeterminationRationale}
             </p>
@@ -276,7 +276,7 @@ function ScenarioCard({
   return (
     <div
       className={`flex flex-col rounded-xl border p-3 shadow-sm ${
-        selected ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white"
+        selected ? "border-teal-300 bg-teal-50" : "border-slate-200 bg-white"
       }`}
     >
       <div className="flex items-center gap-1.5">
@@ -293,7 +293,7 @@ function ScenarioCard({
           {scenario.difficulty}
         </span>
         {matchesPlan && (
-          <span className="ml-auto rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-semibold text-blue-700">
+          <span className="ml-auto rounded-full bg-teal-100 px-1.5 py-0.5 text-[9px] font-semibold text-teal-700">
             matches your plan
           </span>
         )}
@@ -304,7 +304,7 @@ function ScenarioCard({
       </p>
       <button
         onClick={onRequest}
-        className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500"
+        className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-500"
       >
         <Receipt className="h-3.5 w-3.5" /> Request predetermination
       </button>

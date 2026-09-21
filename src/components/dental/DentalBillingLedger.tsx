@@ -104,14 +104,14 @@ export function DentalBillingLedger() {
               <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">{code}</code>
               <span className="text-[11px] font-medium text-slate-700">{cdt?.shortName ?? "Unknown code"}</span>
               {claimLine.tooth && (
-                <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] text-blue-700">
+                <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[9px] text-teal-700">
                   Tooth #{claimLine.tooth}
                   {claimLine.surfaces ? ` · ${claimLine.surfaces}` : ""}
                   {tooth ? ` (${tooth.name})` : ""}
                 </span>
               )}
               {claimLine.quadrant && (
-                <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] text-blue-700">Area {claimLine.quadrant}</span>
+                <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[9px] text-teal-700">Area {claimLine.quadrant}</span>
               )}
               <span className="text-[9px] text-slate-400">DOS {claimLine.dateOfService}</span>
               <span className="ml-auto text-[11px] font-semibold text-slate-700">${claimLine.feeUsd.toFixed(2)}</span>
@@ -254,7 +254,7 @@ export function DentalBillingLedger() {
         </span>
         <button
           onClick={() => goTo("claims")}
-          className="ml-auto flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
+          className="ml-auto flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"
         >
           <Phone className="h-3.5 w-3.5" /> View claim status →
         </button>
@@ -284,7 +284,7 @@ function ClaimFormHeader({
         </div>
         <div className="flex items-center gap-1.5">
           {plan && (
-            <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+            <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700">
               {plan.payerName} · {plan.planName}
             </span>
           )}
@@ -297,7 +297,7 @@ function ClaimFormHeader({
       {/* four blocks: payer / subscriber / patient / billing provider */}
       <div className="grid grid-cols-1 gap-3 px-3 py-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <ClaimBlock
-          icon={<Landmark className="h-3.5 w-3.5 text-blue-600" />}
+          icon={<Landmark className="h-3.5 w-3.5 text-teal-600" />}
           title="Insurance / Plan"
           rows={[
             ["Plan", plan ? `${plan.planName} (${plan.planType})` : "—"],
