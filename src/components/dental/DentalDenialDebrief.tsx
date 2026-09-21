@@ -28,7 +28,7 @@ export function DentalDenialDebrief({ scenarios }: { scenarios: DentalDenialScen
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
-        <BookOpenCheck className="h-4 w-4 text-blue-600" />
+        <BookOpenCheck className="h-4 w-4 text-teal-600" />
         <div>
           <h3 className="text-sm font-bold text-slate-800">Denial debrief — situations to learn from</h3>
           <p className="text-[10px] text-slate-400">The situation, the lines the payer would return, and the ordered corrective action.</p>
@@ -42,7 +42,7 @@ export function DentalDenialDebrief({ scenarios }: { scenarios: DentalDenialScen
               <DenialTag denialId={s.denialId} />
               <span className="ml-auto flex flex-wrap gap-1">
                 {s.procedureCodes.map((c) => (
-                  <span key={c} className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-semibold text-blue-700">
+                  <span key={c} className="rounded bg-teal-50 px-1.5 py-0.5 text-[9px] font-semibold text-teal-700">
                     {c}
                   </span>
                 ))}

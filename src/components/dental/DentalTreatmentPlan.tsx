@@ -193,13 +193,13 @@ export function DentalTreatmentPlan() {
           <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={() => goTo("predetermination")}
-              className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              className="flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100"
             >
               <Receipt className="h-3.5 w-3.5" /> Predetermination
             </button>
             <button
               onClick={accept}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"
             >
               <CheckCircle2 className="h-3.5 w-3.5" /> Accept treatment →
             </button>
@@ -406,7 +406,7 @@ export function DentalTreatmentPlan() {
                       {candidate && (
                         <button
                           onClick={() => goTo("predetermination")}
-                          className="ml-auto flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-semibold text-blue-700 hover:bg-blue-200"
+                          className="ml-auto flex items-center gap-1 rounded-full bg-teal-100 px-2 py-0.5 text-[9px] font-semibold text-teal-700 hover:bg-teal-200"
                         >
                           <Receipt className="h-3 w-3" /> Predetermine
                         </button>
@@ -432,7 +432,7 @@ export function DentalTreatmentPlan() {
           </button>
           <button
             onClick={accept}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
+            className="flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"
           >
             Accept treatment <ArrowRight className="h-3.5 w-3.5" />
           </button>

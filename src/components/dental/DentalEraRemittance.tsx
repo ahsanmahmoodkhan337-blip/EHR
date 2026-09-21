@@ -35,10 +35,10 @@ export function DentalEraRemittance({ remittance }: { remittance: EraRemittance 
       <div className="border-b border-slate-200 bg-slate-50 px-3 py-2.5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1 text-xs font-bold text-slate-800">
-            <FileText className="h-3.5 w-3.5 text-blue-600" /> ERA {remittance.id}
+            <FileText className="h-3.5 w-3.5 text-teal-600" /> ERA {remittance.id}
           </span>
           <span className="text-[10px] font-medium text-slate-600">{remittance.title}</span>
-          <span className="ml-auto rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+          <span className="ml-auto rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
             {remittance.payerPlanId} · {fmtUsd(remittance.totalPaidUsd)} paid
           </span>
         </div>
@@ -118,7 +118,7 @@ export function DentalEraRemittance({ remittance }: { remittance: EraRemittance 
       {remittance.teachingPoints.length > 0 && (
         <div className="border-t border-slate-100 px-3 py-2">
           <p className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-500">
-            <BadgeCheck className="h-3 w-3 text-blue-600" /> Teaching points
+            <BadgeCheck className="h-3 w-3 text-teal-600" /> Teaching points
           </p>
           <ul className="list-disc space-y-0.5 pl-4 text-[10px] leading-snug text-slate-600">
             {remittance.teachingPoints.map((t, i) => (

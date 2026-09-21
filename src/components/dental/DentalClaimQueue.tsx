@@ -169,7 +169,7 @@ export function DentalClaimQueue() {
               <h3 className="text-sm font-bold text-slate-800">ERA (835) remittance</h3>
               <p className="text-[10px] text-slate-400">Read the payer's electronic remittance and reconcile it against your claim.</p>
             </div>
-            <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
+            <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
               {remittances.length} sample{remittances.length === 1 ? "" : "s"}
             </span>
           </div>
@@ -196,7 +196,7 @@ export function DentalClaimQueue() {
       <div className="mt-3 flex justify-end">
         <button
           onClick={() => goTo("ar")}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
+          className="flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"
         >
           Continue to AR follow-up <ArrowRight className="h-3.5 w-3.5" />
         </button>

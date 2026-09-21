@@ -117,7 +117,7 @@ export function DentalAR() {
         <button
           onClick={() => goTo("ledger")}
           disabled={!allResolved}
-          className="rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="rounded-lg bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           {allResolved ? "Post to ledger →" : "Resolve all lines to finish"}
         </button>
@@ -188,7 +188,7 @@ export function DentalAR() {
                       className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold ${
                         isTarget && callState !== "idle"
                           ? "bg-red-600 text-white"
-                          : "bg-blue-700 text-white hover:bg-blue-600"
+                          : "bg-teal-700 text-white hover:bg-teal-600"
                       }`}
                     >
                       {isTarget && callState !== "idle" ? <PhoneOff className="h-3.5 w-3.5" /> : <Phone className="h-3.5 w-3.5" />}
@@ -197,7 +197,7 @@ export function DentalAR() {
 
                     <button
                       onClick={() => resolveLine(lineId, primary.res)}
-                      className="rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-500"
+                      className="rounded-lg bg-teal-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-teal-500"
                     >
                       {primary.label}
                     </button>
@@ -245,7 +245,7 @@ export function DentalAR() {
                         <button
                           onClick={endCall}
                           disabled={!callNote.trim()}
-                          className="rounded-lg bg-blue-700 px-3 py-1 text-[10px] font-semibold text-white hover:bg-blue-600 disabled:bg-slate-300"
+                          className="rounded-lg bg-teal-700 px-3 py-1 text-[10px] font-semibold text-white hover:bg-teal-600 disabled:bg-slate-300"
                         >
                           Log call
                         </button>

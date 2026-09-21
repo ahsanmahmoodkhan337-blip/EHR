@@ -267,7 +267,7 @@ export function DentalPatientLedger() {
       <div className="mt-3 flex justify-end">
         <button
           onClick={() => goTo("debrief")}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
+          className="flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"
         >
           Finish & review debrief <ArrowRight className="h-3.5 w-3.5" />
         </button>
