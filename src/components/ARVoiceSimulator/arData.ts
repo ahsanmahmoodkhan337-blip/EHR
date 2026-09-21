@@ -372,6 +372,22 @@ export const AR_SCENARIOS: ARScenario[] = [
     script: "Hi, I'm calling about denial code CO-119 on claim #[ClaimID] for [PatientName]. The service required prior authorization. Can you tell me whether you accept a retrospective review, and what documentation you need to consider one?",
     resolution: "Ask whether retrospective review is available and what clinical documentation is required. Submit the clinical package showing the medical necessity, and once approved reference the authorization number on the corrected claim."
   },
+  {
+    id: "partial-pay-deductible",
+    type: "partial-pay",
+    title: "Partial Pay — Deductible & Coinsurance",
+    description: "The claim paid, but less than the patient expected because a deductible and coinsurance applied.",
+    script: "Hi, I'm calling about claim #[ClaimID] for [PatientName]. The remittance shows it paid, but the patient was quoted a different number. Can you confirm the remaining deductible at the time of service, and walk me through how the coinsurance was applied to the allowed amount?",
+    resolution: "Reconcile the deductible and coinsurance against the benefit quoted at eligibility. The plan paid what the design says; post the deductible and coinsurance to the patient and correct the quoting process so the next visit is quoted accurately."
+  },
+  {
+    id: "denied-non-covered",
+    type: "denied",
+    title: "Denied — Non-Covered Service (CO-96)",
+    description: "The service is excluded from the plan, so it is not payable regardless of documentation.",
+    script: "Good afternoon, I'm calling about denial code CO-96 on claim #[ClaimID] for [PatientName]. We understand this service is excluded. Can you point me to the plan's exclusion language and confirm there is no benefit category that would cover it?",
+    resolution: "Confirm the exclusion in the plan documents. A true exclusion is patient responsibility with a signed waiver — do not appeal it on clinical grounds. Verify the signed waiver is on file, then bill the patient."
+  },
 ];
 
 // ─── Bucket Call Scripts ────────────────────────────────────────────

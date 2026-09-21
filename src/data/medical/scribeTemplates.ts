@@ -454,6 +454,70 @@ const TPL_LBP_THERAPY: ChiefComplaintTemplate = {
   teachingNote: "Rehabilitation services hit benefit caps. The plan must document medical necessity, and the office should track remaining visits so the patient is not surprised by a benefit-exhausted denial.",
 };
 
+const TPL_URI_VISIT: ChiefComplaintTemplate = {
+  id: "TPL-URI",
+  caseId: "MCASE-008",
+  title: "Acute upper respiratory infection",
+  chiefComplaint: "Runny nose, sore throat and cough for three days.",
+  usesShortcodes: [".oldcarts", ".ros10", ".planfup"],
+  subjective: {
+    hpiPrompt: [
+      "Onset and duration of symptoms.",
+      "Fever, shortness of breath, or other red flags.",
+      "Chronic conditions and current medicines.",
+    ],
+    ros: "Constitutional, respiratory and ENT systems reviewed. No fever or shortness of breath reported.",
+  },
+  objective: {
+    vitalsPrompt: ["Temperature", "Heart rate", "Respiratory rate"],
+    exam: "Throat: mild redness without swelling. Lungs: clear to auscultation. Ears: clear.",
+  },
+  assessment: [
+    {
+      code: "J06.9",
+      label: "Acute upper respiratory infection",
+      prompt: "Document the acute viral infection that the visit addresses.",
+    },
+  ],
+  plan: [
+    "Symptomatic care with fluids and rest.",
+    "Return if fever develops or symptoms last beyond ten days.",
+  ],
+  teachingNote: "A new-patient acute visit still has to survive the plan's benefit design. Read the deductible and coinsurance before quoting a number.",
+};
+
+const TPL_COSMETIC_LESION: ChiefComplaintTemplate = {
+  id: "TPL-COSMETIC-LESION",
+  caseId: "MCASE-009",
+  title: "Cosmetic removal of a benign growth",
+  chiefComplaint: "Patient requests removal of a mole for cosmetic reasons.",
+  usesShortcodes: [".oldcarts", ".ros10"],
+  subjective: {
+    hpiPrompt: [
+      "How long the growth has been present.",
+      "Any pain, itching, bleeding, or recent change.",
+      "Whether the patient wants it removed for appearance.",
+    ],
+    ros: "Skin and general systems reviewed. No concerning symptoms reported.",
+  },
+  objective: {
+    vitalsPrompt: [],
+    exam: "A small, symmetric, uniformly coloured growth. No concerning features on exam.",
+  },
+  assessment: [
+    {
+      code: "D23.9",
+      label: "Benign skin growth",
+      prompt: "Document the benign, asymptomatic growth removed for appearance.",
+    },
+  ],
+  plan: [
+    "Removal performed at the patient's request.",
+    "Routine skin care; no follow-up needed.",
+  ],
+  teachingNote: "An asymptomatic cosmetic removal is an exclusion on many plans. Quote the full fee and get a signed waiver before the service.",
+};
+
 export const CHIEF_COMPLAINT_TEMPLATES: ChiefComplaintTemplate[] = [
   TPL_HTN_FOLLOWUP,
   TPL_ANNUAL_PHYSICAL,
@@ -462,6 +526,8 @@ export const CHIEF_COMPLAINT_TEMPLATES: ChiefComplaintTemplate[] = [
   TPL_LBP_RADICULOPATHY,
   TPL_SKIN_LESION,
   TPL_LBP_THERAPY,
+  TPL_URI_VISIT,
+  TPL_COSMETIC_LESION,
 ];
 
 export const CHIEF_COMPLAINT_TEMPLATE_INDEX: Record<string, ChiefComplaintTemplate> =

@@ -417,6 +417,16 @@ export const CPT_CODES: CPTCode[] = [
     notes: "Sampling of a single skin spot. Do not bill with a destruction of the same spot on the same day.",
     globalDays: 0,
   },
+  {
+    code: "17110",
+    description: "Removal of a harmless skin growth, up to fourteen spots",
+    category: "Surgery",
+    rvu: 1.1,
+    medicareRate: 48.00,
+    commercialRate: 98.00,
+    notes: "Removal of a benign (non-cancerous) growth. Many plans exclude this as cosmetic when the growth is not causing symptoms — quote the patient before removing.",
+    globalDays: 0,
+  },
 
   // ─── Radiology — Advanced Imaging (prior-auth on some plans) ─────
   {

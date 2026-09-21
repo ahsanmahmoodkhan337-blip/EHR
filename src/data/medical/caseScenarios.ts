@@ -1038,6 +1038,255 @@ const CASE_THERAPY_LIMIT: MedicalCaseScenario = {
   ],
 };
 
+/* =================================================================== */
+/* CASE 8 — INTERMEDIATE: deductible + coinsurance on a new payer       */
+/* =================================================================== */
+const CASE_DEDUCTIBLE_COINSURANCE: MedicalCaseScenario = {
+  id: "MCASE-008",
+  title: "A deductible changes what the patient owes",
+  specialty: "Primary Care",
+  difficulty: "intermediate",
+  estimatedMinutes: 30,
+  planId: "PLAN-ATLAS-SELECT-PPO",
+  patient: {
+    id: "MPAT-008",
+    firstName: "Dev",
+    lastName: "Sharma",
+    dateOfBirth: "1999-01-15",
+    ageAtServiceDate: 28,
+    gender: "M",
+    subscriberName: "Dev Sharma",
+    relationshipToSubscriber: "self",
+    memberId: "ATL-44021",
+  },
+  briefing:
+    "A new patient presents with a head cold. The visit is straightforward and covered — but the plan is Atlas Select PPO, which carries a real deductible and 70 percent coinsurance, not the no-deductible 80 percent the front desk is used to quoting. The claim will pay, just less than expected.",
+  registrationNotes: [
+    "The patient enrolled in Atlas Select PPO through a new employer; this is his first visit under the plan.",
+    "The plan has a 1,500-dollar individual deductible. The patient has met 1,400 of it, leaving 100 to satisfy.",
+    "The front desk quoted the visit at the usual 80 percent, forgetting this plan's deductible and 70 percent coinsurance.",
+  ],
+  eligibilitySnapshot: {
+    status: "Active. 1,500-dollar deductible with 100 remaining; 70 percent coinsurance after the deductible is met.",
+    remainingDeductibleUsd: 100,
+    priorAuthRequired: false,
+    representativeNotes: [
+      "Most services apply to the deductible first, then pay at 70 percent of the remaining allowance.",
+      "Preventive services are paid in full and skip the deductible.",
+      "The patient still owes the 100 remaining deductible plus 30 percent coinsurance on the rest.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Runny nose, sore throat and mild cough for three days.",
+    subjective: "No fever, no shortness of breath. Symptoms are improving. No chronic conditions and no regular medicines.",
+    objective: "Temperature 98.6 F. Throat mildly red without swelling. Lungs clear. Ears clear.",
+    assessment: "Acute viral upper respiratory infection.",
+    plan: "Symptomatic care with fluids and rest. Return if fever develops or symptoms last beyond ten days.",
+  },
+  diagnoses: [
+    { code: "J06.9", priority: 1, pointer: "A", expectedNote: "Acute upper respiratory infection — the definitive diagnosis for the visit." },
+  ],
+  procedures: [
+    {
+      line: 1,
+      code: "99203",
+      units: 1,
+      dateOfService: "2027-05-12",
+      chargedUsd: 168,
+      linkedDiagnosisPointer: "A",
+      expectedNote: "New-patient visit at moderate complexity; the level matches an acute, self-limited illness.",
+    },
+  ],
+  traps: [
+    {
+      id: "MTRAP-8A",
+      stage: "eligibility",
+      title: "Quoting the visit at the wrong benefit level",
+      commonMistake: "The student quotes 80 percent coverage with no deductible, as on the plan used in earlier cases.",
+      whyItIsWrong:
+        "Benefit design is a property of the specific plan, not a default. Atlas has a 1,500-dollar deductible and 70 percent coinsurance, so the patient owes more than the no-deductible baseline.",
+      correctAction:
+        "Read this plan's deductible and coinsurance during eligibility, compute the real patient share, and quote that before the visit.",
+      pointsAtStake: 25,
+    },
+    {
+      id: "MTRAP-8B",
+      stage: "ar-follow-up",
+      title: "Writing off the coinsurance as a 'patient surprise'",
+      commonMistake: "The student waives the patient's coinsurance because the front desk misquoted it.",
+      whyItIsWrong:
+        "The claim paid exactly what the benefit design says. The coinsurance and deductible are legitimate patient responsibility; waiving them teaches the patient the plan pays more than it does.",
+      correctAction:
+        "Post the deductible and coinsurance to the patient, explain the benefit design, and fix the quoting process so it does not happen again.",
+      pointsAtStake: 15,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "99203",
+      chargedUsd: 168,
+      allowedUsd: 140,
+      planPaysUsd: 28,
+      patientOwesUsd: 112,
+      writeOffUsd: 28,
+      explanation:
+        "Paid, but with a deductible. The patient owes the 100 remaining deductible plus 30 percent coinsurance on the 40 above it (12), for 112 total. The plan pays 70 percent of 40, which is 28. The charge-above-allowance (28) is a contractual write-off.",
+    },
+  ],
+  expectedTotals: { chargedUsd: 168, allowedUsd: 140, planPaysUsd: 28, patientOwesUsd: 112, writeOffUsd: 28 },
+  arFollowUp: {
+    scenario:
+      "The patient calls, surprised the visit left a 112-dollar balance when he expected a small coinsurance. Nothing was denied — the plan simply has a deductible and lower coinsurance than he assumed.",
+    outcome: "bill-patient",
+    callObjectives: [
+      "Explain the deductible and how much remains.",
+      "Show the coinsurance split: the plan paid 28, the patient owes the deductible plus 30 percent.",
+      "Record the benefit design on the account so future visits are quoted correctly.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 60,
+    passingPoints: 42,
+    criteria: [
+      { stage: "eligibility", criterion: "Read the plan's deductible and coinsurance before quoting", points: 25 },
+      { stage: "claim", criterion: "Coded and submitted the visit correctly (the issue was the benefit, not the code)", points: 10 },
+      { stage: "ar-follow-up", criterion: "Billed the deductible and coinsurance rather than waiving them", points: 25 },
+    ],
+  },
+  instructorKey: [
+    "The whole case is one habit: read the plan's deductible and coinsurance before saying a number to the patient.",
+    "Coinsurance and a deductible are not denials — the claim pays, and the patient share is simply larger.",
+    "Contrast this with the clean-paid case on a no-deductible plan to make the benefit-design lesson stick.",
+  ],
+};
+
+/* =================================================================== */
+/* CASE 9 — INTERMEDIATE: non-covered cosmetic service                  */
+/* =================================================================== */
+const CASE_NON_COVERED_COSMETIC: MedicalCaseScenario = {
+  id: "MCASE-009",
+  title: "A cosmetic removal the plan does not cover",
+  specialty: "Dermatology",
+  difficulty: "intermediate",
+  estimatedMinutes: 30,
+  planId: "PLAN-ATLAS-SELECT-PPO",
+  patient: {
+    id: "MPAT-009",
+    firstName: "Aisha",
+    lastName: "Rahman",
+    dateOfBirth: "1982-06-20",
+    ageAtServiceDate: 45,
+    gender: "F",
+    subscriberName: "Aisha Rahman",
+    relationshipToSubscriber: "self",
+    memberId: "ATL-55718",
+  },
+  briefing:
+    "A patient asks to have a small, harmless mole removed because she does not like how it looks. It is not painful, bleeding or changing. Atlas Select PPO excludes cosmetic removal of benign growths — so this service will not be covered, no matter how it is coded.",
+  registrationNotes: [
+    "The patient is established on Atlas Select PPO.",
+    "The mole is benign and asymptomatic; the patient wants it gone for appearance.",
+    "The plan excludes cosmetic services, including removal of a benign growth for appearance alone.",
+  ],
+  eligibilitySnapshot: {
+    status: "Active. Cosmetic removal of benign growths is excluded from the plan.",
+    remainingDeductibleUsd: 1500,
+    priorAuthRequired: false,
+    representativeNotes: [
+      "Cosmetic services are excluded from the plan; the exclusion applies no matter the diagnosis code.",
+      "If the growth were painful, bleeding or suspicious, the service would be evaluated for coverage instead.",
+      "A true exclusion is patient responsibility with a signed waiver, not an appeal.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Patient requests removal of a mole on the cheek for cosmetic reasons.",
+    subjective: "The mole has been present for years. No pain, itching, bleeding or recent change.",
+    objective: "A 4 mm, uniformly coloured, symmetric mole on the left cheek. No concerning features on exam.",
+    assessment: "Benign skin growth, removed for appearance.",
+    plan: "Removal performed at the patient's request. No follow-up needed beyond routine skin care.",
+  },
+  diagnoses: [
+    { code: "D23.9", priority: 1, pointer: "A", expectedNote: "Benign skin growth — a cosmetic indication, not a medical-necessity diagnosis." },
+  ],
+  procedures: [
+    {
+      line: 1,
+      code: "17110",
+      units: 1,
+      dateOfService: "2027-06-02",
+      chargedUsd: 120,
+      linkedDiagnosisPointer: "A",
+      expectedNote: "Removal of a benign growth. The code is correct — the plan simply excludes the service as cosmetic.",
+    },
+  ],
+  traps: [
+    {
+      id: "MTRAP-9A",
+      stage: "eligibility",
+      title: "Billing the removal without checking the exclusion",
+      commonMistake: "The student assumes the removal is covered because the patient has insurance and the code exists.",
+      whyItIsWrong:
+        "The plan excludes cosmetic services outright. An exclusion is not reduced and not fixed by a different diagnosis; it is simply not covered.",
+      correctAction:
+        "Check the plan's exclusion list before the service, then quote the full fee and get a signed waiver before removing the mole.",
+      producesDenialCarc: "CO-96",
+      pointsAtStake: 25,
+    },
+    {
+      id: "MTRAP-9B",
+      stage: "ar-follow-up",
+      title: "Appealing a plan exclusion on clinical grounds",
+      commonMistake: "The student files an appeal arguing the removal was clinically appropriate.",
+      whyItIsWrong:
+        "The plan is not disputing the clinical quality of the removal. It is saying the service is not a covered benefit, and that decision does not change through a clinical appeal.",
+      correctAction:
+        "Recognise the exclusion, confirm the signed waiver, and bill the patient. If the growth had been symptomatic, that should have been documented at the time.",
+      producesDenialCarc: "CO-96",
+      pointsAtStake: 15,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "17110",
+      chargedUsd: 120,
+      allowedUsd: 120,
+      planPaysUsd: 0,
+      patientOwesUsd: 120,
+      writeOffUsd: 0,
+      carcCode: "CO-96",
+      explanation:
+        "Non-covered. The plan excludes cosmetic removal of benign growths, so it pays nothing. The patient owes the full charge against the signed waiver — there is no contracted allowance to write off.",
+    },
+  ],
+  expectedTotals: { chargedUsd: 120, allowedUsd: 120, planPaysUsd: 0, patientOwesUsd: 120, writeOffUsd: 0 },
+  arFollowUp: {
+    scenario:
+      "The patient is upset the removal was not covered. The practice has a signed waiver quoting the full fee, but the patient expected insurance to pay.",
+    outcome: "bill-patient",
+    callObjectives: [
+      "Explain that the plan excludes cosmetic removal regardless of the diagnosis.",
+      "Produce the signed waiver that disclosed the full fee.",
+      "Offer a payment arrangement and record the exclusion on the account.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 60,
+    passingPoints: 42,
+    criteria: [
+      { stage: "eligibility", criterion: "Checked the exclusion list before the service", points: 25 },
+      { stage: "claim", criterion: "Did not fabricate a medical-necessity reason to force coverage", points: 10 },
+      { stage: "ar-follow-up", criterion: "Billed the patient against the signed waiver instead of appealing", points: 25 },
+    ],
+  },
+  instructorKey: [
+    "The case turns on one distinction: an exclusion is about the benefit, not the clinical quality of the service.",
+    "Students who reach for a symptom to force coverage should be shown that the note says asymptomatic — and that fabricating a symptom is fraud.",
+    "Use this to teach the signed-waiver habit for any service the plan excludes.",
+  ],
+};
+
 export const MEDICAL_CASE_SCENARIOS: MedicalCaseScenario[] = [
   CASE_HTN_FOLLOWUP,
   CASE_PREVENTIVE_SCREENING,
@@ -1046,6 +1295,8 @@ export const MEDICAL_CASE_SCENARIOS: MedicalCaseScenario[] = [
   CASE_MRI_PRIOR_AUTH,
   CASE_CCI_BUNDLING,
   CASE_THERAPY_LIMIT,
+  CASE_DEDUCTIBLE_COINSURANCE,
+  CASE_NON_COVERED_COSMETIC,
 ];
 
 export const MEDICAL_CASE_INDEX: Record<string, MedicalCaseScenario> = Object.fromEntries(

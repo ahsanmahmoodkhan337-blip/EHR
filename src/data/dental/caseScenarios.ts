@@ -1711,6 +1711,278 @@ const CASE_DHMO_IMPACTION: DentalCaseScenario = {
   ],
 };
 
+/* =================================================================== */
+/* CASE 8 — INTERMEDIATE: crown inside the waiting period               */
+/* =================================================================== */
+const CASE_WAITING_PERIOD_CROWN: DentalCaseScenario = {
+  id: "DCASE-008",
+  title: "A crown inside the twelve-month waiting period",
+  difficulty: "intermediate",
+  estimatedMinutes: 25,
+  planId: "PLAN-CASCADIA-PPO",
+  patient: {
+    id: "PAT-LENA-OKAFOR",
+    firstName: "Lena",
+    lastName: "Okafor",
+    dateOfBirth: "1986-02-14",
+    ageAtServiceDate: 41,
+    gender: "F",
+    phone: "+1 (555) 010-4412",
+    address: "88 Alder Way, Apt 3B",
+    subscriberName: "Lena Okafor",
+    relationshipToSubscriber: "self",
+    memberId: "CAS-88213",
+    coverageEffectiveDate: "2026-11-01",
+    monthsCoveredAtServiceDate: 5,
+  },
+  briefing:
+    "A new employee needs a crown on a cracked lower molar. The treatment is clinically necessary and the tooth will not wait. The plan, however, has a twelve-month waiting period on major services, and the patient has only been covered for five months. Your job is to catch that before the patient is on the hook for the full allowance.",
+  registrationNotes: [
+    "Coverage effective date is 2026-11-01 — five months before today's service date.",
+    "The employer changed carriers in November; the patient had no dental coverage in the year before that.",
+    "No prior dental work on record with this practice — the tooth crack is new to this office.",
+  ],
+  eligibilitySnapshot: {
+    status: "Active. Major services carry a 12-month waiting period; member has 5 months of continuous coverage.",
+    remainingAnnualMaximumUsd: 1500,
+    deductibleMetUsd: 0,
+    paidHistory: [],
+    representativeNotes: [
+      "Major services (crowns, bridges, dentures) are not payable until twelve months of continuous coverage.",
+      "The waiting period is about how long the patient has held the plan, not about the treatment.",
+      "Preventive and basic services have no waiting period on this plan.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Tooth 19 cracked while chewing; intermittent sharp pain on that side.",
+    findings: [
+      "Lower left first molar has a deep distal crack extending toward the pulp.",
+      "Tooth is restorable with a full-coverage crown; no signs of pulpal involvement on examination.",
+      "Occlusion otherwise stable.",
+    ],
+    radiographicFindings: ["Radiograph confirms the distal crack without periapical pathology."],
+    diagnosisNarrative: "Cracked tooth syndrome of tooth 19, restorable with a full-coverage crown.",
+    treatmentPerformed: ["Full-coverage all-ceramic crown preparation on tooth 19."],
+    providerNarrativeForPayer:
+      "The crown is required to prevent fracture and loss of the tooth. The patient understands the waiting period and that the balance may be her responsibility.",
+  },
+  procedures: [
+    {
+      line: 1,
+      code: "D2740",
+      tooth: "19",
+      dateOfService: "2027-04-08",
+      feeUsd: 1320,
+      expectedNote: "The crown is correctly coded and clinically necessary — the denial is about tenure, not treatment.",
+    },
+  ],
+  traps: [
+    {
+      id: "TRAP-8A",
+      stage: "eligibility",
+      title: "Quoting the crown as covered because the patient is eligible",
+      commonMistake: "The student sees 'active coverage' and quotes the crown at the usual coinsurance.",
+      whyItIsWrong:
+        "Eligibility and waiting periods are separate questions. The patient is eligible, but major services are not payable until twelve months of continuous coverage, and she has only five.",
+      correctAction:
+        "Check the major-service waiting period during the eligibility call and tell the patient the crown is her cost now, or schedulable after 2027-11-01.",
+      producesDenialId: "DEN-WAITING",
+      pointsAtStake: 25,
+    },
+    {
+      id: "TRAP-8B",
+      stage: "ar-follow-up",
+      title: "Appealing a waiting-period denial",
+      commonMistake: "The student treats the denial as a coverage decision and files a clinical appeal.",
+      whyItIsWrong:
+        "The plan is not disputing that the crown was needed. A waiting period is a time-based rule, and a clinical appeal cannot shorten it.",
+      correctAction:
+        "If prior continuous coverage should have credited toward the wait, appeal with proof of prior coverage; otherwise bill the patient against the signed estimate.",
+      producesDenialId: "DEN-WAITING",
+      pointsAtStake: 15,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "D2740",
+      chargedUsd: 1320,
+      allowedUsd: 1100,
+      contractualWriteOffUsd: 220,
+      planPaysUsd: 0,
+      patientOwesUsd: 1100,
+      denialId: "DEN-WAITING",
+      explanation:
+        "Blocked at step 3. The plan pays nothing because the major-service waiting period has not been met; the patient owes the contracted allowance, and the charge-above-allowance is a contractual write-off.",
+    },
+  ],
+  expectedTotals: { chargedUsd: 1320, allowedUsd: 1100, planPaysUsd: 0, patientOwesUsd: 1100, writeOffUsd: 220 },
+  arFollowUp: {
+    scenario:
+      "The patient receives the explanation of benefits and is shocked the crown was not paid. Nothing was coded wrong — the plan simply does not pay major services for the first twelve months.",
+    outcome: "bill-patient",
+    callObjectives: [
+      "Explain the waiting period and when it ends (2027-11-01).",
+      "Show the patient the signed estimate that disclosed the balance.",
+      "Offer to check whether any prior coverage should have credited toward the waiting period.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 60,
+    passingPoints: 42,
+    criteria: [
+      { stage: "eligibility", criterion: "Checked the major-service waiting period before treatment", points: 25 },
+      { stage: "coding", criterion: "Coded the crown correctly (the issue is tenure, not the code)", points: 10 },
+      { stage: "claim", criterion: "Did not fabricate a reason to bypass the waiting period", points: 10 },
+      { stage: "ar-follow-up", criterion: "Billed the patient rather than filing a clinical appeal", points: 15 },
+    ],
+  },
+  instructorKey: [
+    "The entire case turns on one eligibility question the student never asked: how long has the patient held this plan?",
+    "A waiting-period denial is about tenure, not treatment. A clinical appeal is the wrong tool.",
+    "Use this to teach the distinction between being eligible and being payable for a given class of service.",
+  ],
+};
+
+/* =================================================================== */
+/* CASE 9 — INTERMEDIATE: treated before coverage began                 */
+/* =================================================================== */
+const CASE_NOT_ELIGIBLE_GAP: DentalCaseScenario = {
+  id: "DCASE-009",
+  title: "Treated in the gap before coverage began",
+  difficulty: "intermediate",
+  estimatedMinutes: 25,
+  planId: "PLAN-CASCADIA-PPO",
+  patient: {
+    id: "PAT-MARCO-RUIZ",
+    firstName: "Marco",
+    lastName: "Ruiz",
+    dateOfBirth: "1992-09-30",
+    ageAtServiceDate: 34,
+    gender: "M",
+    phone: "+1 (555) 010-7750",
+    address: "14 Juniper Court",
+    subscriberName: "Marco Ruiz",
+    relationshipToSubscriber: "self",
+    memberId: "CAS-99310",
+    coverageEffectiveDate: "2027-03-01",
+    monthsCoveredAtServiceDate: 0,
+  },
+  briefing:
+    "A patient between jobs books a recall visit. The front desk verified eligibility and was told he is active — but the visit happened in February, and the new plan's effective date is March 1. The eligibility check answered the wrong question.",
+  registrationNotes: [
+    "The patient started a new job on 2027-03-01; his coverage begins that day.",
+    "The appointment was on 2027-02-18, eleven days before the effective date.",
+    "The front desk checked eligibility today, in March, and heard 'active' — and stopped there.",
+  ],
+  eligibilitySnapshot: {
+    status: "Active today — but the effective date is 2027-03-01, after the 2027-02-18 date of service.",
+    remainingAnnualMaximumUsd: 1500,
+    deductibleMetUsd: 0,
+    paidHistory: [],
+    representativeNotes: [
+      "Compare the coverage effective date against the date of service, not against today's date.",
+      "There is no coverage for the February visit because the plan had not started.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Routine recall examination and cleaning.",
+    findings: ["Healthy dentition with light plaque.", "No decay on examination."],
+    radiographicFindings: ["No radiographs taken today."],
+    diagnosisNarrative: "Healthy dentition; routine preventive care.",
+    treatmentPerformed: ["Routine evaluation of a patient of record.", "Adult prophylaxis above the gumline."],
+  },
+  procedures: [
+    {
+      line: 1,
+      code: "D0120",
+      dateOfService: "2027-02-18",
+      feeUsd: 62,
+      expectedNote: "The evaluation is routine; the problem is the date, not the code.",
+    },
+    {
+      line: 2,
+      code: "D1110",
+      dateOfService: "2027-02-18",
+      feeUsd: 108,
+      expectedNote: "The cleaning is routine; the problem is the date, not the code.",
+    },
+  ],
+  traps: [
+    {
+      id: "TRAP-9A",
+      stage: "eligibility",
+      title: "Verifying eligibility against today instead of the date of service",
+      commonMistake: "The student hears 'active' on today's eligibility check and submits the claim.",
+      whyItIsWrong:
+        "The plan is active today, but it was not active on the day the patient was seen. Eligibility is always evaluated on the date of service.",
+      correctAction: "Compare the coverage effective date against the appointment date during eligibility and flag the gap before treatment.",
+      producesDenialId: "DEN-NOT-ELIGIBLE",
+      pointsAtStake: 25,
+    },
+    {
+      id: "TRAP-9B",
+      stage: "ar-follow-up",
+      title: "Writing off the balance instead of billing the patient",
+      commonMistake: "The student assumes the denial is the practice's error and adjusts the balance to zero.",
+      whyItIsWrong:
+        "The practice rendered real services to a patient who was not covered. The balance is legitimately the patient's; the error was failing to tell them before the visit.",
+      correctAction: "Confirm the effective date, confirm no other coverage applied on that date, then bill the patient.",
+      producesDenialId: "DEN-NOT-ELIGIBLE",
+      pointsAtStake: 15,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "D0120",
+      chargedUsd: 62,
+      allowedUsd: 62,
+      contractualWriteOffUsd: 0,
+      planPaysUsd: 0,
+      patientOwesUsd: 62,
+      denialId: "DEN-NOT-ELIGIBLE",
+      explanation: "Blocked at step 1. No coverage existed on the date of service, so the patient owes the full charge.",
+    },
+    {
+      line: 2,
+      code: "D1110",
+      chargedUsd: 108,
+      allowedUsd: 108,
+      contractualWriteOffUsd: 0,
+      planPaysUsd: 0,
+      patientOwesUsd: 108,
+      denialId: "DEN-NOT-ELIGIBLE",
+      explanation: "Blocked at step 1. No coverage existed on the date of service, so the patient owes the full charge.",
+    },
+  ],
+  expectedTotals: { chargedUsd: 170, allowedUsd: 170, planPaysUsd: 0, patientOwesUsd: 170, writeOffUsd: 0 },
+  arFollowUp: {
+    scenario:
+      "The patient disputes the bill, insisting he 'has insurance'. The coverage simply had not started on the date he was seen.",
+    outcome: "bill-patient",
+    callObjectives: [
+      "Show the patient the effective date and the date of service side by side.",
+      "Confirm no prior coverage was active on that date.",
+      "Offer a payment arrangement and flag the account so the gap is caught next time.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 60,
+    passingPoints: 42,
+    criteria: [
+      { stage: "eligibility", criterion: "Compared the effective date against the date of service", points: 25 },
+      { stage: "claim", criterion: "Did not submit the claim expecting coverage", points: 10 },
+      { stage: "ar-follow-up", criterion: "Billed the patient rather than writing off the balance", points: 25 },
+    ],
+  },
+  instructorKey: [
+    "The whole case is one habit: eligibility is answered for the date of service, never for today.",
+    "Students who write off the balance should be shown that the services were real and the patient is the one who owed the disclosure.",
+    "Use this to teach the difference between a patient who is not covered and a service that is not covered.",
+  ],
+};
+
 export const DENTAL_CASE_SCENARIOS: DentalCaseScenario[] = [
   CASE_HYGIENE_RECALL,
   CASE_CROWN_DOWNGRADE,
@@ -1719,6 +1991,8 @@ export const DENTAL_CASE_SCENARIOS: DentalCaseScenario[] = [
   CASE_ENDO_CROWN_FREQUENCY,
   CASE_ANNUAL_MAX_DENTURES,
   CASE_DHMO_IMPACTION,
+  CASE_WAITING_PERIOD_CROWN,
+  CASE_NOT_ELIGIBLE_GAP,
 ];
 
 export const DENTAL_CASE_INDEX: Record<string, DentalCaseScenario> = Object.fromEntries(
