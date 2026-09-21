@@ -121,6 +121,20 @@ export const MEDICAL_PLANS: MedicalPlan[] = [
     notes:
       "Medicaid managed-care plan used for the benefit-exhausted case. No deductible and full coinsurance, but hard per-category visit limits mean a covered service can still pay nothing once the limit is reached.",
   },
+  {
+    id: "PLAN-ATLAS-SELECT-PPO",
+    name: "Atlas Select PPO",
+    planType: "Commercial PPO",
+    network: "in-network preferred",
+    deductibleUsd: 1500,
+    planCoinsurancePercent: 70,
+    preventivePaidInFull: true,
+    priorAuthCptCodes: [],
+    cciEdits: [],
+    benefitLimits: [],
+    notes:
+      "Narrow-network commercial PPO with a real deductible and lower coinsurance than the teaching baseline. A 1,500-dollar individual deductible must be met before most services pay, after which the plan covers 70 percent of the allowance. The plan also excludes cosmetic services such as removing a benign growth for appearance alone. All figures are illustrative teaching values, not a real payer's schedule.",
+  },
 ];
 
 export const MEDICAL_PLAN_INDEX: Record<string, MedicalPlan> = Object.fromEntries(
@@ -140,7 +154,9 @@ export type BenefitScenarioKind =
   | "medical-necessity-denial"
   | "prior-auth-triggered"
   | "bundling-cci-edit"
-  | "benefit-exhausted";
+  | "benefit-exhausted"
+  | "deductible-coinsurance"
+  | "non-covered-service";
 
 export interface MedicalBenefitScenario {
   id: string;
@@ -215,6 +231,30 @@ export const MEDICAL_BENEFIT_SCENARIOS: MedicalBenefitScenario[] = [
     resultingCarc: "CO-97",
     teachingPoint:
       "Benefit-exhausted is not a coding error and not appealable on necessity grounds. The plan paid what it owed; the remaining visits are the patient's or a coverage decision.",
+  },
+  {
+    id: "SCEN-DEDUCTIBLE-COINSURANCE",
+    kind: "deductible-coinsurance",
+    planId: "PLAN-ATLAS-SELECT-PPO",
+    caseId: "MCASE-008",
+    description:
+      "A visit is covered, but the plan has a real deductible and a 70 percent coinsurance. The claim pays — just not at the no-deductible 80 percent the front desk assumed when it quoted the patient.",
+    exampleCodes: { icd: "J06.9", cpt: "99203" },
+    resultingCarc: null,
+    teachingPoint:
+      "Coinsurance and a deductible are not denials. The claim pays what the benefit design says; the patient responsibility is real and should have been quoted before the visit.",
+  },
+  {
+    id: "SCEN-NON-COVERED-SERVICE",
+    kind: "non-covered-service",
+    planId: "PLAN-ATLAS-SELECT-PPO",
+    caseId: "MCASE-009",
+    description:
+      "A service the plan excludes outright — here a benign growth removed for appearance — is billed to insurance and returns a non-covered denial. The service was done, the claim was not wrong, and the balance is the patient's.",
+    exampleCodes: { icd: "D23.9", cpt: "17110" },
+    resultingCarc: "CO-96",
+    teachingPoint:
+      "An exclusion is absolute. It is not reduced, not downgraded, and not appealable on clinical grounds — the only correct move is to quote the patient before the service.",
   },
 ];
 

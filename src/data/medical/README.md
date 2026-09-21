@@ -5,8 +5,8 @@ nothing in this directory imports React or touches UI.
 
 | File | What it holds |
 | --- | --- |
-| `payerScenarios.ts` | Three fictional payer plans (commercial PPO, Medicare Advantage HMO, Medicaid MCO) plus the five benefit scenarios each case exercises: clean-paid, medical-necessity denial, prior-auth-triggered, bundling/claim-edit, and benefit-exhausted |
-| `caseScenarios.ts` | Seven graded cases (beginner / intermediate / advanced) with deliberate traps, expected line-by-line adjudication and grading rubrics |
+| `payerScenarios.ts` | Four fictional payer plans (commercial PPO, Medicare Advantage HMO, Medicaid MCO, and a deductible-carrying commercial PPO) plus the seven benefit scenarios each case exercises: clean-paid, medical-necessity denial, prior-auth-triggered, bundling/claim-edit, benefit-exhausted, deductible-coinsurance, and non-covered-service |
+| `caseScenarios.ts` | Nine graded cases (beginner / intermediate / advanced) with deliberate traps, expected line-by-line adjudication and grading rubrics |
 | `scribeTemplates.ts` | Dot-phrase (smart-phrase) library by note section (HPI / ROS / PE / A&P / Plan) plus one chief-complaint SOAP skeleton per case, with ICD-10 references that resolve to `icd10Data.ts` |
 
 Import from the barrel:
@@ -37,10 +37,10 @@ Statistics.** This repository does not hold a licence to reproduce either set.
 - **Fees are illustrative.** Every charged and allowed figure is a plausible
   teaching placeholder, not a fee schedule and not any payer's allowable. Do not
   present them to students as real.
-- **Payers are fictional.** Cascadia Health PPO, Meridian Advantage and
-  Northwind State Medicaid do not exist. Their rule values are modelled on the
-  *shape* of common US plan designs so the mechanics are learnable. Never attach
-  a real insurer's name to a simulated policy.
+- **Payers are fictional.** Cascadia Health PPO, Meridian Advantage,
+  Northwind State Medicaid and Atlas Select PPO do not exist. Their rule values
+  are modelled on the *shape* of common US plan designs so the mechanics are
+  learnable. Never attach a real insurer's name to a simulated policy.
 - **Prior-authorisation and bundling rules are presented as the fictional
   payer's own policy**, not as a statement of any national edit or real plan.
 - **CARC codes** are from the X12 standard set; the plain-language text is
@@ -60,6 +60,17 @@ exercise it rather than duplicate it:
 2. **Conditional prior authorisation (MCASE-005).** A CPT code on the plan's PA
    list (`payerScenarios.ts`), which the coder queue detects and routes to the
    prior-authorisation stage.
+
+Two newer cases exercise benefit-design mechanics rather than coding traps:
+
+3. **Deductible + coinsurance (MCASE-008).** The Atlas Select PPO plan carries a
+   real `deductibleUsd` and 70% `planCoinsurancePercent`, so the claim pays but
+   the patient share is larger than the no-deductible baseline. The lesson is to
+   read the plan's deductible and coinsurance before quoting a number.
+4. **Non-covered service (MCASE-009).** Atlas excludes cosmetic removal of a
+   benign growth. The claim returns CO-96; the balance is patient responsibility
+   against a signed waiver, not an appeal. The new CPT `17110` and ICD-10
+   `D23.9` exist in the repositories to support this case.
 
 ## Scribe templates workflow
 

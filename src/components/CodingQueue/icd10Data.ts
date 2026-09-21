@@ -709,6 +709,16 @@ export const ICD10_CODES: ICD10Code[] = [
     notes: "Rough, scaly spot caused by sun exposure. Pre-cancerous and commonly treated by destruction.",
     laterality: "none",
   },
+  {
+    code: "D23.9",
+    description: "Harmless (benign) growth of the skin, site unspecified",
+    chapter: "Skin",
+    category: "Skin disorders",
+    medicareRate: 44.00,
+    commercialRate: 90.00,
+    notes: "A non-cancerous skin growth. Removal for appearance alone is often excluded as cosmetic — document symptoms if present.",
+    laterality: "none",
+  },
 
   // ─── Z codes addition ────────────────────────────────────────────
   {
