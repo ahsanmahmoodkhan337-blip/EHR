@@ -21,6 +21,7 @@ import {
   ListChecks,
   Phone,
   RotateCcw,
+  Smile,
   Stethoscope,
   Trophy,
   Wallet,
@@ -67,7 +68,7 @@ export function DentalCaseRunner() {
               onClick={() => reached && goTo(s.id)}
               disabled={!reached}
               className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                active ? "bg-blue-600 text-white" : reached ? "text-slate-600 hover:bg-slate-100" : "text-slate-300"
+                active ? "bg-teal-600 text-white" : reached ? "text-slate-600 hover:bg-slate-100" : "text-slate-300"
               }`}
             >
               {s.icon}
@@ -105,6 +106,13 @@ function CaseSelect() {
   const { selectCase, resetTrack } = useDentalTrack();
   return (
     <div className="h-full overflow-y-auto p-4">
+      {/* Track identity banner — makes it unambiguous which RCM track this is. */}
+      <div className="mb-3 flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 ring-1 ring-teal-100">
+        <Smile className="h-4 w-4 shrink-0 text-teal-600" />
+        <span className="text-xs font-bold uppercase tracking-wide text-teal-700">Dental RCM Track</span>
+        <span className="ml-auto text-[10px] font-medium text-teal-600">CDT · ADA J430D</span>
+      </div>
+
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Dental RCM Cases</h3>
@@ -150,7 +158,7 @@ function CaseCard({ c, onBegin }: { c: DentalCaseScenario; onBegin: () => void }
       </div>
       <button
         onClick={onBegin}
-        className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500"
+        className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-500"
       >
         Begin case <ArrowRight className="h-3.5 w-3.5" />
       </button>
@@ -174,7 +182,7 @@ function Briefing() {
         </span>
       </div>
 
-      <p className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-blue-800">{activeCase.briefing}</p>
+      <p className="rounded-xl border border-teal-100 bg-teal-50 p-3 text-xs leading-relaxed text-teal-800">{activeCase.briefing}</p>
 
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <Section title="Patient & registration">
@@ -255,7 +263,7 @@ function Briefing() {
         </button>
         <button
           onClick={beginCase}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
+          className="flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"
         >
           Start treatment plan <ArrowRight className="h-3.5 w-3.5" />
         </button>
@@ -277,7 +285,7 @@ function Debrief() {
     <div className="h-full overflow-y-auto p-4">
       {/* score header */}
       <div className="flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-lg font-bold text-blue-700">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-lg font-bold text-teal-700">
           {scoreTally.earned}/{scoreTally.maxPoints}
         </div>
         <div className="min-w-0 flex-1">
@@ -297,7 +305,7 @@ function Debrief() {
           </button>
           <button
             onClick={resetTrack}
-            className="rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
+            className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"
           >
             Retake case
           </button>

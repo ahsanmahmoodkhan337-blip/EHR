@@ -224,6 +224,13 @@ function CaseSelect() {
   const { selectCase, resetTrack } = useMedicalCase();
   return (
     <div className="h-full overflow-y-auto p-4">
+      {/* Track identity banner — makes it unambiguous which RCM track this is. */}
+      <div className="mb-3 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 ring-1 ring-blue-100">
+        <Stethoscope className="h-4 w-4 shrink-0 text-blue-600" />
+        <span className="text-xs font-bold uppercase tracking-wide text-blue-700">Medical RCM Track</span>
+        <span className="ml-auto text-[10px] font-medium text-blue-600">CPT / ICD-10 · CMS-1500</span>
+      </div>
+
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Medical RCM Cases</h3>

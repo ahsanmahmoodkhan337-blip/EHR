@@ -43,7 +43,7 @@ export function TrackSwitcher({ track, onTrackChange, compact }: TrackSwitcherPr
       label: "Dental",
       icon: <Smile className="h-4 w-4" />,
       hint: "CDT · ADA J430D",
-      activeClass: "bg-emerald-600 text-white shadow-sm",
+      activeClass: "bg-teal-600 text-white shadow-sm",
     },
   ];
 
