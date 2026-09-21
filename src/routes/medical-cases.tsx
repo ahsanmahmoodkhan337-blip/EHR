@@ -60,7 +60,7 @@ function MedicalCasesShell() {
           </Link>
           <img src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers" className="h-7 w-auto" style={{ maxWidth: "120px" }} />
           <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-            Medical Cases
+            Medical RCM
           </span>
         </div>
 
