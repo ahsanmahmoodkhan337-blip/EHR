@@ -42,6 +42,7 @@ import {
   revokeApprovedPhone,
   saveAccessRequest,
 } from "../store/accessStore";
+import { fetchAdminSharingSummaries, type AdminSharingSummary } from "../store/accountSecurity";
 import {
   getAllPins,
   setStagePin,
@@ -76,6 +77,7 @@ function AdminPage() {
   const [subscriptionDurations, setSubscriptionDurations] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sharingSignals, setSharingSignals] = useState<Record<string, AdminSharingSummary>>({});
   const pageSize = 20;
 
   // Load data — sync from Supabase first, then read localStorage cache
@@ -83,9 +85,16 @@ function AdminPage() {
     if (authenticated) {
       import("../store/accessStore").then(m => {
         m.syncFromSupabase().then(() => {
-          setRequests(getAccessRequests());
+          const reqs = getAccessRequests();
+          setRequests(reqs);
           setApprovedPhones(getApprovedPhones());
           setSyncError(m.getLastSyncError());
+          // Surface the account-sharing signal for approved users so the owner
+          // can review who's sharing accounts (detection-only, non-blocking).
+          const approvedPhones = reqs.filter((r) => r.status === "approved").map((r) => r.phone);
+          fetchAdminSharingSummaries(approvedPhones)
+            .then(setSharingSignals)
+            .catch(() => setSharingSignals({}));
         });
       });
       setPins(getAllPins());
@@ -386,6 +395,7 @@ function AdminPage() {
                     <th className="px-3 py-2 font-medium">Subscription</th>
                     <th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 font-medium">Days Left</th>
+                    <th className="px-3 py-2 font-medium">Sharing</th>
                     <th className="px-3 py-2 font-medium">Submitted</th>
                     <th className="px-3 py-2 font-medium">Action</th>
                   </tr>
@@ -417,6 +427,8 @@ function AdminPage() {
                           ? "—"
                           : `${days}d`;
                     const durationLabel = req.durationLabel || "—";
+                    const sig = sharingSignals[req.phone];
+                    const deviceCount = sig?.distinctDeviceCount ?? 0;
                     return (
                       <tr key={req.id} className="hover:bg-slate-700/30 transition-colors">
                         <td className="px-3 py-2 font-medium text-white">{req.fullName}</td>
@@ -430,6 +442,28 @@ function AdminPage() {
                           </span>
                         </td>
                         <td className="px-3 py-2 text-slate-300">{daysLabel}</td>
+                        <td className="px-3 py-2">
+                          {deviceCount === 0 ? (
+                            <span className="text-[10px] text-slate-500">No activity</span>
+                          ) : (
+                            <div>
+                              <span
+                                className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                                  sig?.flagged
+                                    ? "border-red-700/50 bg-red-900/40 text-red-300"
+                                    : "border-slate-600 bg-slate-700/50 text-slate-300"
+                                }`}
+                              >
+                                {deviceCount} device{deviceCount !== 1 ? "s" : ""}
+                              </span>
+                              {sig?.lastLoginAt && (
+                                <p className="mt-0.5 text-[9px] text-slate-500">
+                                  last {new Date(sig.lastLoginAt).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-3 py-2 text-slate-400 text-[10px]">
                           {new Date(req.submittedAt).toLocaleDateString()}
                         </td>
