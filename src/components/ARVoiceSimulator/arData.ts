@@ -388,6 +388,23 @@ export const AR_SCENARIOS: ARScenario[] = [
     script: "Good afternoon, I'm calling about denial code CO-96 on claim #[ClaimID] for [PatientName]. We understand this service is excluded. Can you point me to the plan's exclusion language and confirm there is no benefit category that would cover it?",
     resolution: "Confirm the exclusion in the plan documents. A true exclusion is patient responsibility with a signed waiver — do not appeal it on clinical grounds. Verify the signed waiver is on file, then bill the patient."
   },
+
+  {
+    id: "denied-duplicate",
+    type: "denied",
+    title: "Denied — Duplicate Claim or Service (CO-18)",
+    description: "The payer says this exact service for this patient and date was already submitted and processed.",
+    script: "Hi, I'm calling about denial code CO-18 on claim #[ClaimID] for [PatientName]. Could you check whether this is a true duplicate against an earlier claim, or whether this is a separate service on the same date that needs distinguishing detail? If it is a true duplicate, I'll stop the rebill right now.",
+    resolution: "Pull the original claim before doing anything else. If it is the same service, do not rebill — a repeat submission just generates another denial. If it is a genuinely separate service, resubmit with the distinguishing documentation and a note explaining the difference.",
+  },
+  {
+    id: "denied-timely-filing",
+    type: "denied",
+    title: "Denied — Timely Filing Limit Expired (CO-29)",
+    description: "The claim arrived after the payer's filing deadline, and the payer is denying it on timing.",
+    script: "Hello, I'm calling about denial code CO-29 on claim #[ClaimID] for [PatientName]. We have a clearinghouse acknowledgement showing the original submission was on time. Can you tell me where to send that proof so this can be reconsidered?",
+    resolution: "Attach the clearinghouse report or payer acknowledgement that proves the original timely submission and appeal on that basis. If the claim was never sent within the deadline, this is a practice write-off — document it and correct the process so it does not happen again.",
+  },
 ];
 
 // ─── Bucket Call Scripts ────────────────────────────────────────────

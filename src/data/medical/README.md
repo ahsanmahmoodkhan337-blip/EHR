@@ -5,7 +5,7 @@ nothing in this directory imports React or touches UI.
 
 | File | What it holds |
 | --- | --- |
-| `payerScenarios.ts` | Four fictional payer plans (commercial PPO, Medicare Advantage HMO, Medicaid MCO, and a deductible-carrying commercial PPO) plus the seven benefit scenarios each case exercises: clean-paid, medical-necessity denial, prior-auth-triggered, bundling/claim-edit, benefit-exhausted, deductible-coinsurance, and non-covered-service |
+| `payerScenarios.ts` | Five fictional payer plans (commercial PPO, Medicare Advantage HMO, Medicaid MCO, a deductible-carrying commercial PPO, and a referral-gated Medicare Advantage HMO) plus the seven benefit scenarios each case exercises: clean-paid, medical-necessity denial, prior-auth-triggered, bundling/claim-edit, benefit-exhausted, deductible-coinsurance, and non-covered-service |
 | `caseScenarios.ts` | Nine graded cases (beginner / intermediate / advanced) with deliberate traps, expected line-by-line adjudication and grading rubrics |
 | `scribeTemplates.ts` | Dot-phrase (smart-phrase) library by note section (HPI / ROS / PE / A&P / Plan) plus one chief-complaint SOAP skeleton per case, with ICD-10 references that resolve to `icd10Data.ts` |
 
@@ -38,7 +38,7 @@ Statistics.** This repository does not hold a licence to reproduce either set.
   teaching placeholder, not a fee schedule and not any payer's allowable. Do not
   present them to students as real.
 - **Payers are fictional.** Cascadia Health PPO, Meridian Advantage,
-  Northwind State Medicaid and Atlas Select PPO do not exist. Their rule values
+  Northwind State Medicaid, Atlas Select PPO and Vanguard Gatekeeper HMO do not exist. Their rule values
   are modelled on the *shape* of common US plan designs so the mechanics are
   learnable. Never attach a real insurer's name to a simulated policy.
 - **Prior-authorisation and bundling rules are presented as the fictional

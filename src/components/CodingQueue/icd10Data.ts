@@ -731,6 +731,36 @@ export const ICD10_CODES: ICD10Code[] = [
     notes: "Routine adult physical with no abnormal findings. Pair with the preventive visit code, not a problem E/M.",
     laterality: "none",
   },
+  {
+    code: "G43.909",
+    description: "Migraine headache without aura, not intractable",
+    chapter: "Nervous system",
+    category: "Headache",
+    medicareRate: 60.00,
+    commercialRate: 115.00,
+    notes: "A recurring severe headache without the visual or sensory warning signs that precede an aura. Report with the specific type when known.",
+    laterality: "none",
+  },
+  {
+    code: "R07.9",
+    description: "Chest pain, unspecified",
+    chapter: "Symptoms",
+    category: "Circulatory symptoms",
+    medicareRate: 0,
+    commercialRate: 0,
+    notes: "Chest pain with no cause yet identified. A symptom code — when the cause is found, code the cause instead.",
+    laterality: "none",
+  },
+  {
+    code: "J30.9",
+    description: "Allergic rhinitis, unspecified",
+    chapter: "Respiratory",
+    category: "Allergic disorders",
+    medicareRate: 58.00,
+    commercialRate: 108.00,
+    notes: "Hay-fever type sneezing, itching and runny nose triggered by an allergen. Use a more specific code when the trigger is known.",
+    laterality: "none",
+  },
 ];
 
 export function searchICD10(query: string): ICD10Code[] {
