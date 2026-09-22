@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { Shield, AlertTriangle, Lock, X } from "lucide-react";
+import { Shield, AlertTriangle, Lock } from "lucide-react";
 
 export function GlassBreakDrawer() {
   const [showPanel, setShowPanel] = useState(false);

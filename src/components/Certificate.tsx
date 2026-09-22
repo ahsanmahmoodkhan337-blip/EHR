@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { Award, Download, Printer, CheckCircle2, X, Star, FileDown } from "lucide-react";
+import { Award, Printer, X, Star, FileDown } from "lucide-react";
 import { exportCertificatePDF } from "../utils/pdfExport";
 
 interface CertificateProps {

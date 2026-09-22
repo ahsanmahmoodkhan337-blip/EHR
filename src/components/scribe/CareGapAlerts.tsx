@@ -32,7 +32,7 @@ const MOCK_GAPS: CareGap[] = [
 // ─── Component ───────────────────────────────────────────────────────
 
 export function CareGapAlerts() {
-  const [gaps, setGaps] = useState(MOCK_GAPS);
+  const [gaps] = useState(MOCK_GAPS);
   const [showPanel, setShowPanel] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 

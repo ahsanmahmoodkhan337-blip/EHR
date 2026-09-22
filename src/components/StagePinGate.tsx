@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { Lock, Key, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Lock, Key, AlertCircle } from "lucide-react";
 import { verifyStagePin, isStageUnlocked } from "../store/pinStore";
 import { type Role } from "../store/pipelineStore";
 

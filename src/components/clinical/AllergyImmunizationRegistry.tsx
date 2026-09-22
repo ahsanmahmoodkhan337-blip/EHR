@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { Shield, Syringe, Plus, Printer, X } from "lucide-react";
+import { Shield, X } from "lucide-react";
 
 interface Allergy {
   substance: string; reaction: string; severity: "Mild"|"Moderate"|"Severe"|"Anaphylaxis"; date: string;

@@ -29,8 +29,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
   const cleanClaimRate = totalBilled > 0 ? Math.round(((totalBilled - totalDenied) / totalBilled) * 100) : 100;
   const netCollectionRate = totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 0;
   const rateColor = cleanClaimRate >= 90 ? "text-emerald-600 dark:text-emerald-400" : cleanClaimRate >= 75 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400";
-  const barColor = cleanClaimRate >= 90 ? "bg-emerald-500" : cleanClaimRate >= 75 ? "bg-amber-500" : "bg-rose-500";
-
+  
   // Pie chart data
   const pieData = [
     { name: "Clean Claims", value: totalBilled - totalDenied },
@@ -165,7 +164,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
               <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} allowDecimals={false} />
               <Tooltip
                 contentStyle={{ fontSize: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                formatter={(value: number) => [`${value} claims`, "Count"]}
+                formatter={((value: number) => [`${value} claims`, "Count"]) as any}
               />
               <Bar dataKey="count" fill={COLORS.danger} radius={[3, 3, 0, 0]} />
             </BarChart>
@@ -184,7 +183,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
               <YAxis tick={{ fontSize: 9, fill: "#94a3b8" }} />
               <Tooltip
                 contentStyle={{ fontSize: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                formatter={(value: number) => [`$${value.toLocaleString()}`, "Revenue"]}
+                formatter={((value: number) => [`$${value.toLocaleString()}`, "Revenue"]) as any}
               />
               <Line type="monotone" dataKey="revenue" stroke={COLORS.primary} strokeWidth={2} dot={{ r: 2, fill: COLORS.primary }} />
             </LineChart>

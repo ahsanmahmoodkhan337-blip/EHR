@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { ArrowRight, FileText, Printer, X } from "lucide-react";
+import { ArrowRight, Printer, X } from "lucide-react";
 
 const SECONDARY_PAYERS = ["Medicaid (after Medicare)", "Spouse BCBS", "VA Benefits"];
 

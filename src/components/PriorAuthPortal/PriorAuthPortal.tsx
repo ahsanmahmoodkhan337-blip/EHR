@@ -11,7 +11,6 @@ import {
   Shield,
   ClipboardList,
   FileCheck,
-  FileX,
   Clock,
   ChevronRight,
   CheckCircle2,
@@ -19,12 +18,10 @@ import {
   AlertTriangle,
   Calendar,
   User,
-  Building2,
   FileText,
   Search,
   ArrowRight,
   ListChecks,
-  Stethoscope,
   BookOpen,
   FlaskConical,
   Upload,
@@ -35,7 +32,7 @@ import {
   Plus,
   FileDown,
 } from "lucide-react";
-import { usePipeline, type PARecordStore } from "../../store/pipelineStore";
+import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
 import {
   PA_PROCEDURES,
@@ -43,7 +40,6 @@ import {
   PA_STATUS_FLOW,
   PA_STATUS_LABELS,
   PA_TIMELINE_STEPS,
-  SUBMISSION_METHODS,
   type ProcedureKey,
   type PAQueueItem,
 } from "./paData";
@@ -55,7 +51,6 @@ type TabView = "queue" | "insurance" | "form" | "criteria" | "docs" | "step-ther
 // CoverMyMeds brand colors
 const CMM_PRIMARY = "bg-[#4A1D96]";
 const CMM_PRIMARY_HOVER = "hover:bg-[#3B1580]";
-const CMM_LIGHT = "bg-purple-50";
 const CMM_BORDER = "border-[#4A1D96]";
 
 // Payer-specific requirements
@@ -69,11 +64,6 @@ const PAYER_REQUIREMENTS: Record<string, { label: string; requirements: string[]
 };
 
 // Document attachment simulation
-interface DocAttachment {
-  name: string;
-  status: "attached" | "missing" | "pending";
-  icon: string;
-}
 
 export default function PriorAuthPortal() {
   const { state, submitPA, addPARecord, setRole, paRecords } = usePipeline();
@@ -248,7 +238,7 @@ export default function PriorAuthPortal() {
       verificationStatus: insuranceVerified ? "verified" : "not-verified",
       verificationResult: verificationResult || "",
     };
-    addPARecord(paRecord);
+    addPARecord(paRecord as import("../../store/pipelineStore").PARecordStore);
     toast("PA Submitted — tracking #PA-" + Math.random().toString(36).slice(2,8).toUpperCase()); submitPA({
       procedure: paRecord.procedure,
       payer,
@@ -997,7 +987,7 @@ export default function PriorAuthPortal() {
                       patientName: patient ? `${patient.firstName} ${patient.lastName}` : "Unknown",
                       procedure: PA_PROCEDURES[procedure as ProcedureKey]?.label || procedure || "N/A",
                       diagnosis: state.icdCodes?.join(", ") || "N/A",
-                      clinicalIndication: selectedIndication || "N/A",
+                      clinicalIndication: clinicalJustification || "N/A",
                       status: "Pending — Ready for Submission",
                     });
                   }}

@@ -10,7 +10,7 @@
  */
 
 import { useState } from "react";
-import { CreditCard, IdCard, AlertTriangle, CheckCircle2, XCircle, User, Calendar, Hash, Building, Star } from "lucide-react";
+import { CreditCard, IdCard, AlertTriangle, CheckCircle2, Star } from "lucide-react";
 import { scoreRegistration, updateStageScore, getStudentName } from "../../utils/scoring";
 
 export function RegistrationStage() {

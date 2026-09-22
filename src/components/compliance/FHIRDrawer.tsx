@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { FileJson, Copy, CheckCircle2, X, Database } from "lucide-react";
+import { Copy, CheckCircle2, X, Database } from "lucide-react";
 
 // ─── FHIR Resource Types ────────────────────────────────────────────
 
@@ -132,12 +132,12 @@ export function FHIRDrawer({ patient, icdCodes, cptCodes }: FHIRDrawerProps) {
 
   const getContent = () => {
     switch (activeTab) {
-      case "patient": return buildFHIRPatient(patient);
-      case "encounter": return buildFHIREncounter(patient);
-      case "condition": return buildFHIRCondition(patient, icdCodes, cptCodes);
-      case "observation": return buildFHIRObservation(patient);
-      case "claim": return buildFHIRClaim(patient);
-      case "eob": return buildFHIREOB(patient);
+      case "patient": return buildFHIRPatient(patient ?? null);
+      case "encounter": return buildFHIREncounter(patient ?? null);
+      case "condition": return buildFHIRCondition(patient ?? null, icdCodes, cptCodes);
+      case "observation": return buildFHIRObservation(patient ?? null);
+      case "claim": return buildFHIRClaim(patient ?? null);
+      case "eob": return buildFHIREOB(patient ?? null);
     }
   };
 

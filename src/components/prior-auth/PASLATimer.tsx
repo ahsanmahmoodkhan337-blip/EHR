@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Clock, AlertTriangle, CheckCircle2, Timer, X } from "lucide-react";
+import { Clock, AlertTriangle, Timer, X } from "lucide-react";
 
 // ─── SLA Logic ──────────────────────────────────────────────────────
 
@@ -66,9 +66,9 @@ const MOCK_ITEMS: SLAItem[] = [
 ];
 
 export function PASLATimer() {
-  const [items, setItems] = useState<SLAItem[]>(MOCK_ITEMS);
+  const [items] = useState<SLAItem[]>(MOCK_ITEMS);
   const [showPanel, setShowPanel] = useState(false);
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => setTick((t) => t + 1), 30000);

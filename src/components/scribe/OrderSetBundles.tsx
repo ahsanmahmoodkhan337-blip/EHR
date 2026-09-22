@@ -7,7 +7,7 @@
  */
 
 import { useState } from "react";
-import { ClipboardList, CheckCircle2, AlertTriangle, X, ChevronDown } from "lucide-react";
+import { ClipboardList, CheckCircle2, X } from "lucide-react";
 
 // ─── Order Bundle Data ──────────────────────────────────────────────
 

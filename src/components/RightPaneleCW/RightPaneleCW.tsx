@@ -9,8 +9,8 @@
  * for quick clinical decision support.
  */
 
-import { Activity, AlertTriangle, Pill, Stethoscope, Gauge, Thermometer, Heart, Wind, Droplets, FileText, Shield, CheckCircle2, Clock } from "lucide-react";
-import type { Patient } from "../../store/patientStore";
+import { Activity, AlertTriangle, Pill, Stethoscope, FileText, Shield, CheckCircle2, Clock } from "lucide-react";
+import type { Patient, Allergy } from "../../store/patientStore";
 import type { PARecordStore } from "../../store/pipelineStore";
 
 interface RightPaneleCWProps {
@@ -28,7 +28,7 @@ interface RightPaneleCWProps {
     chiefComplaint: string;
     problems: string[];
     medications: { id: string; name: string; dosage: string; frequency: string }[];
-    allergies: string[];
+    allergies: (string | Allergy)[];
     pcp: string;
     insurance: string;
   };

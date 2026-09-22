@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { Search, Download, Globe, X, CheckCircle2 } from "lucide-react";
+import { Download, Globe, X, CheckCircle2 } from "lucide-react";
 
 const NETWORKS = ["Epic Care Everywhere", "CommonWell", "eHealth Exchange", "Carequality"];
 const MOCK_RESULTS = [

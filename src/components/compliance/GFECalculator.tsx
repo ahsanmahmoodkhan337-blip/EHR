@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { Calculator, Printer, DollarSign, Plus, X, FileText } from "lucide-react";
+import { Calculator, Printer, Plus, X } from "lucide-react";
 
 // ─── CPT Price Data ─────────────────────────────────────────────────
 
@@ -67,7 +67,7 @@ export function GFECalculator() {
 
                 {/* Quick select */}
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {Object.entries(CPT_PRICES).slice(0,6).map(([code, p]) => (
+                  {Object.entries(CPT_PRICES).slice(0,6).map(([code]) => (
                     <button key={code} onClick={() => addCode(code)} className={`rounded px-2 py-1 text-[9px] ${selected.includes(code) ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>{code}</button>
                   ))}
                 </div>

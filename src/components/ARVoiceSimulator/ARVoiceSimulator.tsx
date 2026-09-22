@@ -15,7 +15,6 @@ import {
   UserPlus,
   MessageSquare,
   ChevronDown,
-  Filter,
   DollarSign,
   FileText,
   BookOpen,
@@ -24,7 +23,6 @@ import {
   Copy,
   Check,
   ThumbsUp,
-  ArrowUpCircle,
   XCircle,
   ClipboardList,
   Building2,
@@ -35,7 +33,6 @@ import {
   Star,
 } from "lucide-react";
 import { usePipeline, type DeniedClaim, type ARCallRecord } from "../../store/pipelineStore";
-import { scoreARVoice, updateStageScore, getStudentName } from "../../utils/scoring";
 import {
   INSURANCE_CARRIERS,
   APPEAL_TEMPLATES,
@@ -49,10 +46,8 @@ type TabView = "ledger" | "calls" | "scripts" | "appeals" | "scenarios" | "carri
 export default function ARVoiceSimulator() {
   const pipeline = usePipeline();
   const {
-    state,
     deniedClaims,
     resolveDenial,
-    assignDenial,
     addCallRecord,
     getClaimsByAging,
     arCalls,
@@ -62,7 +57,7 @@ export default function ARVoiceSimulator() {
   const [selectedBucket, setSelectedBucket] = useState<string>("0-30");
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
   const [accentMode, setAccentMode] = useState(false);
-  const [arScore, setArScore] = useState<number | null>(null);
+  const [arScore] = useState<number | null>(null);
 
   // ── Speech Synthesis (American Accent Audio) ──
   const [isSpeaking, setIsSpeaking] = useState(false);

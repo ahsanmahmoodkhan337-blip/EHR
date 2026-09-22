@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { TrendingUp, DollarSign, BarChart3, Download, X } from "lucide-react";
+import { BarChart3, Download, X } from "lucide-react";
 
 // ─── Mock Data ──────────────────────────────────────────────────────
 
@@ -114,7 +114,7 @@ export function RCMDashboard() {
                 <p className="text-[10px] font-semibold text-slate-600 mb-2">Denial Root Cause</p>
                 <ResponsiveContainer width="100%" height={140}>
                   <PieChart>
-                    <Pie data={DENIAL_DATA} cx="50%" cy="50%" outerRadius={50} dataKey="value" label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                    <Pie data={DENIAL_DATA} cx="50%" cy="50%" outerRadius={50} dataKey="value" label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
                       {DENIAL_DATA.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
                     </Pie>
                     <Tooltip />

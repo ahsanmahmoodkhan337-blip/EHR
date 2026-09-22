@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { FileCode, Download, Upload, Eye, X } from "lucide-react";
+import { FileCode, Download, Eye, X } from "lucide-react";
 
 const generateCCDXML = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 <ClinicalDocument xmlns="urn:hl7-org:v3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">

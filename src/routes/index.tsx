@@ -16,14 +16,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Activity, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-react";
 
-import { PatientProvider, usePatientStore } from "../store/patientStore";
+import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
-import { isLoggedIn, getLoggedInPhone, getAccessRequests } from "../store/accessStore";
+import { isLoggedIn, getLoggedInPhone } from "../store/accessStore";
 import { loadUserData, saveUserData, syncUserDataFromSupabase } from "../store/persistence";
 import { checkSessionExpired, clearSession, setSessionStart } from "../store/accessStore";
-import { PA_PROCEDURES, type ProcedureKey } from "../components/PriorAuthPortal/paData";
+import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
 import { WorkflowTracker } from "../components/WorkflowTracker";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
 import { Header } from "../components/TabsEpic/Header";
@@ -50,51 +50,14 @@ import { StagePinGate } from "../components/StagePinGate";
 import { CodingQueue } from "../components/CodingQueue/CodingQueue";
 import { BillingLedger } from "../components/BillingLedger/BillingLedger";
 import PriorAuthPortal from "../components/PriorAuthPortal/PriorAuthPortal";
-import { MDMWizard } from "../components/scribe/MDMWizard";
-import { DrugAlertEngine } from "../components/clinical/DrugAlertEngine";
-import { PhysicalExamMatrix } from "../components/scribe/PhysicalExamMatrix";
-import { PASLATimer } from "../components/prior-auth/PASLATimer";
-import { HCCRiskOptimizer } from "../components/HCCRiskOptimizer";
-import { MIPSDashboard } from "../components/MIPSDashboard";
-import { RCMDashboard } from "../components/ar-billing/RCMDashboard";
-import { FHIRDrawer } from "../components/compliance/FHIRDrawer";
-import { AuditTrail } from "../components/compliance/AuditTrail";
-import { AppealGenerator } from "../components/ar-billing/AppealGenerator";
-import { CareGapAlerts } from "../components/scribe/CareGapAlerts";
-import { OrderSetBundles } from "../components/scribe/OrderSetBundles";
-import { VitalsFlowsheet } from "../components/clinical/VitalsFlowsheet";
-import { PatientLedger } from "../components/ar-billing/PatientLedger";
-import { GFECalculator } from "../components/compliance/GFECalculator";
-import { SDOHIntake } from "../components/compliance/SDOHIntake";
-import { ConsentPortal } from "../components/compliance/ConsentPortal";
-import { UB04Form } from "../components/ar-billing/UB04Form";
-import { EDIViewer } from "../components/ar-billing/EDIViewer";
-import { ERAPosting } from "../components/ar-billing/ERAPosting";
-import { WorkersCompForm } from "../components/ar-billing/WorkersCompForm";
-import { FWADetector } from "../components/ar-billing/FWADetector";
-import { CCDATool } from "../components/compliance/CCDATool";
-import { EvidenceAggregator } from "../components/prior-auth/EvidenceAggregator";
-import { AllergyImmunizationRegistry } from "../components/clinical/AllergyImmunizationRegistry";
-import { CreditBalanceQueue } from "../components/ar-billing/CreditBalanceQueue";
-import { TEFCAExchange } from "../components/clinical/TEFCAExchange";
-import { ADTStream } from "../components/ADTStream";
-import { EOBScanner } from "../components/ar-billing/EOBScanner";
-import { GlassBreakDrawer } from "../components/compliance/GlassBreakDrawer";
-import { TelehealthHub } from "../components/clinical/TelehealthHub";
-import { CrossoverClaims } from "../components/ar-billing/CrossoverClaims";
-import { CopyForward } from "../components/clinical/CopyForward";
-import { PeerToPeerScheduler } from "../components/prior-auth/PeerToPeerScheduler";
-import { Toaster } from "sonner";
-import { HotkeyEngine } from "../components/HotkeyEngine";
+import { toast } from "sonner";
 import { FadeTransition } from "../components/FadeTransition";
-import { VaccineForecaster } from "../components/clinical/VaccineForecaster";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { FinancialLedger } from "../components/FinancialLedger";
 import { CPT_CODES } from "../components/CodingQueue/cptData";
 import { ToastProvider, useToast } from "../components/Toast";
 import { Skeleton } from "../components/Skeleton";
 import { CommandPalette } from "../components/CommandPalette";
-import { useAppStore } from "../stores/appStore";
 
 // ─── Route ──────────────────────────────────────────────────────────
 
@@ -114,6 +77,7 @@ export const Route = createFileRoute("/")({
 // Preserves each patient's scribe/vitals/shared data when switching
 
 interface PatientSessionData {
+  _patientId: string;
   soapNote: SoapNoteData;
   submittedToCoding: boolean;
   completedStages: string[];
@@ -128,7 +92,7 @@ interface PatientSessionData {
     chiefComplaint: string;
     problems: string[];
     medications: { id: string; name: string; dosage: string; frequency: string }[];
-    allergies: string[];
+    allergies: (string | Allergy)[];
     pcp: string;
     insurance: string;
   };
@@ -147,7 +111,9 @@ interface EditablePatientData {
   chiefComplaint: string;
   problems: string[];
   medications: { id: string; name: string; dosage: string; frequency: string }[];
-  allergies: string[];
+  allergies: (string | Allergy)[];
+  patientInstructions?: string;
+  followUpPlan?: string;
   pcp: string;
   insurance: string;
 }
@@ -237,15 +203,15 @@ function SummaryTab({
   const addProblemText = newProblem !== undefined ? newProblem : localNewProblem;
   const setAddProblemText = onNewProblemChange ?? setLocalNewProblem;
   const immunizations = extImmunizations ?? [];
-  const setImmunizations = onImmunizationsChange ?? ((v: string[]) => {});
+  const setImmunizations = onImmunizationsChange ?? ((_v: string[]) => {});
   const labsResults = extLabsResults ?? [];
-  const setLabsResults = onLabsResultsChange ?? ((v: string[]) => {});
+  const setLabsResults = onLabsResultsChange ?? ((_v: string[]) => {});
   const referrals = extReferrals ?? [];
-  const setReferrals = onReferralsChange ?? ((v: string[]) => {});
+  const setReferrals = onReferralsChange ?? ((_v: string[]) => {});
   const orders = extOrders ?? [];
-  const setOrders = onOrdersChange ?? ((v: string[]) => {});
+  const setOrders = onOrdersChange ?? ((_v: string[]) => {});
   const imaging = extImaging ?? [];
-  const setImaging = onImagingChange ?? ((v: string[]) => {});
+  const setImaging = onImagingChange ?? ((_v: string[]) => {});
 
   const updateVital = (key: keyof EditableVitals, value: string) => {
     setVitals({ ...vitals, [key]: value });
@@ -927,86 +893,6 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
   );
 }
 
-function LabsTab({ patientId }: { patientId: string }) {
-  const { getPatientById } = usePatientStore();
-  const pipeline = usePipeline();
-  const patient = getPatientById(patientId);
-  const isScribe = pipeline.currentRole === "scribe";
-
-  if (!patient) return null;
-
-  // Editable lab values
-  const [editLabValues, setEditLabValues] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    patient.labResults.forEach((lab) => { init[lab.id] = lab.value; });
-    return init;
-  });
-
-  const updateLabValue = (id: string, val: string) => {
-    setEditLabValues((prev) => ({ ...prev, [id]: val }));
-  };
-
-  return (
-    <div className="clinical-card">
-      <p className="clinical-label mb-3">Lab Results</p>
-      <div className="overflow-x-auto">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Test</th>
-              <th>Value</th>
-              <th>Unit</th>
-              <th>Reference Range</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(patient.labResults || []).map((lab) => (
-              <tr key={lab.id}>
-                <td className="font-medium">{lab.testName}</td>
-                <td>
-                  {isScribe ? (
-                    <input
-                      type="text"
-                      value={editLabValues[lab.id] ?? lab.value}
-                      onChange={(e) => updateLabValue(lab.id, e.target.value)}
-                      className="w-20 rounded border border-slate-200 px-2 py-0.5 text-sm outline-none focus:border-blue-400"
-                    />
-                  ) : (
-                    <>{lab.value}</>
-                  )}
-                </td>
-                <td className="text-xs text-slate-500">{lab.unit}</td>
-                <td className="text-xs text-slate-500">{lab.referenceRange}</td>
-                <td>
-                  <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-                    lab.status === "normal"
-                      ? "bg-green-100 text-green-700"
-                      : lab.status === "abnormal"
-                        ? "bg-amber-100 text-amber-700"
-                        : lab.status === "critical"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-slate-100 text-slate-500"
-                  }`}>
-                    {lab.status}
-                  </span>
-                </td>
-                <td className="text-xs text-slate-500">
-                  {new Date(lab.date).toLocaleDateString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {isScribe && (
-        <p className="mt-2 text-[10px] italic text-blue-500">Edit lab values above for charting practice</p>
-      )}
-    </div>
-  );
-}
-
 // ─── Public Landing Page (when not logged in) ──────────────────────
 
 function PublicLandingPage() {
@@ -1243,7 +1129,7 @@ function Home() {
   const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["registration"]));
 
   const [examMode, setExamMode] = useState(false);
-  const [isLoadingPatient, setIsLoadingPatient] = useState(false);
+  const [isLoadingPatient] = useState(false);
   const [examTimeRemaining, setExamTimeRemaining] = useState(1800); // 30 min in seconds
   const examTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -1267,7 +1153,7 @@ function Home() {
   });
 
   // Shared editable patient data for scribe mode (persists across tab switches)
-  const [editablePatientData, setEditablePatientData] = useState({
+  const [editablePatientData, setEditablePatientData] = useState<EditablePatientData>({
     chiefComplaint: patients[0]?.chiefComplaint ?? "",
     problems: [...(patients[0]?.problems ?? [])],
     medications: patients[0]?.medications ? patients[0].medications.filter(m => m.status === "active").map(m => ({ id: m.id, name: m.name, dosage: m.dosage, frequency: m.frequency })) : [],
@@ -1382,9 +1268,9 @@ function Home() {
         chiefComplaint: "Chest pain and shortness of breath",
         problems: ["Hypertension (I10)", "Coronary Artery Disease (I25.10)", "Chest Pain (R07.9)"],
         medications: [
-          { id: "med-d1", name: "Lisinopril", dosage: "10mg", frequency: "Once daily", status: "active" },
-          { id: "med-d2", name: "Atorvastatin", dosage: "40mg", frequency: "Once daily at bedtime", status: "active" },
-          { id: "med-d3", name: "Aspirin", dosage: "81mg", frequency: "Once daily", status: "active" },
+          { id: "med-d1", name: "Lisinopril", dosage: "10mg", frequency: "Once daily" },
+          { id: "med-d2", name: "Atorvastatin", dosage: "40mg", frequency: "Once daily at bedtime" },
+          { id: "med-d3", name: "Aspirin", dosage: "81mg", frequency: "Once daily" },
         ],
         allergies: ["Penicillin", "Sulfa drugs"],
         pcp: "Dr. Demo Instructor, MD",
@@ -1774,6 +1660,8 @@ function Home() {
                       problems: [],
                       medications: [],
                       allergies: [],
+                      pcp: "",
+                      insurance: "",
                       patientInstructions: "",
                       followUpPlan: "",
                     });

@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { Shield, Filter, Download, X, Search } from "lucide-react";
+import { Shield, Download, X, Search } from "lucide-react";
 
 // ─── Mock Audit Events ──────────────────────────────────────────────
 

@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { FileText, CheckCircle2, DollarSign, X } from "lucide-react";
+import { CheckCircle2, DollarSign, X } from "lucide-react";
 
 const MOCK_REMITTANCES = [
   { id: "RMT-001", payer: "Blue Cross", checkNo: "CHK-1001", date: "2026-07-20", totalPaid: 133.20, claims: [{ id: "CLAIM-001", billed: 185, allowed: 148, paid: 133.20, adj: [{ code: "CO-45", desc: "Contractual Obligation", amt: 14.80 }, { code: "PR-1", desc: "Deductible", amt: 0 }] }] },

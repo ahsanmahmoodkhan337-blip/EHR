@@ -13,7 +13,6 @@ import { Command } from "cmdk";
 import {
   Search,
   Layout,
-  FileText,
   Stethoscope,
   FileCode,
   Shield,
@@ -23,7 +22,6 @@ import {
   ArrowRight,
   RefreshCw,
   User,
-  Users,
   Zap,
 } from "lucide-react";
 import { useAppStore, type Role } from "../stores/appStore";
@@ -41,7 +39,7 @@ interface CommandPaletteProps {
 export function CommandPalette({ onSelectRole, onSelectPatient }: CommandPaletteProps) {
   const open = useAppStore((s) => s.ui.commandPaletteOpen);
   const setOpen = useAppStore((s) => s.setCommandPaletteOpen);
-  const patients = usePatientStore((s) => s.patients);
+  const patients = usePatientStore().patients;
   const [query, setQuery] = useState("");
 
   // Global Cmd+K / Ctrl+K listener

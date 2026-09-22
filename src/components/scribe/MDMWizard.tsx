@@ -15,11 +15,6 @@ import { Calculator, ChevronDown, ChevronUp, CheckCircle2, Info, X } from "lucid
 
 // ─── MDM Data ───────────────────────────────────────────────────────
 
-interface MDMLevel {
-  problems: { label: string; points: number; checked: boolean }[];
-  data: { label: string; points: number; checked: boolean }[];
-  risk: { label: string; points: number; checked: boolean }[];
-}
 
 const PROBLEM_LEVELS = [
   { label: "1 self-limited or minor problem", points: 1 },

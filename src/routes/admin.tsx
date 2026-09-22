@@ -13,7 +13,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Activity,
   Shield,
   CheckCircle2,
   XCircle,
@@ -32,7 +31,6 @@ import {
   getAccessRequests,
   updateRequestStatus,
   getApprovedPhones,
-  getLastSyncError,
   getSessionTimeoutMinutes,
   setSessionTimeoutMinutes,
   type AccessRequest,
@@ -47,12 +45,10 @@ import {
   getAllPins,
   setStagePin,
   resetAllPins,
-  getStagePin,
   type StagePinMap,
 } from "../store/pinStore";
 import type { Role } from "../store/pipelineStore";
 import { WhatsAppFloat } from "../components/WhatsAppFloat";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -72,10 +68,9 @@ function AdminPage() {
   const [showPins, setShowPins] = useState(false);
   const [pinSaved, setPinSaved] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState(getSessionTimeoutMinutes());
-  const [timeoutSaved, setTimeoutSaved] = useState(false);
+  const [timeoutSaved] = useState(false);
   const [durationModal, setDurationModal] = useState<{ id: string; duration: string } | null>(null);
-  const [subscriptionDurations, setSubscriptionDurations] = useState<Record<string, string>>({});
-  const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [sharingSignals, setSharingSignals] = useState<Record<string, AdminSharingSummary>>({});
   const pageSize = 20;
@@ -190,8 +185,7 @@ function AdminPage() {
 
   const pendingRequests = requests.filter((r) => r.status === "pending");
   const approvedRequests = requests.filter((r) => r.status === "approved");
-  const rejectedRequests = requests.filter((r) => r.status === "rejected");
-  const filteredApproved = approvedRequests.filter((req) => {
+    const filteredApproved = approvedRequests.filter((req) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return req.fullName.toLowerCase().includes(q) || req.phone.includes(q);

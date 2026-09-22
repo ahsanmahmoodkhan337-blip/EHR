@@ -6,16 +6,10 @@
  */
 
 import { useState } from "react";
-import { Heart, CheckCircle2, AlertTriangle, X, ClipboardList } from "lucide-react";
+import { Heart, CheckCircle2, X, ClipboardList } from "lucide-react";
 
 // ─── Questions ──────────────────────────────────────────────────────
 
-interface SDOHQuestion {
-  id: string;
-  section: string;
-  text: string;
-  zCode?: string;
-}
 
 const SECTIONS = [
   {

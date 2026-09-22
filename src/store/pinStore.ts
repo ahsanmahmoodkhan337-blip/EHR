@@ -26,7 +26,6 @@ const DEFAULT_PINS: Record<Role, string> = {
   "ar-voice": "5555",
 };
 
-const STAGE_ORDER: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-voice"];
 
 export type StagePinMap = Record<Role, string>;
 

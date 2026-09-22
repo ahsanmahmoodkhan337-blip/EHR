@@ -16,14 +16,9 @@ import {
   Activity,
   Users,
   TrendingUp,
-  AlertTriangle,
   Download,
   BarChart3,
-  Clock,
-  CheckCircle2,
-  XCircle,
   Shield,
-  ArrowRight,
   Search,
 } from "lucide-react";
 
@@ -50,20 +45,6 @@ const MOCK_STUDENTS: StudentRecord[] = [
 ];
 
 const STAGES = ["Scribe", "Coder", "Biller", "Prior Auth", "AR Voice"];
-
-const STAGE_COLORS: Record<string, string> = {
-  complete: "bg-emerald-500",
-  "in-progress": "bg-amber-400",
-  "not-started": "bg-slate-200 dark:bg-slate-600",
-};
-
-const ERROR_COLORS: Record<string, string> = {
-  Scribe: "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400",
-  Coder: "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
-  Biller: "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-  "Prior Auth": "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400",
-  "AR Voice": "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/20 dark:text-cyan-400",
-};
 
 // ─── Route ────────────────────────────────────────────────────────
 

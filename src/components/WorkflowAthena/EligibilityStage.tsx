@@ -10,14 +10,7 @@ import { useState } from "react";
 import { Search, CheckCircle2, Building, Shield, ArrowRight } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 
-const CLINICAL_INDICATIONS = [
-  { value: "", label: "— Select Clinical Indication —" },
-  { value: "atypical-chest-pain", label: "Atypical Chest Pain with history of hypertension" },
-  { value: "routine-screening", label: "Routine screening, asymptomatic" },
-  { value: "chest-trauma", label: "Chest trauma" },
-];
 
-const CORRECT_INDICATION = "atypical-chest-pain";
 
 export function EligibilityStage({ patientName, dob, insurance }: { patientName?: string; dob?: string; insurance?: string }) {
   const [inquiryDone, setInquiryDone] = useState(false);
