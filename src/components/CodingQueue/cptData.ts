@@ -427,6 +427,26 @@ export const CPT_CODES: CPTCode[] = [
     notes: "Removal of a benign (non-cancerous) growth. Many plans exclude this as cosmetic when the growth is not causing symptoms — quote the patient before removing.",
     globalDays: 0,
   },
+  {
+    code: "93005",
+    description: "Resting tracing of the heart's electrical activity, twelve leads, with interpretation",
+    category: "Cardiology",
+    rvu: 0.9,
+    medicareRate: 20.00,
+    commercialRate: 42.00,
+    notes: "A resting electrocardiogram with a physician's reading. Often a routine pre-operative or screening service.",
+    globalDays: 0,
+  },
+  {
+    code: "81002",
+    description: "Urine dipstick screening, without a microscope exam",
+    category: "Laboratory",
+    rvu: 0.1,
+    medicareRate: 3.50,
+    commercialRate: 6.00,
+    notes: "Automated chemical screening of urine. Report with a microscope exam only when one was actually performed.",
+    globalDays: 0,
+  },
 
   // ─── Radiology — Advanced Imaging (prior-auth on some plans) ─────
   {

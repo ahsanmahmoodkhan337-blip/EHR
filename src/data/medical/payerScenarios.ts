@@ -135,6 +135,20 @@ export const MEDICAL_PLANS: MedicalPlan[] = [
     notes:
       "Narrow-network commercial PPO with a real deductible and lower coinsurance than the teaching baseline. A 1,500-dollar individual deductible must be met before most services pay, after which the plan covers 70 percent of the allowance. The plan also excludes cosmetic services such as removing a benign growth for appearance alone. All figures are illustrative teaching values, not a real payer's schedule.",
   },
+  {
+    id: "PLAN-VANGUARD-HMO",
+    name: "Vanguard Gatekeeper HMO",
+    planType: "Medicare Advantage HMO",
+    network: "in-network only",
+    deductibleUsd: 0,
+    planCoinsurancePercent: 80,
+    preventivePaidInFull: true,
+    priorAuthCptCodes: ["99205", "72141", "71250", "27447"],
+    cciEdits: [],
+    benefitLimits: [],
+    notes:
+      "Gatekeeper HMO that requires a primary-care referral before specialist care or advanced imaging is covered. Modelled through the prior-authorisation list: a high-level new-patient visit, advanced imaging and joint replacement all trigger a referral check, and a missing referral denies the claim the same way a missing authorisation does. Fictional payer; rule values are teaching placeholders, not any real plan's policy.",
+  },
 ];
 
 export const MEDICAL_PLAN_INDEX: Record<string, MedicalPlan> = Object.fromEntries(

@@ -12,7 +12,7 @@ imports React or touches UI.
 | `toothNotation.ts` | Universal / FDI / Palmer cross-reference for all 52 teeth, surfaces, quadrants, oral-cavity areas, and a surface validator |
 | `coverage.ts` | Runnable adjudication engine — `evaluateCoverage()` for one claim line, `evaluateClaim()` for a whole claim, returning a verdict per step of `ADJUDICATION_ORDER` |
 | `attachmentRequirements.ts` | Structured map from CDT code → required attachments (radiographs, perio charting, narrative, …) plus the predetermination-candidate list with per-code guidance |
-| `predeterminationRules.ts` | Three predetermination scenarios: the payer's line-by-line estimate (allowed / downgraded / excluded / frequency-limited) and the trap around requesting one vs submitting directly |
+| `predeterminationRules.ts` | Five predetermination scenarios: the payer's line-by-line estimate (allowed / downgraded / excluded / frequency-limited) and the trap around requesting one vs submitting directly |
 | `eraRemittance.ts` | Three sample ERA (835) remittances with line-level CAS adjustments, plus three denial-depth scenarios (missing attachment, COB, non-covered) wired to existing codes and plans |
 
 Import from the barrel:
@@ -82,7 +82,7 @@ frontend should drive from these two files rather than from the loose
    drivers are `high-fee`, `cosmetic`, `removable-appliance`, `surgical` and
    `frequency-sensitive`.
 3. **The scenarios are the teaching layer.** `PREDETERMINATION_SCENARIOS`
-   supplies three complete walks of the estimate workflow, each with a
+   supplies five complete walks of the estimate workflow, each with a
    line-by-line estimate (`estimate`) whose verdicts cover `allowed`,
    `downgraded`, `excluded` and `frequency-limited`, plus a `trap` that states
    the mistake, its consequence and the correct action. Render these as

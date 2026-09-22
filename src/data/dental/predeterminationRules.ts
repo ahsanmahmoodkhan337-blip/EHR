@@ -286,10 +286,182 @@ const PRED_CROWN_FREQUENCY: PredeterminationScenario = {
   ],
 };
 
+/* ======================================================================= */
+/* SCENARIO 4 — DOWNGRADED: a quadrant of posterior composites             */
+/* ======================================================================= */
+const PRED_QUADRANT_COMPOSITE_DOWNGRADE: PredeterminationScenario = {
+  id: "PRED-04",
+  title: "Three posterior composites that pay at the amalgam allowance",
+  planId: "PLAN-CASCADIA-PPO",
+  difficulty: "intermediate",
+  estimatedMinutes: 20,
+  patient: {
+    id: "PD-1004",
+    firstName: "Priya",
+    lastName: "Nair",
+    memberId: "CCH-6610-4402",
+  },
+  plannedTreatment:
+    "Three two-surface tooth-coloured fillings across the upper right and lower left back teeth (#3, #4 and #19).",
+  shouldPredetermine: true,
+  predeterminationRationale:
+    "The plan's alternate-benefit rule pays a posterior tooth-coloured filling at the silver (amalgam) allowance. Three downgrades on one treatment plan add up to a much larger patient share than the composite fee alone suggests, so the patient needs the written estimate before any tooth is prepared.",
+  estimateSummary:
+    "All three fillings are covered, but each is downgraded to the two-surface amalgam allowance of 180. The plan pays 80 percent of that; the difference between the composite and amalgam allowances is the patient's upgrade on every line.",
+  estimate: [
+    {
+      line: 1,
+      code: "D2392",
+      description: "Two-surface tooth-coloured filling on #3",
+      tooth: "3",
+      chargedUsd: 248,
+      allowedUsd: 210,
+      paidAtAllowedUsd: 180,
+      planPaysUsd: 144,
+      patientOwesUsd: 66,
+      writeOffUsd: 38,
+      verdict: "downgraded",
+      denialId: "DEN-ALT-BENEFIT",
+      note: "The plan treats silver filling as adequate on a back tooth. It pays 80% of the 180 amalgam allowance (144); the patient owes the upgrade and coinsurance (66).",
+    },
+    {
+      line: 2,
+      code: "D2392",
+      description: "Two-surface tooth-coloured filling on #4",
+      tooth: "4",
+      chargedUsd: 248,
+      allowedUsd: 210,
+      paidAtAllowedUsd: 180,
+      planPaysUsd: 144,
+      patientOwesUsd: 66,
+      writeOffUsd: 38,
+      verdict: "downgraded",
+      denialId: "DEN-ALT-BENEFIT",
+      note: "Same downgrade as line 1 — the alternate-benefit rule applies per tooth, so every posterior composite is reduced to the amalgam level.",
+    },
+    {
+      line: 3,
+      code: "D2392",
+      description: "Two-surface tooth-coloured filling on #19",
+      tooth: "19",
+      chargedUsd: 248,
+      allowedUsd: 210,
+      paidAtAllowedUsd: 180,
+      planPaysUsd: 144,
+      patientOwesUsd: 66,
+      writeOffUsd: 38,
+      verdict: "downgraded",
+      denialId: "DEN-ALT-BENEFIT",
+      note: "A lower molar, so the same posterior downgrade applies. Three downgrades are a pattern, not three accidents.",
+    },
+  ],
+  estimateTotals: { chargedUsd: 744, allowedUsd: 630, planPaysUsd: 432, patientOwesUsd: 198, writeOffUsd: 114 },
+  trap: {
+    title: "Presenting the composite fee as if it were the covered amount",
+    mistake: "The student quotes the patient the composite fee with an 80 percent benefit, treating the composite as the covered service.",
+    consequence:
+      "The estimate shows the plan only ever pays against the amalgam allowance. Across three teeth the patient owes 198 dollars more than they were led to expect, and the practice absorbs the trust deficit.",
+    correctAction:
+      "Send a predetermination, show the patient the per-tooth downgrade, and offer the silver alternative at no upgrade — or get the composite upgrade acknowledged in writing.",
+    producesDenialId: "DEN-ALT-BENEFIT",
+  },
+  teachingPoint:
+    "An alternate-benefit downgrade is an adjustment, not a denial — and it compounds. Three downgraded fillings are still three covered services; they just pay at the level the plan deems adequate, and the upgrade is the patient's choice.",
+  instructorKey: [
+    "The downgrade applies per tooth and per surface. Do the arithmetic for every line, not once for the whole plan.",
+    "Always present the amalgam option alongside the composite so the patient is choosing the upgrade, not discovering it.",
+  ],
+};
+
+/* ======================================================================= */
+/* SCENARIO 5 — MIXED: a molar rebuild with endo, build-up and crown       */
+/* ======================================================================= */
+const PRED_MOLAR_REBUILD: PredeterminationScenario = {
+  id: "PRED-05",
+  title: "A molar rebuild: root canal, build-up and crown",
+  planId: "PLAN-CASCADIA-PPO",
+  difficulty: "advanced",
+  estimatedMinutes: 25,
+  patient: {
+    id: "PD-1005",
+    firstName: "Tomás",
+    lastName: "Vera",
+    memberId: "CCH-8812-0054",
+  },
+  plannedTreatment:
+    "A full reconstruction of the lower right first molar (#30): a root canal, a core build-up, and an all-ceramic crown.",
+  shouldPredetermine: true,
+  predeterminationRationale:
+    "This is a three-service Major plan where two lines pay cleanly at 50 percent but the crown is downgraded to the base-metal allowance. A predetermination separates the covered portion from the ceramic upgrade so the patient signs for the real total before treatment starts.",
+  estimateSummary:
+    "The root canal and build-up pay at 50 percent of their allowances. The crown is downgraded to the base-metal allowance and pays 50 percent of that; the ceramic difference is the patient's upgrade.",
+  estimate: [
+    {
+      line: 1,
+      code: "D3330",
+      description: "Root canal on a back tooth (#30)",
+      tooth: "30",
+      chargedUsd: 1285,
+      allowedUsd: 1150,
+      planPaysUsd: 575,
+      patientOwesUsd: 575,
+      writeOffUsd: 135,
+      verdict: "allowed",
+      note: "Paid at 50 percent of the allowance (Major). The clinical note and radiograph support the treatment, so the endo is not downcoded.",
+    },
+    {
+      line: 2,
+      code: "D2950",
+      description: "Core build-up on #30",
+      tooth: "30",
+      chargedUsd: 288,
+      allowedUsd: 240,
+      planPaysUsd: 120,
+      patientOwesUsd: 120,
+      writeOffUsd: 48,
+      verdict: "allowed",
+      note: "Paid at 50 percent of the allowance (Major). The narrative and radiograph keep the build-up from being bundled into the crown.",
+    },
+    {
+      line: 3,
+      code: "D2740",
+      description: "All-ceramic crown on #30 (posterior)",
+      tooth: "30",
+      chargedUsd: 1320,
+      allowedUsd: 1100,
+      paidAtAllowedUsd: 980,
+      planPaysUsd: 490,
+      patientOwesUsd: 610,
+      writeOffUsd: 220,
+      verdict: "downgraded",
+      denialId: "DEN-ALT-BENEFIT",
+      note: "Downgraded to the base-metal allowance on a back tooth. The plan pays 50 percent of 980 (490); the ceramic upgrade and the coinsurance are the patient's.",
+    },
+  ],
+  estimateTotals: { chargedUsd: 2893, allowedUsd: 2490, planPaysUsd: 1185, patientOwesUsd: 1305, writeOffUsd: 403 },
+  trap: {
+    title: "Quoting the whole rebuild at 50 percent of the full fee",
+    mistake: "The student treats all three lines as clean Major services and quotes 50 percent of each full fee.",
+    consequence:
+      "The crown pays at the metal allowance, not the ceramic fee. The patient owes the ceramic upgrade on top of the 50 percent they were quoted, and the written estimate did not prepare them for it.",
+    correctAction:
+      "Send a predetermination so each line's verdict is in writing, then present the metal-versus-ceramic choice before the crown is fabricated.",
+    producesDenialId: "DEN-ALT-BENEFIT",
+  },
+  teachingPoint:
+    "A treatment plan can mix clean and downgraded lines. The estimate must break each service out separately — a single blended percentage hides the one line (the crown) where the plan pays a lower allowance.",
+  instructorKey: [
+    "Contrast the clean endo and build-up (50 percent of their own allowances) with the downgraded crown (50 percent of the metal allowance).",
+    "Teach students to read an estimate line by line, not as a single bottom-line number.",
+  ],
+};
+
 export const PREDETERMINATION_SCENARIOS: PredeterminationScenario[] = [
   PRED_CERAMIC_CROWN_DOWNGRADE,
   PRED_IMPLANT_EXCLUDED,
   PRED_CROWN_FREQUENCY,
+  PRED_QUADRANT_COMPOSITE_DOWNGRADE,
+  PRED_MOLAR_REBUILD,
 ];
 
 export const PREDETERMINATION_SCENARIO_INDEX: Record<string, PredeterminationScenario> =
