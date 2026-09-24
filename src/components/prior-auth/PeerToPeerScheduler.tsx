@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { Calendar, Clock, User, CheckCircle2, X } from "lucide-react";
+import { Calendar, User, CheckCircle2, X } from "lucide-react";
 
 const PROVIDERS = ["Dr. Smith", "Dr. Patel", "Dr. Williams"];
 const TIME_SLOTS = ["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", "14:00", "14:30"];

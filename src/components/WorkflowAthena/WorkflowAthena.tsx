@@ -18,19 +18,15 @@
  * 5. Sign & Lock — Finalize note (placeholder)
  */
 
-import { useState } from "react";
 import {
   Activity,
   CheckCircle2,
   CircleDot,
   ClipboardCheck,
-  FileText,
   MessageSquare,
-  Search,
   Stethoscope,
   Lock,
   User,
-  FileCheck,
 } from "lucide-react";
 
 // ─── Stage Definition ──────────────────────────────────────────────

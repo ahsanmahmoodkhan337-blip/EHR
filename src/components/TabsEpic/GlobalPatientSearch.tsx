@@ -17,7 +17,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Search, ChevronDown, X } from "lucide-react";
-import { usePatientStore, type Patient } from "../../store/patientStore";
+import { usePatientStore } from "../../store/patientStore";
 
 interface GlobalPatientSearchProps {
   selectedId: string;

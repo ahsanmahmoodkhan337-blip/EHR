@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { Award, BarChart3, TrendingUp, Send, X, CheckCircle2 } from "lucide-react";
+import { Award, Send, X, CheckCircle2 } from "lucide-react";
 
 // ─── MIPS Measures ──────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ const MIPS_MEASURES: Measure[] = [
 // ─── Component ──────────────────────────────────────────────────────
 
 export function MIPSDashboard() {
-  const [measures, setMeasures] = useState(MIPS_MEASURES);
+  const [measures] = useState(MIPS_MEASURES);
   const [showPanel, setShowPanel] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 

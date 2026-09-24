@@ -16,7 +16,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Search, FileText, Beaker, Pill, AlertTriangle, Stethoscope, X } from "lucide-react";
-import { usePatientStore, type Patient } from "../../store/patientStore";
+import { usePatientStore } from "../../store/patientStore";
 
 interface ChartSearchProps {
   patientId: string;

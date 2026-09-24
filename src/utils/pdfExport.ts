@@ -115,7 +115,6 @@ export function exportCMS1500PDF(claimData: {
   const margin = 14;
   let y = 40;
   const lineH = 5;
-  const pageW = doc.internal.pageSize.width;
   const col2 = 85;
   const cf = claimData.cmsFields || {};
 

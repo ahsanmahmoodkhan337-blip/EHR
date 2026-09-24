@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { DollarSign, CheckCircle2, AlertTriangle, X, Printer } from "lucide-react";
+import { DollarSign, CheckCircle2, X, Printer } from "lucide-react";
 
 interface Credit {
   id: string; date: string; source: string; amount: number; type: "Patient" | "Insurance"; status: "Pending" | "Resolved";
@@ -21,7 +21,7 @@ const MOCK_CREDITS: Credit[] = [
 export function CreditBalanceQueue() {
   const [showPanel, setShowPanel] = useState(false);
   const [credits, setCredits] = useState(MOCK_CREDITS);
-  const [resolved, setResolved] = useState<Set<string>>(new Set());
+  const [, setResolved] = useState<Set<string>>(new Set());
 
   const resolve = (id: string) => {
     setResolved(prev => new Set([...prev, id]));

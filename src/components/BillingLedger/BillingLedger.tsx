@@ -13,9 +13,9 @@
  */
 
 import { useState, useEffect } from "react";
-import { Receipt, Send, AlertTriangle, ArrowRight, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info, Route, FileDown, Star, Shield } from "lucide-react";
+import { Receipt, Send, AlertTriangle, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info, Route, FileDown, Star, Shield } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
-import { usePatientStore, type RoutingNote } from "../../store/patientStore";
+import { usePatientStore } from "../../store/patientStore";
 import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";
 import { CPT_CODES } from "../CodingQueue/cptData";
 import { exportCMS1500PDF } from "../../utils/pdfExport";
@@ -27,7 +27,7 @@ type BillingTab = "form" | "scrubber" | "denials" | "references";
 export function BillingLedger() {
   const { state, submitClaim, handleDenial, setRole, paRecords } = usePipeline();
   const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
-  const patientId = state.encounterId || state.patientId || "";
+  const patientId = state.patientId || "";
   const patient = getPatientById(patientId);
   const cs = caseStates[patientId];
 
@@ -59,7 +59,7 @@ export function BillingLedger() {
   const [cms1500, setCms1500] = useState<Record<string, string>>(() => ({
     "1": payer,
     "2": state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : (state.patientId || "")),
-    "3": patient?.dob || "",
+    "3": patient?.dateOfBirth || "",
     "4": "",
     "5": patient?.address || "",
     "6": "Self",
@@ -87,7 +87,7 @@ export function BillingLedger() {
       ...prev,
       "1": payer,
       "2": state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : prev["2"]),
-      "3": patient?.dob || prev["3"],
+      "3": patient?.dateOfBirth || prev["3"],
       "5": patient?.address || prev["5"],
       "11c": patient?.insurance || prev["11c"],
       "21": state.icdCodes.join(", "),
@@ -182,7 +182,7 @@ export function BillingLedger() {
                 onClick={() => {
                   exportCMS1500PDF({
                     patientName: cms1500["2"] || state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),
-                    dob: cms1500["3"] || patient?.dob || "N/A",
+                    dob: cms1500["3"] || patient?.dateOfBirth || "N/A",
                     insurance: cms1500["11c"] || patient?.insurance || payer,
                     diagnosisCodes: state?.icdCodes || [],
                     procedureCodes: state?.cptCodes || [],
@@ -375,8 +375,8 @@ export function BillingLedger() {
                 <div className="flex flex-wrap gap-3">
                   <button onClick={() => {
                     exportCMS1500PDF({
-                      patientName: cms1500["2"] || patient ? `${patient.firstName} ${patient.lastName}` : "Unknown",
-                      dob: cms1500["3"] || patient?.dob || "N/A",
+                      patientName: cms1500["2"] || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),
+                      dob: cms1500["3"] || patient?.dateOfBirth || "N/A",
                       insurance: cms1500["11c"] || patient?.insurance || payer,
                       diagnosisCodes: state?.icdCodes || [],
                       procedureCodes: state?.cptCodes || [],

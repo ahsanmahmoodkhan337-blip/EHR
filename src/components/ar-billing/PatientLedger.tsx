@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { CreditCard, DollarSign, CheckCircle2, X, ChevronDown } from "lucide-react";
+import { CreditCard, DollarSign, CheckCircle2, X } from "lucide-react";
 
 // ─── Mock Data ──────────────────────────────────────────────────────
 

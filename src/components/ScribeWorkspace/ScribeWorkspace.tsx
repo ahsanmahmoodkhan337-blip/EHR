@@ -13,16 +13,14 @@
  */
 
 import { FileText } from "lucide-react";
-import { usePipeline } from "../../store/pipelineStore";
 
 interface ScribeWorkspaceProps {
   patientName?: string;
   encounterId: string;
 }
 
-export function ScribeWorkspace({ patientName, encounterId }: ScribeWorkspaceProps) {
-  const { submitToCoding } = usePipeline();
-
+export function ScribeWorkspace({ patientName }: ScribeWorkspaceProps) {
+  
   // Placeholder: renders WorkflowAthena clinical workflow
   return (
     <div className="flex flex-1 flex-col p-4">

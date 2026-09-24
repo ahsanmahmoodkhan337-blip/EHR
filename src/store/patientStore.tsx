@@ -154,7 +154,7 @@ const mockPatients: Patient[] = [
     primaryCareProvider: "Dr. Demo Instructor, MD",
     insurance: "Medicare Part B",
     chiefComplaint: "Chest pain and shortness of breath — DEMO",
-    vitals: { bloodPressure: "145/92", heartRate: 92, temperature: 99.1, respiratoryRate: 20, oxygenSaturation: 94 },
+    vitals: { bloodPressure: "145/92", heartRate: 92, temperature: 99.1, respiratoryRate: 20, oxygenSaturation: 94, recordedAt: "2026-01-01T09:00:00Z" },
     problems: ["Hypertension (I10)", "Coronary Artery Disease (I25.10)", "Chest Pain (R07.9)"],
     medications: [
       { id: "med-d1", name: "Lisinopril", dosage: "10mg", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2026-01-15", prescribedBy: "Dr. Demo Instructor" },

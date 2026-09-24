@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { FileCode, Copy, Eye, X } from "lucide-react";
+import { FileCode, Copy, X } from "lucide-react";
 
 // ─── Mock EDI Data ──────────────────────────────────────────────────
 

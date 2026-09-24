@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { TrendingUp, Lightbulb, AlertCircle, BarChart3, X } from "lucide-react";
+import { Lightbulb, BarChart3, X } from "lucide-react";
 
 // ─── HCC Mapping ────────────────────────────────────────────────────
 

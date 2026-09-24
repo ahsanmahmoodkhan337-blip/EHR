@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { Syringe, Baby, Calendar, Printer, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { Syringe, Calendar, Printer, AlertTriangle, CheckCircle2, X } from "lucide-react";
 
 // ─── CDC Schedule ───────────────────────────────────────────────────
 

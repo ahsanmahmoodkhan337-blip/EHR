@@ -33,7 +33,7 @@ const STAGES: { key: Role; label: string }[] = [
   { key: "ar-voice", label: "AR Voice" },
 ];
 
-export function WorkflowTracker({ encounterId }: WorkflowTrackerProps) {
+export function WorkflowTracker({}: WorkflowTrackerProps) {
   const { state, currentRole, getRoleLabel } = usePipeline();
 
   const currentIndex = STAGE_ORDER.indexOf(currentRole);

@@ -11,14 +11,13 @@
  */
 
 import { useState, useMemo } from "react";
-import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertCircle, AlertTriangle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, ExternalLink, Activity, Star } from "lucide-react";
+import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertTriangle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, Activity, Star } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { ICD10_CODES, searchICD10, type ICD10Code } from "./icd10Data";
 import { CPT_CODES, searchCPT, type CPTCode } from "./cptData";
 import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
 import { scoreCoder, updateStageScore, getStudentName } from "../../utils/scoring";
 import { type SoapNoteData } from "../WorkflowAthena/AssessmentPlanStage";
-import { toast } from "sonner";
 
 // ─── PA Trigger Codes & Keywords ────────────────────────────────────
 
@@ -127,7 +126,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
   const [codingScore, setCodingScore] = useState<number | null>(null);
   // PA auto-route interstitial
   const [showPAInterstitial, setShowPAInterstitial] = useState(false);
-  const [hasPACodes, setHasPACodes] = useState(false);
+  const [, setHasPACodes] = useState(false);
   const [paTriggerReasons, setPaTriggerReasons] = useState<string[]>([]);
   // Pending codes stored before PA interstitial decision
   const [pendingIcdCodes, setPendingIcdCodes] = useState<string[]>([]);

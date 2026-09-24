@@ -1,5 +1,11 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
+  // Legacy server/SSR launchers and the Neon template helper are not part of the
+  // Vite SPA bundle (publish.sh serves `serve.mjs`). They reference Bun globals,
+  // a Vercel build artifact, and an uninstalled `@neondatabase/serverless` dep,
+  // so they are excluded from the frontend typecheck rather than force-fitting
+  // server types into the app's tsconfig.
+  "exclude": ["serve.ts", "vercel-entry.ts", "src/db.ts"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

@@ -9,7 +9,7 @@
  * replicates that pattern for rapid clinical documentation.
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   ClipboardCheck,
   FileText,
@@ -17,11 +17,10 @@ import {
   Stethoscope,
   Lightbulb,
   Plus,
-  ChevronRight,
   Search,
   X,
 } from "lucide-react";
-import { ICD10_CODES, searchICD10 } from "../CodingQueue/icd10Data";
+import { ICD10_CODES } from "../CodingQueue/icd10Data";
 import type { ICD10Code } from "../CodingQueue/icd10Data";
 import { DotPhraseTextarea } from "../scribe/DotPhraseTextarea";
 import { NoteTemplatePicker } from "../scribe/NoteTemplatePicker";

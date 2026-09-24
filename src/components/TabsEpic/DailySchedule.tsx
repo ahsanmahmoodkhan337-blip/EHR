@@ -8,8 +8,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import {
-  CalendarDays, ChevronLeft, ChevronRight, Clock, User, Plus, FileEdit,
-  X, Save, CheckCircle2, AlertTriangle, Loader2,
+  CalendarDays, ChevronLeft, ChevronRight, User, Plus, FileEdit,
+  X, Save, CheckCircle2, AlertTriangle,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { FileText, Send, Printer, Copy, CheckCircle2, X } from "lucide-react";
+import { FileText, Printer, Copy, CheckCircle2, X } from "lucide-react";
 
 // ─── Templates ──────────────────────────────────────────────────────
 

@@ -62,7 +62,7 @@ export function ConsentPortal() {
   const [showPanel, setShowPanel] = useState(false);
   const [step, setStep] = useState(0);
   const [signed, setSigned] = useState<Record<string, boolean>>({});
-  const [signature, setSignature] = useState("");
+  const [signature] = useState("");
   const [allDone, setAllDone] = useState(false);
 
   const checkStep = (idx: number) => {

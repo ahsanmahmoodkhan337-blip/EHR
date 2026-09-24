@@ -14,12 +14,6 @@ const PREV_ENCOUNTER = {
   plan: "Continue lisinopril 10mg. Advised stress management. Return in 3 months or sooner if headaches worsen.",
 };
 
-const CURRENT_DRAFT = {
-  subjective: "",
-  objective: "BP 130/78, HR 74.",
-  assessment: "",
-  plan: "Continue lisinopril. Follow up in 3 months.",
-};
 
 export function CopyForward() {
   const [showPanel, setShowPanel] = useState(false);

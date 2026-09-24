@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { Trophy, Medal, Crown, X, Star, TrendingUp, Clock, Shield } from "lucide-react";
+import { Trophy, Medal, Crown, X, Star, Clock, Shield } from "lucide-react";
 import { getLeaderboard, getStudentName, type LeaderboardRow } from "../utils/scoring";
 
 // ─── Component ─────────────────────────────────────────────────────

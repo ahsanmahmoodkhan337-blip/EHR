@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp, TrendingDown, Minus, X, ChevronDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, X } from "lucide-react";
 
 // ─── Mock Data ──────────────────────────────────────────────────────
 

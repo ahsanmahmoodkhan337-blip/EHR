@@ -15,7 +15,7 @@
 
 import { useState, useEffect } from "react";
 import { Activity, Heart, Thermometer, Wind, Droplets, Weight, Ruler, AlertCircle } from "lucide-react";
-import { usePatientStore, type Patient } from "../../store/patientStore";
+import { usePatientStore } from "../../store/patientStore";
 
 interface EditableVitals {
   bloodPressure: string;

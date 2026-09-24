@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { Activity, Phone, LogIn, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Phone, LogIn, AlertCircle } from "lucide-react";
 import { WhatsAppFloat } from "../components/WhatsAppFloat";
 import {
   isPhoneApproved,
@@ -23,9 +23,7 @@ import {
   normalizePhone,
   type AccessRequest,
   isSubscriptionExpired,
-  getSubscriptionStatus,
   getDaysRemaining,
-  getDurationLabel,
   revokeApprovedPhone,
 } from "../store/accessStore";
 import { recordLogin } from "../store/accountSecurity";
@@ -40,9 +38,7 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState<"idle" | "pending" | "denied" | "approved">("idle");
   const [requestInfo, setRequestInfo] = useState<AccessRequest | null>(null);
-  const [showNamePrompt, setShowNamePrompt] = useState(false);
-  const [studentName, setStudentName] = useState("");
-  const [expiryWarning, setExpiryWarning] = useState<string | null>(null);
+      const [expiryWarning, setExpiryWarning] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const handleLogin = async () => {
@@ -109,14 +105,7 @@ function LoginPage() {
     setStatus("denied");
   };
 
-  const handleSaveName = () => {
-    if (studentName.trim()) {
-      localStorage.setItem("hh_student_name", studentName.trim());
-      navigate({ to: "/dashboard" });
-    }
-  };
-
-  return (
+    return (
     <div className="brand-gradient flex min-h-dvh flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Brand */}
