@@ -33,7 +33,10 @@ import {
 } from "lucide-react";
 import {
   findPlan,
+  MEDICAL_BENEFIT_SCENARIOS,
   MEDICAL_CASE_SCENARIOS,
+  type BenefitScenarioKind,
+  type MedicalBenefitScenario,
   type MedicalCaseScenario,
   type MedicalCaseTrap,
 } from "../../data/medical";
@@ -46,6 +49,45 @@ import {
   type MedicalPriorAuthChoice,
   type MedicalProcedureLine,
 } from "./MedicalCaseStore";
+
+// ─── benefit scenario metadata ──────────────────────────────────────────────
+// Surfaces the adjudication outcome each graded case teaches (BenefitScenarioKind
+// from the medical data layer). Records are keyed by the full union so TypeScript
+// fails the build if a kind is ever added to the data without a label here.
+
+const BENEFIT_KIND_LABEL: Record<BenefitScenarioKind, string> = {
+  "clean-paid": "Clean paid",
+  "medical-necessity-denial": "Medical necessity",
+  "prior-auth-triggered": "Prior auth",
+  "bundling-cci-edit": "Bundling / CCI",
+  "benefit-exhausted": "Benefit exhausted",
+  "deductible-coinsurance": "Deductible + coinsurance",
+  "non-covered-service": "Non-covered",
+};
+
+const BENEFIT_KIND_DOT: Record<BenefitScenarioKind, string> = {
+  "clean-paid": "bg-emerald-500",
+  "medical-necessity-denial": "bg-red-500",
+  "prior-auth-triggered": "bg-violet-500",
+  "bundling-cci-edit": "bg-amber-500",
+  "benefit-exhausted": "bg-orange-500",
+  "deductible-coinsurance": "bg-sky-500",
+  "non-covered-service": "bg-rose-500",
+};
+
+const BENEFIT_KIND_TONE: Record<BenefitScenarioKind, string> = {
+  "clean-paid": "border-emerald-200 bg-emerald-50 text-emerald-700",
+  "medical-necessity-denial": "border-red-200 bg-red-50 text-red-700",
+  "prior-auth-triggered": "border-violet-200 bg-violet-50 text-violet-700",
+  "bundling-cci-edit": "border-amber-200 bg-amber-50 text-amber-700",
+  "benefit-exhausted": "border-orange-200 bg-orange-50 text-orange-700",
+  "deductible-coinsurance": "border-sky-200 bg-sky-50 text-sky-700",
+  "non-covered-service": "border-rose-200 bg-rose-50 text-rose-700",
+};
+
+/** caseId → benefit scenario, for stamping a kind badge on each case card. */
+const BENEFIT_SCENARIO_BY_CASE_ID: Record<string, MedicalBenefitScenario> =
+  Object.fromEntries(MEDICAL_BENEFIT_SCENARIOS.map((s) => [s.caseId, s]));
 
 // ─── stage spine ─────────────────────────────────────────────────────────────
 
@@ -235,7 +277,7 @@ function CaseSelect() {
         <div>
           <h3 className="text-sm font-bold text-slate-800">Medical RCM Cases</h3>
           <p className="text-[10px] text-slate-400">
-            Seven graded cases across the clinical-to-financial spine. Make the mistake, feel the denial, then read why.
+            Nine graded cases across the clinical-to-financial spine. Make the mistake, feel the denial, then read why.
           </p>
         </div>
         <button
@@ -244,6 +286,26 @@ function CaseSelect() {
         >
           <RotateCcw className="h-3 w-3" /> Reset
         </button>
+      </div>
+
+      {/* Benefit scenario legend — groups the graded cases by the adjudication
+          outcome they teach (BenefitScenarioKind). */}
+      <div className="mb-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+          Benefit scenarios
+        </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {MEDICAL_BENEFIT_SCENARIOS.map((s) => (
+            <span
+              key={s.id}
+              className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${BENEFIT_KIND_TONE[s.kind]}`}
+              title={s.teachingPoint}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${BENEFIT_KIND_DOT[s.kind]}`} />
+              {BENEFIT_KIND_LABEL[s.kind]}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -257,6 +319,7 @@ function CaseSelect() {
 
 function CaseCard({ c, onBegin }: { c: MedicalCaseScenario; onBegin: () => void }) {
   const plan = findPlan(c.planId);
+  const scenario = BENEFIT_SCENARIO_BY_CASE_ID[c.id];
   return (
     <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
@@ -264,6 +327,12 @@ function CaseCard({ c, onBegin }: { c: MedicalCaseScenario; onBegin: () => void 
         <span className="text-[10px] text-slate-400">~{c.estimatedMinutes} min</span>
       </div>
       <h4 className="mt-2 text-sm font-bold text-slate-800">{c.title}</h4>
+      {scenario && (
+        <span className={`mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${BENEFIT_KIND_TONE[scenario.kind]}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${BENEFIT_KIND_DOT[scenario.kind]}`} />
+          {BENEFIT_KIND_LABEL[scenario.kind]}
+        </span>
+      )}
       <p className="mt-1 flex-1 text-[11px] leading-relaxed text-slate-500">{c.briefing}</p>
       <div className="mt-2 text-[10px] text-slate-400">
         <span className="font-medium text-slate-500">{c.specialty}</span>
@@ -430,6 +499,18 @@ function EligibilityStage() {
   if (!activeCase) return null;
   const e = activeCase.eligibilitySnapshot;
   const hasBenefitLimit = (e.benefitUsage?.length ?? 0) > 0 || (plan?.benefitLimits.length ?? 0) > 0;
+  const hasDeductible = (plan?.deductibleUsd ?? 0) > 0;
+  const hasExclusion = /exclud/i.test(e.status) || e.representativeNotes.some((n) => /exclud/i.test(n));
+  // A checkbox confirmation only appears when the plan has a benefit rule worth
+  // confirming — a hard visit limit, a real deductible/coinsurance, or an
+  // outright exclusion. The prompt adapts to which rule is in play.
+  const confirmPrompt = hasBenefitLimit
+    ? "I checked the remaining benefit allowance before this appointment."
+    : hasExclusion
+      ? "I checked the plan's exclusion list before scheduling this service."
+      : hasDeductible
+        ? "I read the plan's deductible and coinsurance before quoting the patient."
+        : null;
 
   return (
     <div className="h-full overflow-y-auto p-4">
@@ -450,7 +531,7 @@ function EligibilityStage() {
             ))}
           </div>
         )}
-        {hasBenefitLimit && (
+        {confirmPrompt && (
           <label className="mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
             <input
               type="checkbox"
@@ -458,9 +539,7 @@ function EligibilityStage() {
               onChange={(e) => setEligibilityChecked(e.target.checked)}
               className="h-3.5 w-3.5 accent-blue-600"
             />
-            <span className="text-[11px] text-slate-700">
-              I checked the remaining benefit allowance before this appointment.
-            </span>
+            <span className="text-[11px] text-slate-700">{confirmPrompt}</span>
           </label>
         )}
         <p className="mt-2 text-[9px] font-semibold uppercase tracking-wide text-slate-400">Representative notes</p>

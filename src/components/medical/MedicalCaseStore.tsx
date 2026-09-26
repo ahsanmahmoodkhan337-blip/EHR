@@ -224,6 +224,8 @@ function computeEarned(
         hit = state.claimSubmitted && pa.choice === "obtained" && pa.authNumber.trim().length > 0;
       else if (t.includes("bundled")) hit = state.claimSubmitted && !hasProc("11102");
       else if (t.includes("coded the visit")) hit = hasProc("97110") && hasDx("M54.5");
+      else if (t.includes("coded and submitted")) hit = state.claimSubmitted && hasProc("99203") && hasDx("J06.9");
+      else if (t.includes("fabricate")) hit = state.claimSubmitted && hasDx("D23.9");
     } else if (c.stage === "prior-auth") {
       if (t.includes("recogni")) hit = pa.recognized && pa.choice !== "skipped";
       else if (t.includes("obtained")) hit = pa.choice === "obtained";
@@ -233,6 +235,7 @@ function computeEarned(
       else if (t.includes("retrospective")) hit = hasAr("retrospective-review");
       else if (t.includes("wrote off")) hit = hasAr("write-off");
       else if (t.includes("did not appeal")) hit = hasAr("explain-and-move");
+      else if (t.includes("signed waiver")) hit = hasAr("bill-patient");
     }
 
     if (hit) earned[key] = c.points;
@@ -285,6 +288,18 @@ function detectTriggeredTraps(state: MedicalCaseState, activeCase: MedicalCaseSc
     case "MCASE-007":
       if (!state.eligibilityChecked && state.claimSubmitted) ids.push("MTRAP-7A");
       if (hasAr("appeal")) ids.push("MTRAP-7B");
+      break;
+    case "MCASE-008":
+      // Deductible + coinsurance: billed without reading the plan's benefit
+      // design, or waived the patient share in AR instead of billing it.
+      if (!state.eligibilityChecked && state.claimSubmitted) ids.push("MTRAP-8A");
+      if (hasAr("write-off")) ids.push("MTRAP-8B");
+      break;
+    case "MCASE-009":
+      // Non-covered cosmetic service: billed without checking the exclusion
+      // (CO-96), or appealed a plan exclusion on clinical grounds.
+      if (!state.eligibilityChecked && state.claimSubmitted) ids.push("MTRAP-9A");
+      if (hasAr("appeal")) ids.push("MTRAP-9B");
       break;
   }
   return ids;
