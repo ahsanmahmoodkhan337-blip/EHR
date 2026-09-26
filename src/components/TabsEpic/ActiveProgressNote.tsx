@@ -150,7 +150,7 @@ export function ActiveProgressNote({ patientName, soapNote, onNoteChange }: Acti
 
       {/* History panel */}
       {showHistory && (
-        <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 clinical-card">
           <p className="text-xs font-semibold text-slate-700 mb-3">Saved Notes History</p>
           {savedNotes.length === 0 ? (
             <p className="text-xs text-slate-400 italic">No saved notes yet.</p>

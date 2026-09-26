@@ -41,7 +41,7 @@ export function EligibilityStage({ patientName, dob, insurance }: { patientName?
       </div>
 
       {/* ─── Payer Portal ─── */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="clinical-card">
         <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
           <Building className="h-5 w-5 text-slate-600" />
           <span className="text-sm font-bold text-slate-700">Payer Portal</span>

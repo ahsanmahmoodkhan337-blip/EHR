@@ -293,7 +293,7 @@ export function BillingLedger() {
                 </div>
 
                 {/* Claim entry form */}
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="clinical-card">
                   <p className="text-xs font-semibold text-slate-700 mb-3">Claim Submission</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -492,7 +492,7 @@ export function BillingLedger() {
 
                 {/* Scrubber results */}
                 {scrubResults && (
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="clinical-card">
                     <p className="text-xs font-semibold text-slate-700 mb-3">Claim Scrubber Results</p>
                     <div className="space-y-2">
                       {scrubResults.map((r) => (

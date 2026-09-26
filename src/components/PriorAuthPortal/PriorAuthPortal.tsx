@@ -1145,7 +1145,7 @@ export default function PriorAuthPortal() {
           <div className="space-y-4">
             {procedure ? (
               <>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="clinical-card">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-semibold text-slate-700">
                       Insurance Criteria Checklist — {PA_PROCEDURES[procedure]?.label}
@@ -1240,7 +1240,7 @@ export default function PriorAuthPortal() {
           <div className="space-y-4">
             {procedure ? (
               <>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="clinical-card">
                   <div className="flex items-center gap-2 mb-3">
                     <Paperclip className="h-4 w-4 text-[#4A1D96]" />
                     <p className="text-xs font-semibold text-slate-700">
@@ -1348,7 +1348,7 @@ export default function PriorAuthPortal() {
           <div className="space-y-4">
             {procedure && PA_PROCEDURES[procedure]?.stepTherapy ? (
               <>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="clinical-card">
                   <div className="flex items-center gap-2 mb-3">
                     <ArrowRight className="h-4 w-4 text-purple-600" />
                     <p className="text-xs font-semibold text-slate-700">
@@ -1719,7 +1719,7 @@ export default function PriorAuthPortal() {
         {/* ─── TAB: COMMON ERRORS ─── */}
         {activeTab === "errors" && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="clinical-card">
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle className="h-4 w-4 text-red-500" />
                 <p className="text-xs font-semibold text-slate-700">Common Prior Auth Errors & Fixes</p>

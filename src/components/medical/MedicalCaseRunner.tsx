@@ -321,7 +321,7 @@ function CaseCard({ c, onBegin }: { c: MedicalCaseScenario; onBegin: () => void 
   const plan = findPlan(c.planId);
   const scenario = BENEFIT_SCENARIO_BY_CASE_ID[c.id];
   return (
-    <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-col clinical-card">
       <div className="flex items-start justify-between gap-2">
         <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase ${difficultyTone(c.difficulty)}`}>{c.difficulty}</span>
         <span className="text-[10px] text-slate-400">~{c.estimatedMinutes} min</span>
@@ -451,7 +451,7 @@ function RegistrationStage() {
       <p className="text-[10px] text-slate-400">Transcribe the details from the card and confirm they match the chart.</p>
 
       <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="clinical-card">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Insurance card</p>
           <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <p className="text-sm font-bold text-slate-800">{p.subscriberName}</p>
@@ -460,7 +460,7 @@ function RegistrationStage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="clinical-card">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Your transcription</p>
           <label className="mt-2 block text-[10px] text-slate-500">Patient last name</label>
           <input
@@ -517,7 +517,7 @@ function EligibilityStage() {
       <h3 className="text-sm font-bold text-slate-800">Eligibility & prior-authorisation check (270/271)</h3>
       <p className="text-[10px] text-slate-400">Confirm the patient's coverage and any service limits before the visit.</p>
 
-      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mt-3 clinical-card">
         <p className="text-xs font-medium text-slate-700">{e.status}</p>
         <p className="mt-1 text-[11px] text-slate-500">
           Remaining deductible: ${e.remainingDeductibleUsd} · Prior auth required for this visit: {e.priorAuthRequired ? "yes" : "no"}
@@ -843,7 +843,7 @@ function ClaimStage() {
       <h3 className="text-sm font-bold text-slate-800">Claim — CMS-1500</h3>
       <p className="text-[10px] text-slate-400">Review the claim lines and diagnosis pointers, then submit.</p>
 
-      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mt-3 clinical-card">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-xs font-bold text-slate-800">
@@ -1020,7 +1020,7 @@ function Debrief() {
   return (
     <div className="h-full overflow-y-auto p-4">
       {/* score header */}
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-4 clinical-card">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-lg font-bold text-blue-700">
           {scoreTally.earned}/{scoreTally.maxPoints}
         </div>

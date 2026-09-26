@@ -120,43 +120,43 @@ export function RegistrationStage() {
       )}
 
       {/* ─── Transcription Form ─── */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="clinical-card">
         <h4 className="mb-3 text-sm font-semibold text-slate-700">Transcribe Patient Information</h4>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label className="text-[11px] font-medium text-slate-500">First Name</label>
             <input type="text" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" placeholder="e.g. Jonathan" />
+              className="mt-1 input-field" placeholder="e.g. Jonathan" />
             {errors.firstName && <p className="mt-0.5 text-[10px] text-red-500">{errors.firstName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Last Name</label>
             <input type="text" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" placeholder="e.g. Doe" />
+              className="mt-1 input-field" placeholder="e.g. Doe" />
             {errors.lastName && <p className="mt-0.5 text-[10px] text-red-500">{errors.lastName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Date of Birth (MM/DD/YYYY)</label>
             <input type="text" value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" placeholder="e.g. 04/15/1988" />
+              className="mt-1 input-field" placeholder="e.g. 04/15/1988" />
             {errors.dob && <p className="mt-0.5 text-[10px] text-red-500">{errors.dob}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Subscriber ID</label>
             <input type="text" value={form.subscriberId} onChange={e => setForm({ ...form, subscriberId: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" placeholder="e.g. XYZ987654321" />
+              className="mt-1 input-field" placeholder="e.g. XYZ987654321" />
             {errors.subscriberId && <p className="mt-0.5 text-[10px] text-red-500">{errors.subscriberId}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Group Number</label>
             <input type="text" value={form.groupNumber} onChange={e => setForm({ ...form, groupNumber: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" placeholder="e.g. GRP-4477" />
+              className="mt-1 input-field" placeholder="e.g. GRP-4477" />
             {errors.groupNumber && <p className="mt-0.5 text-[10px] text-red-500">{errors.groupNumber}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Payer ID</label>
             <input type="text" value={form.payerId} onChange={e => setForm({ ...form, payerId: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" placeholder="e.g. ANTHEM01" />
+              className="mt-1 input-field" placeholder="e.g. ANTHEM01" />
             {errors.payerId && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerId}</p>}
           </div>
         </div>
