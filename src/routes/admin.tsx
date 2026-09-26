@@ -40,7 +40,7 @@ import {
   revokeApprovedPhone,
   saveAccessRequest,
 } from "../store/accessStore";
-import { fetchAdminSharingSummaries, type AdminSharingSummary } from "../store/accountSecurity";
+import { fetchAdminSharingSummaries, MAX_DEVICE_COUNT, type AdminSharingSummary } from "../store/accountSecurity";
 import {
   getAllPins,
   setStagePin,
@@ -443,13 +443,21 @@ function AdminPage() {
                             <div>
                               <span
                                 className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${
-                                  sig?.flagged
+                                  sig?.overLimit
                                     ? "border-red-700/50 bg-red-900/40 text-red-300"
-                                    : "border-slate-600 bg-slate-700/50 text-slate-300"
+                                    : sig?.flagged
+                                      ? "border-amber-700/50 bg-amber-900/40 text-amber-300"
+                                      : "border-slate-600 bg-slate-700/50 text-slate-300"
                                 }`}
                               >
-                                {deviceCount} device{deviceCount !== 1 ? "s" : ""}
+                                {deviceCount}/{MAX_DEVICE_COUNT} device{deviceCount !== 1 ? "s" : ""}
                               </span>
+                              {sig?.overLimit && (
+                                <p className="mt-0.5 text-[9px] text-red-400">over device limit</p>
+                              )}
+                              {sig?.concurrentLoginDetected && !sig?.overLimit && (
+                                <p className="mt-0.5 text-[9px] text-amber-400">multi-session</p>
+                              )}
                               {sig?.lastLoginAt && (
                                 <p className="mt-0.5 text-[9px] text-slate-500">
                                   last {new Date(sig.lastLoginAt).toLocaleDateString()}

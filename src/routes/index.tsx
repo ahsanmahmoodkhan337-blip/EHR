@@ -45,6 +45,7 @@ import { PipelineProvider, usePipeline } from "../store/pipelineStore";
 import { isLoggedIn, getLoggedInPhone } from "../store/accessStore";
 import { loadUserData, saveUserData, syncUserDataFromSupabase } from "../store/persistence";
 import { checkSessionExpired, clearSession, setSessionStart } from "../store/accessStore";
+import { isSessionSuperseded } from "../store/accountSecurity";
 import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
 import { WorkflowTracker } from "../components/WorkflowTracker";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
@@ -1468,6 +1469,34 @@ function Home() {
       }, 10000);
       return () => clearInterval(interval);
     }
+  }, []);
+
+  // Poll for single-active-session supersession every 15 seconds. If another
+  // device logged in with this phone, sign this one out (client-side raise-bar).
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const superseded = await isSessionSuperseded(getLoggedInPhone());
+        if (superseded && !cancelled) {
+          addToast({
+            type: "warning",
+            title: "Signed in on another device",
+            description: "This device was signed out because you logged in elsewhere.",
+          });
+          clearSession();
+          window.location.reload();
+        }
+      } catch {
+        /* ignore transient sync errors */
+      }
+    };
+    const interval = setInterval(check, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   // Show public landing page while checking or if not logged in
