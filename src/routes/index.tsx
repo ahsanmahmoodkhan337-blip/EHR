@@ -16,7 +16,29 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  BadgeDollarSign,
+  BarChart3,
+  CheckCircle2,
+  ClipboardList,
+  FileText,
+  Hash,
+  LayoutGrid,
+  ListChecks,
+  Mic,
+  Receipt,
+  RefreshCw,
+  Scale,
+  Search,
+  ShieldCheck,
+  Smile,
+  Sparkles,
+  Stethoscope,
+} from "lucide-react";
 
 import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
@@ -896,213 +918,255 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
 // ─── Public Landing Page (when not logged in) ──────────────────────
 
 function PublicLandingPage() {
+  const reduceMotion = useReducedMotion();
+
+  // Shared reveal preset — collapses to no-op under prefers-reduced-motion.
+  const rise = (i = 0) => ({
+    initial: { opacity: 0, y: reduceMotion ? 0 : 20 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, amount: 0.15 },
+    transition: { duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : i * 0.06 },
+  });
+
+  const medicalStages = [
+    { icon: FileText, title: "Scribe — Clinical Charting", desc: "Structured SOAP notes, vitals, HPI, exam findings and assessment plans — with one-click macros straight into the coding queue.", tag: "Epic + DrChrono" },
+    { icon: Search, title: "Coder — ICD-10 & CPT", desc: "Extract diagnoses and procedures, search a built-in code repository, and assign the correct ICD-10-CM and CPT codes.", tag: "ICD-10 / CPT" },
+    { icon: ShieldCheck, title: "Prior Auth — Authorization Hub", desc: "Map clinical documentation to payer criteria and submit digital prior-authorization forms for high-cost procedures.", tag: "PA Portal" },
+    { icon: BadgeDollarSign, title: "Biller — Claim Scrubbing", desc: "Audit CMS-1500 claims, submit to the clearinghouse, and resolve real-world paid / denied outcomes.", tag: "CMS-1500" },
+    { icon: Mic, title: "AR Voice — Phone Follow-up", desc: "Dispute denied claims with an AI insurance rep that responds like a real US-based agent — accent practice included.", tag: "AI Voice" },
+    { icon: RefreshCw, title: "Denial Simulation Matrix", desc: "Resolve CO-16, CO-50 and CO-119 denials through correction, documentation, or voice negotiation.", tag: "Path A / Path B" },
+  ];
+
+  const dentalFeatures = [
+    { icon: Hash, title: "CDT Coding", desc: "Procedure selection with tooth, surface and quadrant notation.", tag: "CDT" },
+    { icon: LayoutGrid, title: "Odontogram + Perio Chart", desc: "Visual tooth charting with periodontal pocket and mobility tracking.", tag: "Visual" },
+    { icon: FileText, title: "ADA J430D Claim Form", desc: "Line-level paid / downgraded / denied explanations on an ADA-style claim.", tag: "ADA" },
+    { icon: Scale, title: "12-Step Adjudication", desc: "Annual maximums, frequency limits, waiting periods, missing-tooth clause and alternate-benefit downgrades.", tag: "Benefits" },
+    { icon: ClipboardList, title: "Treatment Planning", desc: "Planned treatments with per-item insurance estimates and an accept → completed flow.", tag: "Plans" },
+    { icon: ListChecks, title: "Claim Status Queue", desc: "Created → sent → pending → paid / denied / appealed, tracked end to end.", tag: "Queue" },
+    { icon: BarChart3, title: "Patient Ledger", desc: "Charges, payments, adjustments, running balance and 30/60/90+ aging.", tag: "AR" },
+    { icon: Receipt, title: "EOB / ERA + Appeal", desc: "Detailed EOB breakdown with a guided denial → appeal wizard.", tag: "Appeals" },
+  ];
+
   return (
-    <div className="min-h-dvh brand-gradient">
+    <div className="min-h-dvh overflow-x-hidden bg-slate-50 text-slate-800">
       {/* Nav */}
-      <nav className="flex items-center justify-between border-b border-blue-200 bg-white/80 px-4 py-3 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <img
-            src="/healthcarehustlers-logo.png"
-            alt="Healthcare Hustlers"
-            className="h-7 w-auto"
-            style={{ maxWidth: "160px" }}
-          />
-        </div>
-        <nav className="flex items-center gap-2 text-xs">
-          <Link to="/login" className="rounded-lg border border-blue-200 px-3 py-1.5 font-medium text-blue-600 hover:bg-blue-50">
+      <nav className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/70 bg-white/85 px-4 py-3 backdrop-blur-md">
+        <img
+          src="/healthcarehustlers-logo.png"
+          alt="Healthcare Hustlers"
+          className="h-7 w-auto"
+          style={{ maxWidth: "160px" }}
+        />
+        <div className="flex items-center gap-2 text-xs">
+          <Link to="/login" className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50">
             Student Login
           </Link>
-          <Link to="/admin" className="rounded-lg bg-blue-600 px-3 py-1.5 font-medium text-white hover:bg-blue-700">
+          <Link to="/admin" className="rounded-lg bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-700">
             Admin Panel
           </Link>
-        </nav>
+        </div>
       </nav>
 
       {/* Hero */}
-      <section className="mx-auto max-w-4xl px-4 py-16 text-center">
-        <div className="mx-auto mb-6 flex items-center justify-center">
-          <img
-            src="/healthcarehustlers-logo.png"
-            alt="Healthcare Hustlers"
-            className="h-16 w-auto md:h-20"
+      <section className="relative isolate overflow-hidden">
+        {/* Subtle animated background */}
+        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+          <motion.div
+            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-blue-300/30 blur-3xl"
+            animate={reduceMotion ? undefined : { x: [0, 48, 0], y: [0, 24, 0] }}
+            transition={{ duration: 15, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           />
-        </div>
-        <h1 className="text-4xl font-bold text-slate-800 md:text-5xl">
-          EHR & RCM Simulation Portal
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-500">
-          Master the complete <strong>medical and dental</strong> revenue cycle — from clinical charting to claim payment.
-          Practice as a <strong>Scribe</strong>, <strong>Medical Coder</strong>, <strong>Biller</strong>,
-          <strong>Prior Auth Specialist</strong>, and <strong>AR Voice Agent</strong> — or switch to the dental track for
-          <strong> CDT coding</strong>, <strong>perio charting</strong>, and <strong>dental claim appeals</strong>.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            to="/access"
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700"
-          >
-            Enroll Now — 20$/ 5500 pkr
-          </Link>
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-6 py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50"
-          >
-            Student Login
-          </Link>
-        </div>
-        <p className="mt-4 text-center text-xs text-blue-600">
-          Note: 20$/ 5500 pkr provides access to both the medical and dental RCM tracks
-        </p>
-      </section>
-
-      {/* Pipeline Features — 5 Stages */}
-      <section className="mx-auto max-w-5xl px-4 pb-8">
-        <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold text-slate-700">The Medical RCM Pipeline</h2>
-          <p className="mt-2 text-sm text-slate-400">Follow a patient encounter from exam room to final payment</p>
+          <motion.div
+            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-teal-300/30 blur-3xl"
+            animate={reduceMotion ? undefined : { x: [0, -48, 0], y: [0, 32, 0] }}
+            transition={{ duration: 17, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+          />
+          <div className="absolute bottom-0 left-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-indigo-200/20 blur-3xl" />
         </div>
 
-        {/* Pipeline Flow Visual */}
-        <div className="mb-8 flex items-center justify-center gap-1 overflow-x-auto rounded-xl bg-white p-4 shadow-sm">
-          {["📋 Scribe", "🔍 Coder", "📄 Prior Auth", "💰 Biller", "📞 AR Voice"].map((stage, i) => (
-            <div key={stage} className="flex items-center gap-1">
-              <div className="whitespace-nowrap rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                {stage}
-              </div>
-              {i < 4 && <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />}
-            </div>
-          ))}
-        </div>
+        <div className="mx-auto max-w-5xl px-4 pb-14 pt-14 text-center md:pt-20">
+          <motion.p {...rise(0)} className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500">
+            <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+            Medical + Dental revenue-cycle training in one login
+          </motion.p>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              stage: "STAGE 1",
-              title: "Scribe — Clinical Charting",
-              desc: "Write structured SOAP notes with one-click macros. Capture vitals, HPI, exam findings, and assessment plans. Submit to the coding queue.",
-              icon: "📋",
-              color: "bg-blue-50 border-blue-200",
-              tag: "Epic + DrChrono",
-            },
-            {
-              stage: "STAGE 2",
-              title: "Coder — ICD-10 & CPT Assignment",
-              desc: "Review the clinical note and extract diagnoses and procedures. Search a built-in code repository and assign the correct ICD-10-CM and CPT codes.",
-              icon: "🔍",
-              color: "bg-indigo-50 border-indigo-200",
-              tag: "ICD-10 / CPT",
-            },
-            {
-              stage: "STAGE 3",
-              title: "Prior Auth — Authorization Hub",
-              desc: "Handle high-cost procedures requiring pre-approval. Map clinical documentation to insurance policy criteria and submit digital PA forms.",
-              icon: "📄",
-              color: "bg-purple-50 border-purple-200",
-              tag: "PA Portal",
-            },
-            {
-              stage: "STAGE 4",
-              title: "Biller — Claim Scrubbing",
-              desc: "Audit CMS-1500 claims for errors. Submit to clearinghouse and face real-world outcomes: get paid instantly or receive a denial code to resolve.",
-              icon: "💰",
-              color: "bg-violet-50 border-violet-200",
-              tag: "CMS-1500",
-            },
-            {
-              stage: "STAGE 5",
-              title: "AR Voice — Phone Follow-up",
-              desc: "Call insurance representatives to dispute denied claims. Practice accent clarity with an AI-powered voice simulator that responds like a real US-based agent.",
-              icon: "📞",
-              color: "bg-rose-50 border-rose-200",
-              tag: "AI Voice",
-            },
-            {
-              stage: "BONUS",
-              title: "Denial Simulation Matrix",
-              desc: "Experience randomized claim outcomes. Resolve CO-16, CO-50, CO-119 denials through correction, documentation, or voice negotiation.",
-              icon: "🎲",
-              color: "bg-amber-50 border-amber-200",
-              tag: "Path A / Path B",
-            },
-          ].map((feat) => (
-            <div key={feat.title} className={`rounded-xl border-2 p-5 ${feat.color} transition-shadow hover:shadow-md`}>
-              <div className="flex items-start justify-between">
-                <span className="text-2xl">{feat.icon}</span>
-                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-500 shadow-sm">
-                  {feat.tag}
+          <motion.h1 {...rise(1)} className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 md:text-6xl">
+            Master the full patient encounter —{" "}
+            <span className="bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+              chart to payment.
+            </span>
+          </motion.h1>
+
+          <motion.p {...rise(2)} className="mx-auto mt-5 max-w-2xl text-base text-slate-500 md:text-lg">
+            Practice as a Scribe, Coder, Biller, Prior Auth Specialist and AR Voice Agent — then switch to the
+            dental track for CDT coding, perio charting and claim appeals.
+          </motion.p>
+
+          <motion.div {...rise(3)} className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              to="/access"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl"
+            >
+              Enroll Now — 20$ / 5500 pkr
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Student Login
+            </Link>
+          </motion.div>
+          <motion.p {...rise(4)} className="mt-4 text-center text-xs text-slate-400">
+            One fee unlocks both the medical and dental RCM tracks
+          </motion.p>
+
+          {/* Two-track hero */}
+          <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
+            <motion.div {...rise(5)} className="relative overflow-hidden rounded-2xl border border-blue-200 bg-white p-6 text-left shadow-sm">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 to-blue-400" />
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <Stethoscope className="h-6 w-6" />
                 </span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500">Medical track</p>
+                  <h3 className="text-lg font-bold text-slate-900">Medical RCM Pipeline</h3>
+                </div>
               </div>
-              <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">{feat.stage}</p>
-              <h3 className="mt-1 font-semibold text-slate-800">{feat.title}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500">{feat.desc}</p>
-            </div>
-          ))}
+              <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                {["Scribe → Coder → Prior Auth → Biller → AR Voice", "ICD-10 / CPT coding & CMS-1500 claims", "AI voice simulation for denial follow-up"].map((line) => (
+                  <li key={line} className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+
+            <motion.div {...rise(6)} className="relative overflow-hidden rounded-2xl border border-teal-200 bg-white p-6 text-left shadow-sm">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-600 to-emerald-400" />
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                  <Smile className="h-6 w-6" />
+                </span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-teal-500">Dental track</p>
+                  <h3 className="text-lg font-bold text-slate-900">Dental Billing & RCM</h3>
+                </div>
+              </div>
+              <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                {["CDT coding with tooth / surface / quadrant", "Odontogram + perio chart & ADA claim form", "12-step adjudication, ledger & appeals"].map((line) => (
+                  <li key={line} className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Dental Track */}
-      <section className="mx-auto max-w-5xl px-4 pb-8">
-        <div className="rounded-2xl border border-teal-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-slate-700">Dental RCM Track</h2>
-                <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
-                  Included in the same access
-                </span>
-              </div>
-              <p className="mt-1 max-w-2xl text-sm text-slate-500">
-                A second full revenue cycle for dental billing and coding — built on Dentrix, Eaglesoft, and Open Dental
-                workflows. Practice <strong>CDT procedure selection</strong> with tooth/surface/quadrant notation, a visual
-                <strong> odontogram + perio chart</strong>, an <strong>ADA-style claim form</strong>, a 12-step benefit
-                adjudication engine (annual maximums, frequency limits, waiting periods, downgrade-as-downgrade), and
-                <strong> denial → appeal</strong> resolution.
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-            {["CDT Coding", "Odontogram + Perio", "ADA Claim Form", "Denial → Appeal"].map((f) => (
-              <div key={f} className="rounded-lg bg-teal-50 px-3 py-2 text-center text-xs font-semibold text-teal-700">
-                {f}
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-[11px] text-slate-400">
-            Switch between the Medical and Dental tracks from inside the simulator — both are unlocked with the same login.
+      {/* Dental showcase */}
+      <section className="mx-auto max-w-6xl px-4 pb-16">
+        <motion.div {...rise(0)} className="mb-10 text-center">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-teal-600">Dental billing, front and center</p>
+          <h2 className="mt-2 text-3xl font-bold text-slate-900">The Dental RCM Track</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">
+            A full second revenue cycle built on Dentrix, Eaglesoft and Open Dental workflows — everything a dental
+            biller or coder gets hired for.
           </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {dentalFeatures.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <motion.div
+                key={f.title}
+                {...rise(i)}
+                className="group rounded-2xl border border-teal-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg"
+              >
+                <div className="flex items-start justify-between">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 transition group-hover:scale-110">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-700">{f.tag}</span>
+                </div>
+                <h3 className="mt-3 font-semibold text-slate-900">{f.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">{f.desc}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Medical pipeline */}
+      <section className="border-t border-slate-100 bg-white/60 py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <motion.div {...rise(0)} className="mb-10 text-center">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-blue-600">Medical track</p>
+            <h2 className="mt-2 text-3xl font-bold text-slate-900">The Medical RCM Pipeline</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">Follow a patient encounter from exam room to final payment.</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {medicalStages.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <motion.div
+                  key={f.title}
+                  {...rise(i)}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">{f.tag}</span>
+                  </div>
+                  <h3 className="mt-3 font-semibold text-slate-900">{f.title}</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">{f.desc}</p>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section className="bg-white py-12">
+      <section className="py-16">
         <div className="mx-auto max-w-4xl px-4 text-center">
-          <h2 className="text-2xl font-bold text-slate-700">Get Started in 4 Steps</h2>
-          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-4">
+          <motion.h2 {...rise(0)} className="text-3xl font-bold text-slate-900">Get Started in 4 Steps</motion.h2>
+          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-4">
             {[
-              { n: "1", title: "Pay 20$/ 5500 pkr", desc: "via Bank Islami, EasyPaisa, or PayPal" },
-              { n: "2", title: "Submit Request", desc: "Fill form with your transaction ID" },
+              { n: "1", title: "Pay 20$ / 5500 pkr", desc: "via Bank Islami, EasyPaisa, or PayPal" },
+              { n: "2", title: "Submit Request", desc: "Fill the form with your transaction ID" },
               { n: "3", title: "Get Approved", desc: "Admin activates your account" },
-              { n: "4", title: "Practice!", desc: "Log in with your phone number and start the pipeline" },
-            ].map((step) => (
-              <div key={step.n} className="rounded-xl border border-slate-200 p-4">
-                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-600">
+              { n: "4", title: "Practice!", desc: "Log in with your phone number and start" },
+            ].map((step, i) => (
+              <motion.div key={step.n} {...rise(i)} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-teal-500 text-base font-bold text-white">
                   {step.n}
                 </div>
-                <h3 className="font-semibold text-slate-700">{step.title}</h3>
+                <h3 className="font-semibold text-slate-800">{step.title}</h3>
                 <p className="mt-1 text-xs text-slate-400">{step.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-blue-200 bg-white/60 px-4 py-6 text-center text-xs text-slate-400">
+      <footer className="border-t border-slate-200 bg-white/70 px-4 py-6 text-center text-xs text-slate-400">
         www.healthcarehustlers.org — Healthcare Hustlers EHR Simulation Portal
       </footer>
     </div>
   );
 }
+
 
 // ─── Main Layout ───────────────────────────────────────────────────
 
