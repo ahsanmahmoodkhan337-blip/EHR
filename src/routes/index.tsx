@@ -734,45 +734,45 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
       case "bp": {
         const parts = valueStr.split("/").map((s) => parseFloat(s.trim()));
         if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          if (parts[0] > 130 || parts[1] > 80) return { className: "badge-abnormal", label: "Elevated" };
-          return { className: "badge-normal", label: "Normal" };
+          if (parts[0] > 130 || parts[1] > 80) return { className: "status-badge is-warning", label: "Elevated" };
+          return { className: "status-badge is-success", label: "Normal" };
         }
-        return { className: "badge-normal", label: "Normal" };
+        return { className: "status-badge is-success", label: "Normal" };
       }
       case "hr": {
         const val = parseFloat(valueStr);
         if (!isNaN(val)) {
-          if (val > 100 || val < 60) return { className: "badge-abnormal", label: val > 100 ? "Tachycardia" : "Bradycardia" };
-          return { className: "badge-normal", label: "Normal" };
+          if (val > 100 || val < 60) return { className: "status-badge is-warning", label: val > 100 ? "Tachycardia" : "Bradycardia" };
+          return { className: "status-badge is-success", label: "Normal" };
         }
-        return { className: "badge-normal", label: "Normal" };
+        return { className: "status-badge is-success", label: "Normal" };
       }
       case "temp": {
         const val = parseFloat(valueStr);
         if (!isNaN(val)) {
-          if (val > 99.5 || val < 97) return { className: "badge-abnormal", label: val > 99.5 ? "Fever" : "Hypothermia" };
-          return { className: "badge-normal", label: "Normal" };
+          if (val > 99.5 || val < 97) return { className: "status-badge is-warning", label: val > 99.5 ? "Fever" : "Hypothermia" };
+          return { className: "status-badge is-success", label: "Normal" };
         }
-        return { className: "badge-normal", label: "Normal" };
+        return { className: "status-badge is-success", label: "Normal" };
       }
       case "rr": {
         const val = parseFloat(valueStr);
         if (!isNaN(val)) {
-          if (val > 20 || val < 12) return { className: "badge-abnormal", label: "Abnormal" };
-          return { className: "badge-normal", label: "Normal" };
+          if (val > 20 || val < 12) return { className: "status-badge is-warning", label: "Abnormal" };
+          return { className: "status-badge is-success", label: "Normal" };
         }
-        return { className: "badge-normal", label: "Normal" };
+        return { className: "status-badge is-success", label: "Normal" };
       }
       case "o2": {
         const val = parseFloat(valueStr);
         if (!isNaN(val)) {
-          if (val < 95) return { className: "badge-abnormal", label: "Low" };
-          return { className: "badge-normal", label: "Normal" };
+          if (val < 95) return { className: "status-badge is-warning", label: "Low" };
+          return { className: "status-badge is-success", label: "Normal" };
         }
-        return { className: "badge-normal", label: "Normal" };
+        return { className: "status-badge is-success", label: "Normal" };
       }
       default:
-        return { className: "badge-normal", label: "Normal" };
+        return { className: "status-badge is-success", label: "Normal" };
     }
   };
 
