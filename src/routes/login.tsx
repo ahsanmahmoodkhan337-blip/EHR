@@ -224,8 +224,10 @@ function LoginPage() {
                     <Smile className="h-3.5 w-3.5" />
                   </span>
                   <p className="text-xs leading-relaxed text-slate-600">
-                    <span className="font-semibold text-teal-600">Dental</span> — CDT coding, tooth charting &amp; ADA claim form —{" "}
-                    <span className="font-medium text-teal-700">now live</span>
+                    <span className="font-semibold text-teal-600">Dental</span> — CDT coding, tooth charting &amp; ADA claim form{" "}
+                    <span className="ml-0.5 inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
+                      live now
+                    </span>
                   </p>
                 </div>
               </div>
@@ -335,7 +337,7 @@ function LoginPage() {
 
                 <button
                   onClick={handleLogin}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl"
                 >
                   <LogIn className="h-4 w-4" />
                   Sign In
