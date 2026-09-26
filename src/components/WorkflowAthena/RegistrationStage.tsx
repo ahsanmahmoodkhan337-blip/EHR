@@ -161,8 +161,7 @@ export function RegistrationStage() {
           </div>
         </div>
         <div className="mt-4 flex justify-end">
-          <button onClick={handleSubmit}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+          <button onClick={handleSubmit} className="btn-primary">
             {isComplete ? "Re-verify" : "Verify Identity & Insurance"}
           </button>
         </div>

@@ -104,9 +104,9 @@ export function DentalClaimQueue() {
       {/* per-line queue */}
       <div className="mt-3 space-y-2">
         {adjudication.lines.length === 0 && (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center">
+          <div className="empty-state">
             <FileText className="mx-auto mb-2 h-6 w-6 text-slate-300" />
-            <p className="text-xs text-slate-500">No claim lines to track yet.</p>
+            <p className="empty-hint">No claim lines to track yet.</p>
           </div>
         )}
         {adjudication.lines.map((l) => {

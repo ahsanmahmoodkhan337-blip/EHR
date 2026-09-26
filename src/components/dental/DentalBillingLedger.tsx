@@ -86,9 +86,9 @@ export function DentalBillingLedger() {
 
       {/* ── claim lines + trace ──────────────────────────────────────────── */}
       {adjudication.lines.length === 0 && (
-        <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-xs text-slate-400">
-          No claim lines yet — go back to the coder and add CDT lines first.
-        </p>
+        <div className="empty-state mt-4">
+          <p className="empty-hint">No claim lines yet — go back to the coder and add CDT lines first.</p>
+        </div>
       )}
 
       {adjudication.lines.map(({ lineId, claimLine, code, result, denial, isDowngrade }) => {

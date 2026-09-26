@@ -139,8 +139,8 @@ export function DentalPredetermination() {
           Predetermination for your plan
         </p>
         {estimateLines.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-center">
-            <p className="text-[11px] text-slate-400">
+          <div className="empty-state">
+            <p className="empty-hint">
               No planned treatment yet. Build a treatment plan first, then request a predetermination to see the
               per-item estimate in writing.
             </p>
