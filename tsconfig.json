@@ -5,7 +5,11 @@
   // a Vercel build artifact, and an uninstalled `@neondatabase/serverless` dep,
   // so they are excluded from the frontend typecheck rather than force-fitting
   // server types into the app's tsconfig.
-  "exclude": ["serve.ts", "vercel-entry.ts", "src/db.ts"],
+  //
+  // `scripts/` holds standalone data-audit tools run via `bun run scripts/*.ts`.
+  // They import from `src/` but use Node globals (`process`) and are not part of
+  // the Vite SPA bundle, so they are excluded from the frontend typecheck.
+  "exclude": ["serve.ts", "vercel-entry.ts", "src/db.ts", "scripts/**"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

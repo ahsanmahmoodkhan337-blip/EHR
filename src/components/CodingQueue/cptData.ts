@@ -23,7 +23,7 @@ export const CPT_CODES: CPTCode[] = [
   // ─── E/M New Patient ────────────────────────────────────────────
   {
     code: "99202",
-    description: "Office/outpatient visit new, low MDM",
+    description: "Office/outpatient visit new, straightforward MDM",
     category: "E/M New",
     rvu: 1.87,
     medicareRate: 78.00,
@@ -33,7 +33,7 @@ export const CPT_CODES: CPTCode[] = [
   },
   {
     code: "99203",
-    description: "Office/outpatient visit new, moderate MDM",
+    description: "Office/outpatient visit new, low MDM",
     category: "E/M New",
     rvu: 2.67,
     medicareRate: 112.00,
@@ -43,7 +43,7 @@ export const CPT_CODES: CPTCode[] = [
   },
   {
     code: "99204",
-    description: "Office/outpatient visit new, high MDM",
+    description: "Office/outpatient visit new, moderate MDM",
     category: "E/M New",
     rvu: 3.77,
     medicareRate: 158.00,
@@ -53,7 +53,7 @@ export const CPT_CODES: CPTCode[] = [
   },
   {
     code: "99205",
-    description: "Office/outpatient visit new, high MDM (comprehensive)",
+    description: "Office/outpatient visit new, high MDM",
     category: "E/M New",
     rvu: 4.92,
     medicareRate: 205.00,
@@ -65,7 +65,7 @@ export const CPT_CODES: CPTCode[] = [
   // ─── E/M Established Patient ────────────────────────────────────
   {
     code: "99212",
-    description: "Office/outpatient visit established, low MDM",
+    description: "Office/outpatient visit established, straightforward MDM",
     category: "E/M Est",
     rvu: 1.18,
     medicareRate: 52.00,
@@ -75,7 +75,7 @@ export const CPT_CODES: CPTCode[] = [
   },
   {
     code: "99213",
-    description: "Office/outpatient visit established, moderate MDM",
+    description: "Office/outpatient visit established, low MDM",
     category: "E/M Est",
     rvu: 2.08,
     medicareRate: 88.00,
@@ -85,7 +85,7 @@ export const CPT_CODES: CPTCode[] = [
   },
   {
     code: "99214",
-    description: "Office/outpatient visit established, high MDM",
+    description: "Office/outpatient visit established, moderate MDM",
     category: "E/M Est",
     rvu: 3.18,
     medicareRate: 132.00,
@@ -95,7 +95,7 @@ export const CPT_CODES: CPTCode[] = [
   },
   {
     code: "99215",
-    description: "Office/outpatient visit established, high MDM (comprehensive)",
+    description: "Office/outpatient visit established, high MDM",
     category: "E/M Est",
     rvu: 4.63,
     medicareRate: 195.00,
