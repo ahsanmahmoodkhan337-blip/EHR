@@ -26,7 +26,7 @@ import {
   getDaysRemaining,
   revokeApprovedPhone,
 } from "../store/accessStore";
-import { recordLogin } from "../store/accountSecurity";
+import { recordLogin, MAX_DEVICE_COUNT, resetOtherSessions, type SharingSignal } from "../store/accountSecurity";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -36,10 +36,12 @@ function LoginPage() {
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
-  const [status, setStatus] = useState<"idle" | "pending" | "denied" | "approved">("idle");
+  const [status, setStatus] = useState<"idle" | "pending" | "denied" | "device-limit">("idle");
   const [requestInfo, setRequestInfo] = useState<AccessRequest | null>(null);
       const [expiryWarning, setExpiryWarning] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [deviceSignal, setDeviceSignal] = useState<SharingSignal | null>(null);
+  const [resettingDevices, setResettingDevices] = useState(false);
 
   const handleLogin = async () => {
     const cleaned = phone.trim();
@@ -66,10 +68,17 @@ function LoginPage() {
         return;
       }
 
-      setLoggedInPhone(cleaned);
+      // Record device binding + session + login log, then enforce the device
+      // allowlist: a brand-new device over MAX_DEVICE_COUNT is blocked until the
+      // student signs out their other devices (client-side, raises the bar).
+      const signal = await recordLogin(cleaned);
+      if (signal.isNewDevice && signal.overLimit) {
+        setDeviceSignal(signal);
+        setStatus("device-limit");
+        return; // do not mark this device logged in yet
+      }
 
-      // Record device binding + session + login log (detection-only, never blocks).
-      await recordLogin(cleaned);
+      setLoggedInPhone(cleaned);
 
       // Show expiry warning if < 30 days
       const days = getDaysRemaining(cleaned);
@@ -103,6 +112,24 @@ function LoginPage() {
 
     // No request found at all
     setStatus("denied");
+  };
+
+  // "Sign out other devices" — clears every other device binding, keeps this
+  // one, and lets the student through. The recovery path when blocked by the
+  // device allowlist.
+  const handleSignOutOtherDevices = async () => {
+    const cleaned = phone.trim();
+    if (!cleaned) return;
+    setResettingDevices(true);
+    try {
+      await resetOtherSessions(cleaned);
+      setLoggedInPhone(cleaned);
+      setDeviceSignal(null);
+      setStatus("idle");
+      navigate({ to: "/dashboard" });
+    } finally {
+      setResettingDevices(false);
+    }
   };
 
     return (
@@ -151,7 +178,38 @@ function LoginPage() {
             </div>
           </div>
 
-          {status === "pending" && requestInfo ? (
+          {status === "device-limit" && deviceSignal ? (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-center">
+              <AlertCircle className="mx-auto mb-2 h-8 w-8 text-amber-500" />
+              <h3 className="font-medium text-amber-800">Too many devices</h3>
+              <p className="mt-1 text-sm text-amber-700">
+                This phone number is already signed in on {deviceSignal.distinctDeviceCount} devices —
+                the limit is {MAX_DEVICE_COUNT}. To keep your account secure, sign out your other
+                devices before continuing.
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                <button
+                  onClick={handleSignOutOtherDevices}
+                  disabled={resettingDevices}
+                  className="w-full rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-60"
+                >
+                  {resettingDevices ? "Signing out other devices…" : "Sign out other devices & continue"}
+                </button>
+                <button
+                  onClick={() => {
+                    setStatus("idle");
+                    setDeviceSignal(null);
+                  }}
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Back
+                </button>
+              </div>
+              <p className="mt-3 text-[10px] text-slate-400">
+                Need help? Contact us on WhatsApp at +92 335 0340888.
+              </p>
+            </div>
+          ) : status === "pending" && requestInfo ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center">
               <AlertCircle className="mx-auto mb-2 h-8 w-8 text-amber-500" />
               <h3 className="font-medium text-amber-800">Access Pending Approval</h3>

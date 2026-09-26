@@ -111,12 +111,14 @@ export async function syncUserDataFromSupabase(phone: string | null | undefined)
     if (data?.data && typeof data.data === "object") {
       const remote = data.data as PersistedUserData;
       const local = loadUserData(phone);
-      // Prefer whichever was updated more recently.
+      // Prefer whichever was updated more recently — but always let the fresher
+      // `security` slice win, because device binding + active session are
+      // cross-device truth: a stale local copy must not mask a newer login.
       const merged = !local
         ? remote
         : (remote.updatedAt || "") > (local.updatedAt || "")
-          ? { ...remote, ...local, updatedAt: remote.updatedAt }
-          : local;
+          ? { ...remote, ...local, security: remote.security ?? local.security, updatedAt: remote.updatedAt }
+          : { ...local, security: remote.security ?? local.security };
       localStorage.setItem(userDataKey(phone), JSON.stringify(merged));
       return merged;
     }

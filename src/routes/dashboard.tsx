@@ -11,6 +11,7 @@
  * never mutates it.
  */
 
+import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, LogOut, Stethoscope, Smile, Sparkles } from "lucide-react";
 import {
@@ -20,7 +21,7 @@ import {
   logout,
 } from "../store/accessStore";
 import { loadUserData } from "../store/persistence";
-import { getSharingSignal } from "../store/accountSecurity";
+import { getSharingSignal, MAX_DEVICE_COUNT, resetOtherSessions } from "../store/accountSecurity";
 import type { PipelineState, Role } from "../store/pipelineStore";
 import type { DentalTrackState, DentalStageName } from "../components/dental/DentalTrackStore";
 
@@ -73,6 +74,19 @@ function DashboardPage() {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
   const phone = getLoggedInPhone();
+  const [resettingDevices, setResettingDevices] = useState(false);
+
+  // "Sign out other devices" — clears every other binding, keeps this one.
+  const handleResetOtherDevices = async () => {
+    if (!phone) return;
+    setResettingDevices(true);
+    try {
+      await resetOtherSessions(phone);
+      window.location.reload();
+    } finally {
+      setResettingDevices(false);
+    }
+  };
 
   if (!loggedIn || !phone) {
     return (
@@ -247,7 +261,7 @@ function DashboardPage() {
           Everything saves automatically to your account — you can switch tracks anytime.
         </p>
 
-        {/* Account activity — device-binding signal (detection-only, non-blocking). */}
+        {/* Account activity — device-binding signal + device-management path. */}
         <div className="mt-2 text-center text-[10px] text-slate-400">
           {signal.distinctDeviceCount > 0 ? (
             <span>
@@ -261,6 +275,16 @@ function DashboardPage() {
             <span className="ml-1 text-amber-500" title="This account has been used from more than one device or had overlapping sessions.">
               (multi-device)
             </span>
+          )}
+          {signal.distinctDeviceCount > 1 && (
+            <button
+              onClick={handleResetOtherDevices}
+              disabled={resettingDevices}
+              className="ml-2 inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-60"
+              title={`Sign out every other device and keep only this one (device limit: ${MAX_DEVICE_COUNT}).`}
+            >
+              {resettingDevices ? "Signing out…" : "Sign out other devices"}
+            </button>
           )}
         </div>
       </main>

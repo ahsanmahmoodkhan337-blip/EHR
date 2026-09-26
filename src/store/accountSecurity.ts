@@ -1,29 +1,35 @@
 /**
- * accountSecurity.ts — Account-sharing detection (device binding, active
- * session, login logging)
+ * accountSecurity.ts — Account-sharing detection + enforcement (device
+ * binding, active session, login logging)
  *
- * Plan item 3. Login today is a bare phone number (no password), so a
- * hard block would lock out legitimate students. This module is therefore
- * DETECTION-ORIENTED and LOCAL-FIRST: it records enough signal to flag
- * casual credential sharing without ever refusing a valid approved phone.
- * A determined attacker bypassing the client is already an accepted,
- * known limitation in the plan.
+ * Plan item 3. Login today is a bare phone number (no password). Detection
+ * was shipped first (admin "Sharing" column); this module now layers
+ * client-side ENFORCEMENT on top of that signal:
+ *   - Device binding: a phone may bind up to MAX_DEVICE_COUNT distinct
+ *     devices. A login from a brand-new device over the limit is blocked and
+ *     the student is offered "sign out other devices" (resetOtherSessions).
+ *   - Single active session: the newest login supersedes earlier ones; a
+ *     superseded device detects this via isSessionSuperseded() and signs out.
  *
- * Three responsibilities:
+ * All enforcement runs in the browser against the Supabase anon key, so it
+ * raises the bar against casual sharing — it will NOT stop a determined
+ * technical user, which is an accepted limitation in the plan.
+ *
+ * Responsibilities:
  *   1. Device binding — a persistent per-device UUID (localStorage) is
- *      associated with each phone number. A phone appearing on a NEW
- *      device is flagged (isNewDevice) and the device is recorded.
+ *      associated with each phone number; new devices are recorded and
+ *      counted against the allowlist.
  *   2. Single active session — each login mints a session token; when a
  *      second concurrent login arrives from a different device, the prior
- *      session is marked stale (session-stale event) and the event logged.
+ *      session is marked stale (session-stale event) and logged.
  *   3. Login logging — appends { phone, timestamp, deviceId, userAgent }
  *      (plus an `event` kind) to a per-phone log under the existing
  *      persistence namespace (`hh_userdata_<phone>` via persistence.ts),
  *      which already syncs to Supabase (`user_data`) when configured.
  *
- * No admin UI is built here — the "shared account" signal is surfaced as a
- * compact `SharingSignal` object, written to the student dashboard and
- * console-logged, ready for a future admin screen to read.
+ * The "shared account" signal is surfaced as a compact `SharingSignal` /
+ * `AdminSharingSummary` object, consumed by the login route, student
+ * dashboard, and admin panel.
  */
 
 import { loadUserData, saveUserData, syncUserDataFromSupabase, type PersistedUserData } from "./persistence";
@@ -32,6 +38,14 @@ import { supabase } from "./supabase";
 
 const DEVICE_ID_KEY = "hh_device_id";
 const MAX_LOG_ENTRIES = 200;
+
+/**
+ * Device-binding allowlist: the number of distinct devices a student may bind
+ * before a NEW device is blocked from signing in. Two is a sensible default
+ * (phone + one computer). Enforcement lives in the login route + device
+ * management path, and the admin Sharing column surfaces `overLimit`.
+ */
+export const MAX_DEVICE_COUNT = 2;
 
 export type LoginEventKind = "login" | "concurrent-login" | "session-stale";
 
@@ -75,6 +89,8 @@ export interface SharingSignal {
   lastLoginAt: string | null;
   /** Roll-up flag: multi-device OR concurrent login observed. */
   flagged: boolean;
+  /** True when this phone is bound to more devices than the allowlist permits. */
+  overLimit: boolean;
 }
 
 /**
@@ -93,6 +109,8 @@ export interface AdminSharingSummary {
   concurrentLoginDetected: boolean;
   /** Roll-up flag: multi-device OR concurrent login observed. */
   flagged: boolean;
+  /** True when this phone is bound to more devices than the allowlist permits. */
+  overLimit: boolean;
 }
 
 function generateId(): string {
@@ -128,6 +146,7 @@ function buildSignal(
     concurrentLoginDetected: sawConcurrent,
     lastLoginAt: last?.timestamp ?? null,
     flagged: deviceCount > 1 || sawConcurrent,
+    overLimit: deviceCount > MAX_DEVICE_COUNT,
   };
 }
 
@@ -229,6 +248,70 @@ export function getLoginLog(phone: string | null | undefined): LoginEvent[] {
 }
 
 /**
+ * Single-active-session enforcement: true when this device's session has been
+ * superseded by a newer login on a different device. Reads the freshest
+ * `activeSession` straight from Supabase (not the local merge path, which can
+ * lag), so the losing device sees the winner's session and can sign itself out.
+ * Degrades to "never superseded" in local-only mode (accepted limitation —
+ * cross-device single-session needs the shared `user_data` row).
+ */
+export async function isSessionSuperseded(phone: string | null | undefined): Promise<boolean> {
+  if (!phone) return false;
+  const myDevice = getOrCreateDeviceId();
+  let latest: ActiveSession | null = loadUserData(phone)?.security?.activeSession ?? null;
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("user_data")
+        .select("data")
+        .eq("phone", phone)
+        .maybeSingle();
+      const blob = (data?.data ?? null) as PersistedUserData | null;
+      if (!error && blob?.security?.activeSession) {
+        latest = blob.security.activeSession;
+      }
+    } catch {
+      /* keep local latest */
+    }
+  }
+  return Boolean(latest && latest.deviceId && latest.deviceId !== myDevice);
+}
+
+/**
+ * "Sign out other devices" — the device-management escape hatch. Keeps only the
+ * CURRENT device in the allowlist, drops every other binding, and mints a fresh
+ * active session. Used by the login block UI (and dashboard) when a student has
+ * exceeded the device allowlist, so they can recover without admin help.
+ * Resolves to a fresh signal (no longer over-limit) for the caller to proceed.
+ */
+export async function resetOtherSessions(phone: string): Promise<SharingSignal> {
+  const deviceId = getOrCreateDeviceId();
+  if (!phone) return buildSignal("", null, deviceId, false, false);
+  try {
+    await syncUserDataFromSupabase(phone);
+  } catch {
+    /* proceed with whatever localStorage has */
+  }
+  const existing = loadUserData(phone)?.security ?? emptyState();
+  const now = new Date().toISOString();
+  const userAgent =
+    typeof navigator !== "undefined" && navigator.userAgent ? navigator.userAgent : "";
+  const loginLog = [
+    ...existing.loginLog,
+    { phone, timestamp: now, deviceId, userAgent, event: "login" as const },
+  ].slice(-MAX_LOG_ENTRIES);
+  const state: AccountSecurityState = {
+    deviceIds: [deviceId],
+    loginLog,
+    activeSession: { token: generateId(), deviceId, startedAt: now },
+  };
+  saveUserData(phone, { security: state });
+  const signal = buildSignal(phone, state, deviceId, false, false);
+  console.info("[account-security] devices reset (other devices signed out):", JSON.stringify(signal));
+  return signal;
+}
+
+/**
  * Build a device-agnostic summary from a per-phone security state. Pure and
  * side-effect free so it can back both the local signal and the admin summary.
  */
@@ -242,6 +325,7 @@ function summarizeSharingState(phone: string, state: AccountSecurityState | null
     lastLoginAt: last?.timestamp ?? null,
     concurrentLoginDetected: sawConcurrent,
     flagged: deviceCount > 1 || sawConcurrent,
+    overLimit: deviceCount > MAX_DEVICE_COUNT,
   };
 }
 
