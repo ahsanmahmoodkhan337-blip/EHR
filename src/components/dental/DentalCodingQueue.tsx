@@ -309,9 +309,9 @@ export function DentalCodingQueue() {
           <div className="flex flex-col gap-3 overflow-y-auto pr-1">
 
         {!currentCode && (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center">
+          <div className="empty-state">
             <FileText className="mx-auto mb-2 h-6 w-6 text-slate-300" />
-            <p className="text-xs text-slate-500">
+            <p className="empty-hint">
               Select a CDT code on the left to build a claim line. Each line carries its own tooth / surface / area data and
               its own date of service — a single claim can legitimately span two benefit years.
             </p>

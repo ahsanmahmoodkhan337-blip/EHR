@@ -157,8 +157,8 @@ function DashboardPage() {
             <p className="mt-1 text-sm text-slate-500">Pick a track and resume where you left off.</p>
           </div>
           {subStatus !== "no-expiry" && (
-            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-              subStatus === "expired" ? "bg-red-50 text-red-700" : subStatus === "expiring-soon" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
+            <span className={`status-badge ${
+              subStatus === "expired" ? "is-danger" : subStatus === "expiring-soon" ? "is-warning" : "is-success"
             }`}>
               {subStatus === "expired" ? "Subscription expired" : subStatus === "expiring-soon" ? "Expiring soon" : "Active"}
             </span>
