@@ -10,8 +10,8 @@
  * Redesigned to match the new landing page (PR #44) and enrollment page
  * (PR #46): slate-neutral nav, framer-motion entrance + hero blobs (respecting
  * prefers-reduced-motion), gradient headline, two-track identity (Medical blue
- * / Dental teal), rounded-2xl cards, and lucide icons. Also updates the dental
- * copy from "rolling out now" to "now live" (the dental track is fully live).
+ * / Dental teal), rounded-2xl cards, and lucide icons. The dental copy shows no
+ * "rolling out" / "now live" qualifier — the dental track is fully live.
  *
  * Inspiration: DrChrono / Epic login gateways
  */
@@ -224,8 +224,7 @@ function LoginPage() {
                     <Smile className="h-3.5 w-3.5" />
                   </span>
                   <p className="text-xs leading-relaxed text-slate-600">
-                    <span className="font-semibold text-teal-600">Dental</span> — CDT coding, tooth charting &amp; ADA claim form —{" "}
-                    <span className="font-medium text-teal-700">now live</span>
+                    <span className="font-semibold text-teal-600">Dental</span> — CDT coding, tooth charting &amp; ADA claim form
                   </p>
                 </div>
               </div>
