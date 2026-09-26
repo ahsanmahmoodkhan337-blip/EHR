@@ -55,7 +55,8 @@ function toClaimLine(p: TxPlanItem): DentalClaimLine {
 }
 
 export function DentalTreatmentPlan() {
-  const { state, activeCase, addPlanItem, removePlanItem, acceptPlan, goTo } = useDentalTrack();
+  const { state, activeCase, addPlanItem, removePlanItem, acceptPlan, requestPredeterminationForPlan, goTo } =
+    useDentalTrack();
 
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>(CDT_CATEGORY_ORDER[0] ?? "Diagnostic");
@@ -192,7 +193,10 @@ export function DentalTreatmentPlan() {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
-              onClick={() => goTo("predetermination")}
+              onClick={() => {
+                requestPredeterminationForPlan();
+                goTo("predetermination");
+              }}
               className="flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100"
             >
               <Receipt className="h-3.5 w-3.5" /> Predetermination
@@ -405,7 +409,10 @@ export function DentalTreatmentPlan() {
                       )}
                       {candidate && (
                         <button
-                          onClick={() => goTo("predetermination")}
+                          onClick={() => {
+                            requestPredeterminationForPlan();
+                            goTo("predetermination");
+                          }}
                           className="ml-auto flex items-center gap-1 rounded-full bg-teal-100 px-2 py-0.5 text-[9px] font-semibold text-teal-700 hover:bg-teal-200"
                         >
                           <Receipt className="h-3 w-3" /> Predetermine

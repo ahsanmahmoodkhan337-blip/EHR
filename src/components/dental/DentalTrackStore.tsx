@@ -135,6 +135,8 @@ export interface DentalTrackState {
   claimSubmitted: boolean;
   /** Predetermination scenario (id) the student last requested, if any. */
   predeterminationScenarioId: string | null;
+  /** Timestamp when the student requested a predetermination for the current plan. */
+  predeterminationRequestedAt: string | null;
   /** Case-stage traps the student triggered (revealed in debrief), by trap id. */
   trapsTriggered: string[];
   /** Rubric points earned, keyed `stage-index`. */
@@ -163,6 +165,7 @@ function freshState(): DentalTrackState {
     lines: [],
     claimSubmitted: false,
     predeterminationScenarioId: null,
+    predeterminationRequestedAt: null,
     trapsTriggered: [],
     rubricByCriterion: {},
     arCallLog: [],
@@ -204,6 +207,7 @@ interface DentalTrackApi {
   resetTrack: () => void;
   // predetermination
   requestPredetermination: (scenarioId: string) => void;
+  requestPredeterminationForPlan: () => void;
   // coding
   addLine: (line: DentalClaimLine) => void;
   updateLine: (id: string, patch: Partial<DentalClaimLine>) => void;
@@ -333,6 +337,11 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, predeterminationScenarioId: scenarioId, stage: "predetermination" }));
   }, []);
 
+  /** Request a predetermination of benefits for the current treatment plan. */
+  const requestPredeterminationForPlan = useCallback(() => {
+    setState((s) => ({ ...s, predeterminationRequestedAt: new Date().toISOString() }));
+  }, []);
+
   const selectCase = useCallback((caseId: string | null) => {
     const found = caseId ? findCase(caseId) : undefined;
     if (caseId && !found) return;
@@ -351,6 +360,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
       lines: [],
       claimSubmitted: false,
       predeterminationScenarioId: null,
+      predeterminationRequestedAt: null,
       trapsTriggered: [],
       rubricByCriterion: {},
       arCallLog: [],
@@ -483,6 +493,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     goTo,
     resetTrack,
     requestPredetermination,
+    requestPredeterminationForPlan,
     addLine,
     updateLine,
     removeLine,

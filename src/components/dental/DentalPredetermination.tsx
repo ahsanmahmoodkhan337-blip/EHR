@@ -30,8 +30,10 @@ import {
   type PredeterminationDriver,
   type PredeterminationScenario,
 } from "../../data/dental";
-import { useDentalTrack } from "./DentalTrackStore";
+import { useDentalTrack, type DentalClaimLine } from "./DentalTrackStore";
+import { adjudicateDentalClaim } from "./adjudication";
 import { PredeterminationEstimate } from "./PredeterminationEstimate";
+import { PlanPredeterminationEstimate } from "./PlanPredeterminationEstimate";
 
 const DRIVER_LABEL: Record<PredeterminationDriver, string> = {
   "high-fee": "High-fee",
@@ -50,7 +52,8 @@ interface CheckableService {
 }
 
 export function DentalPredetermination() {
-  const { state, updateLine, updatePlanItem, requestPredetermination, goTo } = useDentalTrack();
+  const { state, activeCase, updateLine, updatePlanItem, requestPredetermination, requestPredeterminationForPlan, goTo } =
+    useDentalTrack();
 
   // Attach-checklist source: claim lines once they exist, otherwise the plan.
   const services: CheckableService[] = useMemo(() => {
@@ -73,6 +76,31 @@ export function DentalPredetermination() {
   }, [state.lines, state.txPlan]);
 
   const serviceCodes = useMemo(() => services.map((s) => s.code), [services]);
+
+  // Predetermination-of-benefits estimate for the student's own planned
+  // treatment: claim lines once they exist, otherwise the not-yet-accepted plan.
+  const estimateLines: DentalClaimLine[] = useMemo(() => {
+    if (state.lines.length > 0) return state.lines;
+    return state.txPlan
+      .filter((p) => p.status === "planned")
+      .map((p) => ({
+        id: p.id,
+        code: p.code,
+        tooth: p.tooth,
+        surfaces: p.surfaces,
+        quadrant: p.quadrant,
+        dateOfService: p.dateOfService,
+        feeUsd: p.feeUsd,
+        predeterminationOnFile: false,
+        attachments: p.attachments ?? [],
+        note: p.note,
+      }));
+  }, [state.lines, state.txPlan]);
+
+  const planAdjudication = useMemo(
+    () => adjudicateDentalClaim(estimateLines, activeCase),
+    [estimateLines, activeCase],
+  );
 
   const toggleAttachment = (svc: CheckableService, type: AttachmentType) => {
     const has = svc.attachments.includes(type);
@@ -103,6 +131,41 @@ export function DentalPredetermination() {
         >
           <ArrowLeft className="h-3 w-3" /> Back
         </button>
+      </div>
+
+      {/* ── 0. Predetermination of benefits for your plan ───────────── */}
+      <div className="mb-3">
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          Predetermination for your plan
+        </p>
+        {estimateLines.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-center">
+            <p className="text-[11px] text-slate-400">
+              No planned treatment yet. Build a treatment plan first, then request a predetermination to see the
+              per-item estimate in writing.
+            </p>
+          </div>
+        ) : !state.predeterminationRequestedAt ? (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50 p-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-teal-800">
+                {estimateLines.length} planned service{estimateLines.length === 1 ? "" : "s"}
+              </p>
+              <p className="mt-0.5 text-[10px] leading-snug text-teal-700">
+                Send a predetermination of benefits so the patient's out-of-pocket number is in writing before
+                treatment. A downgrade shows as a reduced allowance, never a denial.
+              </p>
+            </div>
+            <button
+              onClick={requestPredeterminationForPlan}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-500"
+            >
+              <Receipt className="h-3.5 w-3.5" /> Request predetermination
+            </button>
+          </div>
+        ) : activeCase ? (
+          <PlanPredeterminationEstimate adjudication={planAdjudication} activeCase={activeCase} />
+        ) : null}
       </div>
 
       {/* ── 1. Required attachments per line ─────────────────────────── */}
