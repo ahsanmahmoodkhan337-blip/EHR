@@ -12,7 +12,8 @@
  * - Right:  Patient search + toggle + profile + logout
  */
 
-import { Building2, PanelRightClose, LogOut, Timer, Home } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Building2, PanelRightClose, LogOut, Timer, Home, Clock } from "lucide-react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
 import { logout } from "../../store/accessStore";
@@ -43,6 +44,18 @@ export function Header({
   onToggleExamMode,
 }: HeaderProps) {
   const navigate = useNavigate();
+
+  // Live wall clock — ticks every second so the header feels "live".
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+  const timeString = `${hh}:${mm}:${ss}`;
 
   const handleLogout = () => {
     logout();
@@ -118,6 +131,17 @@ export function Header({
             </span>
           </div>
         )}
+
+        {/* Live clock + session connection indicator */}
+        <div className="hidden items-center gap-2 rounded-lg bg-slate-800 px-3 py-1.5 lg:flex">
+          <Clock className="h-3.5 w-3.5 text-slate-400" />
+          <span className="font-mono text-xs font-medium tabular-nums text-slate-200">
+            {timeString}
+          </span>
+          <span className="h-3 w-px bg-slate-700" aria-hidden="true" />
+          <span className="h-1.5 w-1.5 rounded-full bg-green-400" aria-hidden="true" />
+          <span className="text-[10px] font-medium text-slate-300">Connected</span>
+        </div>
 
         {/* Clinic widget */}
         <div className="hidden items-center gap-2 rounded-lg bg-slate-800 px-3 py-1.5 md:flex">

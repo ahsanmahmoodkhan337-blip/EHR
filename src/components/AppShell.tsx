@@ -30,6 +30,8 @@ import { WhatsAppFloat } from "./WhatsAppFloat";
 
 interface AppShellProps {
   header: ReactNode;
+  /** Full-width strip rendered directly below the header (e.g. patient banner). */
+  banner?: ReactNode;
   leftPanel?: ReactNode;
   rightPanel?: ReactNode;
   showRightPanel?: boolean;
@@ -39,6 +41,7 @@ interface AppShellProps {
 
 export function AppShell({
   header,
+  banner,
   leftPanel,
   rightPanel,
   showRightPanel = true,
@@ -49,6 +52,9 @@ export function AppShell({
     <div className="app-shell">
       {/* Top: Header */}
       {header}
+
+      {/* Below-header banner (persistent patient context) */}
+      {banner}
 
       {/* Middle: 3-zone body */}
       <div className="app-shell-body flex-1">

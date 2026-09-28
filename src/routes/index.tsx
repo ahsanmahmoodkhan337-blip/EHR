@@ -50,6 +50,7 @@ import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
 import { WorkflowTracker } from "../components/WorkflowTracker";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
 import { Header } from "../components/TabsEpic/Header";
+import { PatientBanner } from "../components/TabsEpic/PatientBanner";
 import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
 import { WorkflowAthena } from "../components/WorkflowAthena/WorkflowAthena";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
@@ -287,7 +288,7 @@ function SummaryTab({
   if (!patient) return <p className="text-slate-400">Patient not found</p>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="clinical-card">
         <div className="flex items-start justify-between">
           <div>
@@ -327,7 +328,7 @@ function SummaryTab({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div className="clinical-card">
           <p className="clinical-label">BP</p>
           {isScribe ? (
@@ -806,7 +807,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
   const o2Badge = getBadge("o2", isScribe ? vitals.oxygenSaturation : patient.vitals.oxygenSaturation.toString());
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
       <div className="clinical-card col-span-2">
         <p className="clinical-label mb-3">Vital Signs</p>
         <div className="overflow-x-auto">
@@ -1597,6 +1598,7 @@ function Home() {
           />
         </>
       }
+      banner={<PatientBanner patient={selectedPatient ?? null} fallbackName={displayName} />}
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">

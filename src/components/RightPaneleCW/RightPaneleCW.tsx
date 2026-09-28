@@ -104,7 +104,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
           </span>
           {editableVitals && <span className="text-[9px] text-blue-500 italic">(live)</span>}
         </div>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-sm">
           <span className="text-slate-500">BP:</span>
           <span className="font-medium text-slate-800">
             {editableVitals?.bloodPressure ?? patient.vitals.bloodPressure}
