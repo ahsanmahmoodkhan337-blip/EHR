@@ -40,6 +40,7 @@ import {
   BUCKET_SCRIPTS,
   AGING_LEDGER_DATA,
 } from "./arData";
+import { AccentPractice } from "./AccentPractice";
 
 type TabView = "ledger" | "calls" | "scripts" | "appeals" | "scenarios" | "carriers";
 
@@ -171,6 +172,12 @@ export default function ARVoiceSimulator() {
   ];
 
   const currentClaims = claimsByAging[selectedBucket] ?? [];
+
+  // Expected text the student reads aloud in accent-practice mode (Calls tab).
+  // Shared by the "Hear Sample Claim" TTS reference and the STT scoring widget.
+  const sampleClaimText = currentClaims.length > 0
+    ? `Sample claim. Claim number ${currentClaims[0].id.slice(-8)}. Patient: ${currentClaims[0].patientName || "Unknown"}. Amount: ${currentClaims[0].amount.toFixed(2)} dollars. Reason: ${currentClaims[0].reason}.`
+    : null;
 
   // ─── Handlers ────────────────────────────────────────────────────
   const handleLogCall = (claim: DeniedClaim, outcome: ARCallRecord["outcome"]) => {
@@ -527,34 +534,39 @@ export default function ARVoiceSimulator() {
                   enunciation of claim numbers, dollar amounts, and denial codes. Use the Call Scripts tab for
                   full dialogues to practice.
                 </p>
-                {currentClaims.length > 0 && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        const claim = currentClaims[0];
-                        const text = `Sample claim. Claim number ${claim.id.slice(-8)}. Patient: ${claim.patientName || "Unknown"}. Amount: ${claim.amount.toFixed(2)} dollars. Reason: ${claim.reason}.`;
-                        if (isCurrentlyPlaying(text)) {
-                          stopSpeaking();
-                        } else {
-                          speak(text);
-                        }
-                      }}
-                      className={`flex items-center gap-1 rounded px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
-                        isCurrentlyPlaying(`Sample claim.`)
-                          ? "bg-red-100 text-red-700 animate-pulse"
-                          : "bg-green-600 text-white hover:bg-green-500"
-                      }`}
-                    >
-                      {isCurrentlyPlaying(`Sample claim.`) ? (
-                        <><Square className="h-3.5 w-3.5" /> Stop Playback</>
-                      ) : (
-                        <><Play className="h-3.5 w-3.5" /> Hear Sample Claim</>
+                {sampleClaimText ? (
+                  <>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (isCurrentlyPlaying(sampleClaimText)) {
+                            stopSpeaking();
+                          } else {
+                            speak(sampleClaimText);
+                          }
+                        }}
+                        className={`flex items-center gap-1 rounded px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
+                          isCurrentlyPlaying(sampleClaimText)
+                            ? "bg-red-100 text-red-700 animate-pulse"
+                            : "bg-green-600 text-white hover:bg-green-500"
+                        }`}
+                      >
+                        {isCurrentlyPlaying(sampleClaimText) ? (
+                          <><Square className="h-3.5 w-3.5" /> Stop Playback</>
+                        ) : (
+                          <><Play className="h-3.5 w-3.5" /> Hear Sample Claim</>
+                        )}
+                      </button>
+                      {isCurrentlyPlaying(sampleClaimText) && (
+                        <span className="text-[9px] text-green-600 animate-pulse">🔊 Playing...</span>
                       )}
-                    </button>
-                    {isCurrentlyPlaying(`Sample claim.`) && (
-                      <span className="text-[9px] text-green-600 animate-pulse">🔊 Playing...</span>
-                    )}
-                  </div>
+                    </div>
+                    <AccentPractice expectedText={sampleClaimText} />
+                  </>
+                ) : (
+                  <p className="mt-2 text-[9px] italic text-green-600">
+                    No claim in this bucket yet — complete the Biller stage and simulate a denial to practice reading claim details.
+                  </p>
                 )}
               </div>
             )}
@@ -675,6 +687,7 @@ export default function ARVoiceSimulator() {
                     <span className="text-[9px] text-green-600 animate-pulse">🔊 Playing...</span>
                   )}
                 </div>
+                <AccentPractice expectedText={BUCKET_SCRIPTS[scriptBucket].opening} />
               </div>
             )}
           </div>
@@ -893,6 +906,7 @@ export default function ARVoiceSimulator() {
                     <span className="text-[9px] text-green-600 animate-pulse">🔊 Playing...</span>
                   )}
                 </div>
+                <AccentPractice expectedText={AR_SCENARIOS[selectedScenario].script} />
               </div>
             )}
           </div>

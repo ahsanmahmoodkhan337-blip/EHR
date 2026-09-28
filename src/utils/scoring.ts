@@ -217,3 +217,81 @@ export function getLeaderboard(): LeaderboardRow[] {
 export function getStudentName(): string {
   return localStorage.getItem("hh_student_name") || "Student";
 }
+// ─── Speech transcript scoring (AR Voice accent practice) ────────────
+
+export interface SpeechScoreResult {
+  /** 0-100 word-overlap accuracy of the spoken transcript vs the expected script. */
+  accuracy: number;
+  /** Expected words the speaker did not say (deduped, expected order). */
+  missed: string[];
+  /** Words the speaker said that are not in the expected script (deduped, spoken order). */
+  extra: string[];
+}
+
+/**
+ * Score a spoken transcript against an expected script using simple,
+ * frequency-aware word overlap. Bracket placeholders ([Name], [ClaimID], ...)
+ * are stripped first so students aren't penalised for substituting realistic
+ * values. Punctuation and case are normalised; everything else is a
+ * deliberate, teachable word-overlap comparison (not a phonetic one).
+ */
+export function scoreSpeechTranscript(
+  transcript: string,
+  expected: string
+): SpeechScoreResult {
+  const expectedWords = tokenizeSpeech(expected);
+  const spokenWords = tokenizeSpeech(transcript);
+
+  if (expectedWords.length === 0) {
+    return {
+      accuracy: spokenWords.length === 0 ? 100 : 0,
+      missed: [],
+      extra: dedupe(spokenWords),
+    };
+  }
+
+  const spokenAvailable = countWords(spokenWords);
+
+  let matched = 0;
+  const missed: string[] = [];
+  for (const word of expectedWords) {
+    const remaining = spokenAvailable.get(word) ?? 0;
+    if (remaining > 0) {
+      matched += 1;
+      spokenAvailable.set(word, remaining - 1);
+    } else {
+      missed.push(word);
+    }
+  }
+
+  const extra: string[] = [];
+  for (const [word, count] of spokenAvailable) {
+    for (let i = 0; i < count; i++) extra.push(word);
+  }
+
+  const accuracy = Math.round((matched / expectedWords.length) * 100);
+  return {
+    accuracy: Math.max(0, Math.min(100, accuracy)),
+    missed: dedupe(missed),
+    extra: dedupe(extra),
+  };
+}
+
+function tokenizeSpeech(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/[^a-z0-9$]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function countWords(words: string[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const w of words) map.set(w, (map.get(w) ?? 0) + 1);
+  return map;
+}
+
+function dedupe(words: string[]): string[] {
+  return Array.from(new Set(words));
+}
