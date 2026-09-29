@@ -32,11 +32,11 @@ interface RightPaneleCWProps {
     pcp: string;
     insurance: string;
   };
-  sharedImmunizations?: string[];
+  sharedImmunizations?: { vaccine: string; dose?: string; status?: string }[];
   sharedLabs?: string[];
-  sharedReferrals?: string[];
-  sharedOrders?: string[];
-  sharedImaging?: string[];
+  sharedReferrals?: { specialty: string; status?: string }[];
+  sharedOrders?: { item: string; status?: string }[];
+  sharedImaging?: { study: string; status?: string }[];
   soapNote?: {
     subjective: string;
     objective: string;
@@ -285,7 +285,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
       {sharedImmunizations && sharedImmunizations.length > 0 && (
         <div className="border-b border-slate-200 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-green-600 mb-1">Immunizations</p>
-          <div className="flex flex-wrap gap-1">{sharedImmunizations.map((item, i) => <span key={i} className="rounded bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700">{item}</span>)}</div>
+          <div className="flex flex-wrap gap-1">{sharedImmunizations.map((item, i) => <span key={i} className="rounded bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700">{item.vaccine}</span>)}</div>
         </div>
       )}
       {sharedLabs && sharedLabs.length > 0 && (
@@ -297,19 +297,19 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
       {sharedReferrals && sharedReferrals.length > 0 && (
         <div className="border-b border-slate-200 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-purple-600 mb-1">Referrals</p>
-          <div className="flex flex-wrap gap-1">{sharedReferrals.map((item, i) => <span key={i} className="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-700">{item}</span>)}</div>
+          <div className="flex flex-wrap gap-1">{sharedReferrals.map((item, i) => <span key={i} className="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-700">{item.specialty}</span>)}</div>
         </div>
       )}
       {sharedOrders && sharedOrders.length > 0 && (
         <div className="border-b border-slate-200 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 mb-1">Orders</p>
-          <div className="space-y-0.5">{sharedOrders.map((item, i) => <p key={i} className="text-[10px] text-slate-600">{item}</p>)}</div>
+          <div className="space-y-0.5">{sharedOrders.map((item, i) => <p key={i} className="text-[10px] text-slate-600">{item.item}</p>)}</div>
         </div>
       )}
       {sharedImaging && sharedImaging.length > 0 && (
         <div className="border-b border-slate-200 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 mb-1">Imaging</p>
-          <div className="flex flex-wrap gap-1">{sharedImaging.map((item, i) => <span key={i} className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700">{item}</span>)}</div>
+          <div className="flex flex-wrap gap-1">{sharedImaging.map((item, i) => <span key={i} className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700">{item.study}</span>)}</div>
         </div>
       )}
 

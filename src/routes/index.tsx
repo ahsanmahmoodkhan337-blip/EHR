@@ -120,11 +120,11 @@ interface PatientSessionData {
     pcp: string;
     insurance: string;
   };
-  sharedImmunizations: string[];
+  sharedImmunizations: ImmunizationEntry[];
   sharedLabs: string[];
-  sharedReferrals: string[];
-  sharedOrders: string[];
-  sharedImaging: string[];
+  sharedReferrals: ReferralEntry[];
+  sharedOrders: OrderEntry[];
+  sharedImaging: ImagingEntry[];
   displayName: string | undefined;
   activeStage: string;
 }
@@ -181,6 +181,47 @@ function labFlag(status: string): { className: string; label: string } {
 }
 
 
+// ─── Structured entries for chart-review domains without a Patient field ──
+interface OrderEntry { id: string; item: string; status: "Ordered" | "Pending" | "Completed"; provider: string; date: string; }
+interface ImagingEntry { id: string; study: string; status: "Ordered" | "Scheduled" | "Completed" | "Resulted"; date: string; }
+interface ImmunizationEntry { id: string; vaccine: string; dose: string; date: string; status: "Given" | "Scheduled"; }
+interface ReferralEntry { id: string; specialty: string; reason: string; status: "Sent" | "Scheduled" | "Completed"; date: string; }
+
+/** Badge class for a generic chart-review entry status. */
+function entryStatusClass(status: string): string {
+  const st = status.toLowerCase();
+  if (st === "completed" || st === "given" || st === "resulted") return "status-badge is-success";
+  if (st === "ordered" || st === "pending") return "status-badge is-warning";
+  if (st === "scheduled" || st === "sent") return "status-badge is-info";
+  return "status-badge is-neutral";
+}
+
+/** Colored marker for a lab result flag (▲ abnormal/critical, — normal, … pending). */
+function labFlagMark(status: string): { mark: string; className: string } {
+  switch (status) {
+    case "critical": return { mark: "▲", className: "font-bold text-red-600" };
+    case "abnormal": return { mark: "▲", className: "font-bold text-amber-600" };
+    case "pending": return { mark: "…", className: "text-slate-400" };
+    default: return { mark: "—", className: "text-slate-300" };
+  }
+}
+
+const SEED_ORDERS: OrderEntry[] = [
+  { id: "ord-seed-1", item: "CBC (Complete Blood Count)", status: "Completed", provider: "Dr. Demo Instructor", date: "2026-07-09" },
+  { id: "ord-seed-2", item: "CMP (Comprehensive Metabolic Panel)", status: "Completed", provider: "Dr. Demo Instructor", date: "2026-07-09" },
+  { id: "ord-seed-3", item: "Chest X-ray (PA & Lateral)", status: "Pending", provider: "Dr. Demo Instructor", date: "2026-07-09" },
+];
+const SEED_IMAGING: ImagingEntry[] = [
+  { id: "img-seed-1", study: "Chest X-ray (PA & Lateral)", status: "Resulted", date: "2026-07-09" },
+];
+const SEED_IMMUNIZATIONS: ImmunizationEntry[] = [
+  { id: "imm-seed-1", vaccine: "Influenza (2024-2025)", dose: "0.5 mL", date: "2024-10-15", status: "Given" },
+  { id: "imm-seed-2", vaccine: "COVID-19 Booster", dose: "0.3 mL", date: "2024-11-02", status: "Given" },
+];
+const SEED_REFERRALS: ReferralEntry[] = [
+  { id: "ref-seed-1", specialty: "Cardiology", reason: "Chest pain evaluation", status: "Sent", date: "2026-07-09" },
+];
+
 function SummaryTab({
   patientId,
   editableVitals: extVitals,
@@ -207,16 +248,16 @@ function SummaryTab({
   onPatientDataChange?: (d: EditablePatientData) => void;
   newProblem?: string;
   onNewProblemChange?: (v: string) => void;
-  immunizations?: string[];
-  onImmunizationsChange?: (v: string[]) => void;
+  immunizations?: ImmunizationEntry[];
+  onImmunizationsChange?: (v: ImmunizationEntry[]) => void;
   labsResults?: string[];
   onLabsResultsChange?: (v: string[]) => void;
-  referrals?: string[];
-  onReferralsChange?: (v: string[]) => void;
-  orders?: string[];
-  onOrdersChange?: (v: string[]) => void;
-  imaging?: string[];
-  onImagingChange?: (v: string[]) => void;
+  referrals?: ReferralEntry[];
+  onReferralsChange?: (v: ReferralEntry[]) => void;
+  orders?: OrderEntry[];
+  onOrdersChange?: (v: OrderEntry[]) => void;
+  imaging?: ImagingEntry[];
+  onImagingChange?: (v: ImagingEntry[]) => void;
 }) {
   const { getPatientById } = usePatientStore();
   const pipeline = usePipeline();
@@ -258,15 +299,15 @@ function SummaryTab({
   const addProblemText = newProblem !== undefined ? newProblem : localNewProblem;
   const setAddProblemText = onNewProblemChange ?? setLocalNewProblem;
   const immunizations = extImmunizations ?? [];
-  const setImmunizations = onImmunizationsChange ?? ((_v: string[]) => {});
+  const setImmunizations = onImmunizationsChange ?? ((_v: ImmunizationEntry[]) => {});
   const labsResults = extLabsResults ?? [];
   const setLabsResults = onLabsResultsChange ?? ((_v: string[]) => {});
   const referrals = extReferrals ?? [];
-  const setReferrals = onReferralsChange ?? ((_v: string[]) => {});
+  const setReferrals = onReferralsChange ?? ((_v: ReferralEntry[]) => {});
   const orders = extOrders ?? [];
-  const setOrders = onOrdersChange ?? ((_v: string[]) => {});
+  const setOrders = onOrdersChange ?? ((_v: OrderEntry[]) => {});
   const imaging = extImaging ?? [];
-  const setImaging = onImagingChange ?? ((_v: string[]) => {});
+  const setImaging = onImagingChange ?? ((_v: ImagingEntry[]) => {});
 
   const updateVital = (key: keyof EditableVitals, value: string) => {
     setVitals({ ...vitals, [key]: value });
@@ -551,13 +592,14 @@ function SummaryTab({
         <p className="clinical-label mb-2">Immunizations</p>
         {immunizations.length > 0 ? (
           <div className="space-y-1">
-            {immunizations.map((imm, i) => (
-              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+            {immunizations.map((imm) => (
+              <div key={imm.id} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
-                  <span className="text-slate-800">{imm}</span>
+                  <span className="font-medium text-slate-800">{imm.vaccine}</span>
+                  <span className="text-slate-500">{imm.dose} · {imm.date}</span>
                 </div>
-                <span className="status-badge is-success">Complete</span>
+                <span className={entryStatusClass(imm.status)}>{imm.status}</span>
               </div>
             ))}
           </div>
@@ -566,8 +608,8 @@ function SummaryTab({
         )}
         {isScribe && (
           <div className="mt-2 flex gap-1">
-            <input type="text" value={immunInput} onChange={e => setImmunInput(e.target.value)} placeholder="+ Add immunization..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-            <button onClick={() => { if (immunInput.trim()) { setImmunizations([...immunizations, immunInput.trim()]); setImmunInput(""); } }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
+            <input type="text" value={immunInput} onChange={e => setImmunInput(e.target.value)} placeholder="+ Add vaccine..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+            <button onClick={() => { if (immunInput.trim()) { setImmunizations([...immunizations, { id: `imm-${Date.now()}`, vaccine: immunInput.trim(), dose: "—", date: new Date().toISOString().split("T")[0], status: "Given" }]); setImmunInput(""); } }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
           </div>
         )}
       </div>
@@ -616,13 +658,13 @@ function SummaryTab({
         <p className="clinical-label mb-2">Orders</p>
         {orders.length > 0 ? (
           <div className="space-y-1">
-            {orders.map((o, i) => (
-              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+            {orders.map((o) => (
+              <div key={o.id} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                  <span className="text-slate-800">{o}</span>
+                  <span className="font-medium text-slate-800">{o.item}</span>
                 </div>
-                <span className="status-badge is-warning">Active</span>
+                <span className={entryStatusClass(o.status)}>{o.status}</span>
               </div>
             ))}
           </div>
@@ -632,7 +674,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={orderInput} onChange={e => setOrderInput(e.target.value)} placeholder="+ Add order..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-            <button onClick={() => { if (orderInput.trim()) { setOrders([...orders, orderInput.trim()]); setOrderInput(""); } }} className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700">Add</button>
+            <button onClick={() => { if (orderInput.trim()) { setOrders([...orders, { id: `ord-${Date.now()}`, item: orderInput.trim(), status: "Ordered", provider: patient.primaryCareProvider, date: new Date().toISOString().split("T")[0] }]); setOrderInput(""); } }} className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700">Add</button>
           </div>
         )}
       </div>
@@ -641,13 +683,13 @@ function SummaryTab({
         <p className="clinical-label mb-2">Imaging</p>
         {imaging.length > 0 ? (
           <div className="space-y-1">
-            {imaging.map((img, i) => (
-              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+            {imaging.map((img) => (
+              <div key={img.id} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
-                  <span className="text-slate-800">{img}</span>
+                  <span className="font-medium text-slate-800">{img.study}</span>
                 </div>
-                <span className="status-badge is-success">Completed</span>
+                <span className={entryStatusClass(img.status)}>{img.status}</span>
               </div>
             ))}
           </div>
@@ -657,7 +699,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={imagingInput} onChange={e => setImagingInput(e.target.value)} placeholder="+ Add imaging..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-            <button onClick={() => { if (imagingInput.trim()) { setImaging([...imaging, imagingInput.trim()]); setImagingInput(""); } }} className="rounded bg-teal-600 px-2 py-1 text-xs text-white hover:bg-teal-700">Add</button>
+            <button onClick={() => { if (imagingInput.trim()) { setImaging([...imaging, { id: `img-${Date.now()}`, study: imagingInput.trim(), status: "Ordered", date: new Date().toISOString().split("T")[0] }]); setImagingInput(""); } }} className="rounded bg-teal-600 px-2 py-1 text-xs text-white hover:bg-teal-700">Add</button>
           </div>
         )}
       </div>
@@ -666,13 +708,14 @@ function SummaryTab({
         <p className="clinical-label mb-2">Referrals</p>
         {referrals.length > 0 ? (
           <div className="space-y-1">
-            {referrals.map((ref, i) => (
-              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
-                <div className="flex items-center gap-2">
+            {referrals.map((ref) => (
+              <div key={ref.id} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                <div className="flex min-w-0 items-center gap-2">
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
-                  <span className="text-slate-800">{ref}</span>
+                  <span className="font-medium text-slate-800">{ref.specialty}</span>
+                  {ref.reason && <span className="truncate text-slate-500">— {ref.reason}</span>}
                 </div>
-                <span className="status-badge is-info">Sent</span>
+                <span className={entryStatusClass(ref.status)}>{ref.status}</span>
               </div>
             ))}
           </div>
@@ -682,7 +725,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={referralInput} onChange={e => setReferralInput(e.target.value)} placeholder="+ Add referral..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, referralInput.trim()]); setReferralInput(""); } }} className="rounded bg-purple-600 px-2 py-1 text-xs text-white hover:bg-purple-700">Add</button>
+            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, { id: `ref-${Date.now()}`, specialty: referralInput.trim(), reason: "—", status: "Sent", date: new Date().toISOString().split("T")[0] }]); setReferralInput(""); } }} className="rounded bg-purple-600 px-2 py-1 text-xs text-white hover:bg-purple-700">Add</button>
           </div>
         )}
       </div>
@@ -768,8 +811,9 @@ function MedicationsTab({ patientId }: { patientId: string }) {
               <th>Dosage</th>
               <th>Frequency</th>
               <th>Route</th>
-              <th>Status</th>
+              <th>Prescriber</th>
               <th>Prescribed</th>
+              <th>Status</th>
               {isScribe && <th></th>}
             </tr>
           </thead>
@@ -780,6 +824,7 @@ function MedicationsTab({ patientId }: { patientId: string }) {
                 <td>{med.dosage}</td>
                 <td>{med.frequency}</td>
                 <td>{med.route}</td>
+                <td className="text-slate-600">{med.prescribedBy}</td>
                 <td>
                   <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
                     med.status === "active"
@@ -1333,11 +1378,11 @@ function Home() {
   });
   const [newProblem, setNewProblem] = useState("");
   // Shared lists across Summary + tabs (real-time sync)
-  const [sharedImmunizations, setSharedImmunizations] = useState<string[]>([]);
+  const [sharedImmunizations, setSharedImmunizations] = useState<ImmunizationEntry[]>(SEED_IMMUNIZATIONS);
   const [sharedLabs, setSharedLabs] = useState<string[]>([]);
-  const [sharedReferrals, setSharedReferrals] = useState<string[]>([]);
-  const [sharedOrders, setSharedOrders] = useState<string[]>([]);
-  const [sharedImaging, setSharedImaging] = useState<string[]>([]);
+  const [sharedReferrals, setSharedReferrals] = useState<ReferralEntry[]>(SEED_REFERRALS);
+  const [sharedOrders, setSharedOrders] = useState<OrderEntry[]>(SEED_ORDERS);
+  const [sharedImaging, setSharedImaging] = useState<ImagingEntry[]>(SEED_IMAGING);
 
   // Lifted appointments state for persistence across tab switches (Bug 2 fix)
   const [appointments, setAppointments] = useState<Appointment[]>(PLACEHOLDER_APPOINTMENTS);
@@ -1429,11 +1474,26 @@ function Home() {
       setSubmittedToCoding(false);
       setCompletedStages(new Set(["registration", "intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"]));
       setActiveStage("sign-lock");
-      setSharedImmunizations(["Influenza 2025-2026", "Tdap 2023", "COVID-19 Bivalent 2024"]);
+      setSharedImmunizations([
+        { id: "imm-d1", vaccine: "Influenza 2025-2026", dose: "0.5 mL", date: "2025-10-01", status: "Given" },
+        { id: "imm-d2", vaccine: "Tdap", dose: "0.5 mL", date: "2023-05-10", status: "Given" },
+        { id: "imm-d3", vaccine: "COVID-19 Bivalent", dose: "0.3 mL", date: "2024-09-20", status: "Given" },
+      ]);
       setSharedLabs(["CBC — pending", "CMP — abnormal (elevated glucose 142)", "Cardiac Enzymes — Troponin 0.12 (elevated)", "Lipid Panel — LDL 160"]);
-      setSharedReferrals(["Cardiology — Dr. Williams", "Cardiac Rehab — outpatient"]);
-      setSharedOrders(["ECG 12-lead — STAT ✓", "Chest X-Ray PA/LAT — completed", "Echocardiogram — ordered", "Cardiac Catheterization — pending authorization"]);
-      setSharedImaging(["Chest X-Ray: Clear lung fields, normal cardiac silhouette", "ECG: ST depression V4-V6, no acute STEMI"]);
+      setSharedReferrals([
+        { id: "ref-d1", specialty: "Cardiology", reason: "Chest pain evaluation", status: "Sent", date: "2026-07-09" },
+        { id: "ref-d2", specialty: "Cardiac Rehab", reason: "Post-discharge rehabilitation", status: "Scheduled", date: "2026-07-09" },
+      ]);
+      setSharedOrders([
+        { id: "ord-d1", item: "ECG 12-lead (STAT)", status: "Completed", provider: "Dr. Demo Instructor", date: "2026-07-09" },
+        { id: "ord-d2", item: "Chest X-Ray PA/LAT", status: "Completed", provider: "Dr. Demo Instructor", date: "2026-07-09" },
+        { id: "ord-d3", item: "Echocardiogram", status: "Ordered", provider: "Dr. Demo Instructor", date: "2026-07-09" },
+        { id: "ord-d4", item: "Cardiac Catheterization", status: "Pending", provider: "Dr. Demo Instructor", date: "2026-07-09" },
+      ]);
+      setSharedImaging([
+        { id: "img-d1", study: "Chest X-Ray (PA/LAT)", status: "Resulted", date: "2026-07-09" },
+        { id: "img-d2", study: "ECG 12-lead", status: "Resulted", date: "2026-07-09" },
+      ]);
       setEditablePatientData({
         chiefComplaint: "Chest pain and shortness of breath",
         problems: ["Hypertension (I10)", "Coronary Artery Disease (I25.10)", "Chest Pain (R07.9)"],
@@ -1488,11 +1548,11 @@ function Home() {
         respiratoryRate: p.vitals.respiratoryRate?.toString() ?? "16",
         oxygenSaturation: p.vitals.oxygenSaturation?.toString() ?? "98",
       });
-      setSharedImmunizations([]);
+      setSharedImmunizations(SEED_IMMUNIZATIONS);
       setSharedLabs([]);
-      setSharedReferrals([]);
-      setSharedOrders([]);
-      setSharedImaging([]);
+      setSharedReferrals(SEED_REFERRALS);
+      setSharedOrders(SEED_ORDERS);
+      setSharedImaging(SEED_IMAGING);
       setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
       setSubmittedToCoding(false);
       setDisplayName(undefined);
@@ -2019,15 +2079,16 @@ function Home() {
                         {(selectedPatient.labResults || []).length > 0 ? (
                           <div className="overflow-x-auto">
                             <table className="data-table">
-                              <thead><tr><th>Test</th><th>Result</th><th>Reference</th><th>Flag</th><th>Date</th></tr></thead>
+                              <thead><tr><th>Test</th><th>Result</th><th>Reference</th><th>Flag</th><th>Status</th><th>Date</th></tr></thead>
                               <tbody>
                                 {selectedPatient.labResults.map((lab) => (
                                   <tr key={lab.id}>
                                     <td className="font-medium">{lab.testName}</td>
-                                    <td>{lab.value}{lab.unit ? ` ${lab.unit}` : ""}</td>
+                                    <td className="tabular-nums">{lab.value}{lab.unit ? ` ${lab.unit}` : ""}</td>
                                     <td className="text-slate-500">{lab.referenceRange || "—"}</td>
+                                    <td><span className={labFlagMark(lab.status).className}>{labFlagMark(lab.status).mark}</span></td>
                                     <td><span className={labFlag(lab.status).className}>{labFlag(lab.status).label}</span></td>
-                                    <td className="text-xs text-slate-500">{new Date(lab.date).toLocaleDateString()}</td>
+                                    <td className="text-xs tabular-nums text-slate-500">{new Date(lab.date).toLocaleDateString()}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -2120,7 +2181,7 @@ function Home() {
                         {(() => {
                           const paProcedures = Object.values(PA_PROCEDURES).map(p => p.label.toLowerCase());
                           const matchingOrders = sharedOrders.filter(o =>
-                            paProcedures.some(p => o.toLowerCase().includes(p) || p.includes(o.toLowerCase()))
+                            paProcedures.some(p => o.item.toLowerCase().includes(p) || p.includes(o.item.toLowerCase()))
                           );
                           if (matchingOrders.length > 0) {
                             return (
@@ -2130,7 +2191,7 @@ function Home() {
                                   <div>
                                     <p className="text-[11px] font-semibold text-amber-800">⚠ Prior Authorization Required</p>
                                     <p className="mt-0.5 text-[10px] text-amber-700">
-                                      {matchingOrders.map(o => `"${o}"`).join(", ")} requires prior authorization before the procedure can be performed. 
+                                      {matchingOrders.map(o => `"${o.item}"`).join(", ")} requires prior authorization before the procedure can be performed. 
                                       Please complete the Prior Auth form in the Prior Auth stage.
                                     </p>
                                     <button
@@ -2148,85 +2209,136 @@ function Home() {
                         })()}
 
                         {sharedOrders.length > 0 ? (
-                          <div className="space-y-1">
-                            {sharedOrders.map((o, i) => (
-                              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                                  <span className="text-slate-800">{o}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="status-badge is-warning">Active</span>
-                                  {currentRole === "scribe" && (
-                                    <button onClick={() => setSharedOrders(sharedOrders.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove order">✕</button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                          <div className="overflow-x-auto">
+                            <table className="data-table">
+                              <thead><tr><th>Order</th><th>Status</th><th>Provider</th><th>Date</th>{currentRole === "scribe" && <th></th>}</tr></thead>
+                              <tbody>
+                                {sharedOrders.map((o) => (
+                                  <tr key={o.id}>
+                                    <td className="font-medium">{o.item}</td>
+                                    <td><span className={entryStatusClass(o.status)}>{o.status}</span></td>
+                                    <td className="text-slate-600">{o.provider}</td>
+                                    <td className="text-xs tabular-nums text-slate-500">{o.date}</td>
+                                    {currentRole === "scribe" && (
+                                      <td className="text-right"><button onClick={() => setSharedOrders(sharedOrders.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove order">✕</button></td>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         ) : (
                           <p className="text-sm text-slate-400 italic">No active orders.</p>
                         )}
                         {currentRole === "scribe" && (
-                          <div className="mt-2 flex gap-1">
-                            <input type="text" id="newOrderInput" placeholder="e.g. CBC, CMP, Chest X-ray..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                          <div className="mt-3 rounded border border-dashed border-slate-300 p-2">
+                            <div className="grid grid-cols-3 gap-1">
+                              <input type="text" id="newOrderItem" placeholder="Order (e.g. CBC)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                              <select id="newOrderStatus" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400">
+                                <option>Ordered</option><option>Pending</option><option>Completed</option>
+                              </select>
+                              <input type="date" id="newOrderDate" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                            </div>
                             <button onClick={() => {
-                              const inp = document.getElementById("newOrderInput") as HTMLInputElement;
-                              if (inp && inp.value.trim()) {
-                                setSharedOrders([...sharedOrders, inp.value.trim()]);
-                                inp.value = "";
+                              const itemEl = document.getElementById("newOrderItem") as HTMLInputElement;
+                              const statusEl = document.getElementById("newOrderStatus") as HTMLSelectElement;
+                              const dateEl = document.getElementById("newOrderDate") as HTMLInputElement;
+                              if (itemEl && itemEl.value.trim()) {
+                                setSharedOrders([...sharedOrders, {
+                                  id: `ord-${Date.now()}`,
+                                  item: itemEl.value.trim(),
+                                  status: (statusEl?.value || "Ordered") as OrderEntry["status"],
+                                  provider: selectedPatient.primaryCareProvider,
+                                  date: dateEl?.value || new Date().toISOString().split("T")[0],
+                                }]);
+                                itemEl.value = "";
                               }
-                            }} className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">Add</button>
+                            }} className="mt-2 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700">+ Add Order</button>
                           </div>
                         )}
                       </div>
                     </TabPanel>
                     <TabPanel id="notes" activeTab={activeTab}>
                       <div className="clinical-card">
-                        <p className="clinical-label mb-3">Clinical Notes</p>
-                        {(selectedPatient.encounters || []).map((enc) => (
-                          <div key={enc.id} className="mb-3 rounded border border-slate-200 p-3">
-                            <p className="text-xs text-slate-500">
-                              {new Date(enc.date).toLocaleDateString()} — {enc.type}
-                            </p>
-                            <p className="mt-1 text-sm text-slate-700">{enc.notes}</p>
+                        <p className="clinical-label mb-3">Visit History</p>
+                        {(selectedPatient.encounters || []).length === 0 ? (
+                          <p className="text-sm text-slate-400 italic">No prior visits recorded.</p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="data-table">
+                              <thead><tr><th>Date</th><th>Type</th><th>Provider</th><th>Department</th><th>Diagnosis</th></tr></thead>
+                              <tbody>
+                                {(selectedPatient.encounters || []).map((enc) => (
+                                  <tr key={enc.id}>
+                                    <td className="text-xs tabular-nums text-slate-500">{new Date(enc.date).toLocaleDateString()}</td>
+                                    <td className="font-medium">{enc.type}</td>
+                                    <td className="text-slate-600">{enc.provider}</td>
+                                    <td className="text-slate-600">{enc.department}</td>
+                                    <td className="max-w-xs truncate text-slate-700">{enc.diagnosis}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
-                        ))}
+                        )}
+                        <p className="section-header mt-3">Clinical Notes</p>
+                        <div className="mt-1 space-y-2">
+                          {(selectedPatient.encounters || []).map((enc) => (
+                            <div key={enc.id} className="rounded border border-slate-200 p-3">
+                              <p className="text-xs text-slate-500">{new Date(enc.date).toLocaleDateString()} — {enc.type}</p>
+                              <p className="mt-1 text-sm text-slate-700">{enc.notes}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </TabPanel>
                     <TabPanel id="imaging" activeTab={activeTab}>
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Imaging Studies</p>
                         {sharedImaging.length > 0 ? (
-                          <div className="space-y-1">
-                            {sharedImaging.map((o, i) => (
-                              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
-                                  <span className="text-slate-800">{o}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="status-badge is-success">Completed</span>
-                                  {currentRole === "scribe" && (
-                                    <button onClick={() => setSharedImaging(sharedImaging.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove study">✕</button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                          <div className="overflow-x-auto">
+                            <table className="data-table">
+                              <thead><tr><th>Study</th><th>Status</th><th>Date</th>{currentRole === "scribe" && <th></th>}</tr></thead>
+                              <tbody>
+                                {sharedImaging.map((o) => (
+                                  <tr key={o.id}>
+                                    <td className="font-medium">{o.study}</td>
+                                    <td><span className={entryStatusClass(o.status)}>{o.status}</span></td>
+                                    <td className="text-xs tabular-nums text-slate-500">{o.date}</td>
+                                    {currentRole === "scribe" && (
+                                      <td className="text-right"><button onClick={() => setSharedImaging(sharedImaging.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove study">✕</button></td>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         ) : (
                           <p className="text-sm text-slate-400 italic">No imaging studies ordered.</p>
                         )}
                         {currentRole === "scribe" && (
-                          <div className="mt-2 flex gap-1">
-                            <input type="text" id="newImagingInput" placeholder="e.g. Chest X-ray, MRI Brain..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                          <div className="mt-3 rounded border border-dashed border-slate-300 p-2">
+                            <div className="grid grid-cols-3 gap-1">
+                              <input type="text" id="newImagingStudy" placeholder="Study (e.g. Chest X-ray)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                              <select id="newImagingStatus" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400">
+                                <option>Ordered</option><option>Scheduled</option><option>Completed</option><option>Resulted</option>
+                              </select>
+                              <input type="date" id="newImagingDate" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                            </div>
                             <button onClick={() => {
-                              const inp = document.getElementById("newImagingInput") as HTMLInputElement;
-                              if (inp && inp.value.trim()) {
-                                setSharedImaging([...sharedImaging, inp.value.trim()]);
-                                inp.value = "";
+                              const studyEl = document.getElementById("newImagingStudy") as HTMLInputElement;
+                              const statusEl = document.getElementById("newImagingStatus") as HTMLSelectElement;
+                              const dateEl = document.getElementById("newImagingDate") as HTMLInputElement;
+                              if (studyEl && studyEl.value.trim()) {
+                                setSharedImaging([...sharedImaging, {
+                                  id: `img-${Date.now()}`,
+                                  study: studyEl.value.trim(),
+                                  status: (statusEl?.value || "Ordered") as ImagingEntry["status"],
+                                  date: dateEl?.value || new Date().toISOString().split("T")[0],
+                                }]);
+                                studyEl.value = "";
                               }
-                            }} className="rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-700">Add</button>
+                            }} className="mt-2 rounded bg-indigo-600 px-3 py-1 text-xs text-white hover:bg-indigo-700">+ Add Study</button>
                           </div>
                         )}
                       </div>
@@ -2235,35 +2347,49 @@ function Home() {
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Immunizations</p>
                         {sharedImmunizations.length > 0 ? (
-                          <div className="space-y-1">
-                            {sharedImmunizations.map((o, i) => (
-                              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
-                                  <span className="text-slate-800">{o}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="status-badge is-success">Complete</span>
-                                  {currentRole === "scribe" && (
-                                    <button onClick={() => setSharedImmunizations(sharedImmunizations.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove immunization">✕</button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                          <div className="overflow-x-auto">
+                            <table className="data-table">
+                              <thead><tr><th>Vaccine</th><th>Dose</th><th>Date</th><th>Status</th>{currentRole === "scribe" && <th></th>}</tr></thead>
+                              <tbody>
+                                {sharedImmunizations.map((o) => (
+                                  <tr key={o.id}>
+                                    <td className="font-medium">{o.vaccine}</td>
+                                    <td className="text-slate-600">{o.dose}</td>
+                                    <td className="text-xs tabular-nums text-slate-500">{o.date}</td>
+                                    <td><span className={entryStatusClass(o.status)}>{o.status}</span></td>
+                                    {currentRole === "scribe" && (
+                                      <td className="text-right"><button onClick={() => setSharedImmunizations(sharedImmunizations.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove immunization">✕</button></td>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         ) : (
                           <p className="text-sm text-slate-400 italic">No immunizations recorded.</p>
                         )}
                         {currentRole === "scribe" && (
-                          <div className="mt-2 flex gap-1">
-                            <input type="text" id="newImmunInput2" placeholder="e.g. Influenza 2024, COVID-19 Booster..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                          <div className="mt-3 rounded border border-dashed border-slate-300 p-2">
+                            <div className="grid grid-cols-3 gap-1">
+                              <input type="text" id="newImmunVaccine" placeholder="Vaccine (e.g. Influenza)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                              <input type="text" id="newImmunDose" placeholder="Dose (e.g. 0.5 mL)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                              <input type="date" id="newImmunDate" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                            </div>
                             <button onClick={() => {
-                              const inp = document.getElementById("newImmunInput2") as HTMLInputElement;
-                              if (inp && inp.value.trim()) {
-                                setSharedImmunizations([...sharedImmunizations, inp.value.trim()]);
-                                inp.value = "";
+                              const vaccineEl = document.getElementById("newImmunVaccine") as HTMLInputElement;
+                              const doseEl = document.getElementById("newImmunDose") as HTMLInputElement;
+                              const dateEl = document.getElementById("newImmunDate") as HTMLInputElement;
+                              if (vaccineEl && vaccineEl.value.trim()) {
+                                setSharedImmunizations([...sharedImmunizations, {
+                                  id: `imm-${Date.now()}`,
+                                  vaccine: vaccineEl.value.trim(),
+                                  dose: doseEl?.value.trim() || "—",
+                                  date: dateEl?.value || new Date().toISOString().split("T")[0],
+                                  status: "Given",
+                                }]);
+                                vaccineEl.value = "";
                               }
-                            }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
+                            }} className="mt-2 rounded bg-green-600 px-3 py-1 text-xs text-white hover:bg-green-700">+ Add Immunization</button>
                           </div>
                         )}
                       </div>
@@ -2272,35 +2398,51 @@ function Home() {
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Referrals</p>
                         {sharedReferrals.length > 0 ? (
-                          <div className="space-y-1">
-                            {sharedReferrals.map((o, i) => (
-                              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
-                                  <span className="text-slate-800">{o}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="status-badge is-info">Sent</span>
-                                  {currentRole === "scribe" && (
-                                    <button onClick={() => setSharedReferrals(sharedReferrals.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove referral">✕</button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                          <div className="overflow-x-auto">
+                            <table className="data-table">
+                              <thead><tr><th>Specialty</th><th>Reason</th><th>Status</th><th>Date</th>{currentRole === "scribe" && <th></th>}</tr></thead>
+                              <tbody>
+                                {sharedReferrals.map((o) => (
+                                  <tr key={o.id}>
+                                    <td className="font-medium">{o.specialty}</td>
+                                    <td className="text-slate-600">{o.reason}</td>
+                                    <td><span className={entryStatusClass(o.status)}>{o.status}</span></td>
+                                    <td className="text-xs tabular-nums text-slate-500">{o.date}</td>
+                                    {currentRole === "scribe" && (
+                                      <td className="text-right"><button onClick={() => setSharedReferrals(sharedReferrals.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove referral">✕</button></td>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         ) : (
                           <p className="text-sm text-slate-400 italic">No referrals recorded.</p>
                         )}
                         {currentRole === "scribe" && (
-                          <div className="mt-2 flex gap-1">
-                            <input type="text" id="newRefInput2" placeholder="e.g. Cardiology, Orthopedics..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                          <div className="mt-3 rounded border border-dashed border-slate-300 p-2">
+                            <div className="grid grid-cols-3 gap-1">
+                              <input type="text" id="newRefSpecialty" placeholder="Specialty (e.g. Cardiology)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                              <input type="text" id="newRefReason" placeholder="Reason" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                              <select id="newRefStatus" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400">
+                                <option>Sent</option><option>Scheduled</option><option>Completed</option>
+                              </select>
+                            </div>
                             <button onClick={() => {
-                              const inp = document.getElementById("newRefInput2") as HTMLInputElement;
-                              if (inp && inp.value.trim()) {
-                                setSharedReferrals([...sharedReferrals, inp.value.trim()]);
-                                inp.value = "";
+                              const specEl = document.getElementById("newRefSpecialty") as HTMLInputElement;
+                              const reasonEl = document.getElementById("newRefReason") as HTMLInputElement;
+                              const statusEl = document.getElementById("newRefStatus") as HTMLSelectElement;
+                              if (specEl && specEl.value.trim()) {
+                                setSharedReferrals([...sharedReferrals, {
+                                  id: `ref-${Date.now()}`,
+                                  specialty: specEl.value.trim(),
+                                  reason: reasonEl?.value.trim() || "—",
+                                  status: (statusEl?.value || "Sent") as ReferralEntry["status"],
+                                  date: new Date().toISOString().split("T")[0],
+                                }]);
+                                specEl.value = "";
                               }
-                            }} className="rounded bg-purple-600 px-2 py-1 text-xs text-white hover:bg-purple-700">Add</button>
+                            }} className="mt-2 rounded bg-purple-600 px-3 py-1 text-xs text-white hover:bg-purple-700">+ Add Referral</button>
                           </div>
                         )}
                       </div>
