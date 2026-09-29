@@ -1367,6 +1367,15 @@ function Home() {
     oxygenSaturation: patients[0]?.vitals.oxygenSaturation?.toString() ?? "98",
   });
 
+  // Map editable vitals into the shape SmartPhrases' `.vitals` dot-code expects.
+  const noteVitals = {
+    bp: editableVitals.bloodPressure,
+    hr: editableVitals.heartRate,
+    temp: editableVitals.temperature,
+    rr: editableVitals.respiratoryRate,
+    o2: editableVitals.oxygenSaturation,
+  };
+
   // Shared editable patient data for scribe mode (persists across tab switches)
   const [editablePatientData, setEditablePatientData] = useState<EditablePatientData>({
     chiefComplaint: patients[0]?.chiefComplaint ?? "",
@@ -1961,6 +1970,17 @@ function Home() {
                                     activeStage === "assessment-plan" ? "Assessment & Plan" :
                                     "Sign & Lock Note"}
                       </span>
+                      <span
+                        className={
+                          submittedToCoding
+                            ? "rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700"
+                            : soapNote.subjective || soapNote.objective || soapNote.assessment || soapNote.plan
+                              ? "rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                              : "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
+                        }
+                      >
+                        {submittedToCoding ? "Signed" : soapNote.subjective || soapNote.objective || soapNote.assessment || soapNote.plan ? "Draft" : "Empty"}
+                      </span>
                       <button
                         onClick={() => setActiveStage("")}
                         className="ml-auto rounded bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 hover:bg-blue-200"
@@ -1982,6 +2002,7 @@ function Home() {
                         chiefComplaint={editablePatientData.chiefComplaint || selectedPatient.chiefComplaint}
                         note={soapNote}
                         onNoteChange={setSoapNote}
+                        vitals={noteVitals}
                       />
                     )}
                     {activeStage === "exam-ros" && (
@@ -1989,6 +2010,7 @@ function Home() {
                         patientName={displayName || `${selectedPatient.firstName} ${selectedPatient.lastName}`}
                         note={soapNote}
                         onNoteChange={setSoapNote}
+                        vitals={noteVitals}
                       />
                     )}
                     {activeStage === "assessment-plan" && (
@@ -1997,6 +2019,7 @@ function Home() {
                         chiefComplaint={editablePatientData.chiefComplaint || selectedPatient.chiefComplaint}
                         note={soapNote}
                         onNoteChange={setSoapNote}
+                        vitals={noteVitals}
                       />
                     )}
                     {activeStage === "sign-lock" && !submittedToCoding && (

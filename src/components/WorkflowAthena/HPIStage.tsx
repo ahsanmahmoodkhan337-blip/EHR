@@ -25,9 +25,10 @@ interface HPIStageProps {
   chiefComplaint?: string;
   note?: SoapNoteData;
   onNoteChange?: (note: SoapNoteData) => void;
+  vitals?: { bp: string; hr: string; temp: string; rr: string; o2: string };
 }
 
-export function HPIStage({ patientName, chiefComplaint, note, onNoteChange }: HPIStageProps) {
+export function HPIStage({ patientName, chiefComplaint, note, onNoteChange, vitals }: HPIStageProps) {
   const [hpiText, setHpiText] = useState(note?.subjective ?? "");
   const [showTemplate, setShowTemplate] = useState(false);
 
@@ -168,6 +169,7 @@ export function HPIStage({ patientName, chiefComplaint, note, onNoteChange }: HP
             }
           }}
           section="HPI"
+          vitals={vitals}
           placeholder={`Describe the history of present illness in narrative form.\n\nInclude: onset, location, duration, character, aggravating/relieving factors, timing, severity.\n\nExample: "${patientName || "Patient"} presents with chest pain that started 3 days ago. The pain is described as a dull ache, located substernally, rated 6/10 in severity. It is aggravated by exertion and partially relieved by rest. No associated shortness of breath or nausea."`}
           className="min-h-[250px] w-full resize-y rounded-lg border border-slate-200 p-3 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
         />

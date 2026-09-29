@@ -10,7 +10,7 @@
  * Wire as a toggle panel in the scribe workspace.
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calculator, ChevronDown, ChevronUp, CheckCircle2, Info, X } from "lucide-react";
 
 // ─── MDM Data ───────────────────────────────────────────────────────
@@ -70,7 +70,18 @@ const ESTABLISHED_LEVELS: EMLevel[] = [
 
 // ─── Component ──────────────────────────────────────────────────────
 
-export function MDMWizard() {
+export interface MDMWizardResult {
+  code: string;
+  label: string;
+  patientType: string;
+  total: number;
+}
+
+interface MDMWizardProps {
+  onLevelChange?: (result: MDMWizardResult) => void;
+}
+
+export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
   const [open, setOpen] = useState(false);
   const [problems, setProblems] = useState(PROBLEM_LEVELS.map((p) => ({ ...p, checked: false })));
   const [data, setData] = useState(DATA_LEVELS.map((d) => ({ ...d, checked: false })));
@@ -100,10 +111,22 @@ export function MDMWizard() {
   const totalScore = problemScore + dataScore + riskScore;
 
   const levels = isNewPatient ? NEW_PATIENT_LEVELS : ESTABLISHED_LEVELS;
-  let recommendedLevel: EMLevel = levels[0];
-  for (const l of levels) {
-    if (totalScore >= l.minTotal) recommendedLevel = l;
-  }
+  const recommendedLevel = useMemo<EMLevel>(() => {
+    let rec = levels[0];
+    for (const l of levels) {
+      if (totalScore >= l.minTotal) rec = l;
+    }
+    return rec;
+  }, [levels, totalScore]);
+
+  useEffect(() => {
+    onLevelChange?.({
+      code: recommendedLevel.code,
+      label: recommendedLevel.label,
+      patientType: recommendedLevel.patientType,
+      total: totalScore,
+    });
+  }, [recommendedLevel, totalScore, onLevelChange]);
 
   const levelColors = ["bg-slate-100", "bg-blue-100", "bg-green-100", "bg-amber-100", "bg-red-100"];
   const levelIdx = levels.indexOf(recommendedLevel);
