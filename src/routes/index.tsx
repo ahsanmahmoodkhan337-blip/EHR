@@ -150,6 +150,37 @@ interface EditableVitals {
   oxygenSaturation: string;
 }
 
+// ─── Structured clinical-view helpers ───────────────────────────────
+
+/** Split a problem string like "Hypertension (I10)" into name + ICD-10 code. */
+function parseProblem(p: string): { name: string; code: string } {
+  const match = p.match(/^(.*?)\s*\(([^()]+)\)\s*$/);
+  if (match) return { name: match[1].trim(), code: match[2].trim() };
+  return { name: p, code: "" };
+}
+
+/** Tailwind class for an allergy severity badge (see app.css .allergy-*). */
+function allergySeverityClass(severity: string): string {
+  if (severity === "severe") return "allergy-severe";
+  if (severity === "moderate") return "allergy-moderate";
+  return "allergy-mild";
+}
+
+/** Flag presentation for a lab result status. */
+function labFlag(status: string): { className: string; label: string } {
+  switch (status) {
+    case "critical":
+      return { className: "status-badge is-danger", label: "Critical" };
+    case "abnormal":
+      return { className: "status-badge is-warning", label: "Abnormal" };
+    case "pending":
+      return { className: "status-badge is-neutral", label: "Pending" };
+    default:
+      return { className: "status-badge is-success", label: "Normal" };
+  }
+}
+
+
 function SummaryTab({
   patientId,
   editableVitals: extVitals,
@@ -396,16 +427,34 @@ function SummaryTab({
       {/* Active Problems */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Active Problems</p>
-        <div className="flex flex-wrap gap-2">
-          {data.problems.map((p, i) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs text-blue-800">
-              {p}
-              {isScribe && (
-                <button onClick={() => removeProblem(i)} className="text-blue-400 hover:text-red-500">&times;</button>
-              )}
-            </span>
-          ))}
-        </div>
+        {data.problems.length === 0 ? (
+          <p className="text-xs text-slate-400 italic">No active problems</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr><th>Problem</th><th>ICD-10</th><th>Status</th>{isScribe && <th></th>}</tr>
+              </thead>
+              <tbody>
+                {data.problems.map((p, i) => {
+                  const { name, code } = parseProblem(p);
+                  return (
+                    <tr key={i}>
+                      <td className="font-medium">{name}</td>
+                      <td className="font-mono text-xs text-slate-500">{code || "—"}</td>
+                      <td><span className="status-badge is-info">Active</span></td>
+                      {isScribe && (
+                        <td className="text-right">
+                          <button onClick={() => removeProblem(i)} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove problem">✕</button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input
@@ -413,14 +462,13 @@ function SummaryTab({
               value={addProblemText}
               onChange={e => setAddProblemText(e.target.value)}
               onKeyDown={e => e.key === "Enter" && addProblem()}
-              placeholder="+ Add new problem..."
+              placeholder="+ Add new problem (e.g. Diabetes (E11.9))..."
               className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400"
             />
             <button onClick={addProblem} className="rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600">Add</button>
           </div>
         )}
       </div>
-
       {/* Medications */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Active Medications</p>
@@ -429,8 +477,12 @@ function SummaryTab({
         ) : (
           <div className="space-y-1">
             {data.medications.map((med) => (
-              <div key={med.id} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">
-                <span>{med.name} {med.dosage}, {med.frequency}</span>
+              <div key={med.id} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
+                  <span className="font-medium text-slate-800">{med.name}</span>
+                  <span className="text-slate-500">{med.dosage} · {med.frequency}</span>
+                </div>
                 {isScribe && (
                   <button onClick={() => removeMed(med.id)} className="text-red-400 hover:text-red-600 text-[10px]">✕ Remove</button>
                 )}
@@ -449,22 +501,35 @@ function SummaryTab({
           </div>
         )}
       </div>
-
       {/* Allergies */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Allergies</p>
         {data.allergies.length === 0 ? (
           <p className="text-xs text-slate-400 italic">No known allergies</p>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {data.allergies.map((a, i) => (
-              <span key={i} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-0.5 text-xs text-red-700">
-                {typeof a === "string" ? a : (a as any).allergen || JSON.stringify(a)}
-                {isScribe && (
-                  <button onClick={() => removeAllergy(i)} className="text-red-400 hover:text-red-600">&times;</button>
-                )}
-              </span>
-            ))}
+          <div className="space-y-1">
+            {data.allergies.map((a, i) => {
+              const allergen = typeof a === "string" ? a : a.allergen;
+              const severity = typeof a === "string" ? "mild" : a.severity;
+              const reaction = typeof a === "string" ? "" : a.reaction;
+              const recorded = typeof a === "string" ? "" : a.recordedDate;
+              return (
+                <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${severity === "severe" ? "bg-red-500" : severity === "moderate" ? "bg-amber-500" : "bg-yellow-400"}`} />
+                    <span className="font-medium text-slate-800">{allergen}</span>
+                    {reaction && <span className="truncate text-slate-500">— {reaction}</span>}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className={allergySeverityClass(severity)}>{severity}</span>
+                    {recorded && <span className="text-[10px] text-slate-400">{recorded}</span>}
+                    {isScribe && (
+                      <button onClick={() => removeAllergy(i)} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove allergy">✕</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
         {isScribe && (
@@ -481,14 +546,19 @@ function SummaryTab({
           </div>
         )}
       </div>
-
       {/* Immunizations */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Immunizations</p>
         {immunizations.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="space-y-1">
             {immunizations.map((imm, i) => (
-              <span key={i} className="inline-flex items-center gap-1 rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">{imm}</span>
+              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
+                  <span className="text-slate-800">{imm}</span>
+                </div>
+                <span className="status-badge is-success">Complete</span>
+              </div>
             ))}
           </div>
         ) : (
@@ -501,18 +571,38 @@ function SummaryTab({
           </div>
         )}
       </div>
-
       {/* Labs & Results */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Labs & Results</p>
-        {labsResults.length > 0 ? (
-          <div className="space-y-1">
-            {labsResults.map((lab, i) => (
-              <div key={i} className="rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">{lab}</div>
-            ))}
+        {(patient.labResults || []).length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead><tr><th>Test</th><th>Result</th><th>Reference</th><th>Flag</th><th>Date</th></tr></thead>
+              <tbody>
+                {patient.labResults.map((lab) => (
+                  <tr key={lab.id}>
+                    <td className="font-medium">{lab.testName}</td>
+                    <td>{lab.value}{lab.unit ? ` ${lab.unit}` : ""}</td>
+                    <td className="text-slate-500">{lab.referenceRange || "—"}</td>
+                    <td><span className={labFlag(lab.status).className}>{labFlag(lab.status).label}</span></td>
+                    <td className="text-xs text-slate-500">{new Date(lab.date).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <p className="text-xs text-slate-400 italic">No labs recorded</p>
+        )}
+        {labsResults.length > 0 && (
+          <div className="mt-2">
+            <p className="section-header">Session results</p>
+            <div className="space-y-1">
+              {labsResults.map((lab, i) => (
+                <div key={i} className="rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">{lab}</div>
+              ))}
+            </div>
+          </div>
         )}
         {isScribe && (
           <div className="mt-2 flex gap-1">
@@ -521,14 +611,19 @@ function SummaryTab({
           </div>
         )}
       </div>
-
       {/* Orders */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Orders</p>
         {orders.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="space-y-1">
             {orders.map((o, i) => (
-              <span key={i} className="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-xs text-amber-700">{o}</span>
+              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                  <span className="text-slate-800">{o}</span>
+                </div>
+                <span className="status-badge is-warning">Active</span>
+              </div>
             ))}
           </div>
         ) : (
@@ -541,14 +636,19 @@ function SummaryTab({
           </div>
         )}
       </div>
-
       {/* Imaging */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Imaging</p>
         {imaging.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="space-y-1">
             {imaging.map((img, i) => (
-              <span key={i} className="inline-flex items-center gap-1 rounded bg-teal-50 px-2 py-0.5 text-xs text-teal-700">{img}</span>
+              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
+                  <span className="text-slate-800">{img}</span>
+                </div>
+                <span className="status-badge is-success">Completed</span>
+              </div>
             ))}
           </div>
         ) : (
@@ -561,14 +661,19 @@ function SummaryTab({
           </div>
         )}
       </div>
-
       {/* Referrals */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Referrals</p>
         {referrals.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="space-y-1">
             {referrals.map((ref, i) => (
-              <span key={i} className="inline-flex items-center gap-1 rounded bg-purple-50 px-2 py-0.5 text-xs text-purple-700">{ref}</span>
+              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
+                  <span className="text-slate-800">{ref}</span>
+                </div>
+                <span className="status-badge is-info">Sent</span>
+              </div>
             ))}
           </div>
         ) : (
@@ -581,7 +686,6 @@ function SummaryTab({
           </div>
         )}
       </div>
-
       {/* Save Button */}
       {isScribe && (
         <div className="clinical-card">
@@ -1912,51 +2016,87 @@ function Home() {
                     <TabPanel id="labs" activeTab={activeTab}>
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Labs & Results</p>
-                        {currentRole === "scribe" ? (
-                          <div className="space-y-2">
-                            <div className="flex gap-1">
-                              <input type="text" id="newLabInput" placeholder="e.g. CBC: WBC 6.5, Hgb 13.2" className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <button onClick={() => {
-                                const inp = document.getElementById("newLabInput") as HTMLInputElement;
-                                if (inp && inp.value.trim()) {
-                                  setSharedLabs([...sharedLabs, inp.value.trim()]);
-                                  inp.value = "";
-                                }
-                              }} className="rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-700">Add</button>
-                            </div>
+                        {(selectedPatient.labResults || []).length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="data-table">
+                              <thead><tr><th>Test</th><th>Result</th><th>Reference</th><th>Flag</th><th>Date</th></tr></thead>
+                              <tbody>
+                                {selectedPatient.labResults.map((lab) => (
+                                  <tr key={lab.id}>
+                                    <td className="font-medium">{lab.testName}</td>
+                                    <td>{lab.value}{lab.unit ? ` ${lab.unit}` : ""}</td>
+                                    <td className="text-slate-500">{lab.referenceRange || "—"}</td>
+                                    <td><span className={labFlag(lab.status).className}>{labFlag(lab.status).label}</span></td>
+                                    <td className="text-xs text-slate-500">{new Date(lab.date).toLocaleDateString()}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-400 italic">No labs recorded.</p>
+                        )}
+                        {sharedLabs.length > 0 && (
+                          <div className="mt-3">
+                            <p className="section-header">Session results</p>
                             <div className="space-y-1">
-                              {sharedLabs.length === 0 ? <p className="text-xs text-slate-400 italic">No labs added yet.</p> : sharedLabs.map((o, i) => (
+                              {sharedLabs.map((o, i) => (
                                 <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">
                                   <span>{o}</span>
-                                  <button onClick={() => setSharedLabs(sharedLabs.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]">\u2715</button>
+                                  {currentRole === "scribe" && (
+                                    <button onClick={() => setSharedLabs(sharedLabs.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove result">✕</button>
+                                  )}
                                 </div>
                               ))}
                             </div>
                           </div>
-                        ) : sharedLabs.length > 0 ? (
-                          <div className="space-y-1">{sharedLabs.map((o, i) => <div key={i} className="rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">{o}</div>)}</div>
-                        ) : (
-                          <p className="text-sm text-slate-400 italic">No labs recorded.</p>
+                        )}
+                        {currentRole === "scribe" && (
+                          <div className="mt-3 flex gap-1">
+                            <input type="text" id="newLabInput" placeholder="e.g. CBC: WBC 6.5, Hgb 13.2" className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                            <button onClick={() => {
+                              const inp = document.getElementById("newLabInput") as HTMLInputElement;
+                              if (inp && inp.value.trim()) {
+                                setSharedLabs([...sharedLabs, inp.value.trim()]);
+                                inp.value = "";
+                              }
+                            }} className="rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-700">Add</button>
+                          </div>
                         )}
                       </div>
                     </TabPanel>
                     <TabPanel id="problems" activeTab={activeTab}>
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Problem List</p>
-                        <div className="space-y-2">
-                          {selectedPatient.problems.map((p, i) => (
-                            <div key={i} className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 p-3 text-sm">
-                              <span>{p}</span>
-                              {currentRole === "scribe" && (
-                                <button onClick={() => {
-                                  // Remove problem from editablePatientData
-                                  const updated = editablePatientData.problems.filter((_, j) => j !== i);
-                                  setEditablePatientData({ ...editablePatientData, problems: updated });
-                                }} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                        {(selectedPatient.problems || []).length === 0 ? (
+                          <p className="text-sm text-slate-400 italic">No problems on file.</p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="data-table">
+                              <thead><tr><th>Problem</th><th>ICD-10</th><th>Status</th>{currentRole === "scribe" && <th></th>}</tr></thead>
+                              <tbody>
+                                {selectedPatient.problems.map((p, i) => {
+                                  const { name, code } = parseProblem(p);
+                                  return (
+                                    <tr key={i}>
+                                      <td className="font-medium">{name}</td>
+                                      <td className="font-mono text-xs text-slate-500">{code || "—"}</td>
+                                      <td><span className="status-badge is-info">Active</span></td>
+                                      {currentRole === "scribe" && (
+                                        <td className="text-right">
+                                          <button onClick={() => {
+                                            const updated = editablePatientData.problems.filter((_, j) => j !== i);
+                                            setEditablePatientData({ ...editablePatientData, problems: updated });
+                                          }} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove problem">✕</button>
+                                        </td>
+                                      )}
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                         {currentRole === "scribe" && (
                           <div className="mt-2 flex gap-1">
                             <input
@@ -1964,7 +2104,7 @@ function Home() {
                               value={newProblem}
                               onChange={e => setNewProblem(e.target.value)}
                               onKeyDown={e => { if (e.key === "Enter" && newProblem.trim()) { setEditablePatientData({ ...editablePatientData, problems: [...editablePatientData.problems, newProblem.trim()] }); setNewProblem(""); }}}
-                              placeholder="+ Add new problem..."
+                              placeholder="+ Add new problem (e.g. Diabetes (E11.9))..."
                               className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400"
                             />
                             <button onClick={() => { if (newProblem.trim()) { setEditablePatientData({ ...editablePatientData, problems: [...editablePatientData.problems, newProblem.trim()] }); setNewProblem(""); }}} className="rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600">Add</button>
@@ -2007,34 +2147,37 @@ function Home() {
                           return null;
                         })()}
 
-                        <p className="text-xs text-slate-400 mb-2">Manage orders for this encounter. Items appear in Summary.</p>
-                        {currentRole === "scribe" ? (
-                          <div className="space-y-2">
-                            <div className="flex gap-1">
-                              <input type="text" id="newOrderInput" placeholder="e.g. CBC, CMP, Chest X-ray..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <button onClick={() => {
-                                const inp = document.getElementById("newOrderInput") as HTMLInputElement;
-                                if (inp && inp.value.trim()) {
-                                  setSharedOrders([...sharedOrders, inp.value.trim()]);
-                                  inp.value = "";
-                                }
-                              }} className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">Add</button>
-                            </div>
-                            <div className="space-y-1">
-                              {sharedOrders.length === 0 ? <p className="text-xs text-slate-400 italic">No orders added yet.</p> : sharedOrders.map((o, i) => (
-                                <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">
-                                  <span>{o}</span>
-                                  <button onClick={() => setSharedOrders(sharedOrders.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : sharedOrders.length > 0 ? (
+                        {sharedOrders.length > 0 ? (
                           <div className="space-y-1">
-                            {sharedOrders.map((o, i) => <div key={i} className="rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">{o}</div>)}
+                            {sharedOrders.map((o, i) => (
+                              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                                  <span className="text-slate-800">{o}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="status-badge is-warning">Active</span>
+                                  {currentRole === "scribe" && (
+                                    <button onClick={() => setSharedOrders(sharedOrders.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove order">✕</button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <p className="text-sm text-slate-400 italic">No active orders.</p>
+                        )}
+                        {currentRole === "scribe" && (
+                          <div className="mt-2 flex gap-1">
+                            <input type="text" id="newOrderInput" placeholder="e.g. CBC, CMP, Chest X-ray..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                            <button onClick={() => {
+                              const inp = document.getElementById("newOrderInput") as HTMLInputElement;
+                              if (inp && inp.value.trim()) {
+                                setSharedOrders([...sharedOrders, inp.value.trim()]);
+                                inp.value = "";
+                              }
+                            }} className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">Add</button>
+                          </div>
                         )}
                       </div>
                     </TabPanel>
@@ -2054,99 +2197,111 @@ function Home() {
                     <TabPanel id="imaging" activeTab={activeTab}>
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Imaging Studies</p>
-                        {currentRole === "scribe" ? (
-                          <div className="space-y-2">
-                            <div className="flex gap-1">
-                              <input type="text" id="newImagingInput" placeholder="e.g. Chest X-ray, MRI Brain..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <button onClick={() => {
-                                const inp = document.getElementById("newImagingInput") as HTMLInputElement;
-                                if (inp && inp.value.trim()) {
-                                  setSharedImaging([...sharedImaging, inp.value.trim()]);
-                                  inp.value = "";
-                                }
-                              }} className="rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-700">Add</button>
-                            </div>
-                            <div className="space-y-1">
-                              {sharedImaging.length === 0 ? <p className="text-xs text-slate-400 italic">No imaging added yet.</p> : sharedImaging.map((o, i) => (
-                                <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">
-                                  <span>{o}</span>
-                                  <button onClick={() => setSharedImaging(sharedImaging.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : sharedImaging.length > 0 ? (
+                        {sharedImaging.length > 0 ? (
                           <div className="space-y-1">
-                            {sharedImaging.map((o, i) => <div key={i} className="rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">{o}</div>)}
+                            {sharedImaging.map((o, i) => (
+                              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
+                                  <span className="text-slate-800">{o}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="status-badge is-success">Completed</span>
+                                  {currentRole === "scribe" && (
+                                    <button onClick={() => setSharedImaging(sharedImaging.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove study">✕</button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <p className="text-sm text-slate-400 italic">No imaging studies ordered.</p>
+                        )}
+                        {currentRole === "scribe" && (
+                          <div className="mt-2 flex gap-1">
+                            <input type="text" id="newImagingInput" placeholder="e.g. Chest X-ray, MRI Brain..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                            <button onClick={() => {
+                              const inp = document.getElementById("newImagingInput") as HTMLInputElement;
+                              if (inp && inp.value.trim()) {
+                                setSharedImaging([...sharedImaging, inp.value.trim()]);
+                                inp.value = "";
+                              }
+                            }} className="rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-700">Add</button>
+                          </div>
                         )}
                       </div>
                     </TabPanel>
                     <TabPanel id="immunizations" activeTab={activeTab}>
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Immunizations</p>
-                        {currentRole === "scribe" ? (
-                          <div className="space-y-2">
-                            <div className="flex gap-1">
-                              <input type="text" id="newImmunInput2" placeholder="e.g. Influenza 2024, COVID-19 Booster..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <button onClick={() => {
-                                const inp = document.getElementById("newImmunInput2") as HTMLInputElement;
-                                if (inp && inp.value.trim()) {
-                                  setSharedImmunizations([...sharedImmunizations, inp.value.trim()]);
-                                  inp.value = "";
-                                }
-                              }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
-                            </div>
-                            <div className="space-y-1">
-                              {sharedImmunizations.length === 0 ? <p className="text-xs text-slate-400 italic">No immunizations added yet.</p> : sharedImmunizations.map((o, i) => (
-                                <div key={i} className="flex items-center justify-between rounded bg-green-50 px-2 py-1 text-xs text-green-700">
-                                  <span>{o}</span>
-                                  <button onClick={() => setSharedImmunizations(sharedImmunizations.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : sharedImmunizations.length > 0 ? (
+                        {sharedImmunizations.length > 0 ? (
                           <div className="space-y-1">
-                            {sharedImmunizations.map((o, i) => <div key={i} className="rounded bg-green-50 px-2 py-1 text-xs text-green-700">{o}</div>)}
+                            {sharedImmunizations.map((o, i) => (
+                              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
+                                  <span className="text-slate-800">{o}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="status-badge is-success">Complete</span>
+                                  {currentRole === "scribe" && (
+                                    <button onClick={() => setSharedImmunizations(sharedImmunizations.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove immunization">✕</button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <p className="text-sm text-slate-400 italic">No immunizations recorded.</p>
+                        )}
+                        {currentRole === "scribe" && (
+                          <div className="mt-2 flex gap-1">
+                            <input type="text" id="newImmunInput2" placeholder="e.g. Influenza 2024, COVID-19 Booster..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                            <button onClick={() => {
+                              const inp = document.getElementById("newImmunInput2") as HTMLInputElement;
+                              if (inp && inp.value.trim()) {
+                                setSharedImmunizations([...sharedImmunizations, inp.value.trim()]);
+                                inp.value = "";
+                              }
+                            }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
+                          </div>
                         )}
                       </div>
                     </TabPanel>
                     <TabPanel id="referrals" activeTab={activeTab}>
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Referrals</p>
-                        {currentRole === "scribe" ? (
-                          <div className="space-y-2">
-                            <div className="flex gap-1">
-                              <input type="text" id="newRefInput2" placeholder="e.g. Cardiology, Orthopedics..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <button onClick={() => {
-                                const inp = document.getElementById("newRefInput2") as HTMLInputElement;
-                                if (inp && inp.value.trim()) {
-                                  setSharedReferrals([...sharedReferrals, inp.value.trim()]);
-                                  inp.value = "";
-                                }
-                              }} className="rounded bg-purple-600 px-2 py-1 text-xs text-white hover:bg-purple-700">Add</button>
-                            </div>
-                            <div className="space-y-1">
-                              {sharedReferrals.length === 0 ? <p className="text-xs text-slate-400 italic">No referrals added yet.</p> : sharedReferrals.map((o, i) => (
-                                <div key={i} className="flex items-center justify-between rounded bg-purple-50 px-2 py-1 text-xs text-purple-700">
-                                  <span>{o}</span>
-                                  <button onClick={() => setSharedReferrals(sharedReferrals.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : sharedReferrals.length > 0 ? (
+                        {sharedReferrals.length > 0 ? (
                           <div className="space-y-1">
-                            {sharedReferrals.map((o, i) => <div key={i} className="rounded bg-purple-50 px-2 py-1 text-xs text-purple-700">{o}</div>)}
+                            {sharedReferrals.map((o, i) => (
+                              <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
+                                  <span className="text-slate-800">{o}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="status-badge is-info">Sent</span>
+                                  {currentRole === "scribe" && (
+                                    <button onClick={() => setSharedReferrals(sharedReferrals.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove referral">✕</button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <p className="text-sm text-slate-400 italic">No referrals recorded.</p>
+                        )}
+                        {currentRole === "scribe" && (
+                          <div className="mt-2 flex gap-1">
+                            <input type="text" id="newRefInput2" placeholder="e.g. Cardiology, Orthopedics..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                            <button onClick={() => {
+                              const inp = document.getElementById("newRefInput2") as HTMLInputElement;
+                              if (inp && inp.value.trim()) {
+                                setSharedReferrals([...sharedReferrals, inp.value.trim()]);
+                                inp.value = "";
+                              }
+                            }} className="rounded bg-purple-600 px-2 py-1 text-xs text-white hover:bg-purple-700">Add</button>
+                          </div>
                         )}
                       </div>
                     </TabPanel>
