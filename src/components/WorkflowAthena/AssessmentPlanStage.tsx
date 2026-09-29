@@ -12,6 +12,7 @@
 import { useState, useMemo } from "react";
 import {
   ClipboardCheck,
+  Calculator,
   FileText,
   MessageSquare,
   Stethoscope,
@@ -24,6 +25,7 @@ import { ICD10_CODES } from "../CodingQueue/icd10Data";
 import type { ICD10Code } from "../CodingQueue/icd10Data";
 import { DotPhraseTextarea } from "../scribe/DotPhraseTextarea";
 import { NoteTemplatePicker } from "../scribe/NoteTemplatePicker";
+import { MDMWizard, type MDMWizardResult } from "../scribe/MDMWizard";
 
 // ─── One-Click Macros ──────────────────────────────────────────────
 
@@ -90,6 +92,7 @@ interface AssessmentPlanStageProps {
   chiefComplaint?: string;
   note?: SoapNoteData;
   onNoteChange?: (note: SoapNoteData) => void;
+  vitals?: { bp: string; hr: string; temp: string; rr: string; o2: string };
 }
 
 export function AssessmentPlanStage({
@@ -97,10 +100,12 @@ export function AssessmentPlanStage({
   chiefComplaint,
   note,
   onNoteChange,
+  vitals,
 }: AssessmentPlanStageProps) {
   const [showMacros, setShowMacros] = useState(true);
   const [activeMacroCategory, setActiveMacroCategory] = useState(0);
   const [lastInserted, setLastInserted] = useState("");
+  const [mdmLevel, setMdmLevel] = useState<MDMWizardResult | null>(null);
 
   // Use lifted note if provided, otherwise use local fallback state
   const [localFallback, setLocalFallback] = useState<SoapNoteData>({
@@ -144,17 +149,26 @@ export function AssessmentPlanStage({
             {patientName ? `SOAP note for ${patientName}` : "Structured SOAP note"}
           </p>
         </div>
-        <button
-          onClick={() => setShowMacros(!showMacros)}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-            showMacros
-              ? "bg-blue-100 text-blue-700"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
-        >
-          <Lightbulb className="h-3.5 w-3.5" />
-          One-Click Macros
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {mdmLevel && (
+            <span className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[10px] font-medium text-indigo-700">
+              <Calculator className="h-3.5 w-3.5" />
+              E/M: CPT {mdmLevel.code} · {mdmLevel.label} {mdmLevel.patientType}
+            </span>
+          )}
+          <MDMWizard onLevelChange={setMdmLevel} />
+          <button
+            onClick={() => setShowMacros(!showMacros)}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              showMacros
+                ? "bg-blue-100 text-blue-700"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            <Lightbulb className="h-3.5 w-3.5" />
+            One-Click Macros
+          </button>
+        </div>
       </div>
 
       {/* Chief-complaint note templates (Epic NoteWriter-style) */}
@@ -186,6 +200,7 @@ export function AssessmentPlanStage({
               value={currentNote.subjective}
               onChange={(value) => updateField("subjective", value)}
               section={["HPI", "ROS"]}
+              vitals={vitals}
               placeholder="Patient's report of symptoms, chief complaint, HPI, review of systems..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />
@@ -211,6 +226,7 @@ export function AssessmentPlanStage({
               value={currentNote.objective}
               onChange={(value) => updateField("objective", value)}
               section={["PE", "ROS"]}
+              vitals={vitals}
               placeholder="Vital signs, physical exam findings, lab results, imaging..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />
@@ -236,6 +252,7 @@ export function AssessmentPlanStage({
               value={currentNote.assessment}
               onChange={(value) => updateField("assessment", value)}
               section="A&P"
+              vitals={vitals}
               placeholder="Diagnoses, differentials, clinical impression, problem list updates..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />
@@ -282,6 +299,7 @@ export function AssessmentPlanStage({
               value={currentNote.plan}
               onChange={(value) => updateField("plan", value)}
               section="Plan"
+              vitals={vitals}
               placeholder="Medication changes, orders, referrals, follow-up plan, patient education..."
               className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
             />

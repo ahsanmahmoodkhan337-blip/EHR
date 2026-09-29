@@ -14,6 +14,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { DOT_PHRASES, type DotPhrase, type NoteSection } from "../../data/medical";
+import { DOT_CODES } from "./SmartPhrases";
 
 export interface DotPhraseTextareaProps {
   value: string;
@@ -28,9 +29,23 @@ export interface DotPhraseTextareaProps {
   disabled?: boolean;
   /** Optional footer hint text in the suggestion dropdown. */
   hint?: string;
+  /** Live vitals used to expand dynamic dot-codes (e.g. `.vitals`). */
+  vitals?: { bp: string; hr: string; temp: string; rr: string; o2: string };
 }
 
 const DEFAULT_HINT = "Tab / Enter to expand · Arrow keys to navigate · Esc to dismiss";
+
+/** Best-fit note section for each SmartPhrases dot-code. */
+const SMART_PHRASE_SECTIONS: Record<string, NoteSection> = {
+  ".ros": "ROS",
+  ".vitals": "PE",
+  ".htn": "HPI",
+  ".physical": "PE",
+  ".dm": "A&P",
+  ".preop": "HPI",
+  ".uri": "HPI",
+  ".normalpe": "PE",
+};
 
 export function DotPhraseTextarea({
   value,
@@ -43,6 +58,7 @@ export function DotPhraseTextarea({
   name,
   disabled,
   hint = DEFAULT_HINT,
+  vitals,
 }: DotPhraseTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [query, setQuery] = useState<string | null>(null);
@@ -53,10 +69,23 @@ export function DotPhraseTextarea({
     [section],
   );
 
+  // Merge the static scribe-template phrases with the dynamic SmartPhrases
+  // dot-codes (.ros, .vitals, .htn, .dm, .preop, …). SmartPhrases templates are
+  // resolved eagerly against the live vitals so expansion stays a plain string.
+  const allPhrases = useMemo<DotPhrase[]>(() => {
+    const smart: DotPhrase[] = Object.values(DOT_CODES).map((d) => ({
+      shortcode: d.code,
+      section: SMART_PHRASE_SECTIONS[d.code] ?? "A&P",
+      label: d.label,
+      expansion: d.template(vitals),
+    }));
+    return [...DOT_PHRASES, ...smart];
+  }, [vitals]);
+
   const suggestions = useMemo<DotPhrase[]>(() => {
     if (!query || !query.startsWith(".")) return [];
     const q = query.slice(1).toLowerCase();
-    const matches = DOT_PHRASES.filter(
+    const matches = allPhrases.filter(
       (p) => p.shortcode.toLowerCase().includes(q) || p.label.toLowerCase().includes(q),
     );
     if (sections.length > 0) {
@@ -66,7 +95,7 @@ export function DotPhraseTextarea({
       return [...inSection, ...outSection].slice(0, 8);
     }
     return matches.slice(0, 8);
-  }, [query, sections]);
+  }, [query, sections, allPhrases]);
 
   const close = () => {
     setQuery(null);

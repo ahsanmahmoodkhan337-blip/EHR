@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { Stethoscope, FileText, CheckCircle2, XCircle } from "lucide-react";
 import type { SoapNoteData } from "./AssessmentPlanStage";
 import { DotPhraseTextarea } from "../scribe/DotPhraseTextarea";
+import { PhysicalExamMatrix } from "../scribe/PhysicalExamMatrix";
 
 // ─── ROS System Definitions ────────────────────────────────────────
 
@@ -111,9 +112,10 @@ interface ExamROSStageProps {
   patientName?: string;
   note?: SoapNoteData;
   onNoteChange?: (note: SoapNoteData) => void;
+  vitals?: { bp: string; hr: string; temp: string; rr: string; o2: string };
 }
 
-export function ExamROSStage({ patientName, note, onNoteChange }: ExamROSStageProps) {
+export function ExamROSStage({ patientName, note, onNoteChange, vitals }: ExamROSStageProps) {
   const [rosState, setRosState] = useState<Record<string, boolean | null>>({});
   const [examNotes, setExamNotes] = useState(note?.objective ?? "");
 
@@ -123,6 +125,20 @@ export function ExamROSStage({ patientName, note, onNoteChange }: ExamROSStagePr
       setExamNotes(note.objective);
     }
   }, [note?.objective]);
+
+  // Commit the free-text exam findings (with a ROS summary prefix) up to the parent.
+  const commitExamText = (newVal: string) => {
+    setExamNotes(newVal);
+    if (onNoteChange && note) {
+      const abnormalItems = Object.entries(rosState)
+        .filter(([, v]) => v === false)
+        .map(([id]) => id);
+      const rosSummary = abnormalItems.length > 0
+        ? `Abnormal ROS findings: ${abnormalItems.join(", ")}. `
+        : "All systems reviewed and normal. ";
+      onNoteChange({ ...note, objective: rosSummary + newVal });
+    }
+  };
 
   const setStatus = (itemId: string, status: boolean | null) => {
     setRosState((prev) => {
@@ -255,22 +271,15 @@ export function ExamROSStage({ patientName, note, onNoteChange }: ExamROSStagePr
         <div className="mb-2 flex items-center gap-2">
           <FileText className="h-4 w-4 text-blue-600" />
           <span className="clinical-label">Physical Exam Findings</span>
+          <div className="ml-auto">
+            <PhysicalExamMatrix onInsert={commitExamText} />
+          </div>
         </div>
         <DotPhraseTextarea
           value={examNotes}
-          onChange={(newVal) => {
-            setExamNotes(newVal);
-            if (onNoteChange && note) {
-              const abnormalItems = Object.entries(rosState)
-                .filter(([, v]) => v === false)
-                .map(([id]) => id);
-              const rosSummary = abnormalItems.length > 0
-                ? `Abnormal ROS findings: ${abnormalItems.join(", ")}. `
-                : "All systems reviewed and normal. ";
-              onNoteChange({ ...note, objective: rosSummary + newVal });
-            }
-          }}
+          onChange={commitExamText}
           section={["PE", "ROS"]}
+          vitals={vitals}
           placeholder="Document physical exam findings here...\n\nExample:\n- General: Alert and oriented, in no acute distress\n- HEENT: Normocephalic, mucous membranes moist\n- CV: Regular rate and rhythm, no murmurs\n- Resp: Clear to auscultation bilaterally\n- Abd: Soft, non-tender, non-distended\n- MSK: Full range of motion all extremities\n- Neuro: CN II-XII intact, strength 5/5 all groups"
           className="min-h-[180px] w-full resize-y rounded-lg border border-slate-200 p-3 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
         />

@@ -52,7 +52,11 @@ const DEFAULT_NORMAL_FINDINGS: Record<string, string> = {
   Endocrine: "Thyroid non-enlarged, no thyromegaly.",
 };
 
-export function PhysicalExamMatrix() {
+interface PhysicalExamMatrixProps {
+  onInsert?: (text: string) => void;
+}
+
+export function PhysicalExamMatrix({ onInsert }: PhysicalExamMatrixProps = {}) {
   const [systems, setSystems] = useState<SystemState[]>(
     SYSTEMS.map((s) => ({
       name: s.name,
@@ -98,8 +102,8 @@ export function PhysicalExamMatrix() {
   const generatedText = systems
     .filter((s) => s.status !== "not-examined")
     .map((s) => {
-      const status = s.status === "abnormal" ? " (Abnormal)" : "";
-      return `**${s.name}${status}:** ${s.findings || "Normal."}`;
+      const status = s.status === "abnormal" ? " (abnormal)" : "";
+      return `${s.name}${status}: ${s.findings || "normal."}`;
     })
     .join("\n");
 
@@ -191,6 +195,14 @@ export function PhysicalExamMatrix() {
               <div className="mt-4 rounded-lg bg-slate-50 p-3">
                 <p className="mb-1 text-[10px] font-semibold text-slate-600">Generated Exam Text</p>
                 <pre className="whitespace-pre-wrap text-[9px] text-slate-500 leading-relaxed font-sans max-h-24 overflow-y-auto">{generatedText}</pre>
+                {onInsert && (
+                  <button
+                    onClick={() => onInsert(generatedText)}
+                    className="mt-2 w-full rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-emerald-500"
+                  >
+                    Insert into Exam Findings
+                  </button>
+                )}
               </div>
             )}
           </div>
