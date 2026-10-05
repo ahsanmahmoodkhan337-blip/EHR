@@ -2,7 +2,7 @@
  * AccessPage — Payment Guide & Access Request Form
  *
  * Public-facing enrollment page where students can:
- * - View 3 payment methods (Bank Islami, EasyPaisa, PayPal)
+ * - View 3 payment methods (UBL, EasyPaisa, PayPal)
  * - Follow the step-by-step enrollment guide
  * - Submit an access request form
  * - Contact support via WhatsApp
@@ -48,13 +48,13 @@ interface PaymentDetail {
 const PAYMENT_METHODS = [
   {
     id: "bank-islami",
-    name: "Bank Islami",
+    name: "UBL",
     icon: Building2,
     tone: "text-blue-600 bg-blue-50",
     details: [
-      { label: "Bank Name", value: "Bank Islami Pakistan LTD." },
-      { label: "Account Title", value: "Ahsan Mahmood Khan" },
-      { label: "Account Number", value: "PK98BKIP0303800235070201" },
+      { label: "Bank Name", value: "UBL" },
+      { label: "Account Title", value: "HEALTHCARE HUSTLERS SMC PVT LTD" },
+      { label: "Account Number", value: "PK04UNIL0109000402460895" },
       { label: "Amount", value: "20$ / 5500 PKR" },
     ] as PaymentDetail[],
     warning: "Transfer the enrollment fee of 20$ / 5500 PKR and capture your electronic transaction bank receipt.",
@@ -85,7 +85,7 @@ const PAYMENT_METHODS = [
 ];
 
 const ENROLLMENT_STEPS = [
-  { number: "1", title: "Choose Payment Method", desc: "Select Bank Islami, EasyPaisa, or PayPal" },
+  { number: "1", title: "Choose Payment Method", desc: "Select UBL, EasyPaisa, or PayPal" },
   { number: "2", title: "Make Payment", desc: "Send the enrollment fee using the account details" },
   { number: "3", title: "Note Transaction ID", desc: "Save the transaction/reference ID from your payment" },
   { number: "4", title: "Submit Request Form", desc: "Fill in your details below with the transaction ID" },
@@ -441,7 +441,7 @@ function AccessPage() {
                     className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
                   >
                     <option value="easypaisa">EasyPaisa</option>
-                    <option value="bank-islami">Bank Islami</option>
+                    <option value="bank-islami">UBL</option>
                     <option value="paypal">PayPal</option>
                   </select>
                 </div>

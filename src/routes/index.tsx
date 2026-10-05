@@ -1293,7 +1293,7 @@ function PublicLandingPage() {
           <motion.h2 {...rise(0)} className="text-3xl font-bold text-slate-900">Get Started in 4 Steps</motion.h2>
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-4">
             {[
-              { n: "1", title: "Pay 20$ / 5500 pkr", desc: "via Bank Islami, EasyPaisa, or PayPal" },
+              { n: "1", title: "Pay 20$ / 5500 pkr", desc: "via UBL, EasyPaisa, or PayPal" },
               { n: "2", title: "Submit Request", desc: "Fill the form with your transaction ID" },
               { n: "3", title: "Get Approved", desc: "Admin activates your account" },
               { n: "4", title: "Practice!", desc: "Log in with your phone number and start" },
