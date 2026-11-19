@@ -41,9 +41,9 @@ import {
 } from "lucide-react";
 
 import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
-import { PipelineProvider, usePipeline } from "../store/pipelineStore";
+import { PipelineProvider, usePipeline, type Role } from "../store/pipelineStore";
 import { isLoggedIn, getLoggedInPhone } from "../store/accessStore";
-import { useAllAppointments } from "../store/ehrStore";
+import { useAllAppointments, useEhrStore, flushEhrStore } from "../store/ehrStore";
 import { checkSessionExpired, clearSession, setSessionStart } from "../store/accessStore";
 import { isSessionSuperseded } from "../store/accountSecurity";
 import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
@@ -82,6 +82,26 @@ import { CPT_CODES } from "../components/CodingQueue/cptData";
 import { ToastProvider, useToast } from "../components/Toast";
 import { Skeleton } from "../components/Skeleton";
 import { CommandPalette } from "../components/CommandPalette";
+
+/** Pipeline roles the working context may restore (section 4). */
+const PIPELINE_ROLES: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-voice"];
+
+/**
+ * "Saved 12:04 PM" — Epic-style autosave indicator (Phase 0, section 5).
+ * Shows when the open patient's note draft was last written to the store.
+ */
+function NoteSavedIndicator({ savedAt }: { savedAt?: string }) {
+  if (!savedAt) return null;
+  const time = new Date(savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return (
+    <span
+      className="flex items-center gap-1 text-[10px] font-medium text-slate-500"
+      title="Note drafts save automatically — you do not need to press Save"
+    >
+      <CheckCircle2 className="h-3 w-3 text-green-600" /> Saved {time}
+    </span>
+  );
+}
 
 // ─── Route ──────────────────────────────────────────────────────────
 
@@ -1411,6 +1431,58 @@ function Home() {
   // Per-patient session data store — preserves work when switching patients
   const patientDataStore = useRef<Record<string, PatientSessionData>>({});
 
+  // ── Phase 0 section 4: remember the working context ───────────────
+  // Patient, open encounter, role, chart tab and workspace tab are kept in the
+  // central store, so a refresh, a role switch or a re-login reopens the same
+  // place instead of dropping the student back on the schedule.
+  const ehrHydrated = useEhrStore((s) => s.hydrated);
+  const setWorkingContext = useEhrStore((s) => s.setWorkingContext);
+  const saveNoteDraft = useEhrStore((s) => s.saveNoteDraft);
+  const lastNoteSavedAt = useEhrStore((s) =>
+    selectedPatientId ? s.user.noteDrafts[selectedPatientId]?.savedAt : undefined,
+  );
+  const openEncounterId = useEhrStore((s) =>
+    selectedPatientId
+      ? (s.user.encounters.find((e) => e.patientId === selectedPatientId && !e.locked)?.id ?? null)
+      : null,
+  );
+  const contextRestored = useRef(false);
+  /** Saved patient the restore is still waiting to land in state. */
+  const restorePendingPatient = useRef<string | null>(null);
+
+  // ── Phase 0 section 5: note autosave ──────────────────────────────
+  // Every render refreshes this ref, so the 5-second timer and the blur handler
+  // always see the latest text without being re-armed on each keystroke.
+  const noteSnapshot = useRef({
+    patientId: selectedPatientId,
+    note: soapNote,
+    signed: submittedToCoding,
+    encounterId: openEncounterId,
+    saved: "",
+  });
+  noteSnapshot.current.patientId = selectedPatientId;
+  noteSnapshot.current.note = soapNote;
+  noteSnapshot.current.signed = submittedToCoding;
+  noteSnapshot.current.encounterId = openEncounterId;
+
+  /** Write the draft if it changed since the last write. Safe to call often. */
+  const saveNoteDraftNow = () => {
+    const snap = noteSnapshot.current;
+    if (!snap.patientId || snap.signed) return;
+    const fields = {
+      subjective: snap.note.subjective ?? "",
+      objective: snap.note.objective ?? "",
+      assessment: snap.note.assessment ?? "",
+      plan: snap.note.plan ?? "",
+    };
+    const serialized = JSON.stringify(fields);
+    if (serialized === snap.saved) return;
+    const blank = serialized.replace(/[^a-z0-9]/gi, "").length === 0;
+    if (blank && !useEhrStore.getState().user.noteDrafts[snap.patientId]) return;
+    const savedAt = saveNoteDraft(snap.patientId, fields, { encounterId: snap.encounterId });
+    if (savedAt) snap.saved = serialized;
+  };
+
   /**
    * Save the current patient's session data into the store.
    * Call this BEFORE switching to a different patient.
@@ -1538,7 +1610,14 @@ function Home() {
       setSharedReferrals(SEED_REFERRALS);
       setSharedOrders(SEED_ORDERS);
       setSharedImaging(SEED_IMAGING);
-      setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
+      // Phase 0 section 5 — an autosaved draft survives a refresh, so the
+      // half-written note comes back with the patient.
+      const savedDraft = useEhrStore.getState().user.noteDrafts[patientId];
+      setSoapNote(
+        savedDraft
+          ? { ...savedDraft.fields }
+          : { subjective: "", objective: "", assessment: "", plan: "" },
+      );
       setSubmittedToCoding(false);
       setDisplayName(undefined);
       setActiveStage("registration");
@@ -1566,6 +1645,80 @@ function Home() {
     // If we have saved data for this patient, restore it; otherwise initialize from mock
     loadPatientSession(selectedPatientId);
   }, [selectedPatientId]);
+
+  // Note autosave: every 5 s, on blur (focusout anywhere) and on page hide.
+  // Nothing here depends on the student pressing Save (section 5).
+  useEffect(() => {
+    if (!ehrHydrated) return;
+    const timer = setInterval(() => saveNoteDraftNow(), 5000);
+    const onFocusOut = () => saveNoteDraftNow();
+    const onPageHide = () => {
+      saveNoteDraftNow();
+      flushEhrStore();
+    };
+    document.addEventListener("focusout", onFocusOut);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("focusout", onFocusOut);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ehrHydrated]);
+
+  // Restore the saved working context once, when the store has hydrated (section 4).
+  useEffect(() => {
+    if (!ehrHydrated || contextRestored.current) return;
+    contextRestored.current = true;
+    const ctx = useEhrStore.getState().user.context;
+    if (!ctx.patientId) return;
+    const p = patients.find((pp) => pp.id === ctx.patientId);
+    if (!p) {
+      // The saved patient is gone (e.g. after a reset) — nothing to wait for.
+      restorePendingPatient.current = null;
+      return;
+    }
+    restorePendingPatient.current = p.id;
+    if (PIPELINE_ROLES.includes(ctx.role as Role)) setRole(ctx.role as Role);
+    setActiveTab(ctx.tab);
+    setActiveWorkspace(ctx.workspace || "chart");
+    setSelectedPatientId(p.id);
+    const draft = useEhrStore.getState().user.noteDrafts[p.id];
+    const hasDraft = draft
+      ? Object.values(draft.fields).some((value) => (value ?? "").trim().length > 0)
+      : false;
+    addToast({
+      type: "info",
+      title: `Restored your session — ${p.firstName} ${p.lastName}${
+        hasDraft ? ", progress note draft" : ""
+      }.`,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ehrHydrated]);
+
+  // Keep the stored context in step with what is on screen.
+  useEffect(() => {
+    if (!ehrHydrated || !contextRestored.current) return;
+    if (restorePendingPatient.current !== null) {
+      if (selectedPatientId === restorePendingPatient.current) restorePendingPatient.current = null;
+      else return; // still restoring — do not overwrite the saved context
+    }
+    setWorkingContext({
+      patientId: selectedPatientId || null,
+      encounterId: openEncounterId,
+      role: currentRole,
+      tab: activeTab,
+      workspace: activeWorkspace,
+    });
+  }, [
+    ehrHydrated,
+    selectedPatientId,
+    openEncounterId,
+    currentRole,
+    activeTab,
+    activeWorkspace,
+    setWorkingContext,
+  ]);
 
   // Check login on mount
   useEffect(() => {
@@ -1713,6 +1866,7 @@ function Home() {
   // Safely load a patient — always clears loading state even on error
   const handlePatientSelect = (id: string) => {
     if (!id) return;
+    saveNoteDraftNow();
     saveCurrentSession();
     const p = patients.find(p => p.id === id);
     if (!p) return;
@@ -1960,6 +2114,7 @@ function Home() {
                       >
                         {submittedToCoding ? "Signed" : soapNote.subjective || soapNote.objective || soapNote.assessment || soapNote.plan ? "Draft" : "Empty"}
                       </span>
+                      <NoteSavedIndicator savedAt={lastNoteSavedAt} />
                       <button
                         onClick={() => setActiveStage("")}
                         className="ml-auto rounded bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700 hover:bg-brand-200"
@@ -2461,6 +2616,9 @@ function Home() {
 
             {/* ─── Active Progress Note ─── */}
             <WorkspacePanel id="note" activeWorkspace={activeWorkspace}>
+              <div className="flex items-center justify-end px-4 pt-2">
+                <NoteSavedIndicator savedAt={lastNoteSavedAt} />
+              </div>
               <ActiveProgressNote
                 patientName={displayName || (selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : undefined)}
                 soapNote={soapNote}
