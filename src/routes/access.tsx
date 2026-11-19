@@ -50,7 +50,7 @@ const PAYMENT_METHODS = [
     id: "bank-islami",
     name: "UBL",
     icon: Building2,
-    tone: "text-blue-600 bg-blue-50",
+    tone: "text-brand-600 bg-brand-50",
     details: [
       { label: "Bank Name", value: "UBL" },
       { label: "Account Title", value: "HEALTHCARE HUSTLERS SMC PVT LTD" },
@@ -63,7 +63,7 @@ const PAYMENT_METHODS = [
     id: "easypaisa",
     name: "EasyPaisa",
     icon: Smartphone,
-    tone: "text-emerald-600 bg-emerald-50",
+    tone: "text-green-600 bg-green-50",
     details: [
       { label: "Account Name", value: "Ahsan Mahmood Khan" },
       { label: "Account Number", value: "03105265337" },
@@ -74,7 +74,7 @@ const PAYMENT_METHODS = [
     id: "paypal",
     name: "PayPal",
     icon: CreditCard,
-    tone: "text-indigo-600 bg-indigo-50",
+    tone: "text-brand-600 bg-brand-50",
     details: [
       { label: "Account Title", value: "Ahsan Mahmood Khan" },
       { label: "Account Number", value: "333591114926" },
@@ -152,10 +152,10 @@ function AccessPage() {
           initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.96, y: reduceMotion ? 0 : 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.45 }}
-          className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-lg shadow-emerald-500/5"
+          className="w-full max-w-md rounded-2xl border border-green-200 bg-white p-8 text-center shadow-lg shadow-green-500/5"
         >
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
-            <CheckCircle2 className="h-9 w-9 text-emerald-500" />
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-50">
+            <CheckCircle2 className="h-9 w-9 text-green-500" />
           </div>
           <h2 className="text-xl font-bold text-slate-900">Request Submitted!</h2>
           <p className="mt-2 text-sm text-slate-500">
@@ -205,27 +205,27 @@ function AccessPage() {
         {/* Subtle animated background */}
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
           <motion.div
-            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-blue-300/30 blur-3xl"
+            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-brand-300/30 blur-3xl"
             animate={reduceMotion ? undefined : { x: [0, 48, 0], y: [0, 24, 0] }}
             transition={{ duration: 15, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           />
           <motion.div
-            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-teal-300/30 blur-3xl"
+            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-accent-300/30 blur-3xl"
             animate={reduceMotion ? undefined : { x: [0, -48, 0], y: [0, 32, 0] }}
             transition={{ duration: 17, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           />
-          <div className="absolute bottom-0 left-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-indigo-200/20 blur-3xl" />
+          <div className="absolute bottom-0 left-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-brand-200/20 blur-3xl" />
         </div>
 
         <div className="mx-auto max-w-5xl px-4 pb-14 pt-14 text-center md:pt-20">
           <motion.p {...rise(0)} className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500">
-            <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+            <Sparkles className="h-3.5 w-3.5 text-brand-500" />
             One enrollment — Medical + Dental revenue-cycle training
           </motion.p>
 
           <motion.h1 {...rise(1)} className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 md:text-6xl">
             Enroll in the{" "}
-            <span className="bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
               EHR Simulation Portal
             </span>
           </motion.h1>
@@ -238,7 +238,7 @@ function AccessPage() {
           <motion.div {...rise(3)} className="mt-8 flex flex-wrap justify-center gap-3">
             <a
               href="#access-form"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-xl"
             >
               Enroll Now — 20$ / 5500 PKR
               <ArrowRight className="h-4 w-4" />
@@ -256,42 +256,42 @@ function AccessPage() {
 
           {/* Two-track hero — what's included */}
           <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
-            <motion.div {...rise(5)} className="relative overflow-hidden rounded-2xl border border-blue-200 bg-white p-6 text-left shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 to-blue-400" />
+            <motion.div {...rise(5)} className="relative overflow-hidden rounded-2xl border border-brand-200 bg-white p-6 text-left shadow-sm">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-600 to-brand-400" />
               <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                   <Stethoscope className="h-6 w-6" />
                 </span>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500">Medical track</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-brand-500">Medical track</p>
                   <h3 className="text-lg font-bold text-slate-900">Medical RCM Pipeline</h3>
                 </div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-slate-600">
                 {["Scribe → Coder → Prior Auth → Biller → AR Voice", "ICD-10 / CPT coding & CMS-1500 claims", "AI voice simulation for denial follow-up"].map((line) => (
                   <li key={line} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
                     {line}
                   </li>
                 ))}
               </ul>
             </motion.div>
 
-            <motion.div {...rise(6)} className="relative overflow-hidden rounded-2xl border border-teal-200 bg-white p-6 text-left shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-600 to-emerald-400" />
+            <motion.div {...rise(6)} className="relative overflow-hidden rounded-2xl border border-accent-200 bg-white p-6 text-left shadow-sm">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent-600 to-green-400" />
               <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-50 text-accent-600">
                   <Smile className="h-6 w-6" />
                 </span>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-teal-500">Dental track</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-accent-500">Dental track</p>
                   <h3 className="text-lg font-bold text-slate-900">Dental Billing & RCM</h3>
                 </div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-slate-600">
                 {["CDT coding with tooth / surface / quadrant", "Odontogram + perio chart & ADA claim form", "12-step adjudication, ledger & appeals"].map((line) => (
                   <li key={line} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent-500" />
                     {line}
                   </li>
                 ))}
@@ -304,7 +304,7 @@ function AccessPage() {
       {/* Enrollment steps */}
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <motion.div {...rise(0)} className="mb-10 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-blue-600">Enrollment guide</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-brand-600">Enrollment guide</p>
           <h2 className="mt-2 text-3xl font-bold text-slate-900">How to Enroll in 6 Steps</h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">From payment to your first log-in — the whole process, start to finish.</p>
         </motion.div>
@@ -317,7 +317,7 @@ function AccessPage() {
               className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-teal-500 text-base font-bold text-white shadow-sm transition group-hover:scale-105">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-accent-500 text-base font-bold text-white shadow-sm transition group-hover:scale-105">
                   {step.number}
                 </div>
                 <div>
@@ -334,7 +334,7 @@ function AccessPage() {
       <section className="border-t border-slate-100 bg-white/60 py-16">
         <div className="mx-auto max-w-6xl px-4">
           <motion.div {...rise(0)} className="mb-10 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-teal-600">Payment</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-accent-600">Payment</p>
             <h2 className="mt-2 text-3xl font-bold text-slate-900">Select a Payment Method</h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">Pick one, send the fee, then note your transaction ID for the form below.</p>
           </motion.div>
@@ -348,7 +348,7 @@ function AccessPage() {
                   key={method.id}
                   {...rise(i)}
                   className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg ${
-                    selected ? "border-blue-500" : "border-slate-200 hover:border-slate-300"
+                    selected ? "border-brand-500" : "border-slate-200 hover:border-slate-300"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -376,7 +376,7 @@ function AccessPage() {
                     onClick={() => setFormData({ ...formData, paymentMethod: method.id as AccessRequest["paymentMethod"] })}
                     className={`mt-4 w-full rounded-xl py-2 text-xs font-semibold transition-colors ${
                       selected
-                        ? "bg-blue-600 text-white"
+                        ? "bg-brand-600 text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
@@ -393,7 +393,7 @@ function AccessPage() {
       <section id="access-form" className="py-16">
         <div className="mx-auto max-w-3xl px-4">
           <motion.div {...rise(0)} className="mb-8 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-blue-600">Step 4</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-brand-600">Step 4</p>
             <h2 className="mt-2 text-3xl font-bold text-slate-900">Access Request Form</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-slate-500">Submit your details and transaction ID to request access.</p>
           </motion.div>
@@ -474,15 +474,15 @@ function AccessPage() {
               </div>
 
               {/* WhatsApp Receipt Confirmation */}
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                <p className="mb-2 text-xs font-medium text-emerald-800">
+              <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                <p className="mb-2 text-xs font-medium text-green-800">
                   Send your payment receipt to our WhatsApp for verification:
                 </p>
                 <a
                   href="https://api.whatsapp.com/send/?phone=923350340888&text&type=phone_number&app_absent=0"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-500"
                 >
                   <MessageCircle className="h-3.5 w-3.5" />
                   Send Receipt on WhatsApp
@@ -498,7 +498,7 @@ function AccessPage() {
                         name="receiptConfirmed"
                         checked={hasConfirmedReceipt}
                         onChange={() => setHasConfirmedReceipt(true)}
-                        className="h-4 w-4 accent-emerald-600"
+                        className="h-4 w-4 accent-green-600"
                       />
                       <span className="text-xs text-slate-700">Yes</span>
                     </label>
@@ -528,7 +528,7 @@ function AccessPage() {
                 disabled={!hasConfirmedReceipt}
                 className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white transition-colors ${
                   hasConfirmedReceipt
-                    ? "bg-blue-600 hover:bg-blue-700"
+                    ? "bg-brand-600 hover:bg-brand-700"
                     : "cursor-not-allowed bg-slate-300"
                 }`}
               >
@@ -543,8 +543,8 @@ function AccessPage() {
       {/* WhatsApp Support */}
       <section className="border-t border-slate-100 bg-white/60 py-16">
         <div className="mx-auto max-w-3xl px-4">
-          <motion.div {...rise(0)} className="flex flex-col items-start gap-4 rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+          <motion.div {...rise(0)} className="flex flex-col items-start gap-4 rounded-2xl border border-green-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600">
               <MessageCircle className="h-6 w-6" />
             </div>
             <div className="flex-1">
@@ -557,7 +557,7 @@ function AccessPage() {
               href="https://api.whatsapp.com/send/?phone=923350340888&text&type=phone_number&app_absent=0"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
+              className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-500"
             >
               <MessageCircle className="h-4 w-4" />
               WhatsApp Support

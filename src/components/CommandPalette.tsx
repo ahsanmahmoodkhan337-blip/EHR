@@ -175,7 +175,7 @@ export function CommandPalette({ onSelectRole, onSelectPatient }: CommandPalette
                 onSelect={() => handleSelectRole(item.role)}
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-600 data-[selected=true]:bg-slate-100 dark:text-slate-300 dark:data-[selected=true]:bg-slate-700 cursor-pointer"
               >
-                <item.icon className="h-3.5 w-3.5 text-indigo-400" />
+                <item.icon className="h-3.5 w-3.5 text-brand-500" />
                 {item.label}
               </Command.Item>
             ))}

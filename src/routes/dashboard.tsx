@@ -51,11 +51,11 @@ const DENTAL_STAGE_LABELS: Record<DentalStageName, string> = {
 };
 
 const STATUS_TONE: Record<string, string> = {
-  paid: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  paid: "bg-green-50 text-green-700 ring-green-200",
   denied: "bg-red-50 text-red-700 ring-red-200",
-  charted: "bg-blue-50 text-blue-700 ring-blue-200",
-  coded: "bg-blue-50 text-blue-700 ring-blue-200",
-  billed: "bg-violet-50 text-violet-700 ring-violet-200",
+  charted: "bg-brand-50 text-brand-700 ring-brand-200",
+  coded: "bg-brand-50 text-brand-700 ring-brand-200",
+  billed: "bg-brand-50 text-brand-700 ring-brand-200",
   pending: "bg-slate-100 text-slate-600 ring-slate-200",
   reprocessed: "bg-amber-50 text-amber-700 ring-amber-200",
 };
@@ -92,7 +92,7 @@ function DashboardPage() {
     return (
       <div className="brand-gradient flex min-h-dvh flex-col items-center justify-center p-4">
         <div className="surface-card max-w-sm w-full p-8 text-center">
-          <Sparkles className="mx-auto mb-3 h-8 w-8 text-blue-500" />
+          <Sparkles className="mx-auto mb-3 h-8 w-8 text-brand-500" />
           <h1 className="text-base font-bold text-slate-800">Student Dashboard</h1>
           <p className="mt-2 text-sm text-slate-500">
             Sign in to see your tracks and pick up where you left off.
@@ -126,10 +126,10 @@ function DashboardPage() {
   return (
     <div className="brand-gradient min-h-dvh">
       {/* header */}
-      <header className="flex items-center justify-between border-b border-blue-200 bg-white/80 px-4 py-3 backdrop-blur">
+      <header className="flex items-center justify-between border-b border-brand-200 bg-white/80 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <img src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers" className="h-7 w-auto" style={{ maxWidth: "150px" }} />
-          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
+          <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
             Student dashboard
           </span>
         </div>
@@ -155,7 +155,7 @@ function DashboardPage() {
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-800">
-              <Sparkles className="h-5 w-5 text-blue-500" /> Welcome back
+              <Sparkles className="h-5 w-5 text-brand-500" /> Welcome back
             </h1>
             <p className="mt-1 text-sm text-slate-500">Pick a track and resume where you left off.</p>
           </div>
@@ -173,7 +173,7 @@ function DashboardPage() {
           {/* Medical */}
           <div className="surface-card flex flex-col p-5">
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
                 <Stethoscope className="h-5 w-5" />
               </div>
               <div>
@@ -190,11 +190,11 @@ function DashboardPage() {
                 return (
                   <div key={s.role} className="flex items-center gap-2">
                     <div className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                      done ? "bg-emerald-500 text-white" : active ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"
+                      done ? "bg-green-500 text-white" : active ? "bg-brand-600 text-white" : "bg-slate-200 text-slate-500"
                     }`}>
                       {done ? "✓" : i + 1}
                     </div>
-                    <span className={`text-xs ${active ? "font-semibold text-blue-700" : done ? "text-slate-600" : "text-slate-400"}`}>
+                    <span className={`text-xs ${active ? "font-semibold text-brand-700" : done ? "text-slate-600" : "text-slate-400"}`}>
                       {s.label}
                     </span>
                   </div>
@@ -226,7 +226,7 @@ function DashboardPage() {
           {/* Dental */}
           <div className="surface-card flex flex-col p-5">
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-100 text-accent-700">
                 <Smile className="h-5 w-5" />
               </div>
               <div>
@@ -241,7 +241,7 @@ function DashboardPage() {
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Current case</p>
                   <p className="mt-0.5 text-sm font-semibold text-slate-700">{dental?.caseId ?? "—"}</p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Stage: <span className="font-semibold text-teal-700">{dentalStage ? DENTAL_STAGE_LABELS[dentalStage] : "—"}</span>
+                    Stage: <span className="font-semibold text-accent-700">{dentalStage ? DENTAL_STAGE_LABELS[dentalStage] : "—"}</span>
                   </p>
                 </div>
               ) : (
@@ -253,7 +253,7 @@ function DashboardPage() {
 
             <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
               <span className="text-xs text-slate-500">{dentalStarted ? "Resume your case" : "Start the dental track"}</span>
-              <Link to="/dental" className="btn-primary bg-teal-600 px-3 py-1.5 text-xs hover:bg-teal-500">
+              <Link to="/dental" className="btn-primary bg-accent-600 px-3 py-1.5 text-xs hover:bg-accent-500">
                 {dentalStarted ? "Resume" : "Start"} <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>

@@ -147,7 +147,7 @@ function AdminPage() {
       <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-900 p-4">
         <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800 p-6 shadow-xl">
           <div className="mb-6 text-center">
-            <Shield className="mx-auto mb-3 h-10 w-10 text-blue-400" />
+            <Shield className="mx-auto mb-3 h-10 w-10 text-brand-400" />
             <h1 className="text-lg font-bold text-white">Admin Panel</h1>
             <p className="text-sm text-slate-400">Enter admin password to continue</p>
           </div>
@@ -161,14 +161,14 @@ function AdminPage() {
               }}
               onKeyDown={(e) => e.key === "Enter" && handleLogin()}
               placeholder="Enter admin password"
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-400 outline-none focus:border-blue-500"
+              className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-400 outline-none focus:border-brand-500"
             />
             {passwordError && (
               <p className="text-xs text-red-400">{passwordError}</p>
             )}
             <button
               onClick={handleLogin}
-              className="w-full rounded-lg bg-blue-500 py-2.5 text-sm font-medium text-white hover:bg-blue-600"
+              className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600"
             >
               Sign In
             </button>
@@ -201,7 +201,7 @@ function AdminPage() {
       {/* Header */}
       <header className="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Shield className="h-5 w-5 text-blue-400" />
+          <Shield className="h-5 w-5 text-brand-400" />
           <h1 className="text-sm font-bold text-white">Admin Panel</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -266,7 +266,7 @@ function AdminPage() {
           </div>
           <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
             <p className="text-xs text-slate-400">Approved Phones</p>
-            <p className="text-2xl font-bold text-blue-400">{approvedPhones.length}</p>
+            <p className="text-2xl font-bold text-brand-400">{approvedPhones.length}</p>
           </div>
         </div>
 
@@ -370,7 +370,7 @@ function AdminPage() {
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               placeholder="Search by name or phone..."
-              className="w-56 rounded-lg border border-slate-600 bg-slate-700 px-3 py-1.5 text-xs text-white placeholder-slate-400 outline-none focus:border-blue-500"
+              className="w-56 rounded-lg border border-slate-600 bg-slate-700 px-3 py-1.5 text-xs text-white placeholder-slate-400 outline-none focus:border-brand-500"
             />
           </div>
           {filteredApproved.length === 0 ? (
@@ -404,7 +404,7 @@ function AdminPage() {
                         : status === "expiring-soon"
                           ? "bg-amber-900/40 text-amber-300 border-amber-700/50"
                           : status === "no-expiry"
-                            ? "bg-blue-900/40 text-blue-300 border-blue-700/50"
+                            ? "bg-brand-900/40 text-brand-300 border-brand-700/50"
                             : "bg-green-900/40 text-green-300 border-green-700/50";
                     const statusLabel =
                       status === "no-expiry"
@@ -513,7 +513,7 @@ function AdminPage() {
                     onClick={() => setCurrentPage(item as number)}
                     className={`rounded px-2.5 py-1 text-xs font-medium ${
                       safePage === item
-                        ? "bg-blue-600 text-white"
+                        ? "bg-brand-600 text-white"
                         : "bg-slate-700 text-slate-300 hover:bg-slate-600"
                     }`}
                   >
@@ -584,7 +584,7 @@ function AdminPage() {
                         value={editPinValue}
                         onChange={(e) => setEditPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
                         onKeyDown={(e) => e.key === "Enter" && handleSavePin(role)}
-                        className="w-20 rounded border border-blue-600 bg-slate-700 px-2 py-1 text-center text-xs text-white outline-none"
+                        className="w-20 rounded border border-brand-600 bg-slate-700 px-2 py-1 text-center text-xs text-white outline-none"
                         autoFocus
                       />
                       {editPinValue.length > 0 && editPinValue.length < 4 && (
@@ -610,7 +610,7 @@ function AdminPage() {
                     </>
                   ) : (
                     <>
-                      <span className={`font-mono text-sm ${showPins ? "text-blue-300" : "text-slate-500"}`}>
+                      <span className={`font-mono text-sm ${showPins ? "text-brand-300" : "text-slate-500"}`}>
                         {showPins ? pin : "••••"}
                       </span>
                       <button
@@ -634,7 +634,7 @@ function AdminPage() {
         <div className="mt-6 rounded-xl border border-slate-700 bg-slate-800">
           <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-400" />
+              <Clock className="h-4 w-4 text-brand-400" />
               <h2 className="text-sm font-semibold text-white">Session Timeout</h2>
             </div>
             {timeoutSaved && (
@@ -652,7 +652,7 @@ function AdminPage() {
                 <select
                   value={sessionTimeout}
                   onChange={(e) => setSessionTimeout(parseInt(e.target.value))}
-                  className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+                  className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white outline-none focus:border-brand-500"
                 >
                   <option value="0">No timeout (disabled)</option>
                   <option value="15">15 minutes</option>
@@ -669,16 +669,16 @@ function AdminPage() {
                   setSessionTimeoutMinutes(sessionTimeout);
                   setRefreshKey((k) => k + 1);
                 }}
-                className="mt-5 flex items-center gap-1 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-500"
+                className="mt-5 flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-xs font-medium text-white hover:bg-brand-500"
               >
                 <Save className="h-3.5 w-3.5" />
                 Apply
               </button>
             </div>
             {sessionTimeout > 0 && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg bg-blue-900/30 px-3 py-2">
-                <Clock className="h-3.5 w-3.5 text-blue-400" />
-                <p className="text-[10px] text-blue-300">
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-brand-900/30 px-3 py-2">
+                <Clock className="h-3.5 w-3.5 text-brand-400" />
+                <p className="text-[10px] text-brand-300">
                   Students will be automatically logged out after <strong>{sessionTimeout} minutes</strong> of inactivity.
                   Their session resets each time they log in.
                 </p>
@@ -690,9 +690,9 @@ function AdminPage() {
         {/* Scenario Builder */}
       <div className="mt-6 rounded-xl border border-slate-700 bg-slate-800 p-4">
         <div className="flex items-center gap-2 mb-4">
-          <UserPlus className="h-4 w-4 text-blue-400" />
+          <UserPlus className="h-4 w-4 text-brand-400" />
           <h3 className="text-xs font-bold text-slate-200">Scenario Builder</h3>
-          <span className="rounded-full bg-indigo-900/50 px-2 py-0.5 text-[9px] font-medium text-indigo-300">Create Custom Patient</span>
+          <span className="rounded-full bg-brand-900/50 px-2 py-0.5 text-[9px] font-medium text-brand-300">Create Custom Patient</span>
         </div>
         <ScenarioBuilder />
       </div>
@@ -766,19 +766,19 @@ function ScenarioBuilder() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <div>
           <label className="mb-1 block text-[9px] font-medium text-slate-400">First Name</label>
-          <input type="text" value={form.firstName} onChange={e => updateField("firstName", e.target.value)} placeholder="Jane" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-blue-400" />
+          <input type="text" value={form.firstName} onChange={e => updateField("firstName", e.target.value)} placeholder="Jane" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
         </div>
         <div>
           <label className="mb-1 block text-[9px] font-medium text-slate-400">Last Name</label>
-          <input type="text" value={form.lastName} onChange={e => updateField("lastName", e.target.value)} placeholder="Doe" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-blue-400" />
+          <input type="text" value={form.lastName} onChange={e => updateField("lastName", e.target.value)} placeholder="Doe" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
         </div>
         <div>
           <label className="mb-1 block text-[9px] font-medium text-slate-400">Age</label>
-          <input type="number" value={form.age} onChange={e => updateField("age", parseInt(e.target.value) || 0)} min={0} max={120} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-blue-400" />
+          <input type="number" value={form.age} onChange={e => updateField("age", parseInt(e.target.value) || 0)} min={0} max={120} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
         </div>
         <div>
           <label className="mb-1 block text-[9px] font-medium text-slate-400">Gender</label>
-          <select value={form.gender} onChange={e => updateField("gender", e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-blue-400">
+          <select value={form.gender} onChange={e => updateField("gender", e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400">
             <option>Male</option><option>Female</option><option>Other</option>
           </select>
         </div>
@@ -786,11 +786,11 @@ function ScenarioBuilder() {
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="mb-1 block text-[9px] font-medium text-slate-400">Chief Complaint</label>
-          <input type="text" value={form.chiefComplaint} onChange={e => updateField("chiefComplaint", e.target.value)} placeholder="Chest pain and shortness of breath" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-blue-400" />
+          <input type="text" value={form.chiefComplaint} onChange={e => updateField("chiefComplaint", e.target.value)} placeholder="Chest pain and shortness of breath" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
         </div>
         <div>
           <label className="mb-1 block text-[9px] font-medium text-slate-400">Insurance</label>
-          <input type="text" value={form.insurance} onChange={e => updateField("insurance", e.target.value)} placeholder="Blue Cross PPO" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-blue-400" />
+          <input type="text" value={form.insurance} onChange={e => updateField("insurance", e.target.value)} placeholder="Blue Cross PPO" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
         </div>
       </div>
       {/* Vitals */}
@@ -798,7 +798,7 @@ function ScenarioBuilder() {
         {["bp", "hr", "temp", "rr", "o2"].map(v => (
           <div key={v}>
             <label className="mb-1 block text-[9px] font-medium text-slate-400 uppercase">{v}</label>
-            <input type="text" value={(form.vitals as any)[v]} onChange={e => updateVital(v, e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-blue-400" />
+            <input type="text" value={(form.vitals as any)[v]} onChange={e => updateVital(v, e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
           </div>
         ))}
       </div>
@@ -806,14 +806,14 @@ function ScenarioBuilder() {
       <div>
         <label className="mb-1 block text-[9px] font-medium text-slate-400">Problems</label>
         <div className="flex gap-1 mb-1">
-          <input type="text" value={problemInput} onChange={e => setProblemInput(e.target.value)} placeholder="e.g. Essential hypertension (I10)" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-blue-400" />
-          <button onClick={() => { if (problemInput.trim()) { updateField("problems", [...form.problems, problemInput.trim()]); setProblemInput(""); } }} className="rounded bg-blue-600 px-2 py-1 text-[10px] text-white">Add</button>
+          <input type="text" value={problemInput} onChange={e => setProblemInput(e.target.value)} placeholder="e.g. Essential hypertension (I10)" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
+          <button onClick={() => { if (problemInput.trim()) { updateField("problems", [...form.problems, problemInput.trim()]); setProblemInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-[10px] text-white">Add</button>
         </div>
         <div className="flex flex-wrap gap-1">
           {form.problems.map((p, i) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded bg-blue-900/50 px-1.5 py-0.5 text-[9px] text-blue-300">
+            <span key={i} className="inline-flex items-center gap-1 rounded bg-brand-900/50 px-1.5 py-0.5 text-[9px] text-brand-300">
               {p}
-              <button onClick={() => updateField("problems", form.problems.filter((_, j) => j !== i))} className="text-blue-400 hover:text-red-400">×</button>
+              <button onClick={() => updateField("problems", form.problems.filter((_, j) => j !== i))} className="text-brand-400 hover:text-red-400">×</button>
             </span>
           ))}
         </div>
@@ -822,21 +822,21 @@ function ScenarioBuilder() {
       <div>
         <label className="mb-1 block text-[9px] font-medium text-slate-400">Medications</label>
         <div className="flex gap-1 mb-1">
-          <input type="text" value={medInput} onChange={e => setMedInput(e.target.value)} placeholder="e.g. Lisinopril 10mg" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-blue-400" />
-          <button onClick={() => { if (medInput.trim()) { updateField("medications", [...form.medications, medInput.trim()]); setMedInput(""); } }} className="rounded bg-blue-600 px-2 py-1 text-[10px] text-white">Add</button>
+          <input type="text" value={medInput} onChange={e => setMedInput(e.target.value)} placeholder="e.g. Lisinopril 10mg" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
+          <button onClick={() => { if (medInput.trim()) { updateField("medications", [...form.medications, medInput.trim()]); setMedInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-[10px] text-white">Add</button>
         </div>
         <div className="flex flex-wrap gap-1">
           {form.medications.map((m, i) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded bg-emerald-900/50 px-1.5 py-0.5 text-[9px] text-emerald-300">
+            <span key={i} className="inline-flex items-center gap-1 rounded bg-green-900/50 px-1.5 py-0.5 text-[9px] text-green-300">
               {m}
-              <button onClick={() => updateField("medications", form.medications.filter((_, j) => j !== i))} className="text-emerald-400 hover:text-red-400">×</button>
+              <button onClick={() => updateField("medications", form.medications.filter((_, j) => j !== i))} className="text-green-400 hover:text-red-400">×</button>
             </span>
           ))}
         </div>
       </div>
       {/* Save */}
       <div className="flex items-center gap-2">
-        <button onClick={savePatient} className="flex items-center gap-1 rounded-lg bg-blue-600 px-4 py-2 text-[10px] font-medium text-white hover:bg-blue-500">
+        <button onClick={savePatient} className="flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-[10px] font-medium text-white hover:bg-brand-500">
           <Save className="h-3 w-3" />
           {saved ? "Saved!" : "Save Patient Scenario"}
         </button>
