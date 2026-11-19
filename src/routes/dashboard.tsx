@@ -55,7 +55,7 @@ const STATUS_TONE: Record<string, string> = {
   denied: "bg-red-50 text-red-700 ring-red-200",
   charted: "bg-brand-50 text-brand-700 ring-brand-200",
   coded: "bg-brand-50 text-brand-700 ring-brand-200",
-  billed: "bg-brand-50 text-brand-700 ring-brand-200",
+  billed: "bg-accent-50 text-accent-700 ring-accent-200",
   pending: "bg-slate-100 text-slate-600 ring-slate-200",
   reprocessed: "bg-amber-50 text-amber-700 ring-amber-200",
 };

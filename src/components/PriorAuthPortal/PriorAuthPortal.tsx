@@ -49,9 +49,9 @@ import { toast } from "sonner";
 type TabView = "queue" | "insurance" | "form" | "criteria" | "docs" | "step-therapy" | "letter" | "followup" | "errors";
 
 // CoverMyMeds brand colors
-const CMM_PRIMARY = "bg-[#4A1D96]";
-const CMM_PRIMARY_HOVER = "hover:bg-[#3B1580]";
-const CMM_BORDER = "border-[#4A1D96]";
+const CMM_PRIMARY = "bg-brand-800";
+const CMM_PRIMARY_HOVER = "hover:bg-brand-900";
+const CMM_BORDER = "border-brand-800";
 
 // Payer-specific requirements
 const PAYER_REQUIREMENTS: Record<string, { label: string; requirements: string[]; turnaroundTime: string }> = {
@@ -299,9 +299,9 @@ export default function PriorAuthPortal() {
     <div className="flex flex-1 flex-col h-full">
       {/* ── CoverMyMeds-style Header ── */}
       <div className={`flex items-center gap-2 px-4 py-2.5 border-b ${CMM_BORDER} bg-white`}>
-        <Shield className="h-4 w-4 text-[#4A1D96]" />
-        <h2 className="text-sm font-bold text-[#4A1D96]">Prior Authorization Hub</h2>
-        <span className="rounded-full bg-[#4A1D96] px-2 py-0.5 text-[10px] font-medium text-white ml-1">
+        <Shield className="h-4 w-4 text-brand-800" />
+        <h2 className="text-sm font-bold text-brand-800">Prior Authorization Hub</h2>
+        <span className="rounded-full bg-brand-800 px-2 py-0.5 text-[10px] font-medium text-white ml-1">
           Stage 4
         </span>
         {submitted && (
@@ -311,7 +311,7 @@ export default function PriorAuthPortal() {
         )}
         {/* Patient badge */}
         {patient && (
-          <span className="ml-auto flex items-center gap-1 rounded-full bg-purple-50 px-2 py-0.5 text-[10px] text-purple-700">
+          <span className="ml-auto flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] text-brand-700">
             <User className="h-3 w-3" />
             {patient.firstName} {patient.lastName}
           </span>
@@ -326,11 +326,11 @@ export default function PriorAuthPortal() {
             onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-1.5 whitespace-nowrap px-2.5 py-2 text-[10px] font-medium border-b-2 transition-colors ${
               activeTab === tab.key
-                ? "border-[#4A1D96] text-[#4A1D96] bg-white"
+                ? "border-brand-800 text-brand-800 bg-white"
                 : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
-            <span className={activeTab === tab.key ? "text-[#4A1D96]" : "text-slate-400"}>{tab.icon}</span>
+            <span className={activeTab === tab.key ? "text-brand-800" : "text-slate-400"}>{tab.icon}</span>
             <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
@@ -386,15 +386,15 @@ export default function PriorAuthPortal() {
                     </div>
                   )}
                   {alerts.refillDue.length > 0 && (
-                    <div className="rounded-lg border border-orange-300 bg-white p-2.5">
-                      <p className="text-[10px] font-semibold text-orange-700 flex items-center gap-1">
+                    <div className="rounded-lg border border-amber-300 bg-white p-2.5">
+                      <p className="text-[10px] font-semibold text-amber-700 flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         Refills due within 1 week
                       </p>
-                      <p className="text-lg font-bold text-orange-800">{alerts.refillDue.length}</p>
+                      <p className="text-lg font-bold text-amber-800">{alerts.refillDue.length}</p>
                       <div className="mt-1 space-y-0.5">
                         {alerts.refillDue.slice(0, 3).map((r) => (
-                          <p key={r.id} className="text-[9px] text-orange-600">{r.patientName} — {r.nextRefillDate}</p>
+                          <p key={r.id} className="text-[9px] text-amber-600">{r.patientName} — {r.nextRefillDate}</p>
                         ))}
                       </div>
                     </div>
@@ -414,15 +414,15 @@ export default function PriorAuthPortal() {
                     </div>
                   )}
                   {alerts.overdueFollowup.length > 0 && (
-                    <div className="rounded-lg border border-purple-300 bg-white p-2.5">
-                      <p className="text-[10px] font-semibold text-purple-700 flex items-center gap-1">
+                    <div className="rounded-lg border border-brand-300 bg-white p-2.5">
+                      <p className="text-[10px] font-semibold text-brand-700 flex items-center gap-1">
                         <ClipboardList className="h-3 w-3" />
                         Overdue follow-ups
                       </p>
-                      <p className="text-lg font-bold text-purple-800">{alerts.overdueFollowup.length}</p>
+                      <p className="text-lg font-bold text-brand-800">{alerts.overdueFollowup.length}</p>
                       <div className="mt-1 space-y-0.5">
                         {alerts.overdueFollowup.slice(0, 3).map((r) => (
-                          <p key={r.id} className="text-[9px] text-purple-600">{r.patientName}</p>
+                          <p key={r.id} className="text-[9px] text-brand-600">{r.patientName}</p>
                         ))}
                       </div>
                     </div>
@@ -432,7 +432,7 @@ export default function PriorAuthPortal() {
             )}
 
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-[#4A1D96]">Prior Authorization Queue</p>
+              <p className="text-xs font-semibold text-brand-800">Prior Authorization Queue</p>
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
@@ -441,13 +441,13 @@ export default function PriorAuthPortal() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search..."
-                    className="w-32 rounded-md border border-slate-200 pl-6 pr-2 py-1 text-[10px] outline-none focus:border-[#4A1D96]"
+                    className="w-32 rounded-md border border-slate-200 pl-6 pr-2 py-1 text-[10px] outline-none focus:border-brand-800"
                   />
                 </div>
                 <select
                   value={queueFilter}
                   onChange={(e) => setQueueFilter(e.target.value)}
-                  className="rounded-md border border-slate-200 px-2 py-1 text-[10px] outline-none focus:border-[#4A1D96]"
+                  className="rounded-md border border-slate-200 px-2 py-1 text-[10px] outline-none focus:border-brand-800"
                 >
                   <option value="all">All Status</option>
                   {PA_STATUS_FLOW.map((s) => (
@@ -493,7 +493,7 @@ export default function PriorAuthPortal() {
                 filteredQueue.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-lg border border-slate-200 bg-white transition-all hover:border-purple-300 hover:shadow-sm"
+                    className="rounded-lg border border-slate-200 bg-white transition-all hover:border-brand-300 hover:shadow-sm"
                   >
                     {/* Card header — always visible */}
                     <div
@@ -501,7 +501,7 @@ export default function PriorAuthPortal() {
                       onClick={() => setExpandedCard(expandedCard === item.id ? null : item.id)}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono text-[10px] text-purple-600 shrink-0">{item.id}</span>
+                        <span className="font-mono text-[10px] text-brand-600 shrink-0">{item.id}</span>
                         <span className="text-xs font-medium text-slate-800 truncate">{item.patientName}</span>
                         <span className="hidden sm:inline text-[10px] text-slate-400 truncate">{item.procedure}</span>
                       </div>
@@ -549,7 +549,7 @@ export default function PriorAuthPortal() {
                               {item.nextRefillDate ? (() => {
                                 const refill = new Date(item.nextRefillDate);
                                 const daysUntil = Math.ceil((refill.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                                return <span className={daysUntil <= 7 ? "text-orange-600 font-semibold" : ""}>
+                                return <span className={daysUntil <= 7 ? "text-amber-600 font-semibold" : ""}>
                                   {refill.toLocaleDateString()}{daysUntil <= 7 ? ` (${daysUntil}d)` : ""}
                                 </span>;
                               })() : "—"}
@@ -585,7 +585,7 @@ export default function PriorAuthPortal() {
                         })()}
                         {/* Quick action buttons */}
                         <div className="mt-2 flex gap-1.5">
-                          <button className="rounded bg-purple-50 px-2 py-0.5 text-[9px] font-medium text-purple-700 hover:bg-purple-100 transition-colors">
+                          <button className="rounded bg-brand-50 px-2 py-0.5 text-[9px] font-medium text-brand-700 hover:bg-brand-100 transition-colors">
                             Check Status
                           </button>
                           {item.status === "denied" && (
@@ -607,12 +607,12 @@ export default function PriorAuthPortal() {
             </div>
 
             {/* Educational note */}
-            <div className="rounded-lg border border-purple-100 bg-purple-50 p-3">
-              <p className="text-[10px] font-medium text-purple-700">
+            <div className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+              <p className="text-[10px] font-medium text-brand-700">
                 <ClipboardList className="mr-1 inline h-3 w-3" />
                 CoverMyMeds-Style Queue Management
               </p>
-              <p className="mt-1 text-[10px] text-purple-600">
+              <p className="mt-1 text-[10px] text-brand-600">
                 This queue mirrors real PA platforms like CoverMyMeds. Each card shows the patient, procedure, status,
                 and timeline. Click "View Details" to review — click "Check Status" to simulate a payer response.
                 Denied requests can be appealed directly from the queue.
@@ -624,15 +624,15 @@ export default function PriorAuthPortal() {
 {/* ═══ TAB: INSURANCE VERIFICATION ═══ */}
         {activeTab === "insurance" && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-purple-200 bg-white p-4 shadow-sm">
+            <div className="rounded-xl border border-brand-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
-                <Shield className="h-4 w-4 text-[#4A1D96]" />
-                <p className="text-xs font-semibold text-[#4A1D96]">Insurance Verification</p>
+                <Shield className="h-4 w-4 text-brand-800" />
+                <p className="text-xs font-semibold text-brand-800">Insurance Verification</p>
               </div>
 
               {/* Patient Insurance Info */}
-              <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 p-3">
-                <p className="text-[10px] font-semibold text-purple-700 mb-2">Patient Insurance Information</p>
+              <div className="mb-4 rounded-lg border border-brand-100 bg-brand-50 p-3">
+                <p className="text-[10px] font-semibold text-brand-700 mb-2">Patient Insurance Information</p>
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
                   <div><span className="text-slate-400">Payer:</span><p className="font-medium text-slate-700">{payer}</p></div>
                   <div><span className="text-slate-400">Member ID:</span><p className="font-medium text-slate-700">{patient?.mrn || "MRN-1001"}</p></div>
@@ -663,7 +663,7 @@ export default function PriorAuthPortal() {
                 className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium transition-colors ${
                   verifyingInsurance ? "bg-slate-300 text-slate-500 cursor-wait" :
                   insuranceVerified ? "bg-green-600 text-white hover:bg-green-500" :
-                  "bg-[#4A1D96] text-white hover:bg-[#3B1580]"
+                  "bg-brand-800 text-white hover:bg-brand-900"
                 }`}
               >
                 {verifyingInsurance ? (
@@ -696,12 +696,12 @@ export default function PriorAuthPortal() {
               )}
 
               {/* Educational note */}
-              <div className="mt-4 rounded-lg border border-purple-100 bg-purple-50 p-3">
-                <p className="text-[10px] font-medium text-purple-700">
+              <div className="mt-4 rounded-lg border border-brand-100 bg-brand-50 p-3">
+                <p className="text-[10px] font-medium text-brand-700">
                   <BookOpen className="inline h-3 w-3 mr-1" />
                   Always verify benefits before submitting a PA
                 </p>
-                <p className="mt-1 text-[10px] text-purple-600">
+                <p className="mt-1 text-[10px] text-brand-600">
                   Checking patient eligibility first helps avoid denials due to inactive coverage or plan limitations.
                   Verify deductible status and whether a referral is needed before proceeding with the PA submission.
                 </p>
@@ -715,16 +715,16 @@ export default function PriorAuthPortal() {
           <div className="space-y-4">
             {!submitted ? (
               <>
-                <div className="rounded-xl border border-purple-200 bg-white p-4 shadow-sm">
-                  <p className="mb-3 text-xs font-semibold text-[#4A1D96] flex items-center gap-1.5">
+                <div className="rounded-xl border border-brand-200 bg-white p-4 shadow-sm">
+                  <p className="mb-3 text-xs font-semibold text-brand-800 flex items-center gap-1.5">
                     <FileText className="h-3.5 w-3.5" />
                     New e-Prior Authorization Request
                     <span className="ml-auto text-[9px] font-normal text-slate-400">CoverMyMeds-style form</span>
                   </p>
 
                   {/* ── Patient Info Section (auto-filled from chart) ── */}
-                  <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 p-3">
-                    <p className="text-[10px] font-semibold text-purple-700 mb-2 flex items-center gap-1">
+                  <div className="mb-4 rounded-lg border border-brand-100 bg-brand-50 p-3">
+                    <p className="text-[10px] font-semibold text-brand-700 mb-2 flex items-center gap-1">
                       <User className="h-3 w-3" /> Patient Information (auto-filled from chart)
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
@@ -756,7 +756,7 @@ export default function PriorAuthPortal() {
                       <select
                         value={procedure}
                         onChange={(e) => setProcedure(e.target.value as ProcedureKey | "")}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#4A1D96]"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-800"
                         required
                       >
                         <option value="">Select a procedure...</option>
@@ -776,7 +776,7 @@ export default function PriorAuthPortal() {
                       <select
                         value={payer}
                         onChange={(e) => setPayer(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#4A1D96]"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-800"
                       >
                         {Object.keys(PAYER_REQUIREMENTS).map((p) => (
                           <option key={p} value={p}>
@@ -806,8 +806,8 @@ export default function PriorAuthPortal() {
                     </div>
 
                     {/* ── Insurance Verification ── */}
-                    <div className="rounded-lg border border-purple-200 bg-white p-3">
-                      <p className="text-[10px] font-semibold text-purple-700 mb-2 flex items-center gap-1">
+                    <div className="rounded-lg border border-brand-200 bg-white p-3">
+                      <p className="text-[10px] font-semibold text-brand-700 mb-2 flex items-center gap-1">
                         <Shield className="h-3 w-3" />
                         Insurance Verification
                       </p>
@@ -835,7 +835,7 @@ export default function PriorAuthPortal() {
                           className={`rounded-lg px-3 py-1.5 text-[10px] font-medium transition-colors ${
                             verifyingInsurance
                               ? "bg-slate-300 text-slate-500 cursor-wait"
-                              : "bg-purple-600 text-white hover:bg-purple-500"
+                              : "bg-brand-600 text-white hover:bg-brand-600"
                           }`}
                         >
                           {verifyingInsurance ? (
@@ -849,7 +849,7 @@ export default function PriorAuthPortal() {
                         )}
                       </div>
                       {verifyingInsurance && (
-                        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-purple-600">
+                        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-brand-600">
                           <Loader2 className="h-3 w-3 animate-spin" />
                           Checking {payer} eligibility...
                         </div>
@@ -871,7 +871,7 @@ export default function PriorAuthPortal() {
                           type="text"
                           value={icdCodes || (procedureData?.icdRanges.join(", ") ?? "")}
                           onChange={(e) => setIcdCodes(e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-[#4A1D96] text-slate-600"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-800 text-slate-600"
                           placeholder="Auto-filled from chart..."
                         />
                         {state.icdCodes?.length > 0 && (
@@ -886,7 +886,7 @@ export default function PriorAuthPortal() {
                           type="text"
                           value={cptCodes || (procedureData?.cptCodes.join(", ") ?? "")}
                           onChange={(e) => setCptCodes(e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-[#4A1D96] text-slate-600"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-800 text-slate-600"
                           placeholder="Auto-filled from chart..."
                         />
                         {state.cptCodes?.length > 0 && (
@@ -905,7 +905,7 @@ export default function PriorAuthPortal() {
                         onChange={(e) => setClinicalJustification(e.target.value)}
                         placeholder={`Describe why ${procedure ? (PA_PROCEDURES[procedure as ProcedureKey]?.label || "this procedure") : "this service"} is medically necessary for ${patient ? `${patient.firstName} ${patient.lastName}` : "the patient"}...`}
                         rows={3}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-[#4A1D96] resize-none"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-800 resize-none"
                       />
                     </div>
 
@@ -917,7 +917,7 @@ export default function PriorAuthPortal() {
                           type="date"
                           value={authStartDate}
                           onChange={(e) => setAuthStartDate(e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-[#4A1D96]"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-800"
                         />
                       </div>
                       <div>
@@ -926,7 +926,7 @@ export default function PriorAuthPortal() {
                           type="date"
                           value={authEndDate}
                           onChange={(e) => setAuthEndDate(e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-[#4A1D96]"
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-800"
                         />
                         {authEndDate && (() => {
                           const end = new Date(authEndDate);
@@ -954,8 +954,8 @@ export default function PriorAuthPortal() {
 
                     {/* Estimated auto-auth */}
                     {procedureData?.autoAuthThreshold && procedureData.autoAuthThreshold > 0 && (
-                      <div className="rounded-lg bg-blue-50 p-2.5">
-                        <p className="text-[10px] text-blue-700">
+                      <div className="rounded-lg bg-brand-50 p-2.5">
+                        <p className="text-[10px] text-brand-700">
                           <CheckCircle2 className="mr-1 inline h-3 w-3" />
                           Estimated auto-auth threshold:{" "}
                           <span className="font-semibold">${procedureData.autoAuthThreshold.toLocaleString()}</span>{" "}
@@ -994,7 +994,7 @@ export default function PriorAuthPortal() {
                   disabled={!procedure}
                   className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-xs font-medium transition-colors ${
                     procedure
-                      ? "border-purple-300 text-purple-700 hover:bg-purple-50"
+                      ? "border-brand-300 text-brand-700 hover:bg-brand-50"
                       : "border-slate-200 text-slate-400 cursor-not-allowed"
                   }`}
                 >
@@ -1061,8 +1061,8 @@ export default function PriorAuthPortal() {
                 </p>
 
                 {/* CoverMyMeds-style real-time status tracking with full 11-step flow */}
-                <div className="mt-6 w-full max-w-md rounded-lg border border-purple-200 bg-white p-4 shadow-sm">
-                  <p className="mb-3 text-[10px] font-semibold text-[#4A1D96] flex items-center gap-1.5">
+                <div className="mt-6 w-full max-w-md rounded-lg border border-brand-200 bg-white p-4 shadow-sm">
+                  <p className="mb-3 text-[10px] font-semibold text-brand-800 flex items-center gap-1.5">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Real-Time Status Tracking (11-Step Flow)
                   </p>
@@ -1071,12 +1071,12 @@ export default function PriorAuthPortal() {
                       <div
                         key={step.key}
                         className={`flex items-center gap-2 ${
-                          i <= timelineStep ? "text-purple-600" : "text-slate-300"
+                          i <= timelineStep ? "text-brand-600" : "text-slate-300"
                         }`}
                       >
                         <div
                           className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold shrink-0 ${
-                            i <= timelineStep ? "bg-purple-100 text-purple-600 ring-1 ring-purple-300" : "bg-slate-100 text-slate-300"
+                            i <= timelineStep ? "bg-brand-100 text-brand-600 ring-1 ring-brand-300" : "bg-slate-100 text-slate-300"
                           }`}
                         >
                           {i <= timelineStep ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
@@ -1087,7 +1087,7 @@ export default function PriorAuthPortal() {
                               {step.label}
                             </p>
                             {i === timelineStep && (
-                              <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[8px] font-medium text-purple-600 animate-pulse">
+                              <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[8px] font-medium text-brand-600 animate-pulse">
                                 Current
                               </span>
                             )}
@@ -1100,7 +1100,7 @@ export default function PriorAuthPortal() {
                           <p className="text-[9px] text-slate-400">{step.description}</p>
                         </div>
                         {i < PA_TIMELINE_STEPS.length - 1 && (
-                          <div className={`h-6 w-0.5 ${i < timelineStep ? "bg-purple-300" : "bg-slate-200"}`} />
+                          <div className={`h-6 w-0.5 ${i < timelineStep ? "bg-brand-300" : "bg-slate-200"}`} />
                         )}
                       </div>
                     ))}
@@ -1114,7 +1114,7 @@ export default function PriorAuthPortal() {
                         onClick={() => setTimelineStep(i)}
                         className={`rounded px-2 py-0.5 text-[9px] border transition-colors ${
                           timelineStep === i
-                            ? "border-purple-300 bg-purple-50 text-purple-600"
+                            ? "border-brand-300 bg-brand-50 text-brand-600"
                             : "border-slate-200 text-slate-400 hover:bg-slate-50"
                         }`}
                       >
@@ -1125,12 +1125,12 @@ export default function PriorAuthPortal() {
                 </div>
 
                 {/* What's next */}
-                <div className="mt-4 rounded-lg border border-purple-100 bg-purple-50 p-3">
-                  <p className="text-[10px] font-medium text-purple-700">
+                <div className="mt-4 rounded-lg border border-brand-100 bg-brand-50 p-3">
+                  <p className="text-[10px] font-medium text-brand-700">
                     <Clock className="mr-1 inline h-3 w-3" />
                     Estimated Payer Response
                   </p>
-                  <p className="mt-1 text-[10px] text-purple-600">
+                  <p className="mt-1 text-[10px] text-brand-600">
                     {payer} typically responds within <strong>{payerInfo.turnaroundTime}</strong>.
                     Use the timeline above to simulate the review process. Check the queue dashboard for status updates.
                   </p>
@@ -1185,14 +1185,14 @@ export default function PriorAuthPortal() {
                         className={`flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer transition-colors ${
                           checkedCriteria[criterion.id]
                             ? "border-green-200 bg-green-50"
-                            : "border-slate-200 hover:border-purple-200"
+                            : "border-slate-200 hover:border-brand-200"
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={!!checkedCriteria[criterion.id]}
                           onChange={() => toggleCriterion(criterion.id)}
-                          className="mt-0.5 h-3 w-3 accent-[#4A1D96]"
+                          className="mt-0.5 h-3 w-3 accent-brand-800"
                         />
                         <div className="flex-1">
                           <div className="flex items-center gap-1">
@@ -1213,12 +1213,12 @@ export default function PriorAuthPortal() {
                 </div>
 
                 {/* Education */}
-                <div className="rounded-lg border border-purple-100 bg-purple-50 p-3">
-                  <p className="text-[10px] font-medium text-purple-700">
+                <div className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+                  <p className="text-[10px] font-medium text-brand-700">
                     <ClipboardList className="mr-1 inline h-3 w-3" />
                     Practice Tip
                   </p>
-                  <p className="mt-1 text-[10px] text-purple-600">
+                  <p className="mt-1 text-[10px] text-brand-600">
                     Insurers use published criteria (CMS NCD/LCD, MCG, InterQual) to evaluate PA requests. Check
                     each criterion against the patient's chart BEFORE submitting. Missing even one required criterion
                     can result in a denial. Completing &gt;80% of criteria significantly improves approval odds.
@@ -1242,7 +1242,7 @@ export default function PriorAuthPortal() {
               <>
                 <div className="clinical-card">
                   <div className="flex items-center gap-2 mb-3">
-                    <Paperclip className="h-4 w-4 text-[#4A1D96]" />
+                    <Paperclip className="h-4 w-4 text-brand-800" />
                     <p className="text-xs font-semibold text-slate-700">
                       Required Documentation — {PA_PROCEDURES[procedure]?.label}
                     </p>
@@ -1257,11 +1257,11 @@ export default function PriorAuthPortal() {
                       const docKey = doc.replace(/\s+/g, "-").toLowerCase();
                       const status = docAttachments[docKey] || "missing";
                       const icons = [
-                        <FileText key="ft" className="h-3.5 w-3.5 text-blue-500" />,
+                        <FileText key="ft" className="h-3.5 w-3.5 text-brand-500" />,
                         <FileCheck key="fc" className="h-3.5 w-3.5 text-green-500" />,
                         <ClipboardList key="cl" className="h-3.5 w-3.5 text-amber-500" />,
-                        <FlaskConical key="fr" className="h-3.5 w-3.5 text-purple-500" />,
-                        <Search key="sr" className="h-3.5 w-3.5 text-cyan-500" />,
+                        <FlaskConical key="fr" className="h-3.5 w-3.5 text-brand-600" />,
+                        <Search key="sr" className="h-3.5 w-3.5 text-brand-500" />,
                         <User key="ur" className="h-3.5 w-3.5 text-slate-500" />,
                       ];
                       return (
@@ -1270,7 +1270,7 @@ export default function PriorAuthPortal() {
                           className={`flex items-center gap-2 rounded-lg border p-2.5 transition-colors ${
                             status === "attached"
                               ? "border-green-200 bg-green-50"
-                              : "border-slate-100 bg-slate-50 hover:border-purple-200"
+                              : "border-slate-100 bg-slate-50 hover:border-brand-200"
                           }`}
                         >
                           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white">
@@ -1287,7 +1287,7 @@ export default function PriorAuthPortal() {
                             className={`rounded px-2 py-1 text-[9px] font-medium transition-colors ${
                               status === "attached"
                                 ? "bg-green-600 text-white hover:bg-green-500"
-                                : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                : "bg-brand-100 text-brand-700 hover:bg-brand-200"
                             }`}
                           >
                             {status === "attached" ? "✓ Attached" : "Attach"}
@@ -1301,7 +1301,7 @@ export default function PriorAuthPortal() {
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[9px] text-slate-500">Documentation completeness</span>
-                      <span className="text-[9px] font-medium text-purple-600">
+                      <span className="text-[9px] font-medium text-brand-600">
                         {PA_PROCEDURES[procedure]?.requiredDocs
                           ? `${Math.round((Object.keys(docAttachments).filter(k => docAttachments[k] === "attached").length / PA_PROCEDURES[procedure].requiredDocs.length) * 100)}%`
                           : "0%"}
@@ -1309,7 +1309,7 @@ export default function PriorAuthPortal() {
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-slate-100">
                       <div
-                        className="h-1.5 rounded-full bg-[#4A1D96] transition-all"
+                        className="h-1.5 rounded-full bg-brand-800 transition-all"
                         style={{
                           width: `${PA_PROCEDURES[procedure]?.requiredDocs
                             ? (Object.keys(docAttachments).filter(k => docAttachments[k] === "attached").length / PA_PROCEDURES[procedure].requiredDocs.length) * 100
@@ -1321,12 +1321,12 @@ export default function PriorAuthPortal() {
                 </div>
 
                 {/* Education */}
-                <div className="rounded-lg border border-purple-100 bg-purple-50 p-3">
-                  <p className="text-[10px] font-medium text-purple-700">
+                <div className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+                  <p className="text-[10px] font-medium text-brand-700">
                     <Paperclip className="mr-1 inline h-3 w-3" />
                     CoverMyMeds Document Management
                   </p>
-                  <p className="mt-1 text-[10px] text-purple-600">
+                  <p className="mt-1 text-[10px] text-brand-600">
                     In CoverMyMeds, documents are attached digitally and linked to the PA request. Missing documentation
                     is the #1 reason for PA delays. Attach ALL required docs before submitting. Each payer may require
                     different documentation — check the payer-specific requirements in the e-PA Form tab.
@@ -1350,7 +1350,7 @@ export default function PriorAuthPortal() {
               <>
                 <div className="clinical-card">
                   <div className="flex items-center gap-2 mb-3">
-                    <ArrowRight className="h-4 w-4 text-purple-600" />
+                    <ArrowRight className="h-4 w-4 text-brand-600" />
                     <p className="text-xs font-semibold text-slate-700">
                       Step Therapy Requirements — {PA_PROCEDURES[procedure]?.label}
                     </p>
@@ -1394,7 +1394,7 @@ export default function PriorAuthPortal() {
                               type="checkbox"
                               checked={!!stepTherapyComplete[String(i)]}
                               onChange={() => toggleStepTherapy(i)}
-                              className="h-3 w-3 accent-[#4A1D96]"
+                              className="h-3 w-3 accent-brand-800"
                             />
                             <span className="text-[9px] text-slate-500">
                               {stepTherapyComplete[String(i)] ? "Complete" : "Mark done"}
@@ -1410,14 +1410,14 @@ export default function PriorAuthPortal() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[9px] font-medium text-slate-500">Step Therapy Progress</span>
-                        <span className="text-[9px] font-medium text-purple-600">
+                        <span className="text-[9px] font-medium text-brand-600">
                           {Object.keys(stepTherapyComplete).filter((k) => stepTherapyComplete[k]).length}/
                           {PA_PROCEDURES[procedure]?.stepTherapy?.length || 0}
                         </span>
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-slate-200">
                         <div
-                          className="h-1.5 rounded-full bg-purple-500 transition-all"
+                          className="h-1.5 rounded-full bg-brand-600 transition-all"
                           style={{
                             width: `${((Object.keys(stepTherapyComplete).filter((k) => stepTherapyComplete[k]).length /
                               (PA_PROCEDURES[procedure]?.stepTherapy?.length || 1)) *
@@ -1430,12 +1430,12 @@ export default function PriorAuthPortal() {
                 </div>
 
                 {/* Education */}
-                <div className="rounded-lg border border-purple-100 bg-purple-50 p-3">
-                  <p className="text-[10px] font-medium text-purple-700">
+                <div className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+                  <p className="text-[10px] font-medium text-brand-700">
                     <ArrowRight className="mr-1 inline h-3 w-3" />
                     What is Step Therapy?
                   </p>
-                  <p className="mt-1 text-[10px] text-purple-600">
+                  <p className="mt-1 text-[10px] text-brand-600">
                     Step therapy requires patients to try lower-cost alternatives before the insurer will cover
                     a more expensive treatment. Failing step therapy is the #1 reason biologics and TKA are
                     denied. Document each step failure thoroughly — including dates, duration, and clinical response
@@ -1467,9 +1467,9 @@ export default function PriorAuthPortal() {
         {/* ─── TAB: MEDICAL NECESSITY LETTER ─── */}
         {activeTab === "letter" && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-purple-200 bg-white p-4 shadow-sm">
+            <div className="rounded-xl border border-brand-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <BookOpen className="h-4 w-4 text-purple-600" />
+                <BookOpen className="h-4 w-4 text-brand-600" />
                 <p className="text-xs font-semibold text-slate-700">Medical Necessity Letter Generator</p>
               </div>
 
@@ -1482,7 +1482,7 @@ export default function PriorAuthPortal() {
                     value={letterPatientName}
                     onChange={(e) => setLetterPatientName(e.target.value)}
                     placeholder={patient ? `${patient.firstName} ${patient.lastName}` : "Enter patient name..."}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-500"
                   />
                   {patient && <p className="mt-0.5 text-[9px] text-green-600">✓ Auto-filled from chart</p>}
                 </div>
@@ -1493,7 +1493,7 @@ export default function PriorAuthPortal() {
                     value={letterDiagnosis}
                     onChange={(e) => setLetterDiagnosis(e.target.value)}
                     placeholder={patient?.problems?.[0] || "Enter diagnosis..."}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-500"
                   />
                 </div>
               </div>
@@ -1525,7 +1525,7 @@ export default function PriorAuthPortal() {
                       <strong>Payer:</strong> {payer}
                     </p>
                     <hr className="my-2 border-slate-200" />
-                    <p className="mb-1 font-semibold text-purple-700">Sections to Include:</p>
+                    <p className="mb-1 font-semibold text-brand-700">Sections to Include:</p>
                     <ol className="list-decimal pl-4 space-y-1">
                       {PA_PROCEDURES[procedure]?.letterTemplateSections.map((section, i) => (
                         <li key={i} className="text-[10px] text-slate-600">
@@ -1550,12 +1550,12 @@ export default function PriorAuthPortal() {
               )}
 
               {/* Education */}
-              <div className="mt-3 rounded-lg border border-purple-100 bg-purple-50 p-3">
-                <p className="text-[10px] font-medium text-purple-700">
+              <div className="mt-3 rounded-lg border border-brand-100 bg-brand-50 p-3">
+                <p className="text-[10px] font-medium text-brand-700">
                   <BookOpen className="mr-1 inline h-3 w-3" />
                   Writing an Effective Medical Necessity Letter
                 </p>
-                <ul className="mt-1 space-y-0.5 text-[10px] text-purple-600">
+                <ul className="mt-1 space-y-0.5 text-[10px] text-brand-600">
                   <li>• Be specific — include dates, scores, measurements</li>
                   <li>• Reference payer-specific medical policy numbers</li>
                   <li>• Explain why alternatives were tried and failed</li>
@@ -1570,19 +1570,19 @@ export default function PriorAuthPortal() {
         {/* ─── TAB: FOLLOW-UP TRACKING ─── */}
         {activeTab === "followup" && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-purple-200 bg-white p-4 shadow-sm">
+            <div className="rounded-xl border border-brand-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <PhoneCall className="h-4 w-4 text-purple-600" />
+                <PhoneCall className="h-4 w-4 text-brand-600" />
                 <p className="text-xs font-semibold text-slate-700">PA Follow-up Tracker</p>
-                <span className="ml-auto rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+                <span className="ml-auto rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">
                   {patientFollowups.length} call{patientFollowups.length !== 1 ? "s" : ""}
                 </span>
               </div>
 
               {/* New Follow-up Form */}
               {!followupSubmitted && (
-                <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 p-3">
-                  <p className="text-[10px] font-semibold text-purple-700 mb-3 flex items-center gap-1">
+                <div className="mb-4 rounded-lg border border-brand-100 bg-brand-50 p-3">
+                  <p className="text-[10px] font-semibold text-brand-700 mb-3 flex items-center gap-1">
                     <Plus className="h-3 w-3" />
                     Log New Follow-up Call
                   </p>
@@ -1593,7 +1593,7 @@ export default function PriorAuthPortal() {
                         type="date"
                         value={followupDate}
                         onChange={(e) => setFollowupDate(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-500"
                       />
                     </div>
                     <div>
@@ -1603,7 +1603,7 @@ export default function PriorAuthPortal() {
                         value={followupTracking}
                         onChange={(e) => setFollowupTracking(e.target.value)}
                         placeholder="e.g. PA-2026-07-001"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-500"
                       />
                     </div>
                     <div>
@@ -1613,7 +1613,7 @@ export default function PriorAuthPortal() {
                         value={followupRep}
                         onChange={(e) => setFollowupRep(e.target.value)}
                         placeholder="e.g. Sarah from Cigna"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-500"
                       />
                     </div>
                   </div>
@@ -1624,7 +1624,7 @@ export default function PriorAuthPortal() {
                       onChange={(e) => setFollowupNotes(e.target.value)}
                       placeholder="Document what was discussed, next steps, promised callbacks..."
                       rows={2}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-purple-400 resize-none"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-500 resize-none"
                     />
                   </div>
                   <button
@@ -1645,7 +1645,7 @@ export default function PriorAuthPortal() {
                         setFollowupNotes("");
                       }, 2000);
                     }}
-                    className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2 text-xs font-medium text-white hover:bg-purple-500 transition-colors"
+                    className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-medium text-white hover:bg-brand-600 transition-colors"
                   >
                     <MessageSquare className="h-3.5 w-3.5" />
                     Log Follow-up
@@ -1677,7 +1677,7 @@ export default function PriorAuthPortal() {
                       <div key={i} className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[10px] font-medium text-slate-700 flex items-center gap-1">
-                            <PhoneCall className="h-3 w-3 text-purple-500" />
+                            <PhoneCall className="h-3 w-3 text-brand-600" />
                             {new Date(entry.date).toLocaleDateString()}
                           </span>
                           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
@@ -1701,12 +1701,12 @@ export default function PriorAuthPortal() {
             </div>
 
             {/* Educational note */}
-            <div className="rounded-lg border border-purple-100 bg-purple-50 p-3">
-              <p className="text-[10px] font-medium text-purple-700">
+            <div className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+              <p className="text-[10px] font-medium text-brand-700">
                 <PhoneCall className="mr-1 inline h-3 w-3" />
                 Why Track PA Follow-ups?
               </p>
-              <p className="mt-1 text-[10px] text-purple-600">
+              <p className="mt-1 text-[10px] text-brand-600">
                 Prior authorization follow-up calls are critical to ensuring timely processing. Industry benchmarks
                 show that 30% of PAs require at least one follow-up call. Logging each interaction — including
                 tracking number, representative name, and notes — creates an audit trail and helps identify
@@ -1743,12 +1743,12 @@ export default function PriorAuthPortal() {
             </div>
 
             {/* Denial prevention */}
-            <div className="rounded-lg border border-purple-100 bg-purple-50 p-3">
-              <p className="text-[10px] font-medium text-purple-700">
+            <div className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+              <p className="text-[10px] font-medium text-brand-700">
                 <ClipboardList className="mr-1 inline h-3 w-3" />
                 CoverMyMeds Denial Prevention Checklist
               </p>
-              <ul className="mt-1 space-y-0.5 text-[10px] text-purple-600">
+              <ul className="mt-1 space-y-0.5 text-[10px] text-brand-600">
                 <li className="flex items-center gap-1">
                   <CheckCircle2 className="h-2.5 w-2.5" /> Verify patient benefits include the requested procedure
                 </li>

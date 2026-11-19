@@ -56,7 +56,7 @@ export function MIPSDashboard() {
     <div className="relative">
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-[10px] font-medium text-purple-600 hover:bg-purple-100 transition-colors"
+        className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
       >
         <Award className="h-3.5 w-3.5" />
         MIPS Score: {compositeScore}
@@ -74,10 +74,10 @@ export function MIPSDashboard() {
             </div>
 
             {/* Composite Score Gauge */}
-            <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 mb-4">
+            <div className="rounded-xl border-2 border-brand-200 bg-brand-50 p-4 mb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-semibold text-purple-700">MIPS Composite Score</p>
+                  <p className="text-[10px] font-semibold text-brand-700">MIPS Composite Score</p>
                   <p className={`text-3xl font-bold ${scoreColor}`}>{compositeScore}</p>
                   <p className="text-[9px] text-slate-500">out of 100</p>
                 </div>
@@ -136,7 +136,7 @@ export function MIPSDashboard() {
             ) : (
               <button
                 onClick={() => setSubmitted(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-purple-500"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-brand-600"
               >
                 <Send className="h-3.5 w-3.5" />
                 Submit to QPP

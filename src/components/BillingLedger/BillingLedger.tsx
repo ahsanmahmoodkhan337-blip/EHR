@@ -151,18 +151,18 @@ export function BillingLedger() {
       {/* Header */}
       <div className="border-b border-slate-200 bg-white px-4 py-3">
         <div className="flex items-center gap-2">
-          <Receipt className="h-5 w-5 text-violet-600" />
+          <Receipt className="h-5 w-5 text-brand-600" />
           <h2 className="text-sm font-bold text-slate-800">Medical Billing — Enhanced Billing Ledger</h2>
-          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700">Stage 3</span>
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 3</span>
         </div>
       </div>
 
       {submitted ? (
         <div className="flex flex-1 items-center justify-center p-4">
-          <div className="max-w-md rounded-xl border border-purple-200 bg-purple-50 p-8 text-center">
+          <div className="max-w-md rounded-xl border border-brand-200 bg-brand-50 p-8 text-center">
             <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-500" />
-            <p className="text-sm font-medium text-purple-700">Claim Submitted Successfully!</p>
-            <p className="mt-2 text-xs text-purple-600">
+            <p className="text-sm font-medium text-brand-700">Claim Submitted Successfully!</p>
+            <p className="mt-2 text-xs text-brand-600">
               The claim has been submitted to the payer.
               {state.icdCodes?.some(c => c.startsWith('Z') || c.startsWith('S') || c.startsWith('M'))
                 ? ' This encounter may require Prior Authorization. Please proceed to the Prior Auth stage to verify.'
@@ -193,12 +193,12 @@ export function BillingLedger() {
                     cmsFields: cms1500,
                   });
                 }}
-                className="flex items-center gap-2 rounded-lg border border-purple-300 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
               >
                 <FileDown className="h-4 w-4" />
                 Download CMS-1500 as PDF
               </button>
-              <button onClick={() => setRole("ar-voice")} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500">
+              <button onClick={() => setRole("ar-voice")} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
                 Proceed to AR Voice
               </button>
             </div>
@@ -221,7 +221,7 @@ export function BillingLedger() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`px-3 py-1.5 text-[10px] font-medium rounded-t-lg transition-colors ${
                     activeTab === tab.key
-                      ? "bg-violet-50 text-violet-700 border-b-2 border-violet-500"
+                      ? "bg-brand-50 text-brand-700 border-b-2 border-brand-600"
                       : "text-slate-400 hover:text-slate-600"
                   }`}
                 >
@@ -234,7 +234,7 @@ export function BillingLedger() {
             {activeTab === "form" && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <FileText className="h-4 w-4 text-violet-500" />
+                  <FileText className="h-4 w-4 text-brand-600" />
                   <span className="text-xs font-semibold text-slate-600">CMS-1500 Claim Form — Interactive Mockup</span>
                   <span className="text-[10px] text-slate-400">(Fill each editable box below)</span>
                 </div>
@@ -245,15 +245,15 @@ export function BillingLedger() {
                     const value = cms1500[block.box] || "";
                     const isAutoFilled = block.autoFilled;
                     return (
-                      <div key={block.box} className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-2.5 hover:border-violet-300 transition-colors">
-                        <span className="font-mono text-[10px] text-violet-500 font-bold min-w-[42px] pt-1">Box {block.box}</span>
+                      <div key={block.box} className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-2.5 hover:border-brand-300 transition-colors">
+                        <span className="font-mono text-[10px] text-brand-600 font-bold min-w-[42px] pt-1">Box {block.box}</span>
                         <div className="flex-1 min-w-0">
                           <label className="text-[9px] text-slate-400 block truncate">{block.label}</label>
                           {block.box === "1" ? (
                             <select
                               value={value}
                               onChange={e => updateCmsField("1", e.target.value)}
-                              className="w-full rounded border border-slate-200 px-1.5 py-0.5 text-[10px] outline-none focus:border-violet-400 bg-white"
+                              className="w-full rounded border border-slate-200 px-1.5 py-0.5 text-[10px] outline-none focus:border-brand-500 bg-white"
                             >
                               <option>Medicare</option><option>Medicaid</option><option>Blue Cross</option>
                               <option>United Healthcare</option><option>Aetna</option><option>Cigna</option>
@@ -263,7 +263,7 @@ export function BillingLedger() {
                             <select
                               value={value}
                               onChange={e => updateCmsField("22", e.target.value)}
-                              className="w-full rounded border border-slate-200 px-1.5 py-0.5 text-[10px] outline-none focus:border-violet-400 bg-white"
+                              className="w-full rounded border border-slate-200 px-1.5 py-0.5 text-[10px] outline-none focus:border-brand-500 bg-white"
                             >
                               <option value="">— None —</option>
                               <option value="7">7 — Replacement / Corrected Claim</option>
@@ -275,7 +275,7 @@ export function BillingLedger() {
                               value={block.box === "3" && value ? value : block.box === "14" ? value : value}
                               onChange={e => updateCmsField(block.box, e.target.value)}
                               readOnly={isAutoFilled}
-                              className={`w-full rounded border px-1.5 py-0.5 text-[10px] outline-none focus:border-violet-400 ${
+                              className={`w-full rounded border px-1.5 py-0.5 text-[10px] outline-none focus:border-brand-500 ${
                                 isAutoFilled ? "bg-slate-50 text-slate-500 border-slate-100 cursor-default" : "border-slate-200 bg-white"
                               }`}
                               placeholder={block.label}
@@ -311,7 +311,7 @@ export function BillingLedger() {
                         value={posCode}
                         onChange={(e) => setPosCode(e.target.value)}
                         placeholder="11"
-                        className="w-full rounded border border-slate-200 px-2 py-1.5 font-mono text-xs outline-none focus:border-violet-400"
+                        className="w-full rounded border border-slate-200 px-2 py-1.5 font-mono text-xs outline-none focus:border-brand-500"
                       />
                       <div className="mt-1 flex flex-wrap gap-x-1.5 gap-y-0.5">
                         {POS_CODES.map((p) => (
@@ -326,7 +326,7 @@ export function BillingLedger() {
                     ICD-10: {state.icdCodes.join(", ") || "—"} &nbsp;|&nbsp; CPT: {state.cptCodes.join(", ") || "—"}
                   </div>
                   <div className="mt-2 flex items-center gap-2">
-                    <input type="checkbox" id="needsPA" checked={needsPriorAuth} onChange={e => setNeedsPriorAuth(e.target.checked)} className="accent-violet-500" />
+                    <input type="checkbox" id="needsPA" checked={needsPriorAuth} onChange={e => setNeedsPriorAuth(e.target.checked)} className="accent-brand-600" />
                     <label htmlFor="needsPA" className="text-[10px] text-slate-600">This encounter requires <strong>Prior Authorization</strong></label>
                   </div>
                   {/* PA Status indicator */}
@@ -397,17 +397,17 @@ export function BillingLedger() {
                       cmsFields: cms1500,
                     });
                   }}
-                    className="flex items-center gap-2 rounded-lg border border-violet-300 bg-violet-50 px-4 py-2.5 text-xs font-medium text-violet-700 hover:bg-violet-100"
+                    className="flex items-center gap-2 rounded-lg border border-brand-300 bg-brand-50 px-4 py-2.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
                   >
                     <FileDown className="h-3.5 w-3.5" /> Download CMS-1500 Draft
                   </button>
-                  <button onClick={handleSubmit} className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-violet-500">
+                  <button onClick={handleSubmit} className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-brand-600">
                     <Send className="h-3.5 w-3.5" /> Submit Claim (Path A — Paid)
                   </button>
                   <button onClick={simulateDenial} className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 hover:bg-red-100">
                     <AlertTriangle className="h-3.5 w-3.5" /> Simulate Denial (Path B)
                   </button>
-                  <button onClick={runScrubber} className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
+                  <button onClick={runScrubber} className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-medium text-brand-700 hover:bg-brand-100">
                     <Search className="h-3.5 w-3.5" /> Run Clearinghouse Scrubber
                   </button>
                   {/* Phase 3: Transmit 837P */}
@@ -433,7 +433,7 @@ export function BillingLedger() {
                         return p + 5;
                       });
                     }, 100);
-                  }} className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50" disabled={isTransmitting}>
+                  }} className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50" disabled={isTransmitting}>
                     <Send className="h-3.5 w-3.5" /> Transmit 837P
                   </button>
                   {/* Phase 3: Route to PA */}
@@ -448,7 +448,7 @@ export function BillingLedger() {
                 {isTransmitting && (
                   <div className="mt-3">
                     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                      <div className="h-full rounded-full bg-emerald-500 transition-all duration-200" style={{ width: `${transmitProgress}%` }} />
+                      <div className="h-full rounded-full bg-green-500 transition-all duration-200" style={{ width: `${transmitProgress}%` }} />
                     </div>
                     <p className="mt-1 text-[10px] text-slate-500">Transmitting 837P... {transmitProgress}%</p>
                   </div>
@@ -456,18 +456,18 @@ export function BillingLedger() {
 
                 {/* Transmit Result */}
                 {transmitResult === "paid" && (
-                  <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                    <p className="flex items-center gap-1 text-xs font-medium text-emerald-700">
+                  <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3">
+                    <p className="flex items-center gap-1 text-xs font-medium text-green-700">
                       <CheckCircle2 className="h-3.5 w-3.5" /> 837P Transmitted — Claim Paid
                     </p>
                   </div>
                 )}
                 {transmitResult === "denied" && (
-                  <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3">
-                    <p className="flex items-center gap-1 text-xs font-medium text-rose-700">
+                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p className="flex items-center gap-1 text-xs font-medium text-red-700">
                       <XCircle className="h-3.5 w-3.5" /> Modifier 25 Missing — Claim Denied (CO-16)
                     </p>
-                    <p className="mt-1 text-[10px] text-rose-600">Route to AR for remediation.</p>
+                    <p className="mt-1 text-[10px] text-red-600">Route to AR for remediation.</p>
                   </div>
                 )}
 
@@ -530,7 +530,7 @@ export function BillingLedger() {
                   <div key={d.code} className="rounded-lg border border-slate-200 bg-white p-3 text-xs">
                     <div className="flex items-center gap-2">
                       <span className={`font-mono font-bold text-sm ${
-                        d.category === "CO" ? "text-red-600" : d.category === "PR" ? "text-amber-600" : "text-blue-600"
+                        d.category === "CO" ? "text-red-600" : d.category === "PR" ? "text-amber-600" : "text-brand-600"
                       }`}>{d.code}</span>
                       <span className="text-slate-500 text-[10px]">({d.category === "CO" ? "Contractual" : d.category === "PR" ? "Patient Responsibility" : "Organizational"})</span>
                     </div>
