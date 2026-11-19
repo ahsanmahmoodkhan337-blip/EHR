@@ -27,11 +27,11 @@
   --color-brand-300: #93b4fd;
   --color-brand-400: #608ffa;
   --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
+  --color-brand-600: #2040c0;
+  --color-brand-700: #1a2888;
   --color-brand-800: #1e40af; /* the spec's primary */
   --color-brand-900: #1e3a8a;
-  --color-brand-950: #172554;
+  --color-brand-950: #192166;
 
   /* Accent — dental teal (secondary) */
   --color-accent-50:  #f0fdfa;
@@ -54,7 +54,7 @@
   --color-ink:       #1e293b;
   --color-ink-muted: #64748b;
   --color-line:      #e2e8f0;
-  --color-chrome:    #0f172a;
+  --color-chrome:    #192166;
 
   /* Status — one colour per meaning, never decorative */
   --color-success: #16a34a;

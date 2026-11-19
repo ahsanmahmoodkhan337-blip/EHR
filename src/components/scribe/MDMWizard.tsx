@@ -128,7 +128,7 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
     });
   }, [recommendedLevel, totalScore, onLevelChange]);
 
-  const levelColors = ["bg-slate-100", "bg-blue-100", "bg-green-100", "bg-amber-100", "bg-red-100"];
+  const levelColors = ["bg-slate-100", "bg-brand-100", "bg-green-100", "bg-amber-100", "bg-red-100"];
   const levelIdx = levels.indexOf(recommendedLevel);
   const levelColor = levelColors[Math.min(levelIdx + 1, 4)];
 
@@ -136,7 +136,7 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[10px] font-medium text-indigo-600 hover:bg-indigo-100 transition-colors"
+        className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
       >
         <Calculator className="h-3.5 w-3.5" />
         E/M MDM Wizard
@@ -164,13 +164,13 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
               <span className="text-[10px] font-medium text-slate-500">Patient Type:</span>
               <button
                 onClick={() => setIsNewPatient(false)}
-                className={`rounded-lg px-3 py-1 text-[10px] font-medium ${!isNewPatient ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"}`}
+                className={`rounded-lg px-3 py-1 text-[10px] font-medium ${!isNewPatient ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}
               >
                 Established
               </button>
               <button
                 onClick={() => setIsNewPatient(true)}
-                className={`rounded-lg px-3 py-1 text-[10px] font-medium ${isNewPatient ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500"}`}
+                className={`rounded-lg px-3 py-1 text-[10px] font-medium ${isNewPatient ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}
               >
                 New Patient
               </button>
@@ -184,7 +184,7 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
               <div className="space-y-1">
                 {problems.map((p, i) => (
                   <label key={i} className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
-                    <input type="checkbox" checked={p.checked} onChange={() => toggleProblem(i)} className="h-3 w-3 accent-indigo-500" />
+                    <input type="checkbox" checked={p.checked} onChange={() => toggleProblem(i)} className="h-3 w-3 accent-brand-600" />
                     {p.label}
                   </label>
                 ))}
@@ -199,7 +199,7 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
               <div className="space-y-1">
                 {data.map((d, i) => (
                   <label key={i} className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
-                    <input type="checkbox" checked={d.checked} onChange={() => toggleData(i)} className="h-3 w-3 accent-indigo-500" />
+                    <input type="checkbox" checked={d.checked} onChange={() => toggleData(i)} className="h-3 w-3 accent-brand-600" />
                     {d.label}
                   </label>
                 ))}
@@ -214,7 +214,7 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
               <div className="space-y-1">
                 {risk.map((r, i) => (
                   <label key={i} className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
-                    <input type="checkbox" checked={r.checked} onChange={() => toggleRisk(i)} className="h-3 w-3 accent-indigo-500" />
+                    <input type="checkbox" checked={r.checked} onChange={() => toggleRisk(i)} className="h-3 w-3 accent-brand-600" />
                     {r.label}
                   </label>
                 ))}
@@ -237,7 +237,7 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
             {/* Rationale */}
             <button
               onClick={() => setShowRationale(!showRationale)}
-              className="mt-3 flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-800"
+              className="mt-3 flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800"
             >
               <Info className="h-3 w-3" />
               {showRationale ? "Hide" : "Why this level?"}
