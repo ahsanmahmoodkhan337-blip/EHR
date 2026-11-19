@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Building2, PanelRightClose, LogOut, Timer, Home, Clock } from "lucide-react";
+import { Building2, PanelRightClose, LogOut, Timer, Home, Clock, Settings } from "lucide-react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
 import { logout } from "../../store/accessStore";
@@ -78,6 +78,9 @@ export function Header({
       <div className="flex items-center gap-3 shrink-0">
         <Link to="/" className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors" title="Home">
           <Home className="h-4 w-4" />
+        </Link>
+        <Link to="/settings" className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors" title="Settings — reset, export or import your practice data">
+          <Settings className="h-4 w-4" />
         </Link>
         <img
           src="/healthcarehustlers-logo.png"

@@ -10,9 +10,14 @@
  *   - DrChrono's appointment-based chronology
  */
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { getLoggedInPhone } from "./accessStore";
-import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persistence";
+import {
+  useEhrStore,
+  useAllPatients,
+  bootstrapEhrStore,
+  type Track,
+} from "./ehrStore";
 
 // ─── Audit Log ────────────────────────────────────────────────────
 
@@ -133,6 +138,13 @@ export interface Patient {
   labResults: LabResult[];
   encounters: Encounter[];
   problems: string[]; // active problem list
+  // ── Phase 0 store fields ──────────────────────────────────────────
+  /** Built-in demo patient: lives in the read-only seed namespace. */
+  isSeed?: boolean;
+  /** Revenue cycle the patient belongs to (medical is the default). */
+  track?: Track;
+  /** Phone of the student who registered this patient. */
+  createdBy?: string;
 }
 
 // ─── Mock Data ─────────────────────────────────────────────────────
@@ -1180,6 +1192,19 @@ const mockPatients: Patient[] = [
   },
 ];
 
+// ─── Seed namespace ────────────────────────────────────────────────
+// Built-in demo patients are read-only seed data: they are registered with the
+// central store (never persisted) and merged under the student's own patients,
+// where a user record with the same id always wins (Phase 0, section 2).
+
+export const SEED_PATIENTS: Patient[] = mockPatients.map((p) => ({
+  ...p,
+  isSeed: true,
+  track: "medical" as Track,
+}));
+
+useEhrStore.getState().registerSeedPatients(SEED_PATIENTS);
+
 // ─── Context ───────────────────────────────────────────────────────
 
 interface PatientContextValue {
@@ -1197,62 +1222,26 @@ interface PatientContextValue {
   addFollowUp: (patientId: string, entry: FollowUpEntry) => void;
 }
 
-const DEFAULT_CASE = (patientId: string): CaseState => ({
-  patientId,
-  currentQueue: "QUEUE_REGISTRATION" as QueueStage,
-  auditLogs: [],
-  modifier25Applied: false,
-  billingStatus: "DRAFT",
-  paStatus: "NOT_REQUIRED",
-  arStatus: "NONE",
-  routingNotes: [],
-  followups: [],
-});
-
 const PatientContext = createContext<PatientContextValue | null>(null);
 
 export function PatientProvider({ children }: { children: ReactNode }) {
-  const [caseStates, setCaseStates] = useState<Record<string, CaseState>>({});
+  // Phase 0: the patient list and per-patient case state live in the central
+  // store (seed + user namespaces merged on read), not in provider state.
+  const patients = useAllPatients();
+  const caseStates = useEhrStore((s) => s.user.caseStates);
+  const storeUpdateCase = useEhrStore((s) => s.updateCase);
 
-  // ── Per-user persistence ─────────────────────────────────────────
-  // data is keyed by the logged-in student's phone (localStorage, always on),
-  // with an optional Supabase refresh that degrades gracefully. The providers
-  // remount on login/logout (separate /login route), so scoping to the phone
-  // at mount time gives correct per-user isolation.
+  // Hydrate this student's record set. Idempotent, so it is safe here and in
+  // the settings/dashboard screens.
   useEffect(() => {
-    const phone = getLoggedInPhone();
-    if (!phone) {
-      setCaseStates({});
-      return;
-    }
-    // Layer 1 — synchronous hydrate from localStorage (survives refresh).
-    const local = loadUserData(phone);
-    setCaseStates(local?.caseStates ?? {});
-    // Layer 2 — optional cross-device refresh from Supabase.
-    void syncUserDataFromSupabase(phone).then((remote) => {
-      if (remote?.caseStates && (remote.updatedAt || "") > (local?.updatedAt || "")) {
-        setCaseStates(remote.caseStates);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    bootstrapEhrStore(getLoggedInPhone());
   }, []);
-  // Debounced save whenever per-patient case state changes.
-  useEffect(() => {
-    const phone = getLoggedInPhone();
-    if (!phone) return;
-    const t = setTimeout(() => saveUserData(phone, { caseStates }), 400);
-    return () => clearTimeout(t);
-  }, [caseStates]);
 
-  const getPatientById = (id: string) => mockPatients.find((p) => p.id === id);
-  const getPatientByMrn = (mrn: string) =>
-    mockPatients.find((p) => p.mrn === mrn);
+  const getPatientById = (id: string) => patients.find((p) => p.id === id);
+  const getPatientByMrn = (mrn: string) => patients.find((p) => p.mrn === mrn);
 
   const updateCase = (patientId: string, updater: (cs: CaseState) => CaseState) => {
-    setCaseStates(prev => ({
-      ...prev,
-      [patientId]: updater(prev[patientId] || DEFAULT_CASE(patientId)),
-    }));
+    storeUpdateCase(patientId, updater);
   };
 
   const addAuditLog = (patientId: string, entry: AuditEntry) => {

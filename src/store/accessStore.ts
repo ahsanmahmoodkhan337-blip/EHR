@@ -8,6 +8,7 @@
  */
 
 import { supabase } from "./supabase";
+import { useEhrStore } from "./ehrStore";
 
 const ACCESS_REQUESTS_KEY = "hh_access_requests";
 const APPROVED_PHONES_KEY = "hh_approved_phones";
@@ -257,6 +258,9 @@ export function setLoggedInPhone(phone: string): void {
 
 export function logout(): void {
   localStorage.removeItem(LOGGED_IN_PHONE_KEY);
+  // Phase 0: flush the record set to disk, then drop it from memory so the next
+  // student on this device cannot see the previous one's patients.
+  useEhrStore.getState().unload();
 }
 
 export function isLoggedIn(): boolean {
@@ -306,6 +310,7 @@ export function checkSessionExpired(): boolean {
 export function clearSession(): void {
   localStorage.removeItem(LOGGED_IN_PHONE_KEY);
   localStorage.removeItem(SESSION_START_KEY);
+  useEhrStore.getState().unload();
 }
 
 // ─── Subscription Expiry ──────────────────────────────────────────
