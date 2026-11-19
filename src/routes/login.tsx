@@ -174,12 +174,12 @@ function LoginPage() {
         {/* Subtle animated background */}
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
           <motion.div
-            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-blue-300/30 blur-3xl"
+            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-brand-300/30 blur-3xl"
             animate={reduceMotion ? undefined : { x: [0, 48, 0], y: [0, 24, 0] }}
             transition={{ duration: 15, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           />
           <motion.div
-            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-teal-300/30 blur-3xl"
+            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-accent-300/30 blur-3xl"
             animate={reduceMotion ? undefined : { x: [0, -48, 0], y: [0, 32, 0] }}
             transition={{ duration: 17, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           />
@@ -189,12 +189,12 @@ function LoginPage() {
           {/* Headline */}
           <motion.div {...rise(0)} className="mb-6 text-center">
             <motion.p className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500">
-              <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+              <Sparkles className="h-3.5 w-3.5 text-brand-500" />
               Medical + Dental RCM training
             </motion.p>
             <motion.h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
               Student{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
                 Login
               </span>
             </motion.h1>
@@ -212,19 +212,19 @@ function LoginPage() {
               </p>
               <div className="space-y-2.5">
                 <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
                     <Stethoscope className="h-3.5 w-3.5" />
                   </span>
                   <p className="text-xs leading-relaxed text-slate-600">
-                    <span className="font-semibold text-blue-600">Medical</span> — Registration → Scribe → ICD-10 / CPT coding → CMS-1500 → Prior Auth → AR calling
+                    <span className="font-semibold text-brand-600">Medical</span> — Registration → Scribe → ICD-10 / CPT coding → CMS-1500 → Prior Auth → AR calling
                   </p>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-600">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-50 text-accent-600">
                     <Smile className="h-3.5 w-3.5" />
                   </span>
                   <p className="text-xs leading-relaxed text-slate-600">
-                    <span className="font-semibold text-teal-600">Dental</span> — CDT coding, tooth charting &amp; ADA claim form
+                    <span className="font-semibold text-accent-600">Dental</span> — CDT coding, tooth charting &amp; ADA claim form
                   </p>
                 </div>
               </div>
@@ -334,7 +334,7 @@ function LoginPage() {
 
                 <button
                   onClick={handleLogin}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-brand-600/20 transition hover:bg-brand-700"
                 >
                   <LogIn className="h-4 w-4" />
                   Sign In

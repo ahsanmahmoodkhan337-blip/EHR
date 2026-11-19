@@ -375,8 +375,8 @@ function SummaryTab({
             <p className="mt-1 text-xs text-slate-400">
               {isScribe ? (
                 <>
-                  PCP: <input type="text" value={data.pcp} onChange={e => updateData("pcp", e.target.value)} className="inline w-28 rounded border border-slate-200 px-1 text-xs outline-none focus:border-blue-400" /> |
-                  Insurance: <input type="text" value={data.insurance} onChange={e => updateData("insurance", e.target.value)} className="inline w-28 rounded border border-slate-200 px-1 text-xs outline-none focus:border-blue-400" />
+                  PCP: <input type="text" value={data.pcp} onChange={e => updateData("pcp", e.target.value)} className="inline w-28 rounded border border-slate-200 px-1 text-xs outline-none focus:border-brand-400" /> |
+                  Insurance: <input type="text" value={data.insurance} onChange={e => updateData("insurance", e.target.value)} className="inline w-28 rounded border border-slate-200 px-1 text-xs outline-none focus:border-brand-400" />
                 </>
               ) : (
                 <>PCP: {patient.primaryCareProvider} | {patient.insurance}</>
@@ -389,7 +389,7 @@ function SummaryTab({
                 type="text"
                 value={data.chiefComplaint}
                 onChange={e => updateData("chiefComplaint", e.target.value)}
-                className="rounded border border-slate-200 px-2 py-1 text-xs font-medium outline-none focus:border-blue-400 w-48 text-right"
+                className="rounded border border-slate-200 px-2 py-1 text-xs font-medium outline-none focus:border-brand-400 w-48 text-right"
               />
             ) : (
               <span className="rounded bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
@@ -408,7 +408,7 @@ function SummaryTab({
               type="text"
               value={vitals.bloodPressure}
               onChange={(e) => updateVital("bloodPressure", e.target.value)}
-              className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+              className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
             />
           ) : (
             <p className="clinical-value">{patient.vitals.bloodPressure}</p>
@@ -427,7 +427,7 @@ function SummaryTab({
         <div className="clinical-card">
           <p className="clinical-label">HR</p>
           {isScribe ? (
-            <input type="text" value={vitals.heartRate} onChange={e => updateVital("heartRate", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400" />
+            <input type="text" value={vitals.heartRate} onChange={e => updateVital("heartRate", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
           ) : <p className="clinical-value">{patient.vitals.heartRate} bpm</p>}
           {(() => {
             const val = parseFloat(vitals.heartRate);
@@ -440,7 +440,7 @@ function SummaryTab({
         <div className="clinical-card">
           <p className="clinical-label">Temp</p>
           {isScribe ? (
-            <input type="text" value={vitals.temperature} onChange={e => updateVital("temperature", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400" />
+            <input type="text" value={vitals.temperature} onChange={e => updateVital("temperature", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
           ) : <p className="clinical-value">{patient.vitals.temperature}°F</p>}
           {(() => {
             const val = parseFloat(vitals.temperature);
@@ -453,7 +453,7 @@ function SummaryTab({
         <div className="clinical-card">
           <p className="clinical-label">SpO2</p>
           {isScribe ? (
-            <input type="text" value={vitals.oxygenSaturation} onChange={e => updateVital("oxygenSaturation", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400" />
+            <input type="text" value={vitals.oxygenSaturation} onChange={e => updateVital("oxygenSaturation", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
           ) : <p className="clinical-value">{patient.vitals.oxygenSaturation}%</p>}
           {(() => {
             const val = parseFloat(vitals.oxygenSaturation);
@@ -504,9 +504,9 @@ function SummaryTab({
               onChange={e => setAddProblemText(e.target.value)}
               onKeyDown={e => e.key === "Enter" && addProblem()}
               placeholder="+ Add new problem (e.g. Diabetes (E11.9))..."
-              className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400"
+              className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400"
             />
-            <button onClick={addProblem} className="rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600">Add</button>
+            <button onClick={addProblem} className="rounded bg-brand-500 px-2 py-1 text-xs text-white hover:bg-brand-600">Add</button>
           </div>
         )}
       </div>
@@ -534,9 +534,9 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 space-y-1.5 rounded border border-dashed border-slate-300 p-2">
             <div className="grid grid-cols-3 gap-1">
-              <input type="text" value={medName} onChange={e => setMedName(e.target.value)} placeholder="Medication name" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-              <input type="text" value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="Dosage (e.g. 10mg)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-              <input type="text" value={medFreq} onChange={e => setMedFreq(e.target.value)} placeholder="Frequency (e.g. BID)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+              <input type="text" value={medName} onChange={e => setMedName(e.target.value)} placeholder="Medication name" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+              <input type="text" value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="Dosage (e.g. 10mg)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+              <input type="text" value={medFreq} onChange={e => setMedFreq(e.target.value)} placeholder="Frequency (e.g. BID)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
             </div>
             <button onClick={addMedication} className="mt-1 rounded bg-green-600 px-3 py-1 text-xs text-white hover:bg-green-700">+ Add Medication</button>
           </div>
@@ -581,7 +581,7 @@ function SummaryTab({
               onChange={e => setAllergyInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") { addAllergy(allergyInput); setAllergyInput(""); }}}
               placeholder="+ Add allergy..."
-              className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400"
+              className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400"
             />
             <button onClick={() => { addAllergy(allergyInput); setAllergyInput(""); }} className="rounded bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600">Add</button>
           </div>
@@ -608,7 +608,7 @@ function SummaryTab({
         )}
         {isScribe && (
           <div className="mt-2 flex gap-1">
-            <input type="text" value={immunInput} onChange={e => setImmunInput(e.target.value)} placeholder="+ Add vaccine..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+            <input type="text" value={immunInput} onChange={e => setImmunInput(e.target.value)} placeholder="+ Add vaccine..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
             <button onClick={() => { if (immunInput.trim()) { setImmunizations([...immunizations, { id: `imm-${Date.now()}`, vaccine: immunInput.trim(), dose: "—", date: new Date().toISOString().split("T")[0], status: "Given" }]); setImmunInput(""); } }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
           </div>
         )}
@@ -648,8 +648,8 @@ function SummaryTab({
         )}
         {isScribe && (
           <div className="mt-2 flex gap-1">
-            <input type="text" value={labInput} onChange={e => setLabInput(e.target.value)} placeholder="+ Add lab/result..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-            <button onClick={() => { if (labInput.trim()) { setLabsResults([...labsResults, labInput.trim()]); setLabInput(""); } }} className="rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-700">Add</button>
+            <input type="text" value={labInput} onChange={e => setLabInput(e.target.value)} placeholder="+ Add lab/result..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+            <button onClick={() => { if (labInput.trim()) { setLabsResults([...labsResults, labInput.trim()]); setLabInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
           </div>
         )}
       </div>
@@ -673,7 +673,7 @@ function SummaryTab({
         )}
         {isScribe && (
           <div className="mt-2 flex gap-1">
-            <input type="text" value={orderInput} onChange={e => setOrderInput(e.target.value)} placeholder="+ Add order..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+            <input type="text" value={orderInput} onChange={e => setOrderInput(e.target.value)} placeholder="+ Add order..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
             <button onClick={() => { if (orderInput.trim()) { setOrders([...orders, { id: `ord-${Date.now()}`, item: orderInput.trim(), status: "Ordered", provider: patient.primaryCareProvider, date: new Date().toISOString().split("T")[0] }]); setOrderInput(""); } }} className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700">Add</button>
           </div>
         )}
@@ -686,7 +686,7 @@ function SummaryTab({
             {imaging.map((img) => (
               <div key={img.id} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-500" />
                   <span className="font-medium text-slate-800">{img.study}</span>
                 </div>
                 <span className={entryStatusClass(img.status)}>{img.status}</span>
@@ -698,8 +698,8 @@ function SummaryTab({
         )}
         {isScribe && (
           <div className="mt-2 flex gap-1">
-            <input type="text" value={imagingInput} onChange={e => setImagingInput(e.target.value)} placeholder="+ Add imaging..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-            <button onClick={() => { if (imagingInput.trim()) { setImaging([...imaging, { id: `img-${Date.now()}`, study: imagingInput.trim(), status: "Ordered", date: new Date().toISOString().split("T")[0] }]); setImagingInput(""); } }} className="rounded bg-teal-600 px-2 py-1 text-xs text-white hover:bg-teal-700">Add</button>
+            <input type="text" value={imagingInput} onChange={e => setImagingInput(e.target.value)} placeholder="+ Add imaging..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+            <button onClick={() => { if (imagingInput.trim()) { setImaging([...imaging, { id: `img-${Date.now()}`, study: imagingInput.trim(), status: "Ordered", date: new Date().toISOString().split("T")[0] }]); setImagingInput(""); } }} className="rounded bg-accent-600 px-2 py-1 text-xs text-white hover:bg-accent-700">Add</button>
           </div>
         )}
       </div>
@@ -711,7 +711,7 @@ function SummaryTab({
             {referrals.map((ref) => (
               <div key={ref.id} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 text-xs">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-600" />
                   <span className="font-medium text-slate-800">{ref.specialty}</span>
                   {ref.reason && <span className="truncate text-slate-500">— {ref.reason}</span>}
                 </div>
@@ -724,8 +724,8 @@ function SummaryTab({
         )}
         {isScribe && (
           <div className="mt-2 flex gap-1">
-            <input type="text" value={referralInput} onChange={e => setReferralInput(e.target.value)} placeholder="+ Add referral..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, { id: `ref-${Date.now()}`, specialty: referralInput.trim(), reason: "—", status: "Sent", date: new Date().toISOString().split("T")[0] }]); setReferralInput(""); } }} className="rounded bg-purple-600 px-2 py-1 text-xs text-white hover:bg-purple-700">Add</button>
+            <input type="text" value={referralInput} onChange={e => setReferralInput(e.target.value)} placeholder="+ Add referral..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, { id: `ref-${Date.now()}`, specialty: referralInput.trim(), reason: "—", status: "Sent", date: new Date().toISOString().split("T")[0] }]); setReferralInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
           </div>
         )}
       </div>
@@ -737,7 +737,7 @@ function SummaryTab({
             className={`w-full rounded-lg px-4 py-2 text-sm font-medium transition-all ${
               saved
                 ? "bg-green-500 text-white"
-                : "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-brand-600 text-white hover:bg-brand-700"
             }`}
           >
             {saved ? "✓ Changes Saved" : "Save Changes"}
@@ -852,9 +852,9 @@ function MedicationsTab({ patientId }: { patientId: string }) {
       {isScribe && (
         <div className="mt-3 space-y-1.5 rounded border border-dashed border-slate-300 p-2">
           <div className="grid grid-cols-3 gap-1">
-            <input type="text" value={medName} onChange={e => setMedName(e.target.value)} placeholder="Medication name" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-            <input type="text" value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="Dosage (e.g. 10mg)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-            <input type="text" value={medFreq} onChange={e => setMedFreq(e.target.value)} placeholder="Frequency (e.g. BID)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+            <input type="text" value={medName} onChange={e => setMedName(e.target.value)} placeholder="Medication name" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+            <input type="text" value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="Dosage (e.g. 10mg)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+            <input type="text" value={medFreq} onChange={e => setMedFreq(e.target.value)} placeholder="Frequency (e.g. BID)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
           </div>
           <button onClick={addMedication} className="rounded bg-green-600 px-3 py-1 text-xs text-white hover:bg-green-700">+ Add Medication</button>
         </div>
@@ -977,7 +977,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       type="text"
                       value={vitals.bloodPressure}
                       onChange={(e) => updateVital("bloodPressure", e.target.value)}
-                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
                     <>{patient.vitals.bloodPressure} mmHg</>
@@ -993,7 +993,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       type="text"
                       value={vitals.heartRate}
                       onChange={(e) => updateVital("heartRate", e.target.value)}
-                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
                     <>{patient.vitals.heartRate} bpm</>
@@ -1009,7 +1009,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       type="text"
                       value={vitals.temperature}
                       onChange={(e) => updateVital("temperature", e.target.value)}
-                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
                     <>{patient.vitals.temperature} °F</>
@@ -1025,7 +1025,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       type="text"
                       value={vitals.respiratoryRate}
                       onChange={(e) => updateVital("respiratoryRate", e.target.value)}
-                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
                     <>{patient.vitals.respiratoryRate} /min</>
@@ -1041,7 +1041,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       type="text"
                       value={vitals.oxygenSaturation}
                       onChange={(e) => updateVital("oxygenSaturation", e.target.value)}
-                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+                      className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
                     <>{patient.vitals.oxygenSaturation}%</>
@@ -1059,7 +1059,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
           {new Date(patient.vitals.recordedAt).toLocaleString()}
         </p>
         {isScribe && (
-          <p className="mt-2 text-[10px] italic text-blue-500">Click to edit values above</p>
+          <p className="mt-2 text-[10px] italic text-brand-500">Click to edit values above</p>
         )}
       </div>
     </div>
@@ -1124,27 +1124,27 @@ function PublicLandingPage() {
         {/* Subtle animated background */}
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
           <motion.div
-            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-blue-300/30 blur-3xl"
+            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-brand-300/30 blur-3xl"
             animate={reduceMotion ? undefined : { x: [0, 48, 0], y: [0, 24, 0] }}
             transition={{ duration: 15, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           />
           <motion.div
-            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-teal-300/30 blur-3xl"
+            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-accent-300/30 blur-3xl"
             animate={reduceMotion ? undefined : { x: [0, -48, 0], y: [0, 32, 0] }}
             transition={{ duration: 17, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
           />
-          <div className="absolute bottom-0 left-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-indigo-200/20 blur-3xl" />
+          <div className="absolute bottom-0 left-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-brand-200/20 blur-3xl" />
         </div>
 
         <div className="mx-auto max-w-5xl px-4 pb-14 pt-14 text-center md:pt-20">
           <motion.p {...rise(0)} className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500">
-            <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+            <Sparkles className="h-3.5 w-3.5 text-brand-500" />
             Medical + Dental revenue-cycle training in one login
           </motion.p>
 
           <motion.h1 {...rise(1)} className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 md:text-6xl">
             Master the full patient encounter —{" "}
-            <span className="bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
               chart to payment.
             </span>
           </motion.h1>
@@ -1157,7 +1157,7 @@ function PublicLandingPage() {
           <motion.div {...rise(3)} className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               to="/access"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-xl"
             >
               Enroll Now — 20$ / 5500 pkr
               <ArrowRight className="h-4 w-4" />
@@ -1175,42 +1175,42 @@ function PublicLandingPage() {
 
           {/* Two-track hero */}
           <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
-            <motion.div {...rise(5)} className="relative overflow-hidden rounded-2xl border border-blue-200 bg-white p-6 text-left shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 to-blue-400" />
+            <motion.div {...rise(5)} className="relative overflow-hidden rounded-2xl border border-brand-200 bg-white p-6 text-left shadow-sm">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-600 to-brand-400" />
               <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                   <Stethoscope className="h-6 w-6" />
                 </span>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500">Medical track</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-brand-500">Medical track</p>
                   <h3 className="text-lg font-bold text-slate-900">Medical RCM Pipeline</h3>
                 </div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-slate-600">
                 {["Scribe → Coder → Prior Auth → Biller → AR Voice", "ICD-10 / CPT coding & CMS-1500 claims", "AI voice simulation for denial follow-up"].map((line) => (
                   <li key={line} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
                     {line}
                   </li>
                 ))}
               </ul>
             </motion.div>
 
-            <motion.div {...rise(6)} className="relative overflow-hidden rounded-2xl border border-teal-200 bg-white p-6 text-left shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-600 to-emerald-400" />
+            <motion.div {...rise(6)} className="relative overflow-hidden rounded-2xl border border-accent-200 bg-white p-6 text-left shadow-sm">
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent-600 to-green-400" />
               <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-50 text-accent-600">
                   <Smile className="h-6 w-6" />
                 </span>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-teal-500">Dental track</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-accent-500">Dental track</p>
                   <h3 className="text-lg font-bold text-slate-900">Dental Billing & RCM</h3>
                 </div>
               </div>
               <ul className="mt-4 space-y-2 text-sm text-slate-600">
                 {["CDT coding with tooth / surface / quadrant", "Odontogram + perio chart & ADA claim form", "12-step adjudication, ledger & appeals"].map((line) => (
                   <li key={line} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-500" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent-500" />
                     {line}
                   </li>
                 ))}
@@ -1223,7 +1223,7 @@ function PublicLandingPage() {
       {/* Dental showcase */}
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <motion.div {...rise(0)} className="mb-10 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-teal-600">Dental billing, front and center</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-accent-600">Dental billing, front and center</p>
           <h2 className="mt-2 text-3xl font-bold text-slate-900">The Dental RCM Track</h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">
             A full second revenue cycle built on Dentrix, Eaglesoft and Open Dental workflows — everything a dental
@@ -1238,13 +1238,13 @@ function PublicLandingPage() {
               <motion.div
                 key={f.title}
                 {...rise(i)}
-                className="group rounded-2xl border border-teal-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg"
+                className="group rounded-2xl border border-accent-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-accent-300 hover:shadow-lg"
               >
                 <div className="flex items-start justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 transition group-hover:scale-110">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-50 text-accent-600 transition group-hover:scale-110">
                     <Icon className="h-5 w-5" />
                   </span>
-                  <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-semibold text-teal-700">{f.tag}</span>
+                  <span className="rounded-full bg-accent-50 px-2 py-0.5 text-[10px] font-semibold text-accent-700">{f.tag}</span>
                 </div>
                 <h3 className="mt-3 font-semibold text-slate-900">{f.title}</h3>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">{f.desc}</p>
@@ -1258,7 +1258,7 @@ function PublicLandingPage() {
       <section className="border-t border-slate-100 bg-white/60 py-16">
         <div className="mx-auto max-w-6xl px-4">
           <motion.div {...rise(0)} className="mb-10 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-blue-600">Medical track</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-brand-600">Medical track</p>
             <h2 className="mt-2 text-3xl font-bold text-slate-900">The Medical RCM Pipeline</h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">Follow a patient encounter from exam room to final payment.</p>
           </motion.div>
@@ -1273,7 +1273,7 @@ function PublicLandingPage() {
                   className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                       <Icon className="h-5 w-5" />
                     </span>
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">{f.tag}</span>
@@ -1299,7 +1299,7 @@ function PublicLandingPage() {
               { n: "4", title: "Practice!", desc: "Log in with your phone number and start" },
             ].map((step, i) => (
               <motion.div key={step.n} {...rise(i)} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-teal-500 text-base font-bold text-white">
+                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-accent-500 text-base font-bold text-white">
                   {step.n}
                 </div>
                 <h3 className="font-semibold text-slate-800">{step.title}</h3>
@@ -1654,7 +1654,7 @@ function Home() {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-slate-50">
         <div className="text-center">
-          <Activity className="mx-auto h-8 w-8 animate-pulse text-blue-500" />
+          <Activity className="mx-auto h-8 w-8 animate-pulse text-brand-500" />
           <p className="mt-3 text-sm text-slate-500">Loading...</p>
         </div>
       </div>
@@ -1939,9 +1939,9 @@ function Home() {
                 </div>
               ) : activeStage ? (
                 <div className="flex flex-1 flex-col overflow-hidden">
-                  <div className="border-b border-blue-100 bg-blue-50/50 px-4 py-2">
+                  <div className="border-b border-brand-100 bg-brand-50/50 px-4 py-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-blue-700">
+                      <span className="text-xs font-medium text-brand-700">
                         Workflow: {activeStage === "registration" ? "Patient Registration" :
                                                           activeStage === "intake-vitals" ? "Intake / Vitals" :
                                     activeStage === "hpi" ? "History of Present Illness" :
@@ -1962,7 +1962,7 @@ function Home() {
                       </span>
                       <button
                         onClick={() => setActiveStage("")}
-                        className="ml-auto rounded bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 hover:bg-blue-200"
+                        className="ml-auto rounded bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700 hover:bg-brand-200"
                       >
                         Show Chart Tabs
                       </button>
@@ -2116,14 +2116,14 @@ function Home() {
                         )}
                         {currentRole === "scribe" && (
                           <div className="mt-3 flex gap-1">
-                            <input type="text" id="newLabInput" placeholder="e.g. CBC: WBC 6.5, Hgb 13.2" className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                            <input type="text" id="newLabInput" placeholder="e.g. CBC: WBC 6.5, Hgb 13.2" className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
                             <button onClick={() => {
                               const inp = document.getElementById("newLabInput") as HTMLInputElement;
                               if (inp && inp.value.trim()) {
                                 setSharedLabs([...sharedLabs, inp.value.trim()]);
                                 inp.value = "";
                               }
-                            }} className="rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-700">Add</button>
+                            }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
                           </div>
                         )}
                       </div>
@@ -2168,9 +2168,9 @@ function Home() {
                               onChange={e => setNewProblem(e.target.value)}
                               onKeyDown={e => { if (e.key === "Enter" && newProblem.trim()) { setEditablePatientData({ ...editablePatientData, problems: [...editablePatientData.problems, newProblem.trim()] }); setNewProblem(""); }}}
                               placeholder="+ Add new problem (e.g. Diabetes (E11.9))..."
-                              className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-400"
+                              className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400"
                             />
-                            <button onClick={() => { if (newProblem.trim()) { setEditablePatientData({ ...editablePatientData, problems: [...editablePatientData.problems, newProblem.trim()] }); setNewProblem(""); }}} className="rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600">Add</button>
+                            <button onClick={() => { if (newProblem.trim()) { setEditablePatientData({ ...editablePatientData, problems: [...editablePatientData.problems, newProblem.trim()] }); setNewProblem(""); }}} className="rounded bg-brand-500 px-2 py-1 text-xs text-white hover:bg-brand-600">Add</button>
                           </div>
                         )}
                       </div>
@@ -2198,7 +2198,7 @@ function Home() {
                                     </p>
                                     <button
                                       onClick={() => setRole("prior-auth")}
-                                      className="mt-2 rounded bg-[#4A1D96] px-3 py-1 text-[10px] font-medium text-white hover:bg-[#3B1580] transition-colors"
+                                      className="mt-2 rounded bg-brand-800 px-3 py-1 text-[10px] font-medium text-white hover:bg-brand-900 transition-colors"
                                     >
                                       Submit Prior Auth
                                     </button>
@@ -2235,11 +2235,11 @@ function Home() {
                         {currentRole === "scribe" && (
                           <div className="mt-3 rounded border border-dashed border-slate-300 p-2">
                             <div className="grid grid-cols-3 gap-1">
-                              <input type="text" id="newOrderItem" placeholder="Order (e.g. CBC)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <select id="newOrderStatus" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400">
+                              <input type="text" id="newOrderItem" placeholder="Order (e.g. CBC)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+                              <select id="newOrderStatus" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400">
                                 <option>Ordered</option><option>Pending</option><option>Completed</option>
                               </select>
-                              <input type="date" id="newOrderDate" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                              <input type="date" id="newOrderDate" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
                             </div>
                             <button onClick={() => {
                               const itemEl = document.getElementById("newOrderItem") as HTMLInputElement;
@@ -2255,7 +2255,7 @@ function Home() {
                                 }]);
                                 itemEl.value = "";
                               }
-                            }} className="mt-2 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700">+ Add Order</button>
+                            }} className="mt-2 rounded bg-brand-600 px-3 py-1 text-xs text-white hover:bg-brand-700">+ Add Order</button>
                           </div>
                         )}
                       </div>
@@ -2321,11 +2321,11 @@ function Home() {
                         {currentRole === "scribe" && (
                           <div className="mt-3 rounded border border-dashed border-slate-300 p-2">
                             <div className="grid grid-cols-3 gap-1">
-                              <input type="text" id="newImagingStudy" placeholder="Study (e.g. Chest X-ray)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <select id="newImagingStatus" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400">
+                              <input type="text" id="newImagingStudy" placeholder="Study (e.g. Chest X-ray)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+                              <select id="newImagingStatus" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400">
                                 <option>Ordered</option><option>Scheduled</option><option>Completed</option><option>Resulted</option>
                               </select>
-                              <input type="date" id="newImagingDate" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                              <input type="date" id="newImagingDate" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
                             </div>
                             <button onClick={() => {
                               const studyEl = document.getElementById("newImagingStudy") as HTMLInputElement;
@@ -2340,7 +2340,7 @@ function Home() {
                                 }]);
                                 studyEl.value = "";
                               }
-                            }} className="mt-2 rounded bg-indigo-600 px-3 py-1 text-xs text-white hover:bg-indigo-700">+ Add Study</button>
+                            }} className="mt-2 rounded bg-brand-600 px-3 py-1 text-xs text-white hover:bg-brand-700">+ Add Study</button>
                           </div>
                         )}
                       </div>
@@ -2373,9 +2373,9 @@ function Home() {
                         {currentRole === "scribe" && (
                           <div className="mt-3 rounded border border-dashed border-slate-300 p-2">
                             <div className="grid grid-cols-3 gap-1">
-                              <input type="text" id="newImmunVaccine" placeholder="Vaccine (e.g. Influenza)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <input type="text" id="newImmunDose" placeholder="Dose (e.g. 0.5 mL)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <input type="date" id="newImmunDate" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
+                              <input type="text" id="newImmunVaccine" placeholder="Vaccine (e.g. Influenza)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+                              <input type="text" id="newImmunDose" placeholder="Dose (e.g. 0.5 mL)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+                              <input type="date" id="newImmunDate" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
                             </div>
                             <button onClick={() => {
                               const vaccineEl = document.getElementById("newImmunVaccine") as HTMLInputElement;
@@ -2424,9 +2424,9 @@ function Home() {
                         {currentRole === "scribe" && (
                           <div className="mt-3 rounded border border-dashed border-slate-300 p-2">
                             <div className="grid grid-cols-3 gap-1">
-                              <input type="text" id="newRefSpecialty" placeholder="Specialty (e.g. Cardiology)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <input type="text" id="newRefReason" placeholder="Reason" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400" />
-                              <select id="newRefStatus" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-blue-400">
+                              <input type="text" id="newRefSpecialty" placeholder="Specialty (e.g. Cardiology)" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+                              <input type="text" id="newRefReason" placeholder="Reason" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400" />
+                              <select id="newRefStatus" className="rounded border border-slate-200 px-2 py-1 text-xs outline-none focus:border-brand-400">
                                 <option>Sent</option><option>Scheduled</option><option>Completed</option>
                               </select>
                             </div>
@@ -2444,7 +2444,7 @@ function Home() {
                                 }]);
                                 specEl.value = "";
                               }
-                            }} className="mt-2 rounded bg-purple-600 px-3 py-1 text-xs text-white hover:bg-purple-700">+ Add Referral</button>
+                            }} className="mt-2 rounded bg-brand-600 px-3 py-1 text-xs text-white hover:bg-brand-700">+ Add Referral</button>
                           </div>
                         )}
                       </div>
@@ -2486,9 +2486,9 @@ function Home() {
               ) : (
                 (caseStates[selectedPatientId]?.auditLogs ?? []).slice(-10).map((log, i) => (
                   <div key={i} className={`shrink-0 rounded-lg border px-2 py-1 text-[9px] ${
-                    log.status === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
+                    log.status === "success" ? "border-green-200 bg-green-50 text-green-700" :
                     log.status === "warning" ? "border-amber-200 bg-amber-50 text-amber-700" :
-                    log.status === "error" ? "border-rose-200 bg-rose-50 text-rose-700" :
+                    log.status === "error" ? "border-red-200 bg-red-50 text-red-700" :
                     "border-slate-200 bg-slate-50 text-slate-600"
                   }`}>
                     <span className="font-medium">{log.role}</span>: {log.message}

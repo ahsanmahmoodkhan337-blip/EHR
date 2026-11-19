@@ -104,7 +104,7 @@ function SettingsPage() {
     return (
       <div className="brand-gradient flex min-h-dvh flex-col items-center justify-center p-4">
         <div className="surface-card w-full max-w-sm p-8 text-center">
-          <ShieldAlert className="mx-auto mb-3 h-8 w-8 text-blue-500" />
+          <ShieldAlert className="mx-auto mb-3 h-8 w-8 text-brand-500" />
           <h1 className="text-base font-bold text-slate-800">Settings</h1>
           <p className="mt-2 text-sm text-slate-500">Sign in to manage your practice data.</p>
           <Link to="/login" className="btn-primary mt-4 w-full">
@@ -117,21 +117,21 @@ function SettingsPage() {
 
   return (
     <div className="min-h-dvh bg-slate-50">
-      <header className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-blue-700 via-blue-600 to-sky-600 px-5 py-4 text-white shadow-md">
+      <header className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-brand-700 via-brand-600 to-brand-400 px-5 py-4 text-white shadow-md">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
             <Database className="h-5 w-5" />
           </div>
           <div>
             <h1 className="text-base font-bold leading-tight">Settings</h1>
-            <p className="text-[11px] text-blue-100">
+            <p className="text-[11px] text-brand-100">
               Practice data for {phone} · schema v{SCHEMA_VERSION}
             </p>
           </div>
         </div>
         <Link
           to="/dashboard"
-          className="flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-50"
+          className="flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-brand-700 shadow-sm hover:bg-brand-50"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to dashboard
@@ -143,8 +143,8 @@ function SettingsPage() {
           <div
             className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-xs ${
               status.tone === "ok"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-rose-200 bg-rose-50 text-rose-700"
+                ? "border-green-200 bg-green-50 text-green-800"
+                : "border-red-200 bg-red-50 text-red-700"
             }`}
           >
             {status.tone === "ok" ? (
@@ -159,7 +159,7 @@ function SettingsPage() {
         {/* ── What is stored ── */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <UserRound className="h-4 w-4 text-blue-600" /> What this device has stored for you
+            <UserRound className="h-4 w-4 text-brand-600" /> What this device has stored for you
           </h2>
           <p className="mt-1 text-[11px] text-slate-500">
             Your patients, appointments and per-patient workflow state are saved automatically to
@@ -180,7 +180,7 @@ function SettingsPage() {
         {/* ── Export / import ── */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <Download className="h-4 w-4 text-blue-600" /> Move your work between computers
+            <Download className="h-4 w-4 text-brand-600" /> Move your work between computers
           </h2>
           <p className="mt-1 text-[11px] text-slate-500">
             Export writes every record you own — patients, appointments and workflow state — to one
@@ -189,7 +189,7 @@ function SettingsPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               onClick={handleExport}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500"
+              className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500"
             >
               <Download className="h-3.5 w-3.5" /> Export all user data (JSON)
             </button>
@@ -213,9 +213,9 @@ function SettingsPage() {
         </section>
 
         {/* ── Reset ── */}
-        <section className="rounded-2xl border border-rose-200 bg-white p-4 shadow-sm">
+        <section className="rounded-2xl border border-red-200 bg-white p-4 shadow-sm">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <RotateCcw className="h-4 w-4 text-rose-600" /> Reset my practice data
+            <RotateCcw className="h-4 w-4 text-red-600" /> Reset my practice data
           </h2>
           {!confirmReset ? (
             <>
@@ -225,23 +225,23 @@ function SettingsPage() {
               </p>
               <button
                 onClick={() => setConfirmReset(true)}
-                className="mt-3 flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                className="mt-3 flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
               >
                 <RotateCcw className="h-3.5 w-3.5" /> Reset my practice data
               </button>
             </>
           ) : (
-            <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3">
-              <p className="text-xs font-semibold text-rose-800">
+            <div className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3">
+              <p className="text-xs font-semibold text-red-800">
                 Delete all of your practice data on this device?
               </p>
-              <p className="mt-1 text-[11px] text-rose-700">
+              <p className="mt-1 text-[11px] text-red-700">
                 This cannot be undone. Export a copy first if you want to keep your work.
               </p>
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => void handleReset()}
-                  className="rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-500"
+                  className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
                 >
                   Yes, reset my data
                 </button>
