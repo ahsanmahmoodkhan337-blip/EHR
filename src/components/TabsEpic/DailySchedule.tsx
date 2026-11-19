@@ -18,29 +18,32 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   CalendarDays, ChevronLeft, ChevronRight, User, Plus, FileEdit,
   X, Save, CheckCircle2, AlertTriangle, Clock, Search, Stethoscope, UserX,
+  UserPlus,
 } from "lucide-react";
+import {
+  useEhrStore,
+  useAllAppointments,
+  useAllPatients,
+  type EhrAppointment,
+  type EhrAppointmentStatus,
+} from "../../store/ehrStore";
+import { SEED_PATIENTS } from "../../store/patientStore";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
-export interface Appointment {
-  id: string;
-  patientName: string;
-  date: string; // ISO date string (YYYY-MM-DD)
-  time: string; // HH:MM
-  type: string;
-  duration: number; // minutes
-  notes: string;
-  status: "scheduled" | "in-progress" | "completed" | "cancelled" | "no-show";
-  /** Optional provider assigned to the visit (rendered as initials + name). */
-  provider?: string;
-  isNewPatient?: boolean;
-}
+/** Appointment shape is owned by the central store (kept as an alias here). */
+export type Appointment = EhrAppointment;
 
 export type ViewMode = "month" | "week" | "day";
 
 // ─── Placeholder Data ───────────────────────────────────────────────
 
-export const PLACEHOLDER_APPOINTMENTS: Appointment[] = [
+/**
+ * Demo schedule rows — read-only seed data (Phase 0, section 2). They are
+ * registered with the store and never persisted; a student's own appointment
+ * with the same id wins on merge.
+ */
+const SEED_ROWS: Omit<Appointment, "patientId" | "isSeed">[] = [
   { id: "apt-1", patientName: "Emily Chen", date: "2026-07-02", time: "08:00", type: "Follow-up", duration: 30, notes: "", status: "completed", provider: "Dr. Sarah Lee" },
   { id: "apt-2", patientName: "Robert Johnson", date: "2026-07-02", time: "09:00", type: "COPD Check", duration: 30, notes: "", status: "in-progress", provider: "Dr. Michael Ross" },
   { id: "apt-3", patientName: "Maria Garcia", date: "2026-07-02", time: "09:30", type: "Prenatal 32wk", duration: 45, notes: "", status: "scheduled", provider: "Dr. Sarah Lee" },
@@ -54,6 +57,22 @@ export const PLACEHOLDER_APPOINTMENTS: Appointment[] = [
   { id: "apt-11", patientName: "Priya Sharma", date: "2026-07-05", time: "14:00", type: "Lab Results", duration: 30, notes: "", status: "no-show", provider: "Dr. Sarah Lee" },
   { id: "apt-12", patientName: "Carlos Rodriguez", date: "2026-07-07", time: "11:00", type: "Diabetes Check", duration: 45, notes: "", status: "scheduled", provider: "Dr. Michael Ross" },
 ];
+
+/** Link a demo row to a built-in patient when the names match. */
+function seedPatientId(name: string): string | null {
+  const match = SEED_PATIENTS.find(
+    (p) => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase(),
+  );
+  return match ? match.id : null;
+}
+
+export const PLACEHOLDER_APPOINTMENTS: Appointment[] = SEED_ROWS.map((row) => ({
+  ...row,
+  patientId: seedPatientId(row.patientName),
+  isSeed: true,
+}));
+
+useEhrStore.getState().registerSeedAppointments(PLACEHOLDER_APPOINTMENTS);
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -102,30 +121,42 @@ const STATUS_META: Record<Appointment["status"], { label: string; badge: string;
 // ─── Component ──────────────────────────────────────────────────────
 
 interface DailyScheduleProps {
-  onSelectPatient?: (name: string) => void;
-  appointments?: Appointment[];
-  setAppointments?: React.Dispatch<React.SetStateAction<Appointment[]>>;
+  /** Fired by "Start Visit" — the appointment's linked patient. */
+  onSelectPatient?: (patientId: string | null, patientName: string) => void;
   onDateChange?: (date: string) => void;
 }
 
-export function DailySchedule({ onSelectPatient, appointments: externalAppointments, setAppointments: setExternalAppointments, onDateChange }: DailyScheduleProps) {
+export function DailySchedule({ onSelectPatient, onDateChange }: DailyScheduleProps) {
   const today = new Date();
   const reduceMotion = useReducedMotion();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [selectedDate, setSelectedDate] = useState(formatDateString(today.getFullYear(), today.getMonth(), today.getDate()));
-  const [localAppointments, setLocalAppointments] = useState<Appointment[]>(PLACEHOLDER_APPOINTMENTS);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Use lifted state if provided, otherwise use local
-  const appointments = externalAppointments ?? localAppointments;
-  const setAppointments = setExternalAppointments ?? setLocalAppointments;
+  // ── Store-backed data (Phase 0) ─────────────────────────────────
+  // Patients and appointments come from the central persisted store, merged
+  // seed + user. Nothing here keeps its own copy of either list.
+  const appointments = useAllAppointments();
+  const patients = useAllPatients();
+  const createAppointment = useEhrStore((s) => s.createAppointment);
+  const updateAppointment = useEhrStore((s) => s.updateAppointment);
+  const setAppointmentStatus = useEhrStore((s) => s.setAppointmentStatus);
+  const registerPatient = useEhrStore((s) => s.registerPatient);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [editAppointment, setEditAppointment] = useState<Appointment | null>(null);
-  const [modalPatientName, setModalPatientName] = useState("");
+  // Patient picker: search an existing patient, or register a new one inline.
+  const [modalPatientId, setModalPatientId] = useState<string | null>(null);
+  const [patientQuery, setPatientQuery] = useState("");
+  const [showRegister, setShowRegister] = useState(false);
+  const [newFirst, setNewFirst] = useState("");
+  const [newLast, setNewLast] = useState("");
+  const [newDob, setNewDob] = useState("");
+  const [newSex, setNewSex] = useState("Female");
+  const [newPhone, setNewPhone] = useState("");
   const [modalType, setModalType] = useState("Follow-up");
   const [modalTime, setModalTime] = useState("09:00");
   const [modalDuration, setModalDuration] = useState(30);
@@ -181,7 +212,14 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
   // Open new appointment modal
   const openNewAppointment = (dateStr?: string) => {
     setEditAppointment(null);
-    setModalPatientName("");
+    setModalPatientId(null);
+    setPatientQuery("");
+    setShowRegister(false);
+    setNewFirst("");
+    setNewLast("");
+    setNewDob("");
+    setNewSex("Female");
+    setNewPhone("");
     setModalType("Follow-up");
     setModalTime("09:00");
     setModalDuration(30);
@@ -195,7 +233,9 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
   // Open edit modal
   const openEditAppointment = (apt: Appointment) => {
     setEditAppointment(apt);
-    setModalPatientName(apt.patientName);
+    setModalPatientId(apt.patientId);
+    setPatientQuery(apt.patientName);
+    setShowRegister(false);
     setModalType(apt.type);
     setModalTime(apt.time);
     setModalDuration(apt.duration);
@@ -206,40 +246,90 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
     setShowModal(true);
   };
 
-  // Save appointment (create or update)
+  // Search existing patient by name, MRN or DOB (section 3)
+  const patientMatches = useMemo(() => {
+    const q = patientQuery.trim().toLowerCase();
+    if (!q) return [];
+    return patients
+      .filter((p) => {
+        const name = `${p.firstName} ${p.lastName}`.toLowerCase();
+        return (
+          name.includes(q) ||
+          p.mrn.toLowerCase().includes(q) ||
+          (p.dateOfBirth ?? "").includes(q)
+        );
+      })
+      .slice(0, 6);
+  }, [patients, patientQuery]);
+
+  const selectedPatient = modalPatientId
+    ? patients.find((p) => p.id === modalPatientId)
+    : undefined;
+
+  const canRegister = newFirst.trim().length > 0 && newLast.trim().length > 0;
+  const canSave = editAppointment
+    ? true
+    : Boolean(modalPatientId) || (showRegister && canRegister);
+
+  // Save appointment — registering the patient inline when there is no match.
   const saveAppointment = () => {
-    if (!modalPatientName.trim()) return;
+    if (!canSave) return;
+    let patientId = modalPatientId;
+    let patientName = selectedPatient
+      ? `${selectedPatient.firstName} ${selectedPatient.lastName}`
+      : patientQuery.trim();
+
+    if (!editAppointment && !patientId) {
+      if (!canRegister) return;
+      const created = registerPatient({
+        firstName: newFirst,
+        lastName: newLast,
+        dateOfBirth: newDob || undefined,
+        sex: newSex,
+        phone: newPhone || undefined,
+      });
+      patientId = created.id;
+      patientName = `${created.firstName} ${created.lastName}`;
+    }
+
+    const isNewPatient = !appointments.some((a) => a.patientId === patientId);
+
     if (editAppointment) {
-      setAppointments((prev) =>
-        prev.map((a) =>
-          a.id === editAppointment.id
-            ? { ...a, patientName: modalPatientName, type: modalType, time: modalTime, duration: modalDuration, notes: modalNotes, date: modalDate, provider: modalProvider.trim() || undefined, status: modalStatus }
-            : a
-        )
-      );
+      updateAppointment(editAppointment.id, {
+        patientName,
+        type: modalType,
+        time: modalTime,
+        duration: modalDuration,
+        notes: modalNotes,
+        date: modalDate,
+        provider: modalProvider.trim() || undefined,
+        status: modalStatus,
+      });
     } else {
-      const newApt: Appointment = {
-        id: `apt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        patientName: modalPatientName,
+      createAppointment({
+        patientId,
+        patientName,
         date: modalDate,
         time: modalTime,
         type: modalType,
         duration: modalDuration,
         notes: modalNotes,
-        status: modalStatus,
         provider: modalProvider.trim() || undefined,
-        isNewPatient: !appointments.some((a) => a.patientName.toLowerCase() === modalPatientName.toLowerCase()),
-      };
-      setAppointments((prev) => [...prev, newApt]);
+        status: modalStatus,
+        isNewPatient,
+      });
     }
     setShowModal(false);
   };
 
+  // Status change — writes straight to the store (a seed row becomes a user row).
+  const changeStatus = (id: string, status: EhrAppointmentStatus) => {
+    setAppointmentStatus(id, status);
+  };
+
   // Start visit for a patient
-  const startVisit = (name: string) => {
-    if (onSelectPatient) {
-      onSelectPatient(name);
-    }
+  const startVisit = (apt: Appointment) => {
+    onSelectPatient?.(apt.patientId, apt.patientName);
   };
 
   // Calendar days
@@ -575,7 +665,7 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
                     )}
                     <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-slate-200/60 pt-2">
                       <button
-                        onClick={() => startVisit(apt.patientName)}
+                        onClick={() => startVisit(apt)}
                         className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-blue-500"
                       >
                         <User className="h-3 w-3" /> Start Visit
@@ -588,7 +678,7 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
                       </button>
                       {apt.status === "scheduled" && (
                         <button
-                          onClick={() => setAppointments((prev) => prev.map((a) => a.id === apt.id ? { ...a, status: "in-progress" as const } : a))}
+                          onClick={() => changeStatus(apt.id, "in-progress")}
                           className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-100"
                         >
                           Check In
@@ -596,7 +686,7 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
                       )}
                       {apt.status === "in-progress" && (
                         <button
-                          onClick={() => setAppointments((prev) => prev.map((a) => a.id === apt.id ? { ...a, status: "completed" as const } : a))}
+                          onClick={() => changeStatus(apt.id, "completed")}
                           className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-emerald-400"
                         >
                           <CheckCircle2 className="h-3 w-3" /> Complete
@@ -605,13 +695,13 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
                       {(apt.status === "scheduled" || apt.status === "in-progress") && (
                         <>
                           <button
-                            onClick={() => setAppointments((prev) => prev.map((a) => a.id === apt.id ? { ...a, status: "no-show" as const } : a))}
+                            onClick={() => changeStatus(apt.id, "no-show")}
                             className="flex items-center gap-1 rounded-lg bg-orange-50 px-2.5 py-1 text-[10px] font-medium text-orange-700 transition-colors hover:bg-orange-100"
                           >
                             <UserX className="h-3 w-3" /> No-Show
                           </button>
                           <button
-                            onClick={() => setAppointments((prev) => prev.map((a) => a.id === apt.id ? { ...a, status: "cancelled" as const } : a))}
+                            onClick={() => changeStatus(apt.id, "cancelled")}
                             className="flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1 text-[10px] font-medium text-rose-600 transition-colors hover:bg-rose-100"
                           >
                             <X className="h-3 w-3" /> Cancel
@@ -650,20 +740,139 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
               </button>
             </div>
             <div className="space-y-3 p-4">
+              {/* ── Patient: search existing, or register new inline (section 3) ── */}
               <div>
-                <label className="mb-1 block text-[10px] font-medium text-slate-500">Patient Name</label>
-                <input
-                  type="text"
-                  value={modalPatientName}
-                  onChange={(e) => setModalPatientName(e.target.value)}
-                  placeholder="Enter patient name..."
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none transition-colors focus:border-blue-400"
-                  autoFocus
-                />
-                {!appointments.some((a) => a.patientName.toLowerCase() === modalPatientName.toLowerCase()) && modalPatientName.trim().length > 0 && (
-                  <p className="mt-1 text-[9px] text-amber-600">
-                    <AlertTriangle className="mr-0.5 inline h-2.5 w-2.5" /> New patient (not in existing database)
-                  </p>
+                <label className="mb-1 block text-[10px] font-medium text-slate-500">
+                  Patient — search by name, MRN or DOB
+                </label>
+                {selectedPatient && !showRegister ? (
+                  <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-slate-800">
+                        {selectedPatient.firstName} {selectedPatient.lastName}
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        {selectedPatient.mrn}
+                        {selectedPatient.dateOfBirth ? ` · DOB ${selectedPatient.dateOfBirth}` : ""}
+                        {selectedPatient.isSeed ? " · demo patient" : " · registered by you"}
+                      </p>
+                    </div>
+                    {!editAppointment && (
+                      <button
+                        onClick={() => {
+                          setModalPatientId(null);
+                          setPatientQuery("");
+                        }}
+                        className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-medium text-slate-500 hover:bg-white"
+                      >
+                        Change
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={patientQuery}
+                        onChange={(e) => {
+                          setPatientQuery(e.target.value);
+                          setModalPatientId(null);
+                          setShowRegister(false);
+                        }}
+                        placeholder="Search existing patient..."
+                        className="w-full rounded-xl border border-slate-200 py-2 pl-8 pr-2 text-xs outline-none transition-colors focus:border-blue-400"
+                        autoFocus
+                      />
+                    </div>
+
+                    {patientMatches.length > 0 && (
+                      <ul className="mt-1 max-h-32 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+                        {patientMatches.map((p) => (
+                          <li key={p.id}>
+                            <button
+                              onClick={() => {
+                                setModalPatientId(p.id);
+                                setPatientQuery(`${p.firstName} ${p.lastName}`);
+                                setShowRegister(false);
+                              }}
+                              className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-[11px] hover:bg-blue-50"
+                            >
+                              <span className="truncate font-medium text-slate-700">
+                                {p.firstName} {p.lastName}
+                              </span>
+                              <span className="shrink-0 text-[10px] text-slate-400">
+                                {p.mrn} · {p.dateOfBirth}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {patientQuery.trim().length > 0 && patientMatches.length === 0 && (
+                      <p className="mt-1 text-[10px] text-amber-600">
+                        <AlertTriangle className="mr-0.5 inline h-2.5 w-2.5" />
+                        No match — register this patient below.
+                      </p>
+                    )}
+
+                    {!showRegister ? (
+                      <button
+                        onClick={() => {
+                          setShowRegister(true);
+                          const [first, ...rest] = patientQuery.trim().split(/\s+/);
+                          setNewFirst(first ?? "");
+                          setNewLast(rest.join(" "));
+                        }}
+                        className="mt-1.5 flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-100"
+                      >
+                        <UserPlus className="h-3 w-3" /> Register new patient
+                      </button>
+                    ) : (
+                      <div className="mt-1.5 space-y-2 rounded-xl border border-blue-200 bg-blue-50/40 p-2.5">
+                        <p className="text-[10px] font-semibold text-blue-700">
+                          Register new patient — an MRN is assigned automatically
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            value={newFirst}
+                            onChange={(e) => setNewFirst(e.target.value)}
+                            placeholder="First name"
+                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-blue-400"
+                          />
+                          <input
+                            value={newLast}
+                            onChange={(e) => setNewLast(e.target.value)}
+                            placeholder="Last name"
+                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-blue-400"
+                          />
+                          <input
+                            type="date"
+                            value={newDob}
+                            onChange={(e) => setNewDob(e.target.value)}
+                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-blue-400"
+                          />
+                          <select
+                            value={newSex}
+                            onChange={(e) => setNewSex(e.target.value)}
+                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-blue-400"
+                          >
+                            {["Female", "Male", "Other", "Unknown"].map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <input
+                          value={newPhone}
+                          onChange={(e) => setNewPhone(e.target.value)}
+                          placeholder="Phone (optional)"
+                          className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-blue-400"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -756,7 +965,7 @@ export function DailySchedule({ onSelectPatient, appointments: externalAppointme
               </button>
               <button
                 onClick={saveAppointment}
-                disabled={!modalPatientName.trim()}
+                disabled={!canSave}
                 className="flex items-center gap-1 rounded-xl bg-blue-600 px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Save className="h-3 w-3" />

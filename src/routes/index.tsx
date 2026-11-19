@@ -43,7 +43,7 @@ import {
 import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
 import { isLoggedIn, getLoggedInPhone } from "../store/accessStore";
-import { loadUserData, saveUserData, syncUserDataFromSupabase } from "../store/persistence";
+import { useAllAppointments } from "../store/ehrStore";
 import { checkSessionExpired, clearSession, setSessionStart } from "../store/accessStore";
 import { isSessionSuperseded } from "../store/accountSecurity";
 import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
@@ -65,7 +65,7 @@ import {
   WorkspacePanel,
   useWorkspaceTabs,
 } from "../components/TabsEpic/WorkspaceTabs";
-import { DailySchedule, type Appointment, PLACEHOLDER_APPOINTMENTS } from "../components/TabsEpic/DailySchedule";
+import { DailySchedule } from "../components/TabsEpic/DailySchedule";
 import { InBasket } from "../components/TabsEpic/InBasket";
 import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
 import { ChartSearch } from "../components/TabsEpic/ChartSearch";
@@ -1393,42 +1393,18 @@ function Home() {
   const [sharedOrders, setSharedOrders] = useState<OrderEntry[]>(SEED_ORDERS);
   const [sharedImaging, setSharedImaging] = useState<ImagingEntry[]>(SEED_IMAGING);
 
-  // Lifted appointments state for persistence across tab switches (Bug 2 fix)
-  const [appointments, setAppointments] = useState<Appointment[]>(PLACEHOLDER_APPOINTMENTS);
+  // ── Phase 0: patients and appointments come from the central store ──
+  // No component-state copy of either list, so a refresh, a role switch or a
+  // log-out/log-in cannot lose a registered patient or their appointment.
+  const appointments = useAllAppointments();
 
-  // Per-user appointment persistence (localStorage keyed by phone + optional Supabase).
-  useEffect(() => {
-    const phone = getLoggedInPhone();
-    if (!phone) return;
-    const local = loadUserData(phone);
-    if (local?.appointments) {
-      setAppointments(local.appointments);
-    } else if (!local) {
-      // First visit for this student — seed from placeholders so the board isn't empty.
-      setAppointments(PLACEHOLDER_APPOINTMENTS);
-    }
-    void syncUserDataFromSupabase(phone).then((remote) => {
-      if (remote?.appointments && (remote.updatedAt || "") > (local?.updatedAt || "")) {
-        setAppointments(remote.appointments);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useEffect(() => {
-    const phone = getLoggedInPhone();
-    if (!phone) return;
-    const t = setTimeout(() => saveUserData(phone, { appointments }), 400);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appointments]);
   const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const hasToday = PLACEHOLDER_APPOINTMENTS.some(a => a.date === today);
-    if (hasToday) return today;
-    // Default to first date in appointments that has entries
-    const dates = [...new Set(PLACEHOLDER_APPOINTMENTS.map(a => a.date))].sort();
+    if (appointments.some((a) => a.date === today)) return today;
+    const dates = [...new Set(appointments.map((a) => a.date))].sort();
     return dates[0] || today;
   });
+
   // Override display name for right panel header when showing placeholder patient (e.g. new appointment)
   const [displayName, setDisplayName] = useState<string | undefined>(undefined);
 
@@ -1775,7 +1751,7 @@ function Home() {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={(() => { const filtered = patients.filter(p => appointments.some(a => a.date === selectedScheduleDate && a.patientName.toLowerCase().includes(p.firstName.toLowerCase()) && a.patientName.toLowerCase().includes(p.lastName.toLowerCase()))); const demo = patients.find(p => p.id === "DEMO"); const result = filtered.length > 0 ? filtered : patients; if (demo && !result.some(p => p.id === "DEMO")) result.unshift(demo); return result; })()} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
+            <WorklistPanel patients={(() => { const filtered = patients.filter(p => appointments.some(a => a.date === selectedScheduleDate && (a.patientId === p.id || (a.patientName.toLowerCase().includes(p.firstName.toLowerCase()) && a.patientName.toLowerCase().includes(p.lastName.toLowerCase()))))); const demo = patients.find(p => p.id === "DEMO"); const result = filtered.length > 0 ? filtered : patients; if (demo && !result.some(p => p.id === "DEMO")) result.unshift(demo); return result; })()} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
@@ -1887,20 +1863,23 @@ function Home() {
             {/* ─── Daily Schedule ─── */}
             <WorkspacePanel id="schedule" activeWorkspace={activeWorkspace}>
               <DailySchedule
-                appointments={appointments}
-                setAppointments={setAppointments}
                 onDateChange={setSelectedScheduleDate}
-                onSelectPatient={(name) => {
+                onSelectPatient={(patientId, name) => {
                   saveCurrentSession();
-                  // Try exact match first, then fuzzy (case-insensitive partial)
-                  let match = patients.find(p => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase());
+                  // Linked patient first (Phase 0), then fuzzy name for legacy rows.
+                  let match = patientId ? patients.find((p) => p.id === patientId) : undefined;
+                  if (!match) {
+                    match = patients.find(p => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase());
+                  }
                   if (!match) {
                     match = patients.find(p =>
                       `${p.firstName} ${p.lastName}`.toLowerCase().includes(name.toLowerCase()) ||
                       name.toLowerCase().includes(`${p.firstName} ${p.lastName}`.toLowerCase())
                     );
                   }
-                  const apt = appointments.find(a => a.patientName.toLowerCase() === name.toLowerCase());
+                  const apt = appointments.find(a =>
+                    (patientId && a.patientId === patientId) ||
+                    a.patientName.toLowerCase() === name.toLowerCase());
 
                   if (match) {
                     setSelectedPatientId(match.id);

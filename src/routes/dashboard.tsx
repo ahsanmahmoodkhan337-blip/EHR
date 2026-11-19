@@ -135,6 +135,9 @@ function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="hidden text-xs text-slate-500 sm:block">{phone}</span>
+          <Link to="/settings" className="btn-ghost px-3 py-1.5 text-xs">
+            Settings
+          </Link>
           <button
             onClick={() => {
               logout();
