@@ -6,7 +6,7 @@
 // Inspired by: CoverMyMeds + Epic PA Hub
 // ──────────────────────────────────────────────────────────────────────
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Shield,
   ClipboardList,
@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Plus,
   FileDown,
+  X,
 } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
@@ -42,6 +43,7 @@ import {
   PA_TIMELINE_STEPS,
   type ProcedureKey,
   type PAQueueItem,
+  type PADocument,
 } from "./paData";
 import { exportPAFormPDF } from "../../utils/pdfExport";
 import { toast } from "sonner";
@@ -52,6 +54,31 @@ type TabView = "queue" | "insurance" | "form" | "criteria" | "docs" | "step-ther
 const CMM_PRIMARY = "bg-brand-800";
 const CMM_PRIMARY_HOVER = "hover:bg-brand-900";
 const CMM_BORDER = "border-brand-800";
+
+// Document viewer — human labels + icon per document kind (CoverMyMeds attachment preview)
+const DOC_KIND_LABEL: Record<PADocument["kind"], string> = {
+  note: "Clinic note",
+  lab: "Lab report",
+  imaging: "Imaging report",
+  form: "Payer form",
+  letter: "Letter",
+};
+
+const docKindIcon = (kind: PADocument["kind"]) => {
+  const cls = "h-3.5 w-3.5 text-brand-700";
+  switch (kind) {
+    case "lab":
+      return <FlaskConical className={cls} />;
+    case "imaging":
+      return <Search className={cls} />;
+    case "form":
+      return <ClipboardList className={cls} />;
+    case "letter":
+      return <FileCheck className={cls} />;
+    default:
+      return <FileText className={cls} />;
+  }
+};
 
 // Payer-specific requirements
 const PAYER_REQUIREMENTS: Record<string, { label: string; requirements: string[]; turnaroundTime: string }> = {
@@ -125,6 +152,18 @@ export default function PriorAuthPortal() {
 
   // Document attachments state
   const [docAttachments, setDocAttachments] = useState<Record<string, "attached" | "missing">>({});
+  // Document open in the viewer (from the case's documentBundle)
+  const [openDoc, setOpenDoc] = useState<PADocument | null>(null);
+
+  // Close the document viewer on Escape
+  useEffect(() => {
+    if (!openDoc) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenDoc(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openDoc]);
 
   // Queue filter
   const [queueFilter, setQueueFilter] = useState<string>("all");
@@ -1256,37 +1295,51 @@ export default function PriorAuthPortal() {
                     {PA_PROCEDURES[procedure]?.requiredDocs.map((doc, i) => {
                       const docKey = doc.replace(/\s+/g, "-").toLowerCase();
                       const status = docAttachments[docKey] || "missing";
+                      // The real document behind this required-doc row, matched by name
+                      const docRecord = PA_PROCEDURES[procedure]?.documentBundle?.find((d) => d.name === doc);
                       const icons = [
                         <FileText key="ft" className="h-3.5 w-3.5 text-brand-500" />,
-                        <FileCheck key="fc" className="h-3.5 w-3.5 text-green-500" />,
-                        <ClipboardList key="cl" className="h-3.5 w-3.5 text-amber-500" />,
+                        <FileCheck key="fc" className="h-3.5 w-3.5 text-success" />,
+                        <ClipboardList key="cl" className="h-3.5 w-3.5 text-warn" />,
                         <FlaskConical key="fr" className="h-3.5 w-3.5 text-brand-600" />,
                         <Search key="sr" className="h-3.5 w-3.5 text-brand-500" />,
-                        <User key="ur" className="h-3.5 w-3.5 text-slate-500" />,
+                        <User key="ur" className="h-3.5 w-3.5 text-ink-muted" />,
                       ];
                       return (
                         <div
                           key={i}
                           className={`flex items-center gap-2 rounded-lg border p-2.5 transition-colors ${
                             status === "attached"
-                              ? "border-green-200 bg-green-50"
-                              : "border-slate-100 bg-slate-50 hover:border-brand-200"
+                              ? "border-success/40 bg-success/5"
+                              : "border-line bg-canvas hover:border-brand-200"
                           }`}
                         >
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white">
-                            {icons[i % icons.length]}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-[10px] font-medium text-slate-700">{doc}</p>
-                            <p className="text-[9px] text-slate-400">
-                              {status === "attached" ? "✓ Attached" : "Missing — click to attach"}
-                            </p>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => docRecord && setOpenDoc(docRecord)}
+                            disabled={!docRecord}
+                            aria-label={docRecord ? `Open ${doc}` : `${doc} — no document on file`}
+                            className="flex flex-1 items-center gap-2 rounded text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-default"
+                          >
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface">
+                              {icons[i % icons.length]}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-[10px] font-medium text-ink">{doc}</p>
+                              <p className="text-[9px] text-ink-muted">
+                                {status === "attached" ? "✓ Attached" : "Missing"}
+                                {docRecord
+                                  ? ` · ${DOC_KIND_LABEL[docRecord.kind]} · ${docRecord.date} — open to review`
+                                  : " — no document on file"}
+                              </p>
+                            </div>
+                            {docRecord && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-ink-muted" />}
+                          </button>
                           <button
                             onClick={() => toggleDocAttachment(docKey)}
-                            className={`rounded px-2 py-1 text-[9px] font-medium transition-colors ${
+                            className={`shrink-0 rounded px-2 py-1 text-[9px] font-medium transition-colors ${
                               status === "attached"
-                                ? "bg-green-600 text-white hover:bg-green-500"
+                                ? "bg-success text-white hover:bg-success/90"
                                 : "bg-brand-100 text-brand-700 hover:bg-brand-200"
                             }`}
                           >
@@ -1332,6 +1385,113 @@ export default function PriorAuthPortal() {
                     different documentation — check the payer-specific requirements in the e-PA Form tab.
                   </p>
                 </div>
+
+                {/* ── Document viewer: the clinic note / lab / imaging report itself ── */}
+                {openDoc && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-chrome/50 p-4"
+                    onClick={() => setOpenDoc(null)}
+                    role="presentation"
+                  >
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label={openDoc.name}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-xl"
+                    >
+                      <div className="flex items-start gap-3 border-b border-line bg-canvas px-4 py-3">
+                        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50">
+                          {docKindIcon(openDoc.kind)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-brand-700">
+                              {DOC_KIND_LABEL[openDoc.kind]}
+                            </span>
+                            {openDoc.required && (
+                              <span className="rounded-full bg-danger/10 px-2 py-0.5 text-[9px] font-medium text-danger">
+                                Required
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm font-semibold text-ink">{openDoc.name}</p>
+                          <p className="mt-0.5 text-[10px] text-ink-muted">
+                            {openDoc.date} · {openDoc.author}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setOpenDoc(null)}
+                          aria-label="Close document"
+                          className="rounded p-1 text-ink-muted transition-colors hover:bg-surface hover:text-ink"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+                        <div className="rounded-lg border border-brand-100 bg-brand-50 p-2.5">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-brand-700">Summary</p>
+                          <p className="mt-1 text-[11px] leading-relaxed text-ink">{openDoc.summary}</p>
+                        </div>
+
+                        {(openDoc.sections ?? []).map((section, si) => (
+                          <div key={si} className="rounded-lg border border-line p-2.5">
+                            <p className="text-[10px] font-semibold text-ink">{section.heading}</p>
+                            {section.body && (
+                              <p className="mt-1 whitespace-pre-line text-[11px] leading-relaxed text-ink-muted">
+                                {section.body}
+                              </p>
+                            )}
+                            {section.rows && section.rows.length > 0 && (
+                              <dl className="mt-2 divide-y divide-line">
+                                {section.rows.map((row, ri) => (
+                                  <div key={ri} className="flex items-start justify-between gap-3 py-1.5">
+                                    <dt className="text-[10px] text-ink-muted">{row.label}</dt>
+                                    <dd className="flex items-center gap-1.5 text-right text-[10px] font-medium text-ink">
+                                      <span>{row.value}</span>
+                                      {row.flag && (
+                                        <span
+                                          className={`rounded px-1 py-0.5 text-[8px] font-bold ${
+                                            row.flag === "H"
+                                              ? "bg-danger/10 text-danger"
+                                              : row.flag === "L"
+                                                ? "bg-warn/10 text-warn"
+                                                : "bg-success/10 text-success"
+                                          }`}
+                                        >
+                                          {row.flag}
+                                        </span>
+                                      )}
+                                    </dd>
+                                  </div>
+                                ))}
+                              </dl>
+                            )}
+                          </div>
+                        ))}
+
+                        {(openDoc.sections ?? []).length === 0 && (
+                          <p className="text-[10px] text-ink-muted">No sections on file for this document.</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 border-t border-line bg-canvas px-4 py-2.5">
+                        <p className="text-[9px] text-ink-muted">
+                          Fictional teaching document — not a real patient record.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setOpenDoc(null)}
+                          className="rounded-lg bg-brand-600 px-3 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-brand-700"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
