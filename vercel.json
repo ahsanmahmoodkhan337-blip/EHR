@@ -3,6 +3,8 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "rewrites": [
+    { "source": "/welcome", "destination": "/welcome/index.html" },
+    { "source": "/welcome/", "destination": "/welcome/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
