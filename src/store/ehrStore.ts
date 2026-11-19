@@ -18,10 +18,16 @@
  *     localStorage fallback when IndexedDB is unavailable (section 1);
  *   - auto-MRN allocation `HH-000123` (zero-padded, monotonic, never reused)
  *     used by New Appointment → search-or-register (section 3);
- *   - reset / export / import of all user data (section 6).
+ *   - reset / export / import of all user data (section 6);
+ *   - the **working context** — last patient, open encounter, role, chart tab
+ *     and workspace tab — restored on the next load (section 4);
+ *   - **note drafts**, one per patient, written by autosave rather than by a
+ *     Save button (section 5);
+ *   - the **activity log**: every create, edit and delete of a patient,
+ *     appointment or note is recorded with time, role, user, patientId,
+ *     entity, action and a before/after digest (section 7).
  *
- * Deliberately NOT in this slice: Supabase sync, working-context restore,
- * note autosave and the full activity-log wiring (spec sections 4, 5, 7).
+ * Deliberately NOT in this slice: Supabase sync.
  */
 
 import { useMemo } from "react";
@@ -160,6 +166,46 @@ export interface ActivityEntry {
   after?: unknown;
 }
 
+/**
+ * Where the student left off (section 4). Persisted with the rest of their
+ * data so a refresh, a role switch or a log-out/log-in reopens the same
+ * patient, encounter, role and tab instead of dropping them on the schedule.
+ */
+export interface WorkingContext {
+  patientId: string | null;
+  /** Open encounter for that patient, when one exists yet. */
+  encounterId: string | null;
+  /** Pipeline role: scribe | coder | biller | prior-auth | ar-voice. */
+  role: string;
+  /** Chart tab (TabsEpic). */
+  tab: string;
+  /** Workspace tab: schedule | chart | inbasket | note. */
+  workspace: string;
+  updatedAt: string;
+}
+
+/** The fields of a progress note — the shape the scribe screens edit. */
+export interface NoteFields {
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+}
+
+/**
+ * An unsigned progress-note draft (section 5), one per patient. Written by the
+ * autosave in `routes/index.tsx` every 5 s and on blur — nothing depends on the
+ * student pressing Save. `savedAt` drives the "Saved 12:04 PM" indicator.
+ */
+export interface NoteDraft {
+  patientId: string;
+  encounterId: string | null;
+  fields: NoteFields;
+  status: "Draft" | "Signed";
+  savedAt: string;
+  updatedAt: string;
+}
+
 /** Everything that belongs to the student (persisted, exportable, resettable). */
 export interface UserData {
   patients: Patient[];
@@ -173,6 +219,10 @@ export interface UserData {
   tasks: EhrTask[];
   activity: ActivityEntry[];
   caseStates: Record<string, CaseState>;
+  /** Section 4 — where the student left off. */
+  context: WorkingContext;
+  /** Section 5 — unsigned note drafts, keyed by patientId. */
+  noteDrafts: Record<string, NoteDraft>;
   /** Opaque dental-track blob absorbed from `hh_dental_track_<phone>`. */
   dental: unknown;
   /** Slices of `hh_userdata_<phone>` this slice does not own yet, kept intact. */
@@ -218,7 +268,9 @@ export interface NewAppointmentInput {
 // ─── Constants ─────────────────────────────────────────────────────
 
 export const APP_ID = "healthcare-hustlers-ehr";
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
+/** Newest activity entries kept — the log is a teaching aid, not an archive. */
+export const MAX_ACTIVITY_ENTRIES = 500;
 const DB_NAME = "healthcare-hustlers";
 const IDB_STORE_NAME = "ehr";
 const IDB_KEY_PREFIX = "hh_ehr_";
@@ -235,6 +287,17 @@ function uid(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function emptyContext(): WorkingContext {
+  return {
+    patientId: null,
+    encounterId: null,
+    role: "scribe",
+    tab: "summary",
+    workspace: "schedule",
+    updatedAt: "",
+  };
+}
+
 function emptyUser(): UserData {
   return {
     patients: [],
@@ -248,10 +311,90 @@ function emptyUser(): UserData {
     tasks: [],
     activity: [],
     caseStates: {},
+    context: emptyContext(),
+    noteDrafts: {},
     dental: null,
     legacy: null,
     mrnSequence: 0,
   };
+}
+
+/** Append an activity entry, keeping only the newest `MAX_ACTIVITY_ENTRIES`. */
+function appendActivity(log: ActivityEntry[], entry: ActivityEntry): ActivityEntry[] {
+  const next = [...log, entry];
+  return next.length > MAX_ACTIVITY_ENTRIES
+    ? next.slice(next.length - MAX_ACTIVITY_ENTRIES)
+    : next;
+}
+
+/**
+ * Compact before/after for a note edit: which sections hold text, plus a short
+ * preview of each. Storing the full note on every autosave would bloat the
+ * student's saved data for no teaching value.
+ */
+export function noteDigest(fields: NoteFields): string {
+  return (Object.keys(fields) as (keyof NoteFields)[])
+    .filter((key) => (fields[key] ?? "").trim().length > 0)
+    .map((key) => `${key}: ${fields[key].trim().replace(/\s+/g, " ").slice(0, 80)}`)
+    .join(" | ");
+}
+
+/** Short before/after summary of an appointment for the activity log. */
+function appointmentDigest(a: EhrAppointment): Record<string, string> {
+  return {
+    patient: a.patientName,
+    date: a.date,
+    time: a.time,
+    type: a.type,
+    status: a.status,
+  };
+}
+
+function sameNoteFields(a: NoteFields, b: NoteFields): boolean {
+  return (
+    a.subjective === b.subjective &&
+    a.objective === b.objective &&
+    a.assessment === b.assessment &&
+    a.plan === b.plan
+  );
+}
+
+function normalizeContext(raw: unknown): WorkingContext {
+  const base = emptyContext();
+  if (!raw || typeof raw !== "object") return base;
+  const r = raw as Record<string, unknown>;
+  return {
+    patientId: typeof r.patientId === "string" ? r.patientId : null,
+    encounterId: typeof r.encounterId === "string" ? r.encounterId : null,
+    role: typeof r.role === "string" && r.role ? r.role : base.role,
+    tab: typeof r.tab === "string" && r.tab ? r.tab : base.tab,
+    workspace: typeof r.workspace === "string" && r.workspace ? r.workspace : base.workspace,
+    updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
+  };
+}
+
+function normalizeNoteDrafts(raw: unknown): Record<string, NoteDraft> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Record<string, NoteDraft> = {};
+  for (const [patientId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== "object") continue;
+    const r = value as Record<string, unknown>;
+    const fields = (r.fields ?? {}) as Record<string, unknown>;
+    out[patientId] = {
+      patientId,
+      encounterId: typeof r.encounterId === "string" ? r.encounterId : null,
+      fields: {
+        subjective: String(fields.subjective ?? ""),
+        objective: String(fields.objective ?? ""),
+        assessment: String(fields.assessment ?? ""),
+        plan: String(fields.plan ?? ""),
+      },
+      status: r.status === "Signed" ? "Signed" : "Draft",
+      savedAt: typeof r.savedAt === "string" ? r.savedAt : "",
+      updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
+    };
+  }
+  return out;
 }
 
 function ageFromDob(dob: string): number {
@@ -336,6 +479,8 @@ function normalizeUser(raw: unknown): UserData {
       r.caseStates && typeof r.caseStates === "object"
         ? (r.caseStates as Record<string, CaseState>)
         : {},
+    context: normalizeContext(r.context),
+    noteDrafts: normalizeNoteDrafts(r.noteDrafts),
     dental: r.dental ?? null,
     legacy:
       r.legacy && typeof r.legacy === "object" ? (r.legacy as Record<string, unknown>) : null,
@@ -374,6 +519,10 @@ export function migrateEnvelope(raw: unknown): EhrEnvelope | null {
       user.legacy = Object.keys(rest).length > 0 ? rest : null;
     }
   }
+
+  // ── v2 → v3 ── `context` (section 4) and `noteDrafts` (section 5) are new.
+  // `normalizeUser` above already defaults both, so a v2 export keeps every
+  // patient, appointment and case file and simply starts with no draft saved.
 
   return {
     app: APP_ID,
@@ -480,6 +629,22 @@ interface EhrState {
   setAppointmentStatus: (id: string, status: EhrAppointmentStatus) => void;
   deleteAppointment: (id: string) => void;
   updateCase: (patientId: string, updater: (current: CaseState) => CaseState) => void;
+
+  // ── Section 4: working context ──
+  setWorkingContext: (patch: Partial<Omit<WorkingContext, "updatedAt">>) => void;
+
+  // ── Section 5: note autosave ──
+  /** Write the patient's draft. No-op when nothing changed. Returns `savedAt`. */
+  saveNoteDraft: (
+    patientId: string,
+    fields: NoteFields,
+    options?: { encounterId?: string | null; status?: NoteDraft["status"] },
+  ) => string | null;
+
+  // ── Section 7: activity log ──
+  logActivity: (
+    entry: Omit<ActivityEntry, "time" | "role" | "user"> & { role?: string },
+  ) => void;
 
   resetUserData: () => Promise<void>;
   exportUserData: () => string;
@@ -588,7 +753,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
         ...s.user,
         patients: [...s.user.patients, patient],
         mrnSequence: seq,
-        activity: [...s.user.activity, entry],
+        activity: appendActivity(s.user.activity, entry),
       },
     }));
     return patient;
@@ -627,7 +792,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
       user: {
         ...s.user,
         appointments: [...s.user.appointments, appointment],
-        activity: [...s.user.activity, entry],
+        activity: appendActivity(s.user.activity, entry),
       },
     }));
     return appointment;
@@ -636,6 +801,9 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
   updateAppointment: (id, patch) => {
     // Upsert: a seed/demo appointment edited by the student becomes a user
     // record, so seed data is never mutated in place (section 2).
+    const before = mergeById(get().seedAppointments, get().user.appointments).find(
+      (a) => a.id === id,
+    );
     set((s) => {
       const now = new Date().toISOString();
       const inUser = s.user.appointments.some((a) => a.id === id);
@@ -654,6 +822,15 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
       const copy: EhrAppointment = { ...base, ...patch, id: base.id, isSeed: false, updatedAt: now };
       return { user: { ...s.user, appointments: [...s.user.appointments, copy] } };
     });
+    if (!before) return;
+    const after = { ...before, ...patch, id: before.id };
+    get().logActivity({
+      patientId: after.patientId,
+      entity: "appointment",
+      action: "update",
+      before: appointmentDigest(before),
+      after: appointmentDigest(after),
+    });
   },
 
   setAppointmentStatus: (id, status) => {
@@ -661,9 +838,82 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
   },
 
   deleteAppointment: (id) => {
+    const before = mergeById(get().seedAppointments, get().user.appointments).find(
+      (a) => a.id === id,
+    );
     set((s) => ({
       user: { ...s.user, appointments: s.user.appointments.filter((a) => a.id !== id) },
     }));
+    if (!before) return;
+    get().logActivity({
+      patientId: before.patientId,
+      entity: "appointment",
+      action: "delete",
+      before: appointmentDigest(before),
+    });
+  },
+
+  setWorkingContext: (patch) => {
+    const current = get().user.context;
+    const unchanged = (Object.keys(patch) as (keyof typeof patch)[]).every(
+      (key) => current[key] === patch[key],
+    );
+    if (unchanged) return;
+    set((s) => ({
+      user: {
+        ...s.user,
+        context: { ...s.user.context, ...patch, updatedAt: new Date().toISOString() },
+      },
+    }));
+  },
+
+  saveNoteDraft: (patientId, fields, options) => {
+    const state = get();
+    const previous = state.user.noteDrafts[patientId];
+    if (previous && sameNoteFields(previous.fields, fields)) return previous.savedAt;
+
+    const now = new Date().toISOString();
+    const draft: NoteDraft = {
+      patientId,
+      encounterId: options?.encounterId ?? previous?.encounterId ?? null,
+      fields: { ...fields },
+      status: options?.status ?? previous?.status ?? "Draft",
+      savedAt: now,
+      updatedAt: now,
+    };
+    const entry: ActivityEntry = {
+      time: now,
+      role: state.user.context.role,
+      user: state.phone ?? "unknown",
+      patientId,
+      entity: "note",
+      action: previous ? "update" : "create",
+      before: previous ? noteDigest(previous.fields) : undefined,
+      after: noteDigest(draft.fields),
+    };
+    set((s) => ({
+      user: {
+        ...s.user,
+        noteDrafts: { ...s.user.noteDrafts, [patientId]: draft },
+        activity: appendActivity(s.user.activity, entry),
+      },
+    }));
+    return now;
+  },
+
+  logActivity: (entry) => {
+    const state = get();
+    const full: ActivityEntry = {
+      time: new Date().toISOString(),
+      role: entry.role ?? state.user.context.role,
+      user: state.phone ?? "unknown",
+      patientId: entry.patientId,
+      entity: entry.entity,
+      action: entry.action,
+      before: entry.before,
+      after: entry.after,
+    };
+    set((s) => ({ user: { ...s.user, activity: appendActivity(s.user.activity, full) } }));
   },
 
   updateCase: (patientId, updater) => {

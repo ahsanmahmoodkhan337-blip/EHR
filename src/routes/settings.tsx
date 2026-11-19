@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Download,
+  History,
   RotateCcw,
   ShieldAlert,
   Upload,
@@ -30,6 +31,7 @@ import {
   bootstrapEhrStore,
   flushEhrStore,
   useEhrStore,
+  type ActivityEntry,
 } from "../store/ehrStore";
 
 export const Route = createFileRoute("/settings")({
@@ -46,6 +48,8 @@ function SettingsPage() {
   const appointments = useEhrStore((s) => s.user.appointments);
   const caseStates = useEhrStore((s) => s.user.caseStates);
   const dental = useEhrStore((s) => s.user.dental);
+  const activity = useEhrStore((s) => s.user.activity);
+  const seedPatients = useEhrStore((s) => s.seedPatients);
   const resetUserData = useEhrStore((s) => s.resetUserData);
   const exportUserData = useEhrStore((s) => s.exportUserData);
   const importUserData = useEhrStore((s) => s.importUserData);
@@ -177,6 +181,42 @@ function SettingsPage() {
           )}
         </section>
 
+        {/* ── Activity log (Phase 0, section 7) ── */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <History className="h-4 w-4 text-brand-600" /> Activity log
+          </h2>
+          <p className="mt-1 text-[11px] text-slate-500">
+            Every patient, appointment and note you create, edit or delete is recorded here — when
+            it happened, in which role, for which patient, and what changed. Newest first.
+          </p>
+          {!hydrated ? (
+            <p className="mt-3 text-xs italic text-slate-400">Loading your saved data…</p>
+          ) : activity.length === 0 ? (
+            <p className="mt-3 text-xs italic text-slate-400">
+              No activity yet. Register a patient or start a note and it appears here.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-slate-100">
+              {[...activity]
+                .reverse()
+                .slice(0, 50)
+                .map((entry, i) => (
+                  <ActivityRow
+                    key={`${entry.time}-${i}`}
+                    entry={entry}
+                    patientName={patientLabel(entry.patientId, patients, seedPatients)}
+                  />
+                ))}
+            </ul>
+          )}
+          {activity.length > 50 && (
+            <p className="mt-2 text-[10px] text-slate-400">
+              Showing the 50 most recent of {activity.length} entries.
+            </p>
+          )}
+        </section>
+
         {/* ── Export / import ── */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
@@ -270,5 +310,67 @@ function Stat({ label, value }: { label: string; value: number | string }) {
       <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</dt>
       <dd className="mt-0.5 text-sm font-bold text-slate-800">{value}</dd>
     </div>
+  );
+}
+
+// ─── Activity log rendering (Phase 0, section 7) ───────────────────
+
+type NamedPatient = { id: string; firstName: string; lastName: string };
+
+function patientLabel(
+  patientId: string | null,
+  patients: NamedPatient[],
+  seedPatients: NamedPatient[],
+): string {
+  if (!patientId) return "no patient";
+  const found = [...patients, ...seedPatients].find((p) => p.id === patientId);
+  return found ? `${found.firstName} ${found.lastName}` : `patient ${patientId.slice(0, 10)}`;
+}
+
+/** One before/after value as plain text — objects become `key: value` pairs. */
+function describeValue(value: unknown): string {
+  if (value === undefined || value === null) return "—";
+  if (typeof value === "string") return value || "—";
+  if (typeof value === "object") {
+    const parts = Object.entries(value as Record<string, unknown>).map(
+      ([key, inner]) => `${key}: ${String(inner)}`,
+    );
+    return parts.length > 0 ? parts.join(", ") : "—";
+  }
+  return String(value);
+}
+
+function ActivityRow({ entry, patientName }: { entry: ActivityEntry; patientName: string }) {
+  const time = new Date(entry.time).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const before = describeValue(entry.before);
+  const after = describeValue(entry.after);
+  return (
+    <li className="py-2" title={`Recorded by ${entry.user}`}>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px]">
+        <span className="font-mono text-[10px] text-slate-400">{time}</span>
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600">
+          {entry.role}
+        </span>
+        <span className="font-medium text-slate-700">
+          {entry.action === "create" ? "Created" : entry.action === "delete" ? "Deleted" : "Edited"}{" "}
+          {entry.entity}
+        </span>
+        <span className="text-slate-400">· {patientName}</span>
+      </div>
+      {(entry.before !== undefined || entry.after !== undefined) && (
+        <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
+          {entry.before !== undefined && (
+            <span className="text-slate-400 line-through decoration-slate-300">{before}</span>
+          )}
+          {entry.before !== undefined && entry.after !== undefined && <span> → </span>}
+          {entry.after !== undefined && <span className="text-slate-600">{after}</span>}
+        </p>
+      )}
+    </li>
   );
 }
