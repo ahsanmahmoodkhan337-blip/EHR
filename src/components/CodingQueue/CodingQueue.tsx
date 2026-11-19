@@ -92,9 +92,9 @@ const E_M_LEVELS = [
 const CONVENTIONS = [
   { title: "Excludes1", desc: "Codes that are mutually exclusive. Both conditions cannot occur together. DO NOT report both.", color: "bg-red-50 border-red-200 text-red-700" },
   { title: "Excludes2", desc: "Codes that represent separate conditions. Both CAN be reported together if both are present.", color: "bg-amber-50 border-amber-200 text-amber-700" },
-  { title: "Code First", desc: "Underlying etiology must be coded first (e.g., code DM first for neuropathy).", color: "bg-blue-50 border-blue-200 text-blue-700" },
-  { title: "Use Additional Code", desc: "The manifestation or complication should be coded with an additional code.", color: "bg-indigo-50 border-indigo-200 text-indigo-700" },
-  { title: "Laterality", desc: "Seventh character extension for side: 1=right, 2=left, 9=unspecified.", color: "bg-purple-50 border-purple-200 text-purple-700" },
+  { title: "Code First", desc: "Underlying etiology must be coded first (e.g., code DM first for neuropathy).", color: "bg-brand-50 border-brand-200 text-brand-700" },
+  { title: "Use Additional Code", desc: "The manifestation or complication should be coded with an additional code.", color: "bg-brand-50 border-brand-200 text-brand-700" },
+  { title: "Laterality", desc: "Seventh character extension for side: 1=right, 2=left, 9=unspecified.", color: "bg-brand-50 border-brand-200 text-brand-700" },
   { title: "Unspecified vs Specified", desc: "Use unspecified codes only when the provider has not documented enough detail.", color: "bg-slate-50 border-slate-200 text-slate-700" },
 ];
 
@@ -342,9 +342,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
       {/* Header */}
       <div className="border-b border-slate-200 bg-white px-4 py-3">
         <div className="flex items-center gap-2">
-          <Code className="h-5 w-5 text-indigo-600" />
+          <Code className="h-5 w-5 text-brand-600" />
           <h2 className="text-sm font-bold text-slate-800">Medical Coding — Enhanced Coding Queue</h2>
-          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700">Stage 2</span>
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 2</span>
         </div>
       </div>
 
@@ -369,7 +369,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                     <>
                       {soapNote?.subjective && (
                         <div className="rounded-lg bg-white p-3 shadow-sm">
-                          <p className="font-medium text-blue-600">Subjective</p>
+                          <p className="font-medium text-brand-600">Subjective</p>
                           <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.subjective}</p>
                         </div>
                       )}
@@ -387,7 +387,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                       )}
                       {soapNote?.plan && (
                         <div className="rounded-lg bg-white p-3 shadow-sm">
-                          <p className="font-medium text-purple-600">Plan</p>
+                          <p className="font-medium text-brand-600">Plan</p>
                           <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.plan}</p>
                         </div>
                       )}
@@ -430,7 +430,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                   }}
                   className={`px-3 py-1.5 text-[10px] font-medium rounded-t-lg transition-colors ${
                     (tab === "icd" && !showConventions) || (tab === "conventions" && showConventions)
-                      ? "bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500"
+                      ? "bg-brand-50 text-brand-700 border-b-2 border-brand-600"
                       : "text-slate-400 hover:text-slate-600"
                   }`}
                 >
@@ -444,9 +444,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
               <>
                 {/* ─── ICD-10 Section with Priority ─── */}
                 <div className="mt-4">
-                  <p className="text-xs font-semibold text-indigo-700 mb-2 flex items-center gap-1">
+                  <p className="text-xs font-semibold text-brand-700 mb-2 flex items-center gap-1">
                     ICD-10-CM Diagnosis Codes
-                    <span className="text-[9px] font-normal text-indigo-400 ml-1">(drag or use arrows to set priority — 1st, 2nd, 3rd)</span>
+                    <span className="text-[9px] font-normal text-brand-500 ml-1">(drag or use arrows to set priority — 1st, 2nd, 3rd)</span>
                   </p>
                   <div className="relative mb-2">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -455,7 +455,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                       value={icdQuery}
                       onChange={(e) => setIcdQuery(e.target.value)}
                       placeholder="Search by code, description, or chapter..."
-                      className="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-xs outline-none focus:border-indigo-400"
+                      className="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-xs outline-none focus:border-brand-500"
                     />
                   </div>
                   {icdQuery && (
@@ -464,10 +464,10 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                         <button
                           key={code.code}
                           onClick={() => addICD(code)}
-                          className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-indigo-50 border-b border-slate-50 last:border-0"
+                          className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-brand-50 border-b border-slate-50 last:border-0"
                         >
                           <div>
-                            <span className="font-mono font-medium text-indigo-600">{code.code}</span>
+                            <span className="font-mono font-medium text-brand-600">{code.code}</span>
                             <span className="ml-2 text-slate-600">{code.description}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
@@ -478,7 +478,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                 setSelectedCodeDetails(code);
                                 setDetailsType("icd10");
                               }}
-                              className="text-indigo-400 hover:text-indigo-600 cursor-pointer"
+                              className="text-brand-500 hover:text-brand-600 cursor-pointer"
                               title="View code details"
                             >
                               <Info className="h-3 w-3" />
@@ -492,21 +492,21 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                   {/* Selected ICD-10 codes with priority indicators + reorder arrows */}
                   <div className="space-y-1.5">
                     {selectedICDs.map((c, idx) => (
-                      <div key={c.code} className="flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50/50 px-2 py-1.5 text-[10px]">
+                      <div key={c.code} className="flex items-center gap-2 rounded-lg border border-brand-100 bg-brand-50/50 px-2 py-1.5 text-[10px]">
                         <div className="flex flex-col gap-0.5">
-                          <button onClick={() => moveICD(idx, "up")} disabled={idx === 0} className={`h-3 w-3 ${idx === 0 ? "text-slate-300" : "text-indigo-500 hover:text-indigo-700"}`}>
+                          <button onClick={() => moveICD(idx, "up")} disabled={idx === 0} className={`h-3 w-3 ${idx === 0 ? "text-slate-300" : "text-brand-600 hover:text-brand-700"}`}>
                             <ArrowUp className="h-3 w-3" />
                           </button>
-                          <button onClick={() => moveICD(idx, "down")} disabled={idx === selectedICDs.length - 1} className={`h-3 w-3 ${idx === selectedICDs.length - 1 ? "text-slate-300" : "text-indigo-500 hover:text-indigo-700"}`}>
+                          <button onClick={() => moveICD(idx, "down")} disabled={idx === selectedICDs.length - 1} className={`h-3 w-3 ${idx === selectedICDs.length - 1 ? "text-slate-300" : "text-brand-600 hover:text-brand-700"}`}>
                             <ArrowDown className="h-3 w-3" />
                           </button>
                         </div>
                         <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold text-white ${
-                          idx === 0 ? "bg-red-400" : idx === 1 ? "bg-amber-400" : "bg-indigo-400"
+                          idx === 0 ? "bg-red-400" : idx === 1 ? "bg-amber-400" : "bg-brand-500"
                         }`}>
                           {idx === 0 ? "1st" : idx === 1 ? "2nd" : `${idx + 1}th`}
                         </span>
-                        <span className="font-mono font-semibold text-indigo-700 shrink-0">{c.code}</span>
+                        <span className="font-mono font-semibold text-brand-700 shrink-0">{c.code}</span>
                         <span className="flex-1 text-slate-600 truncate">{c.description}</span>
                         <button onClick={() => removeICD(c.code)} className="text-red-400 hover:text-red-600 shrink-0">&times;</button>
                       </div>
@@ -519,7 +519,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
 
                 {/* ─── CPT Section with Per-Code Data ─── */}
                 <div className="mt-5">
-                  <p className="text-xs font-semibold text-violet-700 mb-2">CPT Procedure Codes</p>
+                  <p className="text-xs font-semibold text-brand-700 mb-2">CPT Procedure Codes</p>
                   <div className="relative mb-2">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                     <input
@@ -527,7 +527,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                       value={cptQuery}
                       onChange={(e) => setCptQuery(e.target.value)}
                       placeholder="Search by code, description, or category..."
-                      className="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-xs outline-none focus:border-violet-400"
+                      className="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-xs outline-none focus:border-brand-500"
                     />
                   </div>
                   {cptQuery && (
@@ -536,10 +536,10 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                         <button
                           key={code.code}
                           onClick={() => addCPT(code)}
-                          className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-violet-50 border-b border-slate-50 last:border-0"
+                          className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-brand-50 border-b border-slate-50 last:border-0"
                         >
                           <div>
-                            <span className="font-mono font-medium text-violet-600">{code.code}</span>
+                            <span className="font-mono font-medium text-brand-600">{code.code}</span>
                             <span className="ml-2 text-slate-600">{code.description}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
@@ -550,7 +550,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                 setSelectedCodeDetails(code);
                                 setDetailsType("cpt");
                               }}
-                              className="text-violet-400 hover:text-violet-600 cursor-pointer"
+                              className="text-brand-500 hover:text-brand-600 cursor-pointer"
                               title="View code details"
                             >
                               <Info className="h-3 w-3" />
@@ -567,10 +567,10 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                       {selectedCPTs.map((cpt) => {
                         const data = cptDataMap[cpt.code] || getCptData(cpt.code);
                         return (
-                          <div key={cpt.code} className="rounded-lg border border-violet-100 bg-white p-2.5 shadow-sm">
+                          <div key={cpt.code} className="rounded-lg border border-brand-100 bg-white p-2.5 shadow-sm">
                             {/* CPT header row */}
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="font-mono font-semibold text-violet-700 text-xs">{cpt.code}</span>
+                              <span className="font-mono font-semibold text-brand-700 text-xs">{cpt.code}</span>
                               <span className="flex-1 text-[10px] text-slate-600 truncate">{cpt.description}</span>
                               <button onClick={() => removeCPT(cpt.code)} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
                             </div>
@@ -578,7 +578,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                             {/* ICD-10 linking dropdown */}
                             <div className="mb-1.5">
                               <div className="flex items-center gap-1 mb-1">
-                                <Link2 className="h-2.5 w-2.5 text-violet-500" />
+                                <Link2 className="h-2.5 w-2.5 text-brand-600" />
                                 <span className="text-[9px] font-medium text-slate-500">Link to ICD-10 Codes</span>
                               </div>
                               <div className="flex flex-wrap gap-1">
@@ -595,8 +595,8 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                       }))}
                                       className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
                                         isLinked
-                                          ? "bg-indigo-100 text-indigo-700 border border-indigo-200"
-                                          : "bg-slate-50 text-slate-500 border border-slate-200 hover:border-violet-200"
+                                          ? "bg-brand-100 text-brand-700 border border-brand-200"
+                                          : "bg-slate-50 text-slate-500 border border-slate-200 hover:border-brand-200"
                                       }`}
                                     >
                                       {icd.code} {isLinked ? "✓" : ""}
@@ -627,7 +627,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                     updateCptData(cpt.code, d => ({ ...d, modifiers: parsed }));
                                   }}
                                   placeholder="None"
-                                  className="w-full rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-blue-400"
+                                  className="w-full rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-brand-400"
                                 />
                               </div>
                               <div>
@@ -641,12 +641,12 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                   value={data.pos}
                                   onChange={e => updateCptData(cpt.code, d => ({ ...d, pos: e.target.value }))}
                                   placeholder={DEFAULT_POS}
-                                  className="w-full rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-blue-400"
+                                  className="w-full rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-brand-400"
                                 />
                               </div>
                             </div>
                             {isOfficeEM(cpt.code) && data.modifiers.includes("25") && (
-                              <p className="mb-1 text-[8px] text-blue-500">
+                              <p className="mb-1 text-[8px] text-brand-500">
                                 Modifier 25 prefilled — needed when a procedure is billed the same day.
                               </p>
                             )}
@@ -662,7 +662,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                   max="99"
                                   value={data.units}
                                   onChange={e => updateCptData(cpt.code, d => ({ ...d, units: Math.max(1, parseInt(e.target.value) || 1) }))}
-                                  className="w-12 rounded border border-slate-200 px-1.5 py-0.5 text-[9px] outline-none focus:border-violet-400"
+                                  className="w-12 rounded border border-slate-200 px-1.5 py-0.5 text-[9px] outline-none focus:border-brand-500"
                                 />
                               </div>
                               <div className="flex items-center gap-1">
@@ -675,11 +675,11 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                   value={data.charges || ""}
                                   onChange={e => updateCptData(cpt.code, d => ({ ...d, charges: parseFloat(e.target.value) || 0 }))}
                                   placeholder="0.00"
-                                  className="w-20 rounded border border-slate-200 px-1.5 py-0.5 text-[9px] outline-none focus:border-violet-400"
+                                  className="w-20 rounded border border-slate-200 px-1.5 py-0.5 text-[9px] outline-none focus:border-brand-500"
                                 />
                               </div>
                               {data.charges > 0 && (
-                                <span className="text-[9px] text-violet-600 font-medium">
+                                <span className="text-[9px] text-brand-600 font-medium">
                                   = ${(data.charges * data.units).toFixed(2)}
                                 </span>
                               )}
@@ -713,7 +713,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                     {showModifierRef && (
                       <div className="grid gap-3 border-t border-slate-200 p-2.5 md:grid-cols-2">
                         <div>
-                          <p className="mb-1 text-[10px] font-semibold text-blue-700">Modifiers</p>
+                          <p className="mb-1 text-[10px] font-semibold text-brand-700">Modifiers</p>
                           <div className="space-y-1">
                             {MODIFIER_REFERENCE.map(m => (
                               <div key={m.code} className="rounded border border-slate-200 bg-white px-2 py-1">
@@ -725,7 +725,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                           </div>
                         </div>
                         <div>
-                          <p className="mb-1 text-[10px] font-semibold text-emerald-700">Place of Service (POS)</p>
+                          <p className="mb-1 text-[10px] font-semibold text-green-700">Place of Service (POS)</p>
                           <div className="space-y-1">
                             {POS_REFERENCE.map(p => (
                               <div key={p.code} className="rounded border border-slate-200 bg-white px-2 py-1">
@@ -743,10 +743,10 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
 
                 {/* Total Charges Summary */}
                 {selectedCPTs.length > 0 && totalCharges > 0 && (
-                  <div className="mt-3 rounded-lg bg-violet-50 border border-violet-200 p-2.5">
+                  <div className="mt-3 rounded-lg bg-brand-50 border border-brand-200 p-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-violet-700">Total Charges</span>
-                      <span className="text-sm font-bold text-violet-800">${totalCharges.toFixed(2)}</span>
+                      <span className="text-xs font-semibold text-brand-700">Total Charges</span>
+                      <span className="text-sm font-bold text-brand-800">${totalCharges.toFixed(2)}</span>
                     </div>
                   </div>
                 )}
@@ -832,11 +832,11 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                     <div className="relative w-full max-w-lg rounded-xl bg-white shadow-2xl border border-slate-200" onClick={e => e.stopPropagation()}>
                       {/* Header */}
                       <div className={`flex items-center justify-between px-4 py-3 border-b border-slate-200 ${
-                        detailsType === "icd10" ? "bg-indigo-50" : "bg-violet-50"
+                        detailsType === "icd10" ? "bg-brand-50" : "bg-brand-50"
                       }`}>
                         <div className="flex items-center gap-2">
-                          <Activity className={`h-4 w-4 ${detailsType === "icd10" ? "text-indigo-600" : "text-violet-600"}`} />
-                          <span className={`text-xs font-bold ${detailsType === "icd10" ? "text-indigo-700" : "text-violet-700"}`}>
+                          <Activity className={`h-4 w-4 ${detailsType === "icd10" ? "text-brand-600" : "text-brand-600"}`} />
+                          <span className={`text-xs font-bold ${detailsType === "icd10" ? "text-brand-700" : "text-brand-700"}`}>
                             {detailsType === "icd10" ? "ICD-10-CM" : "CPT"} Code Details
                           </span>
                         </div>
@@ -860,7 +860,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                             {selectedCodeDetails.category}
                           </span>
                           {"rvu" in selectedCodeDetails && (
-                            <span className="rounded bg-blue-100 px-2 py-1 text-[10px] font-medium text-blue-700">
+                            <span className="rounded bg-brand-100 px-2 py-1 text-[10px] font-medium text-brand-700">
                               RVU: {selectedCodeDetails.rvu}
                             </span>
                           )}
@@ -868,9 +868,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                         {/* Reimbursement Rates */}
                         {"medicareRate" in selectedCodeDetails && selectedCodeDetails.medicareRate !== undefined && (
                           <div className="grid grid-cols-2 gap-2">
-                            <div className="rounded-lg border border-blue-100 bg-blue-50 p-2">
-                              <p className="text-[9px] font-medium text-blue-500">Medicare Rate</p>
-                              <p className="text-sm font-bold text-blue-700">${selectedCodeDetails.medicareRate.toFixed(2)}</p>
+                            <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
+                              <p className="text-[9px] font-medium text-brand-500">Medicare Rate</p>
+                              <p className="text-sm font-bold text-brand-700">${selectedCodeDetails.medicareRate.toFixed(2)}</p>
                             </div>
                             <div className="rounded-lg border border-green-100 bg-green-50 p-2">
                               <p className="text-[9px] font-medium text-green-500">Commercial Rate (est.)</p>
@@ -887,9 +887,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                         )}
                         {/* Guidelines */}
                         {"guidelines" in selectedCodeDetails && selectedCodeDetails.guidelines && selectedCodeDetails.guidelines.length > 0 && (
-                          <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-2">
-                            <p className="text-[9px] font-semibold text-indigo-600 mb-1">📋 Official Guidelines</p>
-                            <ul className="list-disc pl-4 text-[10px] text-indigo-700 space-y-0.5">
+                          <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
+                            <p className="text-[9px] font-semibold text-brand-600 mb-1">📋 Official Guidelines</p>
+                            <ul className="list-disc pl-4 text-[10px] text-brand-700 space-y-0.5">
                               {selectedCodeDetails.guidelines.map((g, i) => <li key={i}>{g}</li>)}
                             </ul>
                           </div>
@@ -908,20 +908,20 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                           </div>
                         )}
                         {"codeFirst" in selectedCodeDetails && selectedCodeDetails.codeFirst && (
-                          <div className="rounded-lg border border-blue-100 bg-blue-50 p-2">
-                            <p className="text-[9px] font-semibold text-blue-600 mb-1">🔝 Code First</p>
-                            <p className="text-[10px] text-blue-700">{selectedCodeDetails.codeFirst}</p>
+                          <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
+                            <p className="text-[9px] font-semibold text-brand-600 mb-1">🔝 Code First</p>
+                            <p className="text-[10px] text-brand-700">{selectedCodeDetails.codeFirst}</p>
                           </div>
                         )}
                         {"useAdditional" in selectedCodeDetails && selectedCodeDetails.useAdditional && selectedCodeDetails.useAdditional.length > 0 && (
-                          <div className="rounded-lg border border-purple-100 bg-purple-50 p-2">
-                            <p className="text-[9px] font-semibold text-purple-600 mb-1">➕ Use Additional Code</p>
-                            <p className="text-[10px] text-purple-700">{selectedCodeDetails.useAdditional.join(", ")}</p>
+                          <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
+                            <p className="text-[9px] font-semibold text-brand-600 mb-1">➕ Use Additional Code</p>
+                            <p className="text-[10px] text-brand-700">{selectedCodeDetails.useAdditional.join(", ")}</p>
                           </div>
                         )}
                         {"laterality" in selectedCodeDetails && selectedCodeDetails.laterality && selectedCodeDetails.laterality !== "none" && (
-                          <div className="rounded-lg border border-blue-100 bg-blue-50 p-2">
-                            <p className="text-[9px] font-semibold text-blue-600 mb-1">🔵 Laterality: {selectedCodeDetails.laterality}</p>
+                          <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
+                            <p className="text-[9px] font-semibold text-brand-600 mb-1">🔵 Laterality: {selectedCodeDetails.laterality}</p>
                           </div>
                         )}
                         {"globalDays" in selectedCodeDetails && selectedCodeDetails.globalDays !== undefined && (
@@ -952,9 +952,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                     <p className="mt-0.5 opacity-80">{c.desc}</p>
                   </div>
                 ))}
-                <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 p-3">
-                  <p className="text-[10px] font-semibold text-blue-700 mb-1"> Coding Tip</p>
-                  <p className="text-[10px] text-blue-600">Always code the definitive diagnosis over symptoms. When a definitive diagnosis is established, do not code the symptom that led to it — unless the symptom is a separate condition.</p>
+                <div className="mt-3 rounded-lg bg-brand-50 border border-brand-200 p-3">
+                  <p className="text-[10px] font-semibold text-brand-700 mb-1"> Coding Tip</p>
+                  <p className="text-[10px] text-brand-600">Always code the definitive diagnosis over symptoms. When a definitive diagnosis is established, do not code the symptom that led to it — unless the symptom is a separate condition.</p>
                 </div>
               </div>
             )}
@@ -980,20 +980,20 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                     <p className="text-[10px] font-medium text-green-700">ICD-10 Codes ({selectedICDs.length})</p>
                     <p className="text-xs text-green-600">{selectedICDs.map(c => c.code).join(", ")}</p>
                   </div>
-                  <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-2">
-                    <p className="text-[10px] font-medium text-indigo-700">CPT Codes ({selectedCPTs.length})</p>
-                    <p className="text-xs text-indigo-600">{selectedCPTs.map(c => c.code).join(", ")}</p>
+                  <div className="rounded-lg bg-brand-50 border border-brand-200 p-2">
+                    <p className="text-[10px] font-medium text-brand-700">CPT Codes ({selectedCPTs.length})</p>
+                    <p className="text-xs text-brand-600">{selectedCPTs.map(c => c.code).join(", ")}</p>
                   </div>
                   {totalCharges > 0 && (
-                    <div className="rounded-lg bg-violet-50 border border-violet-200 p-2">
-                      <p className="text-[10px] font-medium text-violet-700">Total Charges</p>
-                      <p className="text-xs text-violet-600">${totalCharges.toFixed(2)}</p>
+                    <div className="rounded-lg bg-brand-50 border border-brand-200 p-2">
+                      <p className="text-[10px] font-medium text-brand-700">Total Charges</p>
+                      <p className="text-xs text-brand-600">${totalCharges.toFixed(2)}</p>
                     </div>
                   )}
                 </div>
                 <button
                   onClick={() => setRole("biller")}
-                  className="mt-4 flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+                  className="mt-4 flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
                 >
                   <ArrowRight className="h-4 w-4" />
                   Switch to Biller Role
@@ -1003,7 +1003,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
               {selectedICDs.length > 0 && selectedCPTs.length > 0 && (
                 <button
                   onClick={handleSubmitToBilling}
-                  className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
+                  className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-brand-600 transition-colors"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Submit Coded Encounter to Billing ({selectedICDs.length} ICD-10, {selectedCPTs.length} CPT)
@@ -1016,18 +1016,18 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
           {/* ─── Right Sidebar: E/M Calculator ─── */}
           <div className="hidden w-64 border-l border-slate-200 bg-slate-50 p-4 lg:block overflow-y-auto">
             <div className="flex items-center gap-1.5 mb-3">
-              <Info className="h-3.5 w-3.5 text-blue-500" />
+              <Info className="h-3.5 w-3.5 text-brand-500" />
               <span className="text-[10px] font-semibold text-slate-500">E/M Level Calculator</span>
             </div>
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] text-slate-500">Problems Addressed</label>
-                <input type="range" min="1" max="4" value={emProblems} onChange={(e) => setEmProblems(Number(e.target.value))} className="w-full accent-blue-500" />
+                <input type="range" min="1" max="4" value={emProblems} onChange={(e) => setEmProblems(Number(e.target.value))} className="w-full accent-brand-500" />
                 <span className="text-[10px] text-slate-400">{emProblems}</span>
               </div>
               <div>
                 <label className="text-[10px] text-slate-500">Data Reviewed</label>
-                <input type="range" min="1" max="4" value={emData} onChange={(e) => setEmData(Number(e.target.value))} className="w-full accent-blue-500" />
+                <input type="range" min="1" max="4" value={emData} onChange={(e) => setEmData(Number(e.target.value))} className="w-full accent-brand-500" />
                 <span className="text-[10px] text-slate-400">{emData}</span>
               </div>
               <div>
@@ -1040,7 +1040,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
               </div>
               <div className="rounded-lg bg-white p-3 text-center shadow-sm">
                 <p className="text-[10px] text-slate-400">Recommended Code</p>
-                <p className="text-xl font-bold text-blue-600">{emLevel.code}</p>
+                <p className="text-xl font-bold text-brand-600">{emLevel.code}</p>
                 <p className="text-[10px] text-slate-500">{emLevel.name}</p>
               </div>
             </div>
