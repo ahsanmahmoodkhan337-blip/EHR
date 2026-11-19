@@ -11,10 +11,11 @@
  */
 
 import { useState, useMemo } from "react";
-import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertTriangle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, Activity, Star } from "lucide-react";
+import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertTriangle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, Activity, Star, ChevronDown, ChevronRight } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { ICD10_CODES, searchICD10, type ICD10Code } from "./icd10Data";
 import { CPT_CODES, searchCPT, type CPTCode } from "./cptData";
+import { MODIFIER_REFERENCE, POS_REFERENCE } from "./modifierPosData";
 import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
 import { scoreCoder, updateStageScore, getStudentName } from "../../utils/scoring";
 import { type SoapNoteData } from "../WorkflowAthena/AssessmentPlanStage";
@@ -46,20 +47,38 @@ const PA_MEDICATIONS = [
 interface CPTCodeData {
   cpt: CPTCode;
   linkedICDs: string[]; // ICD-10 code strings
-  modifiers: string[];
+  modifiers: string[]; // free-text modifiers, typed by the student
+  pos: string; // free-text place of service
   units: number;
   charges: number;
 }
 
-const MODIFIERS = [
-  { code: "25", description: "Significant, separately identifiable E/M service by same physician on same day" },
-  { code: "59", description: "Distinct procedural service — not normally reported together" },
-  { code: "27", description: "Multiple outpatient hospital encounters on same date" },
-  { code: "50", description: "Bilateral procedure performed on both sides" },
-  { code: "51", description: "Multiple procedures performed at same session" },
-  { code: "52", description: "Reduced services — procedure partially reduced" },
-  { code: "76", description: "Repeat procedure by same physician" },
-];
+// Office/outpatient E/M codes — these prefill modifier 25
+const OFFICE_EM_CODES = new Set([
+  "99202", "99203", "99204", "99205",
+  "99211", "99212", "99213", "99214", "99215",
+]);
+
+const isOfficeEM = (code: string) => OFFICE_EM_CODES.has(code);
+
+const DEFAULT_POS = "11"; // Owner instruction: every new CPT line starts at POS 11 (Office)
+
+// Split a free-text modifiers box ("25, 59") into the stored array
+const parseModifiers = (text: string): string[] =>
+  text
+    .split(",")
+    .map(m => m.trim().toUpperCase())
+    .filter(Boolean);
+
+// Fresh per-line data for a newly added CPT code
+const initialCptData = (cpt: CPTCode): CPTCodeData => ({
+  cpt,
+  linkedICDs: [],
+  modifiers: isOfficeEM(cpt.code) ? ["25"] : [],
+  pos: DEFAULT_POS,
+  units: 1,
+  charges: 0,
+});
 
 const E_M_LEVELS = [
   { code: "99202", name: "New Patient — Low", problems: 1, data: 1, risk: "Low" },
@@ -140,17 +159,16 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
   const icdResults = useMemo(() => searchICD10(icdQuery), [icdQuery]);
   const cptResults = useMemo(() => searchCPT(cptQuery), [cptQuery]);
 
+  // Free-text modifier boxes, keyed by CPT code (so a trailing comma stays typeable)
+  const [modifierText, setModifierText] = useState<Record<string, string>>({});
+  // Collapsible modifier / POS reference panel
+  const [showModifierRef, setShowModifierRef] = useState(false);
+
   // Get or create CPT data for a cpt code
   const getCptData = (code: string): CPTCodeData => {
     if (!cptDataMap[code]) {
       const cpt = selectedCPTs.find(c => c.code === code);
-      cptDataMap[code] = {
-        cpt: cpt!,
-        linkedICDs: [],
-        modifiers: [],
-        units: 1,
-        charges: 0,
-      };
+      cptDataMap[code] = initialCptData(cpt!);
     }
     return cptDataMap[code];
   };
@@ -198,13 +216,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
       // Initialize CPT data
       setCptDataMap(prev => ({
         ...prev,
-        [code.code]: {
-          cpt: code,
-          linkedICDs: [],
-          modifiers: [],
-          units: 1,
-          charges: 0,
-        },
+        [code.code]: initialCptData(code),
       }));
     }
   };
@@ -597,36 +609,47 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                               </div>
                             </div>
 
-                            {/* Inline modifiers */}
-                            <div className="mb-1.5">
-                              <div className="flex items-center gap-1 mb-1">
-                                <span className="text-[9px] font-medium text-slate-500">Modifiers</span>
+                            {/* Free-text modifiers + place of service */}
+                            <div className="mb-1.5 grid grid-cols-3 gap-2">
+                              <div className="col-span-2">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <label htmlFor={`mods-${cpt.code}`} className="text-[9px] font-medium text-slate-500">Modifiers</label>
+                                  <span className="text-[8px] text-slate-400">(comma-separated, e.g. 25, 59)</span>
+                                </div>
+                                <input
+                                  id={`mods-${cpt.code}`}
+                                  type="text"
+                                  value={modifierText[cpt.code] ?? data.modifiers.join(", ")}
+                                  onChange={e => {
+                                    const text = e.target.value;
+                                    setModifierText(prev => ({ ...prev, [cpt.code]: text }));
+                                    const parsed = parseModifiers(text);
+                                    updateCptData(cpt.code, d => ({ ...d, modifiers: parsed }));
+                                  }}
+                                  placeholder="None"
+                                  className="w-full rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-blue-400"
+                                />
                               </div>
-                              <div className="flex flex-wrap gap-1">
-                                {MODIFIERS.map(m => {
-                                  const isActive = data.modifiers.includes(m.code);
-                                  return (
-                                    <button
-                                      key={m.code}
-                                      onClick={() => updateCptData(cpt.code, d => ({
-                                        ...d,
-                                        modifiers: isActive
-                                          ? d.modifiers.filter(c => c !== m.code)
-                                          : [...d.modifiers, m.code],
-                                      }))}
-                                      title={m.description}
-                                      className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
-                                        isActive
-                                          ? "bg-blue-100 text-blue-700 border border-blue-200"
-                                          : "bg-white text-slate-400 border border-slate-200 hover:border-blue-200"
-                                      }`}
-                                    >
-                                      -{m.code}
-                                    </button>
-                                  );
-                                })}
+                              <div>
+                                <div className="flex items-center gap-1 mb-1">
+                                  <label htmlFor={`pos-${cpt.code}`} className="text-[9px] font-medium text-slate-500">POS</label>
+                                  <span className="text-[8px] text-slate-400">(place of service)</span>
+                                </div>
+                                <input
+                                  id={`pos-${cpt.code}`}
+                                  type="text"
+                                  value={data.pos}
+                                  onChange={e => updateCptData(cpt.code, d => ({ ...d, pos: e.target.value }))}
+                                  placeholder={DEFAULT_POS}
+                                  className="w-full rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-blue-400"
+                                />
                               </div>
                             </div>
+                            {isOfficeEM(cpt.code) && data.modifiers.includes("25") && (
+                              <p className="mb-1 text-[8px] text-blue-500">
+                                Modifier 25 prefilled — needed when a procedure is billed the same day.
+                              </p>
+                            )}
 
                             {/* Units & Charges */}
                             <div className="flex items-center gap-3 mt-2">
@@ -669,6 +692,53 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                   {selectedCPTs.length === 0 && (
                     <p className="text-[10px] text-slate-400 italic">No CPT codes selected. Search and add above.</p>
                   )}
+
+                  {/* ─── Collapsible Modifier & POS Reference ─── */}
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50">
+                    <button
+                      onClick={() => setShowModifierRef(v => !v)}
+                      className="flex w-full items-center gap-1.5 px-2.5 py-2 text-left"
+                    >
+                      {showModifierRef ? (
+                        <ChevronDown className="h-3 w-3 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3 text-slate-400" />
+                      )}
+                      <BookOpen className="h-3 w-3 text-slate-500" />
+                      <span className="text-[10px] font-semibold text-slate-600">Modifier &amp; POS Reference</span>
+                      <span className="ml-1 text-[9px] text-slate-400">
+                        {MODIFIER_REFERENCE.length} modifiers · {POS_REFERENCE.length} places of service
+                      </span>
+                    </button>
+                    {showModifierRef && (
+                      <div className="grid gap-3 border-t border-slate-200 p-2.5 md:grid-cols-2">
+                        <div>
+                          <p className="mb-1 text-[10px] font-semibold text-blue-700">Modifiers</p>
+                          <div className="space-y-1">
+                            {MODIFIER_REFERENCE.map(m => (
+                              <div key={m.code} className="rounded border border-slate-200 bg-white px-2 py-1">
+                                <p className="text-[10px] font-mono font-semibold text-slate-700">{m.code}</p>
+                                <p className="text-[9px] text-slate-600">{m.description}</p>
+                                <p className="text-[9px] italic text-slate-400">{m.teachingNote}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-1 text-[10px] font-semibold text-emerald-700">Place of Service (POS)</p>
+                          <div className="space-y-1">
+                            {POS_REFERENCE.map(p => (
+                              <div key={p.code} className="rounded border border-slate-200 bg-white px-2 py-1">
+                                <p className="text-[10px] font-mono font-semibold text-slate-700">{p.code}</p>
+                                <p className="text-[9px] text-slate-600">{p.description}</p>
+                                <p className="text-[9px] italic text-slate-400">{p.teachingNote}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Total Charges Summary */}

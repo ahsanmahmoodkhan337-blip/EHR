@@ -304,12 +304,22 @@ export function BillingLedger() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-500">Place of Service</label>
-                      <select value={posCode} onChange={(e) => setPosCode(e.target.value)} className="w-full rounded border border-slate-200 px-2 py-1.5 text-xs">
-                        {POS_CODES.slice(0, 6).map((p) => (
-                          <option key={p.code} value={p.code}>{p.code} — {p.description}</option>
+                      <label htmlFor="posCodeInput" className="text-[10px] text-slate-500">Place of Service</label>
+                      <input
+                        id="posCodeInput"
+                        type="text"
+                        value={posCode}
+                        onChange={(e) => setPosCode(e.target.value)}
+                        placeholder="11"
+                        className="w-full rounded border border-slate-200 px-2 py-1.5 font-mono text-xs outline-none focus:border-violet-400"
+                      />
+                      <div className="mt-1 flex flex-wrap gap-x-1.5 gap-y-0.5">
+                        {POS_CODES.map((p) => (
+                          <span key={p.code} className="text-[8px] text-slate-400">
+                            <span className="font-mono font-semibold">{p.code}</span> {p.description}
+                          </span>
                         ))}
-                      </select>
+                      </div>
                     </div>
                   </div>
                   <div className="mt-3 text-[10px] text-slate-400">
