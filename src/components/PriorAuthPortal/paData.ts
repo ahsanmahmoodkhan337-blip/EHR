@@ -4,6 +4,10 @@
 // Inspired by: CoverMyMeds + DrChrono PA workflows
 // ──────────────────────────────────────────────────────────────────────
 
+import { PA_DOCUMENT_BUNDLES, type PABundleKey, type PADocument } from "./paDocuments";
+
+export type { PADocument, PADocumentRow, PADocumentSection } from "./paDocuments";
+
 export interface PACriterion {
   id: string;
   text: string;
@@ -24,14 +28,21 @@ export interface PAProcedureData {
   icdRanges: string[];
   criteria: PACriterion[];
   stepTherapy?: PAStepTherapy[];
+  /** Names of the mandatory documents — derived from documentBundle, kept for the attach list UI */
   requiredDocs: string[];
+  /** Openable mock documents (notes, labs, imaging, payer forms) behind each required doc */
+  documentBundle: PADocument[];
   typicalTimeline: string;
   autoAuthThreshold?: number;
   commonDenialReasons: string[];
   letterTemplateSections: string[];
 }
 
-export type ProcedureKey = "mri" | "ct" | "knee-replacement" | "cardiac-cath" | "infusion-therapy" | "sleep-study" | "biologic";
+/** Mandatory document names for a case, derived from its bundle so the two can never drift. */
+const requiredDocsFor = (key: PABundleKey): string[] =>
+  (PA_DOCUMENT_BUNDLES[key] ?? []).filter((d) => d.required).map((d) => d.name);
+
+export type ProcedureKey = PABundleKey;
 
 /** Exact owner-specified PA status flow */
 export const PA_STATUS_FLOW = [
@@ -149,6 +160,49 @@ export const PA_RECORDS: PARecord[] = [
     submissionMethod: "Online Payer Portal", submittedBy: "Dr. Lisa Wong", submittedAt: "2026-05-01T09:00:00Z",
     status: "next-followup", urgency: "routine"
   },
+  // ── Demo records for the three new case types (fictional payers) ──
+  {
+    id: "PA-009", patientName: "Ayesha Malik", procedure: "Medication — GLP-1 (Semaglutide) for Type 2 Diabetes",
+    insuranceName: "Summit Care Advantage", paProcessor: "Summit Pharmacy Review",
+    authStartDate: "2026-10-21", authEndDate: "2027-01-21", nextRefillDate: "2026-11-20",
+    submissionMethod: "Electronic PA", submittedBy: "Dr. Ayesha Siddiqui", submittedAt: "2026-10-14T09:10:00Z",
+    status: "submitted", urgency: "routine", assignedTo: "Pharmacy PA Team"
+  },
+  {
+    id: "PA-010", patientName: "Bilal Ahmed", procedure: "Medication — GLP-1 (Semaglutide) Reauthorization",
+    insuranceName: "Meridian Health Plan", paProcessor: "Meridian Specialty Drug Review",
+    authStartDate: "2026-09-01", authEndDate: "2026-12-01", nextRefillDate: "2026-11-05",
+    submissionMethod: "Online Payer Portal", submittedBy: "Dr. Ayesha Siddiqui", submittedAt: "2026-10-02T14:30:00Z",
+    status: "info-required", urgency: "routine", assignedTo: "Pharmacy PA Team"
+  },
+  {
+    id: "PA-011", patientName: "Hamza Sheikh", procedure: "MRI Brain w/o & w/ Contrast",
+    insuranceName: "Cedar Valley Health", paProcessor: "Cedar Valley Radiology Review",
+    authStartDate: "2026-10-20", authEndDate: "2027-01-20", nextRefillDate: "2026-11-20",
+    submissionMethod: "EHR", submittedBy: "Dr. Imran Qureshi", submittedAt: "2026-10-09T11:45:00Z",
+    status: "in-progress", urgency: "urgent", assignedTo: "Imaging PA Team"
+  },
+  {
+    id: "PA-012", patientName: "Nadia Hussain", procedure: "CT Thorax with Contrast",
+    insuranceName: "Summit Care Advantage", paProcessor: "Summit Imaging Review",
+    authStartDate: "2026-10-16", authEndDate: "2027-01-16", nextRefillDate: "2026-11-16",
+    submissionMethod: "Electronic PA", submittedBy: "Dr. Michael Patel", submittedAt: "2026-10-05T08:20:00Z",
+    status: "approved", urgency: "routine", assignedTo: "Imaging PA Team"
+  },
+  {
+    id: "PA-013", patientName: "Sana Tariq", procedure: "TMS — Treatment-Resistant Depression",
+    insuranceName: "Northbridge Health", paProcessor: "Northbridge Behavioral Health Review",
+    authStartDate: "2026-11-02", authEndDate: "2026-12-14", nextRefillDate: "2026-11-16",
+    submissionMethod: "Fax", submittedBy: "Dr. Nadia Farooq", submittedAt: "2026-10-16T15:05:00Z",
+    status: "pending", urgency: "routine", assignedTo: "Behavioral Health PA Team"
+  },
+  {
+    id: "PA-014", patientName: "Usman Raza", procedure: "TMS — Treatment-Resistant Depression (Appeal)",
+    insuranceName: "Meridian Health Plan", paProcessor: "Meridian Behavioral Health Review",
+    authStartDate: "2026-09-22", authEndDate: "2026-10-20", nextRefillDate: "2026-10-20",
+    submissionMethod: "Online Payer Portal", submittedBy: "Dr. Nadia Farooq", submittedAt: "2026-09-22T10:00:00Z",
+    status: "appeal", urgency: "urgent", assignedTo: "Behavioral Health PA Team"
+  },
 ];
 
 /** Sample PA queue for the dashboard (references PA_RECORDS — defined above) */
@@ -174,7 +228,8 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { id: "mri-4", text: "Focal neurologic deficit on exam", required: false, typicalEvidence: "Sensorimotor exam findings" },
       { id: "mri-5", text: "Failed prior imaging (X-ray / CT inconclusive)", required: false, typicalEvidence: "Prior imaging reports" },
     ],
-    requiredDocs: ["History & Physical (H&P) note", "Progress notes documenting failed conservative therapy", "Prior imaging reports (X-ray / CT)", "Pain assessment scale documentation", "Physical exam findings"],
+    requiredDocs: requiredDocsFor("mri"),
+    documentBundle: PA_DOCUMENT_BUNDLES["mri"],
     typicalTimeline: "5–10 business days",
     autoAuthThreshold: 1500,
     commonDenialReasons: ["CO-50: No prior conservative treatment documented", "CO-180: Pain scale not documented", "CO-119: Non-formulary imaging (prefer CT first)"],
@@ -191,7 +246,8 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { id: "ct-4", text: "Suspected malignancy based on labs or exam", required: false, typicalEvidence: "Lab results, exam findings" },
       { id: "ct-5", text: "Follow-up of known lesion (size/stability check)", required: true, typicalEvidence: "Prior CT report for comparison" },
     ],
-    requiredDocs: ["Ordering physician note with indication", "Prior imaging reports (X-ray, US, or prior CT)", "Relevant lab values (CBC, LFTs, tumor markers)", "Progress notes with symptom duration", "If follow-up: comparison report"],
+    requiredDocs: requiredDocsFor("ct"),
+    documentBundle: PA_DOCUMENT_BUNDLES["ct"],
     typicalTimeline: "3–7 business days",
     commonDenialReasons: ["CO-16: Lack of prior imaging to justify CT", "CO-97: Routine screening without specific indication", "CO-119: Prefer lower-dose imaging (X-ray/US first)"],
     letterTemplateSections: ["Patient demographics and insurance information", "Specific clinical indication for the study", "Prior imaging results and why they are inconclusive", "Signs/symptoms documented (hemoptysis, weight loss, etc.)", "Relevant lab values supporting the need", "Differential diagnosis being investigated"]
@@ -213,7 +269,8 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { step: 2, requirement: "NSAIDs / pain management trial", typicalDuration: "4–8 weeks", alternatives: ["Topical analgesics"] },
       { step: 3, requirement: "Intra-articular steroid or viscosupplementation injection", typicalDuration: "1–3 injections", alternatives: ["Gel injections (Synvisc, Euflexxa)"] },
     ],
-    requiredDocs: ["X-ray report with Kellgren-Lawrence grade", "Surgical clearance from PCP / cardiologist", "PT notes documenting failed conservative therapy", "Injection records (dates, type, response)", "Functional assessment questionnaire (KOOS / WOMAC)", "HbA1c (if diabetic), nicotine screen"],
+    requiredDocs: requiredDocsFor("knee-replacement"),
+    documentBundle: PA_DOCUMENT_BUNDLES["knee-replacement"],
     typicalTimeline: "2–6 weeks (often requires step therapy completion)",
     autoAuthThreshold: 50000,
     commonDenialReasons: ["CO-50: Conservative therapy not documented", "CO-180: BMI criteria not met", "PR-2: Smoking cessation not documented (nicotine-positive)"],
@@ -231,7 +288,8 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { id: "cath-5", text: "Failed medical management (anti-anginal therapy)", required: false, typicalEvidence: "Medication list, cardiology notes" },
       { id: "cath-6", text: "High-risk CAD based on risk calculators (ASCVD >20%)", required: false, typicalEvidence: "Risk assessment in chart" },
     ],
-    requiredDocs: ["Cardiology consultation note", "Stress test report (with METs, Duke treadmill score)", "Echocardiogram report (EF, wall motion)", "ECG showing ischemia or prior MI", "Troponin / cardiac enzyme results", "Medication list (anti-anginal, antiplatelet)", "ASCVD risk score calculation"],
+    requiredDocs: requiredDocsFor("cardiac-cath"),
+    documentBundle: PA_DOCUMENT_BUNDLES["cardiac-cath"],
     typicalTimeline: "3–10 business days (urgent cases expedited)",
     autoAuthThreshold: 30000,
     commonDenialReasons: ["CO-16: Abnormal cardiac imaging not documented", "CO-50: Medical management not attempted first", "CO-119: Prefer CT coronary angiography (non-invasive first)"],
@@ -254,7 +312,8 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { step: 2, requirement: "Trial of steroids (if appropriate for disease)", typicalDuration: "4–8 weeks", alternatives: ["Budesonide (for Crohn's)", "IV methylprednisolone (for MS)"] },
       { step: 3, requirement: "Consider preferred biologic on formulary first (if applicable)", typicalDuration: "N/A — formulary check", alternatives: ["Humira", "Enbrel", "Tysabri"] },
     ],
-    requiredDocs: ["Specialist consultation note (GI, Rheum, Neuro)", "Disease activity scores (DAS28, HBI, EDSS, etc.)", "Treatment history: DMARDs, steroids, other biologics tried", "TB screening (Quantiferon Gold / PPD) with date", "Hepatitis B/C serology", "Infection screen: CBC, LFTs, renal function", "Medication list with dosing history"],
+    requiredDocs: requiredDocsFor("infusion-therapy"),
+    documentBundle: PA_DOCUMENT_BUNDLES["infusion-therapy"],
     typicalTimeline: "7–14 business days (first dose); 3–5 days (reauthorization)",
     commonDenialReasons: ["CO-50: Conventional DMARDs not tried first", "CO-180: Disease activity not documented", "PR-1: TB/HepB screening missing"],
     letterTemplateSections: ["Patient demographics, insurance, and prescribing specialist", "Diagnosis and disease duration", "Previous therapies tried (conventional DMARDs, steroids) and why they failed", "Disease activity scores with dates", "Screening results (TB, HepB, HepC) — negative status confirmed", "Why this specific biologic is indicated (vs. alternatives on formulary)", "Infusion schedule and monitoring plan"]
@@ -270,7 +329,8 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { id: "sleep-4", text: "BMI > 30 with snoring and fatigue", required: false, typicalEvidence: "Anthropometrics, sleep questionnaire" },
       { id: "sleep-5", text: "Hypertension (HTN) resistant to treatment", required: false, typicalEvidence: "BP logs, medication list" },
     ],
-    requiredDocs: ["Sleep history questionnaire (STOP-BANG / Epworth)", "Progress notes documenting sleep symptoms", "BMI / neck circumference measurement", "Bed partner report of apneas (if available)", "BP readings (if HTN present)", "Medication list (especially sedatives, stimulants)"],
+    requiredDocs: requiredDocsFor("sleep-study"),
+    documentBundle: PA_DOCUMENT_BUNDLES["sleep-study"],
     typicalTimeline: "2–4 weeks (home test); 4–8 weeks (in-lab PSG)",
     autoAuthThreshold: 2000,
     commonDenialReasons: ["CO-50: Screening questionnaire not documented", "CO-180: Prefer home sleep test over in-lab study", "CO-119: Mild OSA — lifestyle modification recommended first"],
@@ -292,10 +352,114 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
       { step: 1, requirement: "Trial of topical therapy (for psoriasis) or conventional DMARD (for RA/IBD)", typicalDuration: "3–6 months", alternatives: ["Phototherapy (psoriasis)", "5-ASA (IBD)"] },
       { step: 2, requirement: "Trial of preferred biologic on formulary", typicalDuration: "3–6 months", alternatives: ["Adalimumab biosimilar", "Infliximab"] },
     ],
-    requiredDocs: ["Specialist consultation note", "Diagnostic report (biopsy, imaging, endoscopy)", "Treatment history — all prior therapies with dates and outcomes", "Disease activity scores (PASI, DAS28, CDAI, etc.)", "TB screening (Quantiferon Gold) — negative result", "Hepatitis B/C serology — negative", "Recent labs (CBC, CMP, CRP/ESR)", "Prior authorization history (if reauthorization)"],
+    requiredDocs: requiredDocsFor("biologic"),
+    documentBundle: PA_DOCUMENT_BUNDLES["biologic"],
     typicalTimeline: "7–14 business days (new); 5–7 days (reauthorization)",
     commonDenialReasons: ["CO-50: Step therapy not completed", "CO-180: Disease severity not documented with validated score", "PR-1: TB / HepB screening missing or outdated (>1 year)", "CO-119: Prefer biosimilar over brand biologic"],
     letterTemplateSections: ["Patient demographics, insurance, prescribing specialist", "Confirmed diagnosis with supporting evidence (biopsy, imaging)", "Complete treatment history: topicals → DMARDs → prior biologics", "Disease activity scores (PASI, DAS28, CDAI) with dates", "Screening results: TB negative, HepB/C negative", "Why this biologic is medically necessary (vs. alternatives)", "Monitoring plan (labs, follow-up schedule, infection surveillance)"]
+  },
+  "medication": {
+    label: "Medication PA — GLP-1 (Semaglutide) for Type 2 Diabetes",
+    // Illustrative billing routes: a GLP-1 pen is usually a pharmacy-benefit (NDC) claim.
+    // J3490 (unclassified drug) + 96372 (injection administration) is the medical-benefit
+    // route students will see when the plan requires a buy-and-bill PA instead.
+    cptCodes: ["J3490", "96372"],
+    icdRanges: ["E11.0–E11.9 (Type 2 diabetes mellitus)", "E78.5 (Dyslipidaemia)", "I10 (Essential hypertension)"],
+    criteria: [
+      { id: "med-1", text: "Confirmed type 2 diabetes diagnosis (not type 1, not weight loss alone)", required: true, typicalEvidence: "Problem list, diagnosis code on the order" },
+      { id: "med-2", text: "A1c above goal (>7.0 %, plan may require >7.5 %) documented within 90 days", required: true, typicalEvidence: "Lab report with collection date" },
+      { id: "med-3", text: "Metformin at maximum tolerated dose for ≥3 months", required: true, typicalEvidence: "Medication history with start date and dose" },
+      { id: "med-4", text: "Second glucose-lowering agent trialled and failed or not tolerated", required: true, typicalEvidence: "Sulfonylurea / DPP-4 / SGLT2 trial with dates and reason stopped" },
+      { id: "med-5", text: "eGFR ≥30 mL/min/1.73 m² (renal threshold for GLP-1 therapy)", required: true, typicalEvidence: "Recent renal function panel" },
+      { id: "med-6", text: "No personal/family history of medullary thyroid carcinoma or MEN2", required: true, typicalEvidence: "Attestation on the payer form" },
+      { id: "med-7", text: "No history of pancreatitis or gastroparesis", required: false, typicalEvidence: "Problem list, lipase if indicated" },
+      { id: "med-8", text: "Not pregnant or breastfeeding", required: true, typicalEvidence: "Pregnancy attestation / urine hCG" },
+    ],
+    stepTherapy: [
+      { step: 1, requirement: "Metformin at maximum tolerated dose", typicalDuration: "≥3 months", alternatives: ["Extended-release metformin if immediate-release is not tolerated"] },
+      { step: 2, requirement: "Second agent — sulfonylurea, DPP-4 inhibitor, or SGLT2 inhibitor", typicalDuration: "≥3 months or documented intolerance", alternatives: ["SGLT2 inhibitor (preferred if heart failure or CKD present)"] },
+      { step: 3, requirement: "GLP-1 receptor agonist (formulary-preferred agent first)", typicalDuration: "Titrate over 8–12 weeks", alternatives: ["Tirzepatide (dual agonist) if formulary-preferred", "Basal insulin if A1c >10 % or catabolic features"] },
+    ],
+    requiredDocs: requiredDocsFor("medication"),
+    documentBundle: PA_DOCUMENT_BUNDLES["medication"],
+    typicalTimeline: "2–5 business days (electronic); 1 business day if urgent",
+    autoAuthThreshold: 1200,
+    commonDenialReasons: [
+      "Step therapy not met — metformin trial shorter than 3 months or at a sub-therapeutic dose",
+      "No A1c within the last 90 days (or A1c value not attached)",
+      "Requested for weight loss rather than glycaemic control (off-label for the plan)",
+      "Non-formulary GLP-1 requested without a trial of the preferred agent",
+      "eGFR below 30 mL/min/1.73 m² or dialysis",
+      "Pregnancy attestation missing",
+    ],
+    letterTemplateSections: ["Patient demographics and insurance information", "Diagnosis and A1c trend with dates", "Every prior glucose-lowering agent: dose, dates, outcome, reason stopped", "Renal function and why the renal threshold is met", "Cardiovascular and renal benefit of the requested agent", "Contraindication screen (MTC/MEN2, pancreatitis, pregnancy)", "Monitoring and discontinuation plan (repeat A1c, review date)"]
+  },
+  "radiograph": {
+    label: "Advanced Imaging — MRI Brain / CT Thorax (Radiograph PA)",
+    cptCodes: ["70551", "70552", "70553", "71250", "71260", "71270", "71271", "71046", "71047", "71048"],
+    icdRanges: ["G43.0–G44.9 (Headache / migraine)", "R29.810 (Focal neurological deficit)", "R91.1 (Solitary pulmonary nodule)", "R05.9 (Cough, unspecified)", "C78.0–C78.9 (Metastatic disease)"],
+    criteria: [
+      { id: "rad-1", text: "Specific indication documented — not a screening or 'rule-out everything' order", required: true, typicalEvidence: "Ordering note with a focused differential" },
+      { id: "rad-2", text: "Red-flag features or abnormal neurological / respiratory exam documented", required: true, typicalEvidence: "Exam findings, red-flag checklist" },
+      { id: "rad-3", text: "Appropriate prior imaging already performed and non-diagnostic", required: true, typicalEvidence: "Prior CT / plain film report" },
+      { id: "rad-4", text: "No duplicate advanced imaging of the same region within 90 days", required: true, typicalEvidence: "Imaging history / HIE query" },
+      { id: "rad-5", text: "Conservative management trialled where the indication allows (headache prophylaxis, therapy, antibiotics)", required: false, typicalEvidence: "Medication trials with dates" },
+      { id: "rad-6", text: "Contrast justified when a contrast study is requested (enhancement, pituitary, infection, tumour)", required: false, typicalEvidence: "Clinical question stated on the form" },
+      { id: "rad-7", text: "Renal function within 30 days if iodinated or gadolinium contrast is planned", required: false, typicalEvidence: "eGFR / creatinine result" },
+      { id: "rad-8", text: "No implanted device or metallic foreign body contraindication (MRI)", required: false, typicalEvidence: "MRI safety questionnaire" },
+    ],
+    stepTherapy: [
+      { step: 1, requirement: "Plain radiograph or non-contrast CT of the region", typicalDuration: "Same day", alternatives: ["Ultrasound where appropriate (abdominal)"] },
+      { step: 2, requirement: "Conservative or symptomatic management where clinically appropriate", typicalDuration: "6–8 weeks", alternatives: ["Physical therapy", "Prophylactic headache medication", "Antibiotics / inhaled therapy"] },
+      { step: 3, requirement: "Advanced cross-sectional imaging (MRI / contrast CT)", typicalDuration: "After steps 1–2 or immediately if red flags", alternatives: ["CT where MRI is contraindicated", "PET-CT when staging a known malignancy"] },
+    ],
+    requiredDocs: requiredDocsFor("radiograph"),
+    documentBundle: PA_DOCUMENT_BUNDLES["radiograph"],
+    typicalTimeline: "2–7 business days (routine); 24–72 hours (expedited with red flags)",
+    autoAuthThreshold: 1800,
+    commonDenialReasons: [
+      "No prior conservative care documented for a non-red-flag indication",
+      "Duplicate imaging — same study already authorised or performed within 90 days",
+      "Criteria for contrast not documented (no clinical question that requires gadolinium/iodine)",
+      "Indication reads as screening rather than a diagnostic question",
+      "Prior imaging not attached, so the payer cannot see why it was non-diagnostic",
+      "Renal function missing on a contrast request",
+    ],
+    letterTemplateSections: ["Patient demographics and insurance information", "Specific diagnostic question being answered", "Red-flag symptoms and abnormal exam findings", "Prior imaging and why it was non-diagnostic", "Conservative therapy already completed (if applicable)", "Why the contrast phase is required", "Risk of delay: neurological deficit, missed malignancy, progressive disease"]
+  },
+  "behavioral-health": {
+    label: "Behavioral Health — TMS for Treatment-Resistant Depression",
+    cptCodes: ["90867", "90868", "90869"],
+    icdRanges: ["F33.1–F33.3 (Recurrent depressive disorder)", "F32.1–F32.9 (Depressive episode)", "F41.1 (Generalised anxiety disorder)"],
+    criteria: [
+      { id: "bh-1", text: "Major depressive disorder confirmed by a psychiatric evaluation (DSM-5 criteria met)", required: true, typicalEvidence: "Psychiatric evaluation note" },
+      { id: "bh-2", text: "Two or more adequate antidepressant trials failed (therapeutic dose, ≥6 weeks each, adherence documented)", required: true, typicalEvidence: "Medication trial log with doses and dates" },
+      { id: "bh-3", text: "Measurement-based scores on file showing severity and trend (PHQ-9 / GAD-7)", required: true, typicalEvidence: "Scoring record with dates" },
+      { id: "bh-4", text: "Psychotherapy trialled (or documented reason it was not appropriate)", required: false, typicalEvidence: "Therapy notes, session count" },
+      { id: "bh-5", text: "Bipolar disorder and psychosis excluded", required: true, typicalEvidence: "Psychiatric history, screening instruments" },
+      { id: "bh-6", text: "No seizure history, epilepsy, or implanted cranial/cochlear device", required: true, typicalEvidence: "TMS safety checklist" },
+      { id: "bh-7", text: "Substance-induced mood disorder excluded", required: false, typicalEvidence: "Urine drug screen, history" },
+      { id: "bh-8", text: "Medical-necessity letter from the treating psychiatrist", required: true, typicalEvidence: "Signed letter with the trial history restated" },
+    ],
+    stepTherapy: [
+      { step: 1, requirement: "First antidepressant at therapeutic dose", typicalDuration: "≥6 weeks", alternatives: ["SSRI or SNRI per formulary"] },
+      { step: 2, requirement: "Second antidepressant or augmentation trial", typicalDuration: "≥6 weeks", alternatives: ["Switch within class", "Add bupropion / mirtazapine / aripiprazole"] },
+      { step: 3, requirement: "Structured psychotherapy (CBT / IPT)", typicalDuration: "12–20 sessions", alternatives: ["Group therapy where individual therapy is unavailable"] },
+      { step: 4, requirement: "TMS acute course after documented treatment resistance", typicalDuration: "36 sessions over 6 weeks", alternatives: ["Esketamine (if formulary)", "Electroconvulsive therapy for psychotic or life-threatening depression"] },
+    ],
+    requiredDocs: requiredDocsFor("behavioral-health"),
+    documentBundle: PA_DOCUMENT_BUNDLES["behavioral-health"],
+    typicalTimeline: "3–10 business days (behavioral health review is often a separate queue)",
+    autoAuthThreshold: 8000,
+    commonDenialReasons: [
+      "Fewer than two adequate antidepressant trials (dose too low or duration under 6 weeks)",
+      "No measurement-based scores (PHQ-9 / GAD-7) submitted with dates",
+      "Medical-necessity letter missing or not signed by the treating psychiatrist",
+      "Bipolar disorder not excluded in the documentation",
+      "Requested session count exceeds the plan's approved acute course",
+      "Submitted without the psychiatric evaluation, only progress notes",
+    ],
+    letterTemplateSections: ["Patient demographics, insurance, and treating psychiatrist", "DSM-5 diagnosis and current episode duration", "Every antidepressant trial: drug, dose, duration, outcome, reason stopped", "PHQ-9 / GAD-7 scores with dates showing the trend", "Psychotherapy course and response", "Exclusion of bipolar disorder, psychosis and substance causes", "TMS safety screen and the monitoring plan for the acute course"]
   }
 };
 
