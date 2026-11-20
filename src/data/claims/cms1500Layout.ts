@@ -77,7 +77,7 @@ export interface ClaimRow {
 }
 
 export interface ClaimLayout {
-  id: "cms1500" | "ada2019";
+  id: "cms1500" | "ada2019" | "ub04";
   title: string;
   formCode: string;
   rows: ClaimRow[];

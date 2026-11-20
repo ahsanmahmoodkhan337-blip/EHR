@@ -18,7 +18,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Receipt, AlertTriangle, CheckCircle2, XCircle, Search, DollarSign, BookOpen, Info, Route, Star, Shield, FileDown } from "lucide-react";
 import { usePipeline, type ClaimFormData, type ClaimServiceLine } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
-import { CMS1500_BLOCKS, REVENUE_CODES, POS_CODES } from "./claimData";
+import { CMS1500_BLOCKS, POS_CODES } from "./claimData";
 import { CARC_BY_CODE, CARC_CODES as DENIAL_CODES } from "../../data/claims/carc";
 import { CPT_CODES } from "../CodingQueue/cptData";
 import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
@@ -35,10 +35,13 @@ import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
 import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
 import { OUTCOME_LABELS, remittanceForClaim } from "../../domain/adjudication";
 import { CMS1500Form } from "./CMS1500Form";
+import { Ub04Form } from "./Ub04Form";
+import { UB04_LAYOUT, UB04_PDF_COLUMNS } from "../../data/claims/ub04Layout";
+import { REVENUE_CODES as UB04_REVENUE_CODES } from "../../data/claims/revenueCodes";
 import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
 import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, reseedIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
-import { validateCMS1500, type ClaimIssue } from "../../utils/claimValidation";
+import { validateCMS1500, validateUB04, type ClaimIssue } from "../../utils/claimValidation";
 import {
   useEncounterPatientId,
   useEncounterPlaceOfService,
@@ -289,6 +292,22 @@ export function BillingLedger() {
         lines,
         columns: CMS1500_PDF_COLUMNS,
         fileName: `CMS1500_${name || "claim"}.pdf`,
+        note: DEMO_PROVIDER_NOTE,
+      });
+    },
+    [],
+  );
+
+  /** The institutional paper's download — the same layout table the screen draws. */
+  const downloadUb04Pdf = useCallback(
+    (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
+      const name = String(values.patientName ?? "claim").replace(/[^A-Za-z0-9]+/g, "_");
+      exportClaimFormPDF({
+        layout: UB04_LAYOUT,
+        values,
+        lines,
+        columns: UB04_PDF_COLUMNS,
+        fileName: `CLM-0007-UB04_${name || "claim"}.pdf`,
         note: DEMO_PROVIDER_NOTE,
       });
     },
@@ -699,44 +718,41 @@ export function BillingLedger() {
                   emptyHint="Nothing has happened to this claim yet."
                 />
 
-                {/* ─── Institutional → UB-04 (paper still to come) ─── */}
-                {claimType === "institutional" && (
-                  <div className="clinical-card">
-                    <p className="text-xs font-semibold text-slate-700">
-                      UB-04 (CMS-1450) — institutional claim
-                    </p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
-                      {suggestion.reason}. The claim record already carries the type, the patient,
-                      the service dates and the charges, so this claim will print on the UB-04 as
-                      soon as that paper lands. Nothing here is lost — switch back to Professional
-                      to work it on the CMS-1500 in the meantime.
-                    </p>
-                    {claimForm && (
-                      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
-                        <div>
-                          <dt className="text-slate-400">Patient</dt>
-                          <dd className="font-medium text-slate-700">{claimForm.patientName || "—"}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-slate-400">Account / MRN</dt>
-                          <dd className="font-medium text-slate-700">{claimForm.patientAccountNumber || "—"}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-slate-400">Service dates</dt>
-                          <dd className="font-medium text-slate-700">
-                            {claimForm.serviceLines[0]?.dateOfService || "—"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-slate-400">Total charges</dt>
-                          <dd className="font-medium text-slate-700 tabular-nums">
-                            ${(claimForm.totalCharge || 0).toFixed(2)}
-                          </dd>
-                        </div>
-                      </dl>
-                    )}
-                  </div>
-                )}
+                {/* ─── Institutional → UB-04 (CMS-1450) ─── */}
+                {claimType === "institutional" &&
+                  (claimForm ? (
+                    <ClaimFormShell
+                      formCode="UB-04 (CMS-1450)"
+                      formTitle="Uniform Bill — institutional claim"
+                      statusLabel={`${state.claimNumber ? `${state.claimNumber} · ` : ""}${
+                        CLAIM_STATUS_LABELS[state.claimStatus ?? "draft"]
+                      }`}
+                      history={(cs?.auditLogs ?? []).map((l) => ({ at: l.timestamp, message: l.message }))}
+                      values={claimValues}
+                      lines={claimLines}
+                      emptyLine={blankServiceLine() as unknown as Record<string, unknown>}
+                      maxLines={UB04_LAYOUT.maxLines}
+                      resetKey={patientId}
+                      validate={(values, lines) =>
+                        validateUB04({
+                          ...(values as unknown as ClaimFormData),
+                          serviceLines: lines as unknown as ClaimServiceLine[],
+                        })
+                      }
+                      onCommit={commitClaim}
+                      onSubmit={handleSubmitClaim}
+                      onDownload={downloadUb04Pdf}
+                      submitting={isTransmitting}
+                      demoFillEnabled={demoFillEnabled}
+                    >
+                      {(api) => <Ub04Form {...api} />}
+                    </ClaimFormShell>
+                  ) : (
+                    <div className="empty-state">
+                      <p className="empty-title">Preparing the institutional claim…</p>
+                      <p className="empty-hint">The paper is filled from the coded encounter.</p>
+                    </div>
+                  ))}
 
                 {/* ─── Dental → ADA claim (worked in the dental track) ─── */}
                 {claimType === "dental" && (
@@ -1083,11 +1099,13 @@ export function BillingLedger() {
                 <div>
                   <p className="text-xs font-semibold text-slate-700 mb-2">Revenue Codes (Institutional Claims)</p>
                   <div className="grid grid-cols-2 gap-1.5">
-                    {REVENUE_CODES.map((r) => (
+                    {UB04_REVENUE_CODES.map((r) => (
                       <div key={r.code} className="rounded border border-slate-200 bg-white px-2 py-1 text-[10px]">
                         <span className="font-mono font-bold text-slate-600">{r.code}</span>
-                        <span className="ml-1.5 text-slate-500">{r.description}</span>
-                        <span className="ml-1 text-[8px] text-slate-400">({r.type})</span>
+                        <span className="ml-1.5 text-slate-500">{r.teachingDescription}</span>
+                        <span className="ml-1 text-[8px] text-slate-400">
+                          ({r.appliesTo === "both" ? "all bills" : r.appliesTo})
+                        </span>
                       </div>
                     ))}
                   </div>

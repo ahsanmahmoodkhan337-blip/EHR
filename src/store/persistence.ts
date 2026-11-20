@@ -25,6 +25,10 @@ import {
   type PipelineStoreState,
 } from "./pipelineEncounter";
 import { MEDICAL_PROVIDER_PROFILE } from "../data/claims/providerProfile";
+import {
+  frequencyFromResubmissionCode,
+  typeOfBillDefaultForPos,
+} from "../data/claims/typeOfBill";
 import type { Appointment } from "../components/TabsEpic/DailySchedule";
 import type { AccountSecurityState } from "./accountSecurity";
 import { migrateClaimData } from "../utils/claimAutoFill";
@@ -58,8 +62,18 @@ const STORAGE_PREFIX = "hh_userdata_";
  * SSN/EIN indicator (from the provider profile the claim was built from), 24I
  * `XX` on every service line (24J is an NPI on every path), and the new boxes
  * blank. Nothing is invented: a value the old record never held stays empty.
+ * v8 is the UB-04 (CMS-1450) field table. Every claim gains the institutional
+ * locators — type of bill, statement period, admission and discharge boxes,
+ * condition / occurrence / value codes, the payer block 50–65, the diagnosis
+ * block 66–72, the procedure block 73–74, the provider block 76–79, remarks and
+ * the code-code field — and every service line gains locator 42 (revenue code)
+ * and 48 (non-covered charges). A saved claim's values are carried forward
+ * verbatim; the new locators start blank, except the two that are facts rather
+ * than data about the patient: locator 4 is derived from the service line's own
+ * place of service, and locator 66 is "0" because this simulator only codes
+ * ICD-10-CM. No revenue code, no admission and no authorisation is invented.
  */
-const BLOB_VERSION = 7;
+const BLOB_VERSION = 8;
 
 export interface PersistedUserData {
   v: number;
@@ -123,12 +137,13 @@ function migrateBlob(parsed: PersistedUserData): PersistedUserData {
   const at = parsed.updatedAt || new Date().toISOString();
   const migrated = normalized ? migratePipelineToV4(normalized, at) : normalized;
   const withClaims = migrated ? migrateClaimFormsToV7(migrated) : migrated;
+  const withUb04 = withClaims ? migrateClaimsToV8(withClaims) : withClaims;
   return {
     ...parsed,
-    pipeline: withClaims,
+    pipeline: withUb04,
     deniedClaims:
-      parsed.deniedClaims && withClaims
-        ? migrateDeniedClaimsToV4(parsed.deniedClaims, withClaims.encounters)
+      parsed.deniedClaims && withUb04
+        ? migrateDeniedClaimsToV4(parsed.deniedClaims, withUb04.encounters)
         : parsed.deniedClaims,
     v: BLOB_VERSION,
   };
@@ -177,6 +192,117 @@ function migrateClaimFormsToV7(store: PipelineStoreState): PipelineStoreState {
   for (const [key, encounter] of Object.entries(store.encounters)) {
     encounters[key] = encounter.claimForm
       ? { ...encounter, claimForm: migrateClaimFormToV7(encounter.claimForm) }
+      : encounter;
+  }
+  return { ...store, encounters };
+}
+
+/** The UB-04 locators this build adds, all of them blank unless noted. */
+const UB04_BLANK_LOCATORS = [
+  "medicalRecordNumber",
+  "statementFrom",
+  "statementThrough",
+  "admissionDate",
+  "admissionHour",
+  "admissionType",
+  "admissionSource",
+  "dischargeHour",
+  "patientStatus",
+  "conditionCodes",
+  "accidentState",
+  "occurrenceCodes",
+  "occurrenceSpan",
+  "responsibleParty",
+  "valueCodes",
+  "releaseOfInformation",
+  "assignmentOfBenefits",
+  "otherProviderIdQualifier",
+  "otherProviderId",
+  "insuredGroupName",
+  "insuranceGroupNumber",
+  "treatmentAuthorizationCode",
+  "documentControlNumber",
+  "admittingDiagnosis",
+  "patientReasonVisit",
+  "ppsCode",
+  "eciCode",
+  "principalProcedureCode",
+  "principalProcedureDate",
+  "principalProcedureQualifier",
+  "otherProcedureCode",
+  "otherProcedureDate",
+  "attendingQualifier",
+  "attendingLastName",
+  "attendingFirstName",
+  "operatingProviderNpi",
+  "otherProviderNpi",
+  "otherProviderNpi2",
+  "remarks",
+  "codeCodeA",
+  "codeCodeB",
+  "codeCodeC",
+  "codeCodeD",
+] as const;
+
+/**
+ * v7 → v8 — the UB-04 (CMS-1450) field table.
+ *
+ * The institutional locators are added to every saved claim, blank, so a claim
+ * worked before the UB-04 existed opens on the institutional paper with its
+ * patient, codes and charges intact and every other box empty. Two locators are
+ * not blank, because they are facts the record already holds rather than data
+ * about the patient:
+ *
+ *  - locator 4 (type of bill) is the service line's own place of service read
+ *    back through `POS_TYPE_OF_BILL_DEFAULTS`, with the frequency digit taken
+ *    from the resubmission code the claim already carries;
+ *  - locator 66 is "0" — this simulator only ever codes ICD-10-CM.
+ *
+ * Every service line gains locator 42 (revenue code, blank — it is the Coder's
+ * decision) and locator 48 (non-covered charges, 0).
+ */
+export function migrateClaimFormToV8(
+  form: PipelineEncounter["claimForm"],
+): PipelineEncounter["claimForm"] {
+  if (!form) return form;
+  const next = { ...form } as ClaimFormData & Record<string, unknown>;
+
+  for (const key of UB04_BLANK_LOCATORS) {
+    if (next[key] === undefined || next[key] === null) next[key] = "";
+  }
+  if (typeof next.coveredDays !== "number") next.coveredDays = 0;
+  if (typeof next.priorPayments !== "number") next.priorPayments = 0;
+  if (typeof next.estimatedAmountDue !== "number") next.estimatedAmountDue = 0;
+  if (!next.diagnosisVersion) next.diagnosisVersion = "0";
+  if (!next.principalDiagnosis) next.principalDiagnosis = next.diagnosisCodes?.[0] ?? "";
+  if (!next.otherDiagnoses) next.otherDiagnoses = (next.diagnosisCodes ?? []).slice(1).join(", ");
+
+  const lines = next.serviceLines ?? [];
+  next.serviceLines = lines.map((line) => ({
+    ...line,
+    revenueCode: line.revenueCode ?? "",
+    nonCovered: typeof line.nonCovered === "number" ? line.nonCovered : 0,
+  }));
+
+  if (!next.typeOfBill) {
+    const pos = lines[0]?.placeOfService ?? "";
+    const fallback = typeOfBillDefaultForPos(pos);
+    if (fallback?.typeOfBill) {
+      next.typeOfBill = `${fallback.typeOfBill.slice(0, 2)}${frequencyFromResubmissionCode(
+        next.resubmissionCode,
+      )}`;
+    }
+  }
+
+  return next as PipelineEncounter["claimForm"];
+}
+
+/** Apply the v8 UB-04 migration to every encounter that has a claim open. */
+function migrateClaimsToV8(store: PipelineStoreState): PipelineStoreState {
+  const encounters: Record<string, PipelineEncounter> = {};
+  for (const [key, encounter] of Object.entries(store.encounters)) {
+    encounters[key] = encounter.claimForm
+      ? { ...encounter, claimForm: migrateClaimFormToV8(encounter.claimForm) }
       : encounter;
   }
   return { ...store, encounters };

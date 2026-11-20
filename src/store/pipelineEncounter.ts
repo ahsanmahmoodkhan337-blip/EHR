@@ -51,6 +51,16 @@ export interface ClaimServiceLine {
   /** Box 24I — qualifier for 24J. "XX" (NPI) on every line this app builds. */
   idQualifier?: string;    // 24I
   renderingNpi: string;    // 24J
+  /**
+   * UB-04 locator 42 — the revenue code: which hospital department earned the
+   * money. Blank until the line is worked; nothing guesses it from the CPT.
+   */
+  revenueCode?: string;    // UB-04 42
+  /**
+   * UB-04 locator 48 — the part of this line's charge the payer does not cover.
+   * Zero is the normal state; it is never derived from a denial.
+   */
+  nonCovered?: number;     // UB-04 48
 }
 
 /**
@@ -200,6 +210,79 @@ export interface ClaimFormData {
   billingProviderAddress: string; // 33
   billingProviderNpi: string;   // 33
   billingProviderTaxId: string; // 33
+
+  // ─── UB-04 (CMS-1450) locators ────────────────────────────────────
+  // The institutional paper has its own box numbers. They live on the same
+  // claim record, so a claim that switches paper keeps the patient, the codes
+  // and the money it already holds. A box nothing captured stays "" — the
+  // paper prints the caption and names the stage that supplies it.
+  /** Locator 3b — the hospital's own medical record number. */
+  medicalRecordNumber: string;      // UB-04 3b
+  /** Locator 4 — 3 digits (facility · care type · frequency). Derived from the POS. */
+  typeOfBill: string;               // UB-04 4
+  /** Locator 6 — STATEMENT COVERS PERIOD, from / through. */
+  statementFrom: string;            // UB-04 6
+  statementThrough: string;         // UB-04 6
+  /** Locator 7 — covered days. Blank on a single-date outpatient bill. */
+  coveredDays: number;              // UB-04 7
+  admissionDate: string;            // UB-04 12
+  admissionHour: string;            // UB-04 13
+  admissionType: string;            // UB-04 14
+  /** Locator 15 — SRC, source of admission. */
+  admissionSource: string;          // UB-04 15
+  /** Locator 16 — DHR, discharge hour. */
+  dischargeHour: string;            // UB-04 16
+  patientStatus: string;            // UB-04 17
+  /** Locators 18–28 — condition codes, space-separated. */
+  conditionCodes: string;           // UB-04 18–28
+  accidentState: string;            // UB-04 29
+  /** Locators 31–34 — occurrence codes and dates. */
+  occurrenceCodes: string;          // UB-04 31–34
+  /** Locators 35–36 — occurrence span code and dates. */
+  occurrenceSpan: string;           // UB-04 35–36
+  responsibleParty: string;         // UB-04 38
+  /** Locators 39–41 — value codes and amounts. */
+  valueCodes: string;               // UB-04 39–41
+  /** Locator 52 — release of information, row A. */
+  releaseOfInformation: string;     // UB-04 52
+  /** Locator 53 — assignment of benefits, row A. */
+  assignmentOfBenefits: string;     // UB-04 53
+  priorPayments: number;            // UB-04 54
+  estimatedAmountDue: number;       // UB-04 55
+  otherProviderIdQualifier: string; // UB-04 57
+  otherProviderId: string;          // UB-04 57
+  insuredGroupName: string;         // UB-04 61
+  insuranceGroupNumber: string;     // UB-04 62
+  /** Locator 63 — the payer's treatment authorisation code (row A). */
+  treatmentAuthorizationCode: string; // UB-04 63
+  /** Locator 64 — the payer's ICN/DCN for a replaced or voided claim. */
+  documentControlNumber: string;    // UB-04 64
+  /** Locator 66 — diagnosis coding method: "0" is ICD-10-CM. */
+  diagnosisVersion: string;         // UB-04 66
+  principalDiagnosis: string;       // UB-04 67
+  otherDiagnoses: string;           // UB-04 67A–67Q
+  admittingDiagnosis: string;       // UB-04 69
+  patientReasonVisit: string;       // UB-04 70
+  ppsCode: string;                  // UB-04 71
+  /** Locator 72 — ECI, external cause of injury. */
+  eciCode: string;                  // UB-04 72
+  principalProcedureCode: string;   // UB-04 73
+  principalProcedureDate: string;   // UB-04 73
+  principalProcedureQualifier: string; // UB-04 73
+  otherProcedureCode: string;       // UB-04 74
+  otherProcedureDate: string;       // UB-04 74
+  attendingNpi: string;             // UB-04 76
+  attendingQualifier: string;       // UB-04 76
+  attendingLastName: string;        // UB-04 76
+  attendingFirstName: string;       // UB-04 76
+  operatingProviderNpi: string;     // UB-04 77
+  otherProviderNpi: string;         // UB-04 78
+  otherProviderNpi2: string;        // UB-04 79
+  remarks: string;                  // UB-04 80
+  codeCodeA: string;                // UB-04 81
+  codeCodeB: string;                // UB-04 81
+  codeCodeC: string;                // UB-04 81
+  codeCodeD: string;                // UB-04 81
 }
 
 /**
