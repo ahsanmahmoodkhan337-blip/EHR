@@ -61,6 +61,8 @@ export interface EraClaimLine {
   line: number;
   code: string;
   tooth?: string;
+  /** Date of service this line is priced on, where the remittance carries it. */
+  dateOfService?: string;
   chargedUsd: number;
   /** Contracted allowance. Illustrative teaching figure. */
   allowedUsd: number;

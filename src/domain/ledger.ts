@@ -70,6 +70,12 @@ export interface LedgerEntry {
   checkNumber?: string;
   /** The claim line this entry prices, 1-based. */
   lineNumber?: number;
+  /**
+   * Date of service behind a charge, where the posting knew it. Optional and
+   * additive: the dental ledger ages its balance by service date, while the
+   * medical entries written before this field existed simply have none.
+   */
+  serviceDate?: string;
 }
 
 // ─── Posting an 835 ────────────────────────────────────────────────
