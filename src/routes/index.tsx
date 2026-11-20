@@ -2092,10 +2092,14 @@ function Home() {
       {selectedPatient && <WorkflowTracker encounterId={selectedPatientId} />}
 
       {/* ─── Home work queues — counted from the student's own records ─── */}
-      <HomeWorkQueues onOpenMedicalStage={openMedicalStage} />
+      {/* Home's queues belong to Home; on the Schedule workspace the Daily
+          Schedule comes first, so the student is not scrolled past them. */}
+      {activeWorkspace !== "schedule" && (
+        <HomeWorkQueues onOpenMedicalStage={openMedicalStage} />
+      )}
 
       {/* ─── Role-Based Workspace ─── */}
-      {selectedPatient && currentRole !== "scribe" ? (
+      {selectedPatient && currentRole !== "scribe" && activeWorkspace !== "schedule" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
           {currentRole === "coder" && (
             <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
