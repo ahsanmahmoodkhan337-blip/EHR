@@ -8,9 +8,11 @@
  * (spec `task-1-app-shell.md` item 5, plus T0-15's lock state).
  *
  * Three states, read from the record and never from a stored click:
- *   done    — a stage behind the furthest stage this student has reached.
- *             Still clickable: going back is review, and the stage body decides
- *             for itself what may be edited (StageReviewFrame + Reopen to edit).
+ *   done    — a stage behind the furthest stage this student has reached, or
+ *             (when the caller passes `completedIds`) a step the record itself
+ *             says is finished. Still clickable: going back is review, and the
+ *             stage body decides for itself what may be edited (StageReviewFrame
+ *             + Reopen to edit).
  *   current — the stage on screen.
  *   locked  — beyond the furthest stage reached. It keeps its place in the row
  *             so the student can see what is still ahead, carries a lock icon,
@@ -18,6 +20,11 @@
  *             (aria-disabled, not `disabled`) so a screen reader can announce
  *             the reason instead of the step silently vanishing from the tab
  *             order.
+ *
+ * The patient chart draws this same strip at the top of the workspace with
+ * `numbered` (1..6) and `completedIds` read from the record, so opening a patient
+ * shows the whole visit, step 1 first, with the finished steps ticked
+ * (spec `encounter-continuity.md`).
  *
  * Layout (spec `phase-1-navigation.md` item 7): the row wraps onto a second line
  * rather than scrolling sideways, so a label is never cut in half — "Debrief"
@@ -50,6 +57,19 @@ interface EncounterStepperProps {
   /** Furthest stage this student has reached — everything after it is locked. */
   furthestId: string;
   onSelect: (id: string) => void;
+  /**
+   * The steps the record says are finished, when the caller can read that from
+   * the record itself (the patient chart does: a note section written, the vitals
+   * taken, the note signed). When given, a tick means "this step is done", not
+   * "this step is behind you" — so a student who jumps back to step 1 still sees
+   * which steps are finished (spec `encounter-continuity.md`).
+   */
+  completedIds?: readonly string[];
+  /**
+   * Print each step's 1-based number, the way a visit's steps are numbered in
+   * the chart's step bar. A finished step keeps its tick instead of the number.
+   */
+  numbered?: boolean;
   /** Blue for the medical track, teal for dental. */
   accent?: StepperAccent;
   /** Right-hand chip, e.g. "MCASE-001 · beginner". */
@@ -76,6 +96,8 @@ export function EncounterStepper({
   currentId,
   furthestId,
   onSelect,
+  completedIds,
+  numbered = false,
   accent = "blue",
   meta,
   label = "Encounter stages",
@@ -86,6 +108,7 @@ export function EncounterStepper({
   // step rather than locking the whole spine.
   let furthestIdx = steps.findIndex((s) => s.id === furthestId);
   if (furthestIdx < 0) furthestIdx = Math.max(currentIdx, 0);
+  const completed = completedIds ? new Set(completedIds) : null;
 
   const tone = ACCENT[accent];
   const currentStep = currentIdx >= 0 ? steps[currentIdx] : undefined;
@@ -100,9 +123,12 @@ export function EncounterStepper({
         <ol className="flex min-w-0 flex-wrap items-center gap-1">
           {steps.map((step, i) => {
             const current = step.id === currentId;
-            const done = !current && i < furthestIdx;
+            // A record that knows what is finished decides the tick; otherwise
+            // the position in the spine does (practice cases).
+            const done = !current && (completed ? completed.has(step.id) : i < furthestIdx);
             const locked = i > furthestIdx;
             const stateLabel = current ? "current stage" : done ? "done" : locked ? "locked" : "open";
+            const stepName = numbered ? `${i + 1}. ${step.label}` : step.label;
             return (
               <li key={step.id} className="min-w-0">
                 <button
@@ -113,7 +139,7 @@ export function EncounterStepper({
                   }}
                   aria-current={current ? "step" : undefined}
                   aria-disabled={locked || undefined}
-                  aria-label={`${step.label} — ${stateLabel}`}
+                  aria-label={`${stepName} — ${stateLabel}`}
                   title={
                     locked
                       ? `${step.label} — locked. Finish ${steps[furthestIdx]?.label ?? "your current stage"} to open it.`
@@ -135,6 +161,13 @@ export function EncounterStepper({
                     <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   ) : done ? (
                     <Check className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  ) : numbered ? (
+                    <span
+                      aria-hidden="true"
+                      className="w-3.5 shrink-0 text-center tabular-nums"
+                    >
+                      {i + 1}
+                    </span>
                   ) : (
                     step.icon
                   )}

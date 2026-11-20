@@ -62,9 +62,12 @@ import {
   CHART_OPENING_STEP,
   CHART_STEPS,
   encounterEventId,
-  furthestChartStep,
-  resumeChartStep,
 } from "../store/pipelineEncounter";
+import { EncounterStepper } from "../components/shell/EncounterStepper";
+import {
+  completedEncounterSteps,
+  lastEncounterStepId,
+} from "../domain/encounterSteps";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
 import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
 import { EligibilityStage } from "../components/WorkflowAthena/EligibilityStage";
@@ -94,12 +97,11 @@ import { CommandPalette } from "../components/CommandPalette";
 const PIPELINE_ROLES: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-voice"];
 
 /**
- * The scribe's own stages, in the order a visit is documented. One list drives
- * the stage header and the Back / Next controls, so the label the student reads
- * and the stage they move to can never disagree. The list lives with the
- * encounter shape (`store/pipelineEncounter.ts`) because a saved encounter
- * remembers the furthest step reached, and every patient opens on the first
- * scribing step rather than on Registration (spec `start-at-scribing.md`).
+ * The scribe's own stages, in the order a visit is documented. The order is the
+ * one pure list in `domain/encounterSteps.ts`; it drives the step bar at the top
+ * of the chart, the Back / Next controls and the step the student lands on, so
+ * the label they read and the step they move to can never disagree. Every
+ * patient opens on step 1, Registration (spec `encounter-continuity.md`).
  */
 const SCRIBE_STAGES = CHART_STEPS;
 
@@ -1397,9 +1399,11 @@ function Home() {
   const hasFinancialActivity = billedTotal > 0 || deniedTotal > 0 || pipelineState.status !== "pending";
   const { addToast } = useToast();
   /**
-   * The chart step on screen. Every patient opens on the first scribing step
-   * (spec `start-at-scribing.md` item 1): Registration is not skipped — it is
-   * one Back away — but it is not where a student lands to scribe.
+   * The chart step on screen. Every patient opens on step 1, Registration, and
+   * the chart walks forward one step at a time from there
+   * (spec `encounter-continuity.md`). The step bar ticks the steps the record
+   * says are finished, so reopening a worked patient shows the work already done
+   * while still starting the visit at the beginning.
    */
   const [activeStage, setActiveStage] = useState(CHART_OPENING_STEP);
 
@@ -1676,13 +1680,11 @@ function Home() {
     if (saved && saved._patientId === patientId) {
       setSoapNote(saved.soapNote);
       setSubmittedToCoding(saved.submittedToCoding);
-      // Resume at the furthest step reached — the one on screen when they left,
-      // or further if the encounter remembers more. Never rewinds (spec item 5).
-      setActiveStage(
-        resumeChartStep(
-          furthestChartStep(saved.activeStage, getEncounter(patientId)?.chartStage ?? ""),
-        ),
-      );
+      // The visit always opens on step 1, Registration — never wherever the
+      // student last was (spec `encounter-continuity.md`). What they already did
+      // is shown by the step bar's ticks, read from the record, and Next walks
+      // the steps from the beginning to Sign & Lock.
+      setActiveStage(CHART_OPENING_STEP);
       setEditableVitals(saved.editableVitals);
       setEditablePatientData(saved.editablePatientData);
       setSharedImmunizations(saved.sharedImmunizations);
@@ -1732,9 +1734,9 @@ function Home() {
       );
       setSubmittedToCoding(false);
       setDisplayName(undefined);
-      // A patient already worked reopens at the furthest step reached; a patient
-      // never worked opens at the first scribing step (spec item 5).
-      setActiveStage(resumeChartStep(getEncounter(patientId)?.chartStage));
+      // A patient opens on step 1 whether or not they were worked before
+      // (spec `encounter-continuity.md`); the step bar ticks what is finished.
+      setActiveStage(CHART_OPENING_STEP);
     }
     }
   }
@@ -2008,13 +2010,16 @@ function Home() {
   const noteSigned =
     pipelineState.status !== "pending" && (pipelineState.scribeNote.trim().length > 0 || submittedToCoding);
 
-  const completedStagesDerived = new Set<string>();
-  if (registrationComplete) completedStagesDerived.add("registration");
-  if (vitalsGaps.length === 0) completedStagesDerived.add("intake-vitals");
-  if (hpiDone) completedStagesDerived.add("hpi");
-  if (examDone) completedStagesDerived.add("exam-ros");
-  if (planGaps.length === 0) completedStagesDerived.add("assessment-plan");
-  if (noteSigned) completedStagesDerived.add("sign-lock");
+  // The steps the record says are finished, mapped onto the one step order so
+  // the step bar's ticks and the work on screen cannot disagree.
+  const completedChartSteps = completedEncounterSteps({
+    registration: registrationComplete,
+    "intake-vitals": vitalsGaps.length === 0,
+    hpi: hpiDone,
+    "exam-ros": examDone,
+    "assessment-plan": planGaps.length === 0,
+    "sign-lock": noteSigned,
+  });
 
   // The one step back and the one step forward for the stage on screen
   // (spec `tutorial-start-and-back.md` item 3). The first stage has no Back.
@@ -2280,31 +2285,44 @@ function Home() {
                 </div>
               ) : activeStage ? (
                 <div className="flex flex-1 flex-col overflow-hidden">
-                  <div className="border-b border-brand-100 bg-brand-50/50 px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-brand-700">
-                        Workflow: {SCRIBE_STAGES.find((stage) => stage.id === activeStage)?.label ?? "Sign & Lock Note"}
-                      </span>
-                      <span
-                        className={
-                          submittedToCoding
-                            ? "rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700"
-                            : soapNote.subjective || soapNote.objective || soapNote.assessment || soapNote.plan
-                              ? "rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
-                              : "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
-                        }
-                      >
-                        {submittedToCoding ? "Signed" : soapNote.subjective || soapNote.objective || soapNote.assessment || soapNote.plan ? "Draft" : "Empty"}
-                      </span>
-                      <NoteSavedIndicator savedAt={lastNoteSavedAt} />
-                      <button
-                        onClick={() => setActiveStage("")}
-                        className="ml-auto rounded bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700 hover:bg-brand-200"
-                      >
-                        Show Chart Tabs
-                      </button>
-                    </div>
-                  </div>
+                  {/* The whole visit, numbered, at the top of the workspace
+                      (spec `encounter-continuity.md`). The step on screen is the
+                      current one; the steps the record says are finished carry a
+                      tick; Back / Next below walk one step at a time. */}
+                  <EncounterStepper
+                    steps={SCRIBE_STAGES.map((stage) => ({ id: stage.id, label: stage.label }))}
+                    currentId={activeStage}
+                    furthestId={lastEncounterStepId()}
+                    completedIds={completedChartSteps}
+                    numbered
+                    onSelect={goToChartStage}
+                    accent="blue"
+                    label="Encounter steps"
+                    meta={
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={
+                            submittedToCoding
+                              ? "rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700"
+                              : soapNote.subjective || soapNote.objective || soapNote.assessment || soapNote.plan
+                                ? "rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                                : "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
+                          }
+                        >
+                          {submittedToCoding ? "Signed" : soapNote.subjective || soapNote.objective || soapNote.assessment || soapNote.plan ? "Draft" : "Empty"}
+                        </span>
+                        <NoteSavedIndicator savedAt={lastNoteSavedAt} />
+                        <button
+                          type="button"
+                          onClick={() => setActiveStage("")}
+                          aria-label="Show chart tabs"
+                          className="min-h-10 rounded bg-brand-100 px-2.5 text-[10px] font-medium text-brand-700 hover:bg-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                        >
+                          Show Chart Tabs
+                        </button>
+                      </div>
+                    }
+                  />
                   <div className="flex-1 overflow-y-auto p-4 animate-slide-in" key={activeStage}>
                     {activeStage === "registration" && (
                       <>
