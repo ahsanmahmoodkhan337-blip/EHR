@@ -20,8 +20,6 @@
 
 import {
   Activity,
-  CheckCircle2,
-  CircleDot,
   ClipboardCheck,
   MessageSquare,
   Stethoscope,
