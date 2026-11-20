@@ -29,6 +29,7 @@ import {
   type DentalCaseScenario,
 } from "../../data/dental";
 import { getLoggedInPhone } from "../../store/accessStore";
+import { writeAutosaved } from "../../store/autosave";
 import type { ADAFormData } from "../../data/claims/adaLayout";
 
 export type DentalStageName =
@@ -408,11 +409,9 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     if (!key) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      try {
-        localStorage.setItem(key, JSON.stringify(state));
-      } catch {
-        /* storage full / private mode — state stays in memory */
-      }
+      // Reports into the one autosave indicator (spec item 9): "Saving…", then
+      // "Saved 14:32" or "Not saved" with the reason. Never swallowed.
+      writeAutosaved(key, JSON.stringify(state), "Dental case");
     }, 400);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -428,11 +427,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     return () => {
       const key = keyFor(phoneRef.current);
       if (!key) return;
-      try {
-        localStorage.setItem(key, JSON.stringify(latestState.current));
-      } catch {
-        /* storage full / private mode — nothing more can be done here */
-      }
+      writeAutosaved(key, JSON.stringify(latestState.current), "Dental case");
     };
   }, []);
 

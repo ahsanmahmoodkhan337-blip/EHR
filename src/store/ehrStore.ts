@@ -35,6 +35,7 @@ import { create } from "zustand";
 import { createStore as createIdbStore, get as idbGet, set as idbSet } from "idb-keyval";
 import type { Patient, CaseState, PatientInsurance } from "./patientStore";
 import { deriveInsuranceRecord } from "../utils/insuranceRecord";
+import { markFailed, markSaved, markSaving } from "./autosave";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -624,9 +625,12 @@ async function writeEnvelope(phone: string, envelope: EhrEnvelope): Promise<void
   // Mirror to localStorage first and synchronously. This copy is what survives a
   // page teardown that happens before the IndexedDB transaction commits — the
   // sign-out/supersession path calls unload() and reloads in the same tick.
+  markSaving("Chart");
+  let mirrored = false;
   if (mirrorEnabled) {
     try {
       localStorage.setItem(`${LS_KEY_PREFIX}${phone}`, JSON.stringify(envelope));
+      mirrored = true;
     } catch (e) {
       mirrorEnabled = false;
       console.warn("ehrStore: localStorage mirror failed, continuing with IndexedDB only", e);
@@ -635,11 +639,20 @@ async function writeEnvelope(phone: string, envelope: EhrEnvelope): Promise<void
   if (hasIndexedDb()) {
     try {
       await idbSet(`${IDB_KEY_PREFIX}${phone}`, envelope, idbStore);
+      // IndexedDB is the primary copy, so this is a real save.
+      markSaved("Chart");
       return;
     } catch (e) {
       console.warn("ehrStore: IndexedDB write failed, relying on the localStorage copy", e);
     }
   }
+  // Neither copy landed → say so in the one autosave indicator, and offer the
+  // same write again. A chart that did not save must never look saved.
+  if (mirrored) markSaved("Chart");
+  else
+    markFailed("Chart", "no browser storage would take the write", () => {
+      void writeEnvelope(phone, envelope);
+    });
 }
 
 // ─── Store ─────────────────────────────────────────────────────────

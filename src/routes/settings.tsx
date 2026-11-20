@@ -168,7 +168,9 @@ function SettingsPage() {
           </h2>
           <p className="mt-1 text-[11px] text-slate-500">
             Your patients, appointments and per-patient workflow state are saved automatically to
-            this browser. The built-in demo patients are separate and always available.
+            this browser. The autosave indicator in the top bar shows when the last save happened,
+            and says so if a save fails. The built-in demo patients are separate and always
+            available.
           </p>
           {!hydrated ? (
             <p className="mt-3 text-xs italic text-slate-400">Loading your saved data…</p>

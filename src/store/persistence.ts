@@ -28,6 +28,7 @@ import type { AccountSecurityState } from "./accountSecurity";
 import { migrateClaimData } from "../utils/claimAutoFill";
 import { claimNumberSequence, claimStatusFromLegacy, mintClaimNumber } from "../domain/claimStatus";
 import { appendStatusEvent, makeStatusEvent } from "../domain/statusEvent";
+import { describeStorageError, markFailed, writeAutosaved } from "./autosave";
 
 const STORAGE_PREFIX = "hh_userdata_";
 /**
@@ -255,19 +256,29 @@ export function loadUserData(phone: string | null | undefined): PersistedUserDat
  */
 export function saveUserData(phone: string | null | undefined, slice: Partial<PersistedUserData>): void {
   if (!phone) return;
+  let blob: PersistedUserData;
   try {
     const existing = loadUserData(phone) ?? {};
-    const blob: PersistedUserData = {
+    blob = {
       ...existing,
       ...slice,
       v: BLOB_VERSION,
       updatedAt: new Date().toISOString(),
     };
-    localStorage.setItem(userDataKey(phone), JSON.stringify(blob));
-    // Layer 2 — cross-device sync. Never blocks the UI.
-    void pushToSupabase(phone, blob);
   } catch (e) {
-    console.warn("saveUserData: localStorage write failed for", phone, e);
+    // Building the blob failed, so nothing was written. Say so rather than
+    // leaving the student believing the screen is saved (spec item 9).
+    markFailed("Encounter", describeStorageError(e));
+    console.warn("saveUserData: could not build the record for", phone, e);
+    return;
+  }
+  // The write reports itself: "saving" → "saved at HH:MM", or "not saved" with
+  // the reason and a retry. It is never silent (plan: Known Risks).
+  const wrote = writeAutosaved(userDataKey(phone), JSON.stringify(blob), "Encounter");
+  if (wrote) {
+    // Layer 2 — cross-device sync. Never blocks the UI, and never changes what
+    // the indicator says about the local copy the student is relying on.
+    void pushToSupabase(phone, blob);
   }
 }
 

@@ -251,7 +251,8 @@ function DashboardPage() {
         </div>
 
         <p className="mt-6 text-center text-[11px] text-slate-400">
-          Everything saves automatically to your account — you can switch tracks anytime.
+          Work saves automatically to this browser as you go — the indicator in the top bar shows
+          the last save, and says so if a save fails. You can switch tracks anytime.
         </p>
 
         {/* Account activity — device-binding signal + device-management path. */}

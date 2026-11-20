@@ -13,11 +13,12 @@
  *   /dental/DCASE-001/coding             one case, one stage
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Smile } from "lucide-react";
 import { isLoggedIn } from "../store/accessStore";
 import { PatientProvider } from "../store/patientStore";
+import { findPlan } from "../data/dental";
 import {
   DentalTrackProvider,
   DENTAL_STAGE_ORDER,
@@ -26,6 +27,8 @@ import {
 } from "../components/dental/DentalTrackStore";
 import { DentalCaseRunner, DENTAL_STAGE_LABEL } from "../components/dental/DentalCaseRunner";
 import { AppShell } from "../components/AppShell";
+import { ReferenceDrawer } from "../components/shell/ReferenceDrawer";
+import { dentalReferenceTabs } from "../components/shell/referenceTabs";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { LockedStageNotice, useStageUrlSync } from "../components/shell/useStageUrlSync";
 import type { CaseStageParams } from "./medical-cases";
@@ -47,7 +50,7 @@ export function DentalTrackPage({ caseId, stage }: CaseStageParams = {}) {
 function DentalTrackShell({ urlCaseId, urlStage }: { urlCaseId?: string; urlStage?: string }) {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
-  const { state, selectCase, goTo } = useDentalTrack();
+  const { state, activeCase, selectCase, goTo } = useDentalTrack();
 
   const goToStage = useCallback(
     (caseId: string, stage: string, replace = false) => {
@@ -91,10 +94,22 @@ function DentalTrackShell({ urlCaseId, urlStage }: { urlCaseId?: string; urlStag
     );
   }
 
+  // The same four reference panels the medical track gets (spec item 6), read
+  // from the dental case: note, card, plan rules and the CDT lookup.
+  const referenceTabs = useMemo(() => {
+    if (!activeCase) return [];
+    return dentalReferenceTabs(activeCase, findPlan(activeCase.planId));
+  }, [activeCase]);
+
   return (
     <AppShell
       track="dental"
       activeNav="practice-cases"
+      reference={
+        referenceTabs.length > 0 ? (
+          <ReferenceDrawer tabs={referenceTabs} accent="teal" label="Case reference" />
+        ) : undefined
+      }
       onPatientSelect={(patientId) => {
         // The dental track has no patient workspace of its own: open the chart
         // in the medical workspace, where the patient record lives.
