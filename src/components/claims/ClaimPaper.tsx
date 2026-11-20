@@ -22,6 +22,7 @@ import type { ReactNode } from "react";
 import type { ClaimBox, ClaimLayout } from "../../data/claims/cms1500Layout";
 import { DIAGNOSIS_POINTERS } from "../../data/claims/cms1500Layout";
 import { errorBoxes, type ClaimIssue } from "../../utils/claimValidation";
+import type { DemoFilledBox } from "../../utils/demoClaimFill";
 
 const MM = 3.2; // px per millimetre on screen
 
@@ -35,9 +36,15 @@ export interface ClaimPaperProps {
   set: (field: string, value: unknown) => void;
   /** Footer note printed under the sheet (demo-data marker). */
   note?: string;
+  /**
+   * Fields whose value is demo data, not captured data. They print grey italic
+   * with a "demo" tag and a tooltip naming the stage that should supply them —
+   * a demo value must never be mistakable for a captured one.
+   */
+  demoFields?: Record<string, DemoFilledBox>;
 }
 
-export function ClaimPaper({ layout, values, issues, table, set, note }: ClaimPaperProps) {
+export function ClaimPaper({ layout, values, issues, table, set, note, demoFields }: ClaimPaperProps) {
   const bad = errorBoxes(issues);
 
   return (
@@ -55,7 +62,7 @@ export function ClaimPaper({ layout, values, issues, table, set, note }: ClaimPa
       {layout.rows.map((row, rowIndex) => (
         <div key={`row-${rowIndex}`} className="flex" style={{ minHeight: row.heightMm * MM }}>
           {row.cells.map((cell) => (
-            <Box key={cell.id} box={cell} values={values} issues={issues} bad={bad} set={set} table={table} />
+            <Box key={cell.id} box={cell} values={values} issues={issues} bad={bad} set={set} table={table} demoFields={demoFields} />
           ))}
         </div>
       ))}
@@ -72,6 +79,7 @@ function Box({
   bad,
   set,
   table,
+  demoFields,
 }: {
   box: ClaimBox;
   values: Record<string, unknown>;
@@ -79,6 +87,7 @@ function Box({
   bad: Set<string>;
   set: (field: string, value: unknown) => void;
   table?: ReactNode;
+  demoFields?: Record<string, DemoFilledBox>;
 }) {
   const invalid = bad.has(box.id);
   const issue = issues.find((i) => i.box === box.id && i.severity === "error");
@@ -148,7 +157,7 @@ function Box({
       {box.fields && (
         <div className="mt-0.5 flex flex-wrap items-end gap-x-1.5">
           {box.fields.map((field) => (
-            <Field key={field.field} box={box} field={field} values={values} set={set} />
+            <Field key={field.field} box={box} field={field} values={values} set={set} demo={demoFields?.[field.field]} />
           ))}
         </div>
       )}
@@ -161,15 +170,38 @@ function Field({
   field,
   values,
   set,
+  demo,
 }: {
   box: ClaimBox;
   field: NonNullable<ClaimBox["fields"]>[number];
   values: Record<string, unknown>;
   set: (field: string, value: unknown) => void;
+  /** Set when this box is showing a demo value instead of a captured one. */
+  demo?: DemoFilledBox;
 }) {
   const raw = values[field.field];
   const common =
     "min-w-0 w-full bg-transparent text-[9.5px] leading-tight text-ink outline-none placeholder:text-ink-muted/40 focus:bg-brand-50";
+
+  // A demo value is never an input: it cannot be typed over, so it can never be
+  // written back onto the claim, and it always looks different from captured data.
+  if (demo && field.kind !== "checkbox") {
+    return (
+      <div className="min-w-0 flex-1" style={{ flex: field.flex ?? 1 }}>
+        {field.label && <p className="text-[6px] uppercase tracking-wide text-ink-muted">{field.label}</p>}
+        <p
+          className="flex min-w-0 items-baseline gap-1 text-[9px] italic leading-tight text-slate-400"
+          title={`Demo value — ${demo.label} is normally supplied by ${demo.stage}. Not saved to the claim.`}
+          data-demo-box={demo.box}
+        >
+          <span className="min-w-0 truncate">{String(raw ?? "")}</span>
+          <span className="shrink-0 rounded-sm bg-slate-200 px-0.5 text-[5.5px] font-bold uppercase not-italic tracking-wide text-slate-500">
+            demo
+          </span>
+        </p>
+      </div>
+    );
+  }
 
   const control = (() => {
     switch (field.kind) {

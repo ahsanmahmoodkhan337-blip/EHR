@@ -11,15 +11,23 @@
  * store 300 ms later, so leaving the tab or reloading never loses an edit;
  * Save flushes that write at once.
  *
+ * Demo fill: a box with no captured value renders the teaching demo value from
+ * `data/claims/demoClaimData.ts` (grey italic + "demo" tag, see ClaimPaper) and
+ * is counted separately here — "N boxes filled with demo data" — so it is never
+ * read as captured data. The demo values are only ever in the *rendered* copy:
+ * the draft, the commit and the claim record hold the real values, so a demo is
+ * never written back onto the claim.
+ *
  * Inspiration: the claim-entry chrome in Epic Resolute Professional Billing
  * (claim edit / claim form viewer) — status strip on top, edit checks in a
  * banner, and a printable paper underneath.
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, FileDown, Loader2, Printer, Save, Send, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileDown, Info, Loader2, Printer, Save, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import type { ClaimIssue } from "../../utils/claimValidation";
+import { applyDemoFill, demoFillSummary, type DemoFilledBox } from "../../utils/demoClaimFill";
 
 export interface ClaimPaperApi {
   values: Record<string, unknown>;
@@ -29,6 +37,10 @@ export interface ClaimPaperApi {
   addLine: () => void;
   removeLine: (index: number) => void;
   issues: ClaimIssue[];
+  /** Fields currently showing a demo value — the paper styles these. */
+  demoFields: Record<string, DemoFilledBox>;
+  /** The same boxes as a list, for the paper's footer / the panel. */
+  demoBoxes: DemoFilledBox[];
 }
 
 export interface ClaimFormShellProps {
@@ -52,6 +64,12 @@ export interface ClaimFormShellProps {
   /** Dental screens use the teal accent. */
   accent?: "brand" | "accent";
   note?: string;
+  /**
+   * `demoFillMissingBoxes` — when on (the default) a box with no captured
+   * value renders its teaching demo value. An instructor switches it off for
+   * assessment, so the paper shows only what the student captured.
+   */
+  demoFillEnabled?: boolean;
   children: (api: ClaimPaperApi) => ReactNode;
 }
 
@@ -74,6 +92,7 @@ export function ClaimFormShell({
   submitting = false,
   accent = "brand",
   note,
+  demoFillEnabled = true,
   children,
 }: ClaimFormShellProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(values);
@@ -179,9 +198,16 @@ export function ClaimFormShell({
     schedule();
   };
 
+  // Real value first, demo value second. The rendered copy carries the demo
+  // values; `draft` (and therefore the commit) keeps only what was captured.
+  const demo = useMemo(
+    () => applyDemoFill(draft, { enabled: demoFillEnabled }),
+    [draft, demoFillEnabled],
+  );
+
   const issues = useMemo(
-    () => validate(draft, draftLines),
-    [draft, draftLines, validate],
+    () => validate(demo.values, draftLines),
+    [demo.values, draftLines, validate],
   );
   const errors = issues.filter((i) => i.severity === "error");
   const warnings = issues.filter((i) => i.severity === "warn");
@@ -209,7 +235,9 @@ export function ClaimFormShell({
       toast.error(`${errors.length} edit check${errors.length === 1 ? "" : "s"} still open`);
     } else {
       toast.success(
-        `All edit checks pass${warnings.length > 0 ? ` — ${warnings.length} advisory note${warnings.length === 1 ? "" : "s"}` : ""}`,
+        `All edit checks pass${warnings.length > 0 ? ` — ${warnings.length} advisory note${warnings.length === 1 ? "" : "s"}` : ""}${
+          demo.boxes.length > 0 ? ` · ${demoFillSummary(demo.boxes.length)}` : ""
+        }`,
       );
     }
   };
@@ -282,9 +310,9 @@ export function ClaimFormShell({
           <Printer className="h-3.5 w-3.5" /> Print
         </button>
         <button
-          onClick={() => onDownload(draftRef.current, linesRef.current)}
+          onClick={() => onDownload(demo.values, draftLines)}
           className={btnGhost}
-          title="Download the boxed form as a PDF"
+          title="Download the boxed form as a PDF — the paper as drawn, demo values included"
         >
           <FileDown className="h-3.5 w-3.5" /> Download PDF
         </button>
@@ -292,6 +320,28 @@ export function ClaimFormShell({
           {errors.length} error{errors.length === 1 ? "" : "s"} · {warnings.length} advisory
         </span>
       </div>
+
+      {/* ── Demo-data strip ──────────────────────────────────────────
+          Counted apart from the edit checks: a demo box is not a clean box,
+          so it is never folded into "0 errors". */}
+      {demo.boxes.length > 0 && (
+        <div className="border-b border-slate-200 bg-slate-50 px-3 py-1.5">
+          <p className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-600">
+            <Info className="h-3 w-3 text-slate-400" />
+            {demoFillSummary(demo.boxes.length)}
+            <span className="font-normal text-slate-400">
+              — teaching placeholders, not captured data; nothing here is saved to the claim.
+            </span>
+          </p>
+          <p className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+            {demo.boxes.map((d) => (
+              <span key={d.field} className="text-[9px] italic text-slate-400" title={`${d.label} is normally supplied by ${d.stage}.`}>
+                {d.label} · {d.value}
+              </span>
+            ))}
+          </p>
+        </div>
+      )}
 
       {/* ── Validation banner ────────────────────────────────────── */}
       {issues.length > 0 && (
@@ -327,7 +377,17 @@ export function ClaimFormShell({
 
       {/* ── The paper ────────────────────────────────────────────── */}
       <div className="bg-slate-100/70 p-3">
-        {children({ values: draft, lines: draftLines, set, setLine, addLine, removeLine, issues })}
+        {children({
+          values: demo.values,
+          lines: draftLines,
+          set,
+          setLine,
+          addLine,
+          removeLine,
+          issues,
+          demoFields: demo.byField,
+          demoBoxes: demo.boxes,
+        })}
       </div>
 
       {note && <p className="border-t border-slate-100 px-3 py-1.5 text-[9px] text-slate-400">{note}</p>}

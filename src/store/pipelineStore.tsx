@@ -123,6 +123,14 @@ export interface PipelineState {
   codingLines: ClaimServiceLine[];
   denialInfo: { code: string; reason: string; amount: number } | null;
   paData: Record<string, string>;
+  /**
+   * `demoFillMissingBoxes` — owner decision 2026-11-20. When on (the default) a
+   * claim box with no captured value renders the teaching demo value from
+   * `src/data/claims/demoClaimData.ts`, grey italic and tagged. An instructor or
+   * exam mode switches it off so assessment claims show only what the student
+   * captured. Never written back onto the claim.
+   */
+  demoFillMissingBoxes: boolean;
 }
 
 export interface DeniedClaim {
@@ -179,6 +187,8 @@ interface PipelineContextValue {
   // Structured CMS-1500 record
   setClaimForm: (form: ClaimFormData | null) => void;
   patchClaimForm: (patch: Partial<ClaimFormData>) => void;
+  /** Instructor / exam-mode switch for the demo fill of missing claim boxes. */
+  setDemoFillMissingBoxes: (enabled: boolean) => void;
   handleDenial: (denialCode: string, meta?: { amount?: number; patientName?: string }) => void;
   submitPA: (paData: Record<string, string>) => void;
   completePipeline: () => void;
@@ -238,6 +248,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     codingLines: [],
     denialInfo: null,
     paData: {},
+    demoFillMissingBoxes: true,
   });
 
   const [currentRole, setCurrentRole] = useState<Role>("scribe");
@@ -354,6 +365,12 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       ...prev,
       claimForm: prev.claimForm ? { ...prev.claimForm, ...patch } : prev.claimForm,
     }));
+  };
+
+  // Instructor / exam-mode switch. Persisted with the rest of the pipeline, so
+  // an assessment session keeps the paper free of demo values.
+  const setDemoFillMissingBoxes = (enabled: boolean) => {
+    setPipeline((prev) => ({ ...prev, demoFillMissingBoxes: enabled }));
   };
 
   // PA submission — don't change status; claim isn't submitted yet
@@ -476,6 +493,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         submitClaim,
         setClaimForm,
         patchClaimForm,
+        setDemoFillMissingBoxes,
         handleDenial,
         submitPA,
         completePipeline,

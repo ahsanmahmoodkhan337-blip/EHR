@@ -14,6 +14,12 @@
  * The insured blocks (1a, 4, 7, 11, 11a–11d) default from the patient and stay
  * editable, because the insured is often someone else.
  *
+ * Nothing here is invented. A box with no upstream source is left blank and is
+ * filled at render time from the tagged demo values in
+ * `data/claims/demoClaimData.ts`, via the rule in `utils/demoClaimFill.ts` — a
+ * demo value that is grey italic, tagged, counted separately and never written
+ * back onto the claim.
+ *
  * Inspiration: the "claim pre-population" a practice-management system does
  * when the biller opens a coded encounter — Epic Resolute and DrChrono both
  * carry the encounter's codes and demographics onto the form.
@@ -160,14 +166,16 @@ export function patientIdentityBoxes(
   const name =
     displayName || (patient ? `${patient.lastName}, ${patient.firstName}` : "") || "";
   const insurance = (patient?.insurance ?? "").trim();
-  const memberId = patient?.mrn ? `INS-${patient.mrn}` : "";
-  const groupNumber = patient?.mrn
-    ? `GRP-${patient.mrn.replace(/[^0-9]/g, "") || "0000"}`
-    : "";
 
+  // No fabricated identifiers. A build before 2026-11-20 printed `INS-<mrn>` in
+  // box 1a and `GRP-<mrn digits>` in box 11 — invented values that read as real
+  // member and group numbers, which is how a student learns to invent one.
+  // Nothing in the record holds a member ID or a group number yet (registration
+  // captures them but does not persist them), so both stay blank here and fall
+  // through to the tagged demo values in `demoClaimData.ts`.
   return {
     insuranceType: insurance || "Group Health Plan",
-    insuredId: memberId,
+    insuredId: "",
     patientName: name,
     patientDob: patient?.dateOfBirth ?? "",
     patientSex: patient?.gender ? patient.gender.charAt(0).toUpperCase() : "",
@@ -175,7 +183,7 @@ export function patientIdentityBoxes(
     patientAddress: patient?.address ?? "",
     patientRelationship: "Self",
     insuredAddress: patient?.address ?? "",
-    insuredPolicyGroup: groupNumber,
+    insuredPolicyGroup: "",
     insuredDob: patient?.dateOfBirth ?? "",
     insuredPlanName: insurance,
     patientAccountNumber: patient?.mrn ?? "",
@@ -184,6 +192,21 @@ export function patientIdentityBoxes(
 
 const isBlank = (value: unknown): boolean =>
   value === undefined || value === null || (typeof value === "string" && value.trim() === "");
+
+/** Values an earlier build invented from the MRN — never a real member or group ID. */
+const FABRICATED_ID = /^(INS-|GRP-)/i;
+
+/**
+ * Clear the fabricated `INS-<mrn>` / `GRP-<mrn digits>` values a claim persisted
+ * by an earlier build still carries, so the boxes fall through to the tagged
+ * demo values instead of showing an invented ID as captured data.
+ */
+export function stripFabricatedIds(form: ClaimFormData): Partial<ClaimFormData> {
+  const patch: Partial<ClaimFormData> = {};
+  if (FABRICATED_ID.test(form.insuredId ?? "")) patch.insuredId = "";
+  if (FABRICATED_ID.test(form.insuredPolicyGroup ?? "")) patch.insuredPolicyGroup = "";
+  return patch;
+}
 
 /**
  * The identity boxes a claim is still missing, taken from the patient.

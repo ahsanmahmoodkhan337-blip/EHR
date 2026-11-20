@@ -26,7 +26,7 @@ import { ClaimFormShell } from "../claims/ClaimFormShell";
 import { CMS1500Form } from "./CMS1500Form";
 import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
-import { buildClaimForm, blankServiceLine, backfillIdentityBoxes } from "../../utils/claimAutoFill";
+import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
 import { validateCMS1500, type ClaimIssue } from "../../utils/claimValidation";
 import {
   useEncounterPatientId,
@@ -55,7 +55,7 @@ const CMS1500_PDF_COLUMNS = [
 ];
 
 export function BillingLedger() {
-  const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm } = usePipeline();
+  const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm, setDemoFillMissingBoxes } = usePipeline();
   const claimForm = state.claimForm;
   const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
   // The encounter knows its patient even when the pipeline's nullable
@@ -104,6 +104,11 @@ export function BillingLedger() {
   });
   const claimType: ClaimType = claimForm?.claimType ?? suggestion.claimType;
 
+  // `demoFillMissingBoxes` (owner decision 2026-11-20) — a claim box with no
+  // captured value shows a tagged demo value. Default on; an instructor switches
+  // it off so an assessment claim shows only what the student captured.
+  const demoFillEnabled = state.demoFillMissingBoxes !== false;
+
   const setClaimType = (next: ClaimType) => {
     if (!claimForm) return;
     setClaimForm({ ...claimForm, claimType: next });
@@ -141,6 +146,9 @@ export function BillingLedger() {
     // Codes, charges and anything the student edited are left alone.
     const patch: Partial<ClaimFormData> = {};
     if (!claimForm.claimType) patch.claimType = suggestion.claimType;
+    // A claim written by an earlier build carries an invented member ID and
+    // group number; clear them so the boxes fall through to the tagged demo.
+    Object.assign(patch, stripFabricatedIds(claimForm));
     if (!claimForm.identitySeeded) {
       Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
     }
@@ -437,6 +445,20 @@ export function BillingLedger() {
                       </button>
                     )}
                   </p>
+                  {/* demoFillMissingBoxes — instructor switch */}
+                  <label className="mt-2 flex items-start gap-2 rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={demoFillEnabled}
+                      onChange={(e) => setDemoFillMissingBoxes(e.target.checked)}
+                      className="mt-0.5 h-3 w-3 accent-brand-600"
+                    />
+                    <span>
+                      <span className="font-semibold text-slate-700">Demo-fill missing boxes</span> — a box with
+                      nothing captured shows a grey italic value tagged DEMO. It is listed apart from the edit
+                      checks and never saved to the claim. Switch off for assessment.
+                    </span>
+                  </label>
                 </div>
 
                 {/* ─── Professional → CMS-1500 ─── */}
@@ -463,6 +485,7 @@ export function BillingLedger() {
                       onSubmit={handleSubmitClaim}
                       onDownload={downloadPdf}
                       submitting={isTransmitting}
+                      demoFillEnabled={demoFillEnabled}
                     >
                       {(api) => <CMS1500Form {...api} />}
                     </ClaimFormShell>
