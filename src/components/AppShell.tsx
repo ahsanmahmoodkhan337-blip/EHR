@@ -35,8 +35,6 @@ interface AppShellProps {
   track: ShellTrack;
   /** Sidebar item to mark as current, or null when none matches. */
   activeNav?: ShellNavId | null;
-  /** Switches an in-page medical workspace (Schedule / Patients / Charts). */
-  onWorkspaceSelect?: (workspace: string) => void;
 
   selectedPatientId?: string;
   onPatientSelect?: (patientId: string) => void;
@@ -66,7 +64,6 @@ interface AppShellProps {
 export function AppShell({
   track,
   activeNav = null,
-  onWorkspaceSelect,
   selectedPatientId,
   onPatientSelect,
   roleLabel,
@@ -100,7 +97,6 @@ export function AppShell({
       <AppSidebar
         track={track}
         activeNav={activeNav}
-        onWorkspaceSelect={onWorkspaceSelect}
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
         mobileOpen={mobileOpen}

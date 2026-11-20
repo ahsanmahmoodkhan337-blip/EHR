@@ -83,7 +83,7 @@ interface CodeHit {
   note?: string;
 }
 
-function CodeLookup({ scope }: { scope: "medical" | "dental" }) {
+export function CodeLookup({ scope }: { scope: "medical" | "dental" }) {
   const [query, setQuery] = useState("");
   const trimmed = query.trim();
 

@@ -49,13 +49,11 @@ import { useAllAppointments, useEhrStore, flushEhrStore } from "../store/ehrStor
 import { checkSessionExpired, clearSession, setSessionStart } from "../store/accessStore";
 import { isSessionSuperseded } from "../store/accountSecurity";
 import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
-import { WorkflowTracker } from "../components/WorkflowTracker";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
 import { PatientBanner } from "../components/shell/PatientBanner";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
 import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
-import { WorkflowAthena } from "../components/WorkflowAthena/WorkflowAthena";
 import { StatusTimeline } from "../components/status/StatusTimeline";
 import { statusEventsFor } from "../domain/statusEvent";
 import { encounterEventId } from "../store/pipelineEncounter";
@@ -66,15 +64,7 @@ import { ExamROSStage } from "../components/WorkflowAthena/ExamROSStage";
 import { AssessmentPlanStage, type SoapNoteData } from "../components/WorkflowAthena/AssessmentPlanStage";
 import { SignLockStage } from "../components/WorkflowAthena/SignLockStage";
 import { AppShell } from "../components/AppShell";
-import {
-  WorkspaceTabs,
-  WorkspacePanel,
-  useWorkspaceTabs,
-} from "../components/TabsEpic/WorkspaceTabs";
-import { DailySchedule } from "../components/TabsEpic/DailySchedule";
-import { InBasket } from "../components/TabsEpic/InBasket";
-import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
-import { ChartSearch } from "../components/TabsEpic/ChartSearch";
+import { WorkspacePanel } from "../components/TabsEpic/WorkspaceTabs";
 import ARVoiceSimulator from "../components/ARVoiceSimulator/ARVoiceSimulator";
 import { ArWorkQueuePanel } from "../components/status/ArWorkQueuePanel";
 import { HomeWorkQueues } from "../components/status/HomeWorkQueues";
@@ -1353,7 +1343,15 @@ function PublicLandingPage() {
 function Home() {
   const { patients, caseStates } = usePatientStore();
   const { activeTab, setActiveTab } = useTabsEpic("summary");
-  const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("schedule");
+  /**
+   * Home is one page now (spec `phase-1-navigation.md` item 5). The workspace tab
+   * strip that switched between Schedule, Chart, InBox and Note is gone:
+   * Schedule, Patients and the case list are pages of their own, and the inbox
+   * "Workflow" list is gone with the strip. What is left on Home is the work
+   * queues and the open patient's chart.
+   */
+  const activeWorkspace = "chart";
+  const setActiveWorkspace = (_workspace: string) => {};
   const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -1376,11 +1374,40 @@ function Home() {
   useEffect(() => {
     const requested = consumeRequestedPatient();
     if (!requested) return;
-    const match = patients.find((p) => p.id === requested);
-    if (!match) return;
-    setSelectedPatientId(match.id);
-    selectPatient(match.id);
-    setActiveWorkspace("chart");
+    const match = requested.patientId
+      ? patients.find((p) => p.id === requested.patientId)
+      : undefined;
+    if (match) {
+      setSelectedPatientId(match.id);
+      selectPatient(match.id);
+      return;
+    }
+    // An appointment booked for someone who is not in the patient database
+    // opens a blank encounter under that name — never the previous patient's
+    // note, codes or claim.
+    if (requested.name) {
+      resetEncounter(null);
+      setPatientDisplayName(requested.name);
+      setDisplayName(requested.name);
+      setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
+      setEditableVitals({ bloodPressure: "", heartRate: "", temperature: "", respiratoryRate: "", oxygenSaturation: "" });
+      setEditablePatientData({
+        chiefComplaint: `Visit for: ${requested.name}`,
+        problems: [],
+        medications: [],
+        allergies: [],
+        pcp: "",
+        insurance: "",
+        patientInstructions: "",
+        followUpPlan: "",
+      });
+      setSharedImmunizations([]);
+      setSharedLabs([]);
+      setSharedReferrals([]);
+      setSharedOrders([]);
+      setSharedImaging([]);
+      setSubmittedToCoding(false);
+    }
     // Mount only — the handoff is consumed exactly once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1986,21 +2013,14 @@ function Home() {
     setActiveStage("");
   };
 
-  // Which sidebar item matches the workspace on screen.
-  const shellActiveNav: ShellNavId | null =
-    activeWorkspace === "schedule"
-      ? "schedule"
-      : activeWorkspace === "chart"
-        ? "patients"
-        : activeWorkspace === "note"
-          ? "charts"
-          : null;
+  // Home is its own page now: the rail marks Home, and nothing on it pretends
+  // to be Schedule or Patients any more.
+  const shellActiveNav: ShellNavId = "home";
 
   return (
     <AppShell
       track="medical"
       activeNav={shellActiveNav}
-      onWorkspaceSelect={(workspace) => setActiveWorkspace(workspace)}
       selectedPatientId={selectedPatientId}
       onPatientSelect={handlePatientSelect}
       roleLabel={getRoleLabel(currentRole)}
@@ -2042,15 +2062,9 @@ function Home() {
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
-              <WorkflowAthena
-                activeStage={activeStage}
-                onStageSelect={(id) => {
-                  if (!registrationComplete && id !== "registration") return;
-                  setActiveStage(id);
-                }}
-                completedStages={completedStagesDerived}
-                stageHints={stageHints}
-              />
+              {/* The inbox's "Workflow" stage list is gone (spec item 5): the
+                  encounter stages live in the case runner's stepper, and Home
+                  keeps the timeline that records what happened. */}
               <StatusTimeline
                 className="mt-4"
                 events={encounterEvents}
@@ -2088,18 +2102,12 @@ function Home() {
         </footer>
       }
     >
-      {/* ─── Workflow Tracker (always visible) ─── */}
-      {selectedPatient && <WorkflowTracker encounterId={selectedPatientId} />}
-
       {/* ─── Home work queues — counted from the student's own records ─── */}
-      {/* Home's queues belong to Home; on the Schedule workspace the Daily
-          Schedule comes first, so the student is not scrolled past them. */}
-      {activeWorkspace !== "schedule" && (
-        <HomeWorkQueues onOpenMedicalStage={openMedicalStage} />
-      )}
+      {/* Work Queues live on Home and nowhere else (spec item 5). */}
+      <HomeWorkQueues onOpenMedicalStage={openMedicalStage} />
 
       {/* ─── Role-Based Workspace ─── */}
-      {selectedPatient && currentRole !== "scribe" && activeWorkspace !== "schedule" ? (
+      {selectedPatient && currentRole !== "scribe" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
           {currentRole === "coder" && (
             <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
@@ -2131,16 +2139,7 @@ function Home() {
           )}
         </FadeTransition>
       ) : (
-        <>{/* ─── Workspace Tabs + Content (Scribe or no patient) ─── */}
-          <WorkspaceTabs
-            activeTab={activeWorkspace}
-            onTabChange={setActiveWorkspace}
-            chartSearch={
-              <ChartSearch patientId={selectedPatientId} />
-            }
-          />
-
-      {/* ─── Workspace Content ─── */}
+        <>{/* ─── Chart content (Scribe or no patient) ─── */}
       <FadeTransition id={selectedPatientId || "empty"} className="flex flex-1 flex-col overflow-hidden">
         {/* Skeleton loading on patient switch */}
         {isLoadingPatient ? (
@@ -2149,7 +2148,7 @@ function Home() {
             <Skeleton variant="card" />
             <Skeleton variant="card" />
           </div>
-        ) : !selectedPatient && activeWorkspace !== "schedule" ? (
+        ) : !selectedPatient ? (
           <div className="flex flex-1 items-center justify-center p-4">
             <div className="text-center">
               <Activity className="mx-auto h-12 w-12 text-slate-300" />
@@ -2163,69 +2162,6 @@ function Home() {
           </div>
         ) : (
           <>
-            {/* ─── Daily Schedule ─── */}
-            <WorkspacePanel id="schedule" activeWorkspace={activeWorkspace}>
-              <DailySchedule
-                onDateChange={setSelectedScheduleDate}
-                onSelectPatient={(patientId, name) => {
-                  saveCurrentSession();
-                  // Linked patient first (Phase 0), then fuzzy name for legacy rows.
-                  let match = patientId ? patients.find((p) => p.id === patientId) : undefined;
-                  if (!match) {
-                    match = patients.find(p => `${p.firstName} ${p.lastName}`.toLowerCase() === name.toLowerCase());
-                  }
-                  if (!match) {
-                    match = patients.find(p =>
-                      `${p.firstName} ${p.lastName}`.toLowerCase().includes(name.toLowerCase()) ||
-                      name.toLowerCase().includes(`${p.firstName} ${p.lastName}`.toLowerCase())
-                    );
-                  }
-                  const apt = appointments.find(a =>
-                    (patientId && a.patientId === patientId) ||
-                    a.patientName.toLowerCase() === name.toLowerCase());
-
-                  if (match) {
-                    setSelectedPatientId(match.id);
-                    selectPatient(match.id);
-                    setPatientDisplayName(null);
-                    setActiveWorkspace("chart");
-                    setActiveStage("intake-vitals");
-                    setDisplayName(undefined);
-                    setEditablePatientData(prev => ({
-                      ...prev,
-                      chiefComplaint: match.chiefComplaint,
-                    }));
-                  } else {
-                    // Custom patient not in the patient database — a blank
-                    // encounter of its own, named from the appointment. Never
-                    // the previous patient's codes or claim.
-                    resetEncounter(null);
-                    setPatientDisplayName(name);
-                    setActiveWorkspace("chart");
-                    setActiveStage("intake-vitals");
-                    setDisplayName(name);
-                    setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
-                    setEditableVitals({ bloodPressure: "", heartRate: "", temperature: "", respiratoryRate: "", oxygenSaturation: "" });
-                    setEditablePatientData({
-                      chiefComplaint: apt?.notes || `Visit for: ${name} (${apt?.type || "New patient"})`,
-                      problems: [],
-                      medications: [],
-                      allergies: [],
-                      pcp: "",
-                      insurance: "",
-                      patientInstructions: "",
-                      followUpPlan: "",
-                    });
-                    setSharedImmunizations([]);
-                    setSharedLabs([]);
-                    setSharedReferrals([]);
-                    setSharedOrders([]);
-                    setSharedImaging([]);
-                    setSubmittedToCoding(false);
-                  }
-                }} />
-            </WorkspacePanel>
-
             {/* ─── Patient Chart Review ─── */}
             <WorkspacePanel id="chart" activeWorkspace={activeWorkspace}>
               {!selectedPatient ? (
@@ -2758,22 +2694,6 @@ function Home() {
               )}
             </WorkspacePanel>
 
-            {/* ─── InBasket / Alert Center ─── */}
-            <WorkspacePanel id="inbasket" activeWorkspace={activeWorkspace}>
-              <InBasket />
-            </WorkspacePanel>
-
-            {/* ─── Active Progress Note ─── */}
-            <WorkspacePanel id="note" activeWorkspace={activeWorkspace}>
-              <div className="flex items-center justify-end px-4 pt-2">
-                <NoteSavedIndicator savedAt={lastNoteSavedAt} />
-              </div>
-              <ActiveProgressNote
-                patientName={displayName || (selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : undefined)}
-                soapNote={soapNote}
-                onNoteChange={setSoapNote}
-              />
-            </WorkspacePanel>
           </>
         )}
       </FadeTransition>

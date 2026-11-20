@@ -19,6 +19,11 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DentalRouteImport } from './routes/dental'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as PatientsRouteImport } from './routes/patients'
+import { Route as CasesRouteImport } from './routes/cases'
+import { Route as ReferenceRouteImport } from './routes/reference'
+import { Route as PracticeArRouteImport } from './routes/practice-ar'
 import { Route as MedicalCasesCaseIdStageRouteImport } from './routes/medical-cases.$caseId.$stage'
 import { Route as DentalCaseIdStageRouteImport } from './routes/dental.$caseId.$stage'
 
@@ -72,6 +77,31 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatientsRoute = PatientsRouteImport.update({
+  id: '/patients',
+  path: '/patients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CasesRoute = CasesRouteImport.update({
+  id: '/cases',
+  path: '/cases',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferenceRoute = ReferenceRouteImport.update({
+  id: '/reference',
+  path: '/reference',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PracticeArRoute = PracticeArRouteImport.update({
+  id: '/practice-ar',
+  path: '/practice-ar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MedicalCasesCaseIdStageRoute = MedicalCasesCaseIdStageRouteImport.update({
   id: '/medical-cases/$caseId/$stage',
   path: '/medical-cases/$caseId/$stage',
@@ -87,12 +117,17 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/cases': typeof CasesRoute
   '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/medical-cases': typeof MedicalCasesRoute
+  '/patients': typeof PatientsRoute
+  '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
+  '/reference': typeof ReferenceRoute
+  '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
@@ -101,12 +136,17 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/cases': typeof CasesRoute
   '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/medical-cases': typeof MedicalCasesRoute
+  '/patients': typeof PatientsRoute
+  '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
+  '/reference': typeof ReferenceRoute
+  '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
@@ -116,34 +156,44 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/cases': typeof CasesRoute
   '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/medical-cases': typeof MedicalCasesRoute
+  '/patients': typeof PatientsRoute
+  '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
+  '/reference': typeof ReferenceRoute
+  '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
+  fullPaths: '/' | '/access' | '/admin' | '/cases' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/patients' | '/practice-ar' | '/quiz' | '/reference' | '/schedule' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
-  id: '__root__' | '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
+  to: '/' | '/access' | '/admin' | '/cases' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/patients' | '/practice-ar' | '/quiz' | '/reference' | '/schedule' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
+  id: '__root__' | '/' | '/access' | '/admin' | '/cases' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/patients' | '/practice-ar' | '/quiz' | '/reference' | '/schedule' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessRoute: typeof AccessRoute
   AdminRoute: typeof AdminRoute
+  CasesRoute: typeof CasesRoute
   DashboardRoute: typeof DashboardRoute
   DentalRoute: typeof DentalRoute
   InstructorRoute: typeof InstructorRoute
   LoginRoute: typeof LoginRoute
   MedicalCasesRoute: typeof MedicalCasesRoute
+  PatientsRoute: typeof PatientsRoute
+  PracticeArRoute: typeof PracticeArRoute
   QuizRoute: typeof QuizRoute
+  ReferenceRoute: typeof ReferenceRoute
+  ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
   DentalCaseIdStageRoute: typeof DentalCaseIdStageRoute
   MedicalCasesCaseIdStageRoute: typeof MedicalCasesCaseIdStageRoute
@@ -221,6 +271,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patients': {
+      id: '/patients'
+      path: '/patients'
+      fullPath: '/patients'
+      preLoaderRoute: typeof PatientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cases': {
+      id: '/cases'
+      path: '/cases'
+      fullPath: '/cases'
+      preLoaderRoute: typeof CasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reference': {
+      id: '/reference'
+      path: '/reference'
+      fullPath: '/reference'
+      preLoaderRoute: typeof ReferenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/practice-ar': {
+      id: '/practice-ar'
+      path: '/practice-ar'
+      fullPath: '/practice-ar'
+      preLoaderRoute: typeof PracticeArRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/medical-cases/$caseId/$stage': {
       id: '/medical-cases/$caseId/$stage'
       path: '/medical-cases/$caseId/$stage'
@@ -242,12 +327,17 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessRoute: AccessRoute,
   AdminRoute: AdminRoute,
+  CasesRoute: CasesRoute,
   DashboardRoute: DashboardRoute,
   DentalRoute: DentalRoute,
   InstructorRoute: InstructorRoute,
   LoginRoute: LoginRoute,
   MedicalCasesRoute: MedicalCasesRoute,
+  PatientsRoute: PatientsRoute,
+  PracticeArRoute: PracticeArRoute,
   QuizRoute: QuizRoute,
+  ReferenceRoute: ReferenceRoute,
+  ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
   DentalCaseIdStageRoute: DentalCaseIdStageRoute,
   MedicalCasesCaseIdStageRoute: MedicalCasesCaseIdStageRoute,

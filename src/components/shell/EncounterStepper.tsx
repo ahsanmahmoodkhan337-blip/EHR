@@ -10,7 +10,7 @@
  * Three states, read from the record and never from a stored click:
  *   done    — a stage behind the furthest stage this student has reached.
  *             Still clickable: going back is review, and the stage body decides
- *             for itself what may be edited.
+ *             for itself what may be edited (StageReviewFrame + Reopen to edit).
  *   current — the stage on screen.
  *   locked  — beyond the furthest stage reached. It keeps its place in the row
  *             so the student can see what is still ahead, carries a lock icon,
@@ -18,6 +18,14 @@
  *             (aria-disabled, not `disabled`) so a screen reader can announce
  *             the reason instead of the step silently vanishing from the tab
  *             order.
+ *
+ * Layout (spec `phase-1-navigation.md` item 7): the row wraps onto a second line
+ * rather than scrolling sideways, so a label is never cut in half — "Debrief"
+ * and "Ledger" were both clipped at 1440 px and 1280 px when the row was a
+ * horizontal scroller.
+ *
+ * The role is derived from the current stage and printed once, under the row
+ * (item 4). No other screen prints a role for a case.
  */
 
 import { Check, Lock } from "lucide-react";
@@ -28,6 +36,8 @@ export interface EncounterStep {
   id: string;
   label: string;
   icon?: ReactNode;
+  /** The job role that owns this step, from the shared stage model. */
+  role?: string;
 }
 
 export type StepperAccent = "blue" | "teal";
@@ -78,54 +88,71 @@ export function EncounterStepper({
   if (furthestIdx < 0) furthestIdx = Math.max(currentIdx, 0);
 
   const tone = ACCENT[accent];
+  const currentStep = currentIdx >= 0 ? steps[currentIdx] : undefined;
+  const role = currentStep?.role;
 
   return (
-    <nav
-      aria-label={label}
-      className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900"
-    >
-      <ol className="flex items-center gap-1">
-        {steps.map((step, i) => {
-          const current = step.id === currentId;
-          const done = !current && i < furthestIdx;
-          const locked = i > furthestIdx;
-          const stateLabel = current ? "current stage" : done ? "done" : locked ? "locked" : "open";
-          return (
-            <li key={step.id} className="shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  if (locked) return;
-                  onSelect(step.id);
-                }}
-                aria-current={current ? "step" : undefined}
-                aria-disabled={locked || undefined}
-                aria-label={`${step.label} — ${stateLabel}`}
-                title={locked ? `${step.label} — locked until you reach this stage` : step.label}
-                className={`flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${tone.ring} ${
-                  current
-                    ? tone.current
-                    : done
-                      ? tone.done
-                      : locked
-                        ? "cursor-not-allowed text-slate-500 dark:text-slate-400"
-                        : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                }`}
-              >
-                {locked ? (
-                  <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-                ) : done ? (
-                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                ) : (
-                  step.icon
-                )}
-                <span className="whitespace-nowrap">{step.label}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-      {meta && <div className="ml-auto shrink-0 pl-2">{meta}</div>}
-    </nav>
+    <div className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <nav
+        aria-label={label}
+        className="flex flex-wrap items-center gap-1 px-3 py-2"
+      >
+        <ol className="flex min-w-0 flex-wrap items-center gap-1">
+          {steps.map((step, i) => {
+            const current = step.id === currentId;
+            const done = !current && i < furthestIdx;
+            const locked = i > furthestIdx;
+            const stateLabel = current ? "current stage" : done ? "done" : locked ? "locked" : "open";
+            return (
+              <li key={step.id} className="min-w-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (locked) return;
+                    onSelect(step.id);
+                  }}
+                  aria-current={current ? "step" : undefined}
+                  aria-disabled={locked || undefined}
+                  aria-label={`${step.label} — ${stateLabel}`}
+                  title={
+                    locked
+                      ? `${step.label} — locked. Finish ${steps[furthestIdx]?.label ?? "your current stage"} to open it.`
+                      : done
+                        ? `${step.label} — finished. Opens read-only, with Reopen to edit.`
+                        : step.label
+                  }
+                  className={`flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${tone.ring} ${
+                    current
+                      ? tone.current
+                      : done
+                        ? tone.done
+                        : locked
+                          ? "cursor-not-allowed text-slate-500 dark:text-slate-400"
+                          : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {locked ? (
+                    <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  ) : done ? (
+                    <Check className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  ) : (
+                    step.icon
+                  )}
+                  <span className="whitespace-nowrap">{step.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        {meta && <div className="ml-auto shrink-0 pl-2">{meta}</div>}
+      </nav>
+
+      {/* The role, derived from the current stage and printed once for the case. */}
+      {role && (
+        <p className="px-3 pb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+          Role: <span className="text-slate-600 dark:text-slate-300">{role}</span>
+        </p>
+      )}
+    </div>
   );
 }

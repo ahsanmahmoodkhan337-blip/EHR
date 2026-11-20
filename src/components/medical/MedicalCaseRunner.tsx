@@ -13,7 +13,14 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { EncounterStepper } from "../shell/EncounterStepper";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { EncounterStepper, type EncounterStep } from "../shell/EncounterStepper";
+import {
+  MEDICAL_STAGE_TO_MODEL,
+  modelStagesFor,
+  rcmLabel,
+  type RcmStageId,
+} from "../shell/stageModel";
 import { StageReviewFrame } from "../shell/StageReviewFrame";
 import { useStageShortcuts } from "../shell/useStageShortcuts";
 import { adjacentStage, isReviewingStage, isStageUnlocked } from "../shell/stageReview";
@@ -47,6 +54,7 @@ import {
 import { CPT_CODES } from "../CodingQueue/cptData";
 import { ICD10_CODES } from "../CodingQueue/icd10Data";
 import {
+  MEDICAL_STAGE_ORDER,
   useMedicalCase,
   type MedicalARAction,
   type MedicalCaseStageName,
@@ -95,31 +103,56 @@ const BENEFIT_SCENARIO_BY_CASE_ID: Record<string, MedicalBenefitScenario> =
 
 // ─── stage spine ─────────────────────────────────────────────────────────────
 
-const FRAME_STAGES: { id: MedicalCaseStageName; label: string; icon: ReactNode }[] = [
+const FRAME_STAGES: EncounterStep[] = [
   { id: "case-select", label: "Case", icon: <BookOpen className="h-3.5 w-3.5" /> },
   { id: "briefing", label: "Briefing", icon: <ClipboardList className="h-3.5 w-3.5" /> },
 ];
 
-const RCM_STAGES: { id: MedicalCaseStageName; label: string; icon: ReactNode }[] = [
-  { id: "registration", label: "Register", icon: <UserRound className="h-3.5 w-3.5" /> },
-  { id: "eligibility", label: "Eligibility", icon: <BadgeCheck className="h-3.5 w-3.5" /> },
-  { id: "clinical", label: "Chart", icon: <Stethoscope className="h-3.5 w-3.5" /> },
-  { id: "coding", label: "Coding", icon: <Code2 className="h-3.5 w-3.5" /> },
-  { id: "prior-auth", label: "Prior Auth", icon: <ShieldCheck className="h-3.5 w-3.5" /> },
-  { id: "claim", label: "Claim", icon: <FileCheck2 className="h-3.5 w-3.5" /> },
-  { id: "ar-follow-up", label: "AR", icon: <Phone className="h-3.5 w-3.5" /> },
-];
-
-const DEBRIEF_STAGE: { id: MedicalCaseStageName; label: string; icon: ReactNode } = {
-  id: "debrief",
-  label: "Debrief",
-  icon: <Trophy className="h-3.5 w-3.5" />,
+/** The icon each model stage wears in this track's stepper. */
+const MODEL_ICON: Record<RcmStageId, ReactNode> = {
+  "front-desk": <UserRound className="h-3.5 w-3.5" />,
+  chart: <Stethoscope className="h-3.5 w-3.5" />,
+  coding: <Code2 className="h-3.5 w-3.5" />,
+  "prior-auth": <ShieldCheck className="h-3.5 w-3.5" />,
+  claim: <FileCheck2 className="h-3.5 w-3.5" />,
+  remittance: <BadgeCheck className="h-3.5 w-3.5" />,
+  ar: <Phone className="h-3.5 w-3.5" />,
+  debrief: <Trophy className="h-3.5 w-3.5" />,
 };
 
+/** The model step an internal stage belongs to; a frame keeps its own id. */
+function stepOf(stage: MedicalCaseStageName): string {
+  return MEDICAL_STAGE_TO_MODEL[stage] ?? stage;
+}
+
+/**
+ * Which screen a step opens. A model step that covers two screens (Front Desk)
+ * opens the furthest of them the student has already reached, so going back to
+ * Front Desk lands on eligibility once registration is done.
+ */
+function opensFor(stepId: string, furthest: MedicalCaseStageName): MedicalCaseStageName {
+  const group = (Object.keys(MEDICAL_STAGE_TO_MODEL) as MedicalCaseStageName[]).filter(
+    (internal) => MEDICAL_STAGE_TO_MODEL[internal] === stepId,
+  );
+  if (group.length === 0) return stepId as MedicalCaseStageName;
+  const furthestRank = MEDICAL_STAGE_ORDER.indexOf(furthest);
+  const reached = group.filter((id) => MEDICAL_STAGE_ORDER.indexOf(id) <= furthestRank);
+  return reached.length > 0 ? reached[reached.length - 1] : group[0];
+}
+
 /** Stage label by id, for the URL and the locked-stage notice. */
-export const MEDICAL_STAGE_LABEL: Record<MedicalCaseStageName, string> = Object.fromEntries(
-  [...FRAME_STAGES, ...RCM_STAGES, DEBRIEF_STAGE].map((s) => [s.id, s.label]),
-) as Record<MedicalCaseStageName, string>;
+export const MEDICAL_STAGE_LABEL: Record<MedicalCaseStageName, string> = {
+  "case-select": "Case",
+  briefing: "Briefing",
+  registration: rcmLabel("front-desk"),
+  eligibility: rcmLabel("front-desk"),
+  clinical: rcmLabel("chart"),
+  coding: rcmLabel("coding"),
+  "prior-auth": rcmLabel("prior-auth"),
+  claim: rcmLabel("claim"),
+  "ar-follow-up": rcmLabel("ar"),
+  debrief: rcmLabel("debrief"),
+};
 
 function nextStageFrom(current: MedicalCaseStageName, paTriggered: boolean): MedicalCaseStageName {
   switch (current) {
@@ -173,12 +206,30 @@ function prevStageFrom(current: MedicalCaseStageName, paTriggered: boolean): Med
 
 export function MedicalCaseRunner() {
   const { state, activeCase, paTriggered, goTo } = useMedicalCase();
+  const navigate = useNavigate();
 
-  const stages = useMemo(() => {
-    const rcm = RCM_STAGES.filter((s) => !(s.id === "prior-auth" && !paTriggered));
-    return [...FRAME_STAGES, ...rcm, DEBRIEF_STAGE];
+  // The stepper shows the shared eight-stage model, under the model's own names.
+  const stages = useMemo<EncounterStep[]>(() => {
+    const model = modelStagesFor(MEDICAL_STAGE_TO_MODEL, {
+      hide: paTriggered ? [] : ["prior-auth"],
+    });
+    return [
+      ...FRAME_STAGES,
+      ...model.map((stage) => ({
+        id: stage.id,
+        label: stage.label,
+        role: stage.role,
+        icon: MODEL_ICON[stage.id],
+      })),
+    ];
   }, [paTriggered]);
-  const stageIds = useMemo(() => stages.map((s) => s.id as string), [stages]);
+
+  // Navigation, the keyboard keys and the read-only rule all work on the
+  // track's own stage ids, which are what the URL and the saved record carry.
+  const stageIds = useMemo(
+    () => MEDICAL_STAGE_ORDER.filter((id) => id !== "prior-auth" || paTriggered) as string[],
+    [paTriggered],
+  );
 
   const labelOf = (id: string) => MEDICAL_STAGE_LABEL[id as MedicalCaseStageName] ?? id;
 
@@ -245,9 +296,16 @@ export function MedicalCaseRunner() {
       {/* ── stage stepper (the one shared encounter stepper) ─────────────── */}
       <EncounterStepper
         steps={stages}
-        currentId={state.stage}
-        furthestId={state.furthestStage}
-        onSelect={(id) => goTo(id as MedicalCaseStageName)}
+        currentId={stepOf(state.stage)}
+        furthestId={stepOf(state.furthestStage)}
+        onSelect={(id) => {
+          // The Case step is the case list, not a stage of this encounter.
+          if (id === "case-select") {
+            void navigate({ to: "/cases" });
+            return;
+          }
+          goTo(opensFor(id, state.furthestStage));
+        }}
         accent="blue"
         label="Medical case stages"
         meta={
@@ -1192,12 +1250,12 @@ function Debrief() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => goTo("case-select")}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          <Link
+            to="/cases"
+            className="flex min-h-10 items-center rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
           >
             Case list
-          </button>
+          </Link>
           <button onClick={resetTrack} className="rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600">
             Retake case
           </button>

@@ -15,7 +15,7 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { Stethoscope } from "lucide-react";
 import { isLoggedIn } from "../store/accessStore";
 import { PatientProvider } from "../store/patientStore";
@@ -33,8 +33,15 @@ import { medicalReferenceTabs } from "../components/shell/referenceTabs";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { LockedStageNotice, useStageUrlSync } from "../components/shell/useStageUrlSync";
 
+/**
+ * The case list has its own page now (`/cases`, spec `phase-1-navigation.md`
+ * item 6). This address is kept only so a bookmark, a shared link or a saved
+ * "Case list" click still lands somewhere real instead of on a 404.
+ */
 export const Route = createFileRoute("/medical-cases")({
-  component: () => <MedicalCasesPage />,
+  beforeLoad: () => {
+    throw redirect({ to: "/cases", replace: true });
+  },
 });
 
 /** URL params when the page is rendered by the per-stage route. */

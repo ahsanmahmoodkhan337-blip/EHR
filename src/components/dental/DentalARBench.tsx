@@ -26,16 +26,29 @@ import { adjudicatePracticeScenario } from "./adjudication";
 import { useDentalTrack } from "./DentalTrackStore";
 import { DentalAR } from "./DentalAR";
 
-export function DentalARBench() {
+/**
+ * `onBack` is where "Back to cases" goes when the bench is a page of its own
+ * (`/practice-ar`). Inside the dental runner the button only closes the bench,
+ * which is what the runner expects.
+ */
+export function DentalARBench({ onBack }: { onBack?: () => void } = {}) {
   const { state } = useDentalTrack();
   const scenario = findPracticeScenario(state.activePracticeId);
-  return scenario ? <ScenarioView scenario={scenario} /> : <ScenarioPicker />;
+  return scenario ? (
+    <ScenarioView scenario={scenario} onBack={onBack} />
+  ) : (
+    <ScenarioPicker onBack={onBack} />
+  );
 }
 
 // ─── picker ──────────────────────────────────────────────────────────────────
 
-function ScenarioPicker() {
+function ScenarioPicker({ onBack }: { onBack?: () => void }) {
   const { openPractice, closePractice, practice } = useDentalTrack();
+  const leave = () => {
+    closePractice();
+    onBack?.();
+  };
 
   // The number of denied lines is read from the adjudicator, not typed in, so
   // the count on the card is the count the student will find inside.
@@ -64,7 +77,7 @@ function ScenarioPicker() {
           </p>
         </div>
         <button
-          onClick={closePractice}
+          onClick={leave}
           className="flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" /> Back to cases
@@ -117,8 +130,18 @@ function ScenarioPicker() {
 
 // ─── one scenario ────────────────────────────────────────────────────────────
 
-function ScenarioView({ scenario }: { scenario: DentalARPracticeScenario }) {
+function ScenarioView({
+  scenario,
+  onBack,
+}: {
+  scenario: DentalARPracticeScenario;
+  onBack?: () => void;
+}) {
   const { openPractice, closePractice } = useDentalTrack();
+  const leave = () => {
+    closePractice();
+    onBack?.();
+  };
   const denied = useMemo(() => adjudicatePracticeScenario(scenario).denied.length, [scenario]);
 
   return (
@@ -139,7 +162,7 @@ function ScenarioView({ scenario }: { scenario: DentalARPracticeScenario }) {
             </p>
           </div>
           <button
-            onClick={closePractice}
+            onClick={leave}
             className="ml-auto flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
           >
             Back to cases

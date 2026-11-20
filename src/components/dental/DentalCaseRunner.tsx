@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,11 +28,17 @@ import {
   Wallet,
 } from "lucide-react";
 import { DENTAL_CASE_SCENARIOS, findPlan, type DentalCaseScenario } from "../../data/dental";
-import { EncounterStepper } from "../shell/EncounterStepper";
+import { EncounterStepper, type EncounterStep } from "../shell/EncounterStepper";
+import {
+  DENTAL_STAGE_TO_MODEL,
+  modelStagesFor,
+  rcmLabel,
+  type RcmStageId,
+} from "../shell/stageModel";
 import { StageReviewFrame } from "../shell/StageReviewFrame";
 import { useStageShortcuts } from "../shell/useStageShortcuts";
 import { adjacentStage, isReviewingStage, isStageUnlocked } from "../shell/stageReview";
-import { useDentalTrack, type DentalStageName } from "./DentalTrackStore";
+import { DENTAL_STAGE_ORDER, useDentalTrack, type DentalStageName } from "./DentalTrackStore";
 import { DentalCodingQueue } from "./DentalCodingQueue";
 import { DentalBillingLedger } from "./DentalBillingLedger";
 import { DentalAR } from "./DentalAR";
@@ -42,27 +49,86 @@ import { DentalPredetermination } from "./DentalPredetermination";
 import { DentalARBench } from "./DentalARBench";
 import { adjudicateDentalClaim } from "./adjudication";
 
-const STAGES: { id: DentalStageName; label: string; icon: ReactNode }[] = [
+const FRAME_STAGES: EncounterStep[] = [
   { id: "case-select", label: "Case", icon: <BookOpen className="h-3.5 w-3.5" /> },
   { id: "briefing", label: "Briefing", icon: <ClipboardList className="h-3.5 w-3.5" /> },
-  { id: "planning", label: "Plan", icon: <CalendarClock className="h-3.5 w-3.5" /> },
-  { id: "predetermination", label: "Predetermine", icon: <ClipboardCheck className="h-3.5 w-3.5" /> },
-  { id: "coding", label: "Coding", icon: <Stethoscope className="h-3.5 w-3.5" /> },
-  { id: "claim", label: "Claim", icon: <FileText className="h-3.5 w-3.5" /> },
-  { id: "claims", label: "Claims", icon: <ListChecks className="h-3.5 w-3.5" /> },
-  { id: "ar", label: "AR", icon: <Phone className="h-3.5 w-3.5" /> },
-  { id: "ledger", label: "Ledger", icon: <Wallet className="h-3.5 w-3.5" /> },
-  { id: "debrief", label: "Debrief", icon: <Trophy className="h-3.5 w-3.5" /> },
 ];
 
+/** The icon each model stage wears in this track's stepper. */
+const MODEL_ICON: Record<RcmStageId, ReactNode> = {
+  "front-desk": <ClipboardList className="h-3.5 w-3.5" />,
+  chart: <CalendarClock className="h-3.5 w-3.5" />,
+  coding: <Stethoscope className="h-3.5 w-3.5" />,
+  "prior-auth": <ClipboardCheck className="h-3.5 w-3.5" />,
+  claim: <FileText className="h-3.5 w-3.5" />,
+  remittance: <ListChecks className="h-3.5 w-3.5" />,
+  ar: <Phone className="h-3.5 w-3.5" />,
+  debrief: <Trophy className="h-3.5 w-3.5" />,
+};
+
+/** The patient ledger — this track's own screen, after AR and before Debrief. */
+const LEDGER_STEP: EncounterStep = {
+  id: "ledger",
+  label: "Ledger",
+  role: "Patient Ledger",
+  icon: <Wallet className="h-3.5 w-3.5" />,
+};
+
+const DEBRIEF_STEP: EncounterStep = {
+  id: "debrief",
+  label: rcmLabel("debrief"),
+  role: "Case debrief",
+  icon: <Trophy className="h-3.5 w-3.5" />,
+};
+
+/** The model step an internal stage belongs to; a frame keeps its own id. */
+function stepOf(stage: DentalStageName): string {
+  return DENTAL_STAGE_TO_MODEL[stage] ?? stage;
+}
+
+/** Which internal screen a stepper step opens. */
+function opensFor(stepId: string): DentalStageName {
+  const internal = Object.keys(DENTAL_STAGE_TO_MODEL).find(
+    (id) => DENTAL_STAGE_TO_MODEL[id] === stepId,
+  );
+  return (internal ?? stepId) as DentalStageName;
+}
+
 /** Stage label by id, for the URL and the locked-stage notice. */
-export const DENTAL_STAGE_LABEL: Record<DentalStageName, string> = Object.fromEntries(
-  STAGES.map((s) => [s.id, s.label]),
-) as Record<DentalStageName, string>;
+export const DENTAL_STAGE_LABEL: Record<DentalStageName, string> = {
+  "case-select": "Case",
+  briefing: "Briefing",
+  planning: rcmLabel("chart"),
+  predetermination: rcmLabel("prior-auth"),
+  coding: rcmLabel("coding"),
+  claim: rcmLabel("claim"),
+  claims: rcmLabel("remittance"),
+  ar: rcmLabel("ar"),
+  ledger: "Ledger",
+  debrief: rcmLabel("debrief"),
+};
 
 export function DentalCaseRunner() {
   const { state, activeCase, goTo } = useDentalTrack();
-  const stageIds = useMemo(() => STAGES.map((s) => s.id as string), []);
+  const navigate = useNavigate();
+
+  // The same eight-stage model the medical track shows, under the same names.
+  const stages = useMemo<EncounterStep[]>(() => {
+    const model = modelStagesFor(DENTAL_STAGE_TO_MODEL).filter((s) => s.id !== "debrief");
+    return [
+      ...FRAME_STAGES,
+      ...model.map((stage) => ({
+        id: stage.id,
+        label: stage.label,
+        role: stage.role,
+        icon: MODEL_ICON[stage.id],
+      })),
+      LEDGER_STEP,
+      DEBRIEF_STEP,
+    ];
+  }, []);
+
+  const stageIds = useMemo(() => DENTAL_STAGE_ORDER as string[], []);
 
   const labelOf = (id: string) => DENTAL_STAGE_LABEL[id as DentalStageName] ?? id;
 
@@ -132,10 +198,17 @@ export function DentalCaseRunner() {
     <div className="flex h-full flex-col">
       {/* ── stage stepper (the one shared encounter stepper) ──────────────── */}
       <EncounterStepper
-        steps={STAGES}
-        currentId={state.stage}
-        furthestId={state.furthestStage}
-        onSelect={(id) => goTo(id as DentalStageName)}
+        steps={stages}
+        currentId={stepOf(state.stage)}
+        furthestId={stepOf(state.furthestStage)}
+        onSelect={(id) => {
+          // The Case step is the case list, not a stage of this encounter.
+          if (id === "case-select") {
+            void navigate({ to: "/cases" });
+            return;
+          }
+          goTo(opensFor(id));
+        }}
         accent="teal"
         label="Dental case stages"
         meta={
@@ -401,12 +474,12 @@ function Debrief() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => goTo("case-select")}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          <Link
+            to="/cases"
+            className="flex min-h-10 items-center rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
           >
             Case list
-          </button>
+          </Link>
           <button
             onClick={resetTrack}
             className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"

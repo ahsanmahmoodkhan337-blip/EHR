@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { Smile } from "lucide-react";
 import { isLoggedIn } from "../store/accessStore";
 import { PatientProvider } from "../store/patientStore";
@@ -33,8 +33,15 @@ import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { LockedStageNotice, useStageUrlSync } from "../components/shell/useStageUrlSync";
 import type { CaseStageParams } from "./medical-cases";
 
+/**
+ * The dental case list lives on `/cases` with the medical one now (spec
+ * `phase-1-navigation.md` item 6). This address redirects so no bookmarked URL
+ * dies; the dental runner keeps its own per-stage addresses below it.
+ */
 export const Route = createFileRoute("/dental")({
-  component: () => <DentalTrackPage />,
+  beforeLoad: () => {
+    throw redirect({ to: "/cases", replace: true });
+  },
 });
 
 export function DentalTrackPage({ caseId, stage }: CaseStageParams = {}) {
