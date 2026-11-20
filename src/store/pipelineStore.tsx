@@ -133,6 +133,12 @@ interface PipelineContextValue {
   selectPatient: (patientId: string | null) => void;
   /** This patient's stored encounter, or undefined when never visited. */
   getEncounter: (patientId: string | null) => PipelineEncounter | undefined;
+  /**
+   * Every stored encounter, keyed the way the store keys them. Read-only, for
+   * the Home work queues: they count across all of the student's patients, not
+   * just the one on screen, and nothing here writes.
+   */
+  allEncounters: Record<string, PipelineEncounter>;
   currentRole: Role;
   setRole: (role: Role) => void;
   submitToCoding: (note: string) => void;
@@ -1056,6 +1062,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         activePatientId: store.activePatientId,
         selectPatient,
         getEncounter,
+        allEncounters: store.encounters,
         currentRole,
         setRole,
         submitToCoding,

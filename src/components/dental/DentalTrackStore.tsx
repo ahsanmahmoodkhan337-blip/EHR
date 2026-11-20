@@ -349,6 +349,18 @@ function loadState(phone: string | null): DentalTrackState {
 }
 
 /**
+ * Read the persisted dental record for a phone **without mounting the provider**.
+ *
+ * The Home work queues count the dental side's claim status and undecided denied
+ * lines, and Home is not inside the dental provider. This runs the same
+ * `loadState` migration the provider runs, so the queues can never read a shape
+ * the dental screens would not, and it never writes.
+ */
+export function readDentalTrackRecord(phone: string | null = getLoggedInPhone()): DentalTrackState {
+  return loadState(phone);
+}
+
+/**
  * Translate a saved dental record into the current shape. Pure, exported and
  * used by both `loadState` and the tests, so a migration cannot pass a test the
  * app does not run.
