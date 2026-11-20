@@ -299,7 +299,7 @@ const CASE_HYGIENE_RECALL: DentalCaseScenario = {
       whyItIsWrong:
         "One hundred percent applies only to services that are covered at all. Fluoride on a 16-year-old is outside the age cap, so the percentage never comes into play.",
       correctAction:
-        "Check the age limit against the patient's age on the date of service and quote the fluoride fee in advance, or offer to skip it.",
+        "Check the age limit against the patient's age on the date of service, and decide before the varnish is opened — once it is applied the plan will not pay and the contract does not let the practice bill for it.",
       producesDenialId: "DEN-AGE-LIMIT",
       pointsAtStake: 20,
     },
@@ -334,7 +334,7 @@ const CASE_HYGIENE_RECALL: DentalCaseScenario = {
       whyItIsWrong:
         "The payer is not disputing that it was indicated. The benefit stops at an age the patient has passed, and no clinical argument changes an age cap.",
       correctAction:
-        "Move the balance to the patient with an explanation, and fix the process so the next teenager is quoted in advance.",
+        "Write the line off as contractual — an age cap is a benefit limit, not a patient balance — and fix the process so the next teenager is checked before treatment.",
       producesDenialId: "DEN-AGE-LIMIT",
       pointsAtStake: 15,
     },
@@ -355,12 +355,12 @@ const CASE_HYGIENE_RECALL: DentalCaseScenario = {
       code: "D0274",
       chargedUsd: 74,
       allowedUsd: 68,
-      contractualWriteOffUsd: 6,
+      contractualWriteOffUsd: 74,
       planPaysUsd: 0,
-      patientOwesUsd: 68,
+      patientOwesUsd: 0,
       denialId: "DEN-FREQ-XRAY",
       explanation:
-        "Denied on frequency: a set was paid to another practice nine months earlier. Under most participating agreements the patient owes the contracted amount rather than the full fee — confirm the specific contract before billing.",
+        "Denied on frequency (CO-119): a set was paid to another practice nine months earlier. A frequency limit is a contract limitation — the plan will not buy a second set inside its window, and the participating agreement does not let the practice bill the parent for it. The whole 74.00 charge is a provider write-off.",
     },
     {
       line: 3,
@@ -378,29 +378,30 @@ const CASE_HYGIENE_RECALL: DentalCaseScenario = {
       code: "D1206",
       chargedUsd: 44,
       allowedUsd: 40,
-      contractualWriteOffUsd: 4,
+      contractualWriteOffUsd: 44,
       planPaysUsd: 0,
-      patientOwesUsd: 40,
+      patientOwesUsd: 0,
       denialId: "DEN-AGE-LIMIT",
-      explanation: "Past the plan's fluoride age cap. Patient responsibility, and it should have been quoted beforehand.",
+      explanation:
+        "Past the plan's fluoride age cap (CO-6). An age cap is a benefit limit, not a patient balance: the 44.00 charge is a provider write-off, which is exactly why the age had to be checked before the varnish was opened.",
     },
   ],
   expectedTotals: {
     chargedUsd: 288,
     allowedUsd: 261,
     planPaysUsd: 153,
-    patientOwesUsd: 108,
-    writeOffUsd: 27,
+    patientOwesUsd: 0,
+    writeOffUsd: 135,
   },
   arFollowUp: {
     scenario:
-      "The parent calls three weeks later, upset that a preventive visit produced a bill. Nothing was miscoded — the practice simply failed to check two rules in advance.",
-    outcome: "bill-patient",
+      "The parent calls three weeks later, upset that two of the four preventive services were not paid for. Nothing was miscoded — the practice simply failed to check two rules in advance, and it is the practice, not the parent, that absorbs both.",
+    outcome: "write-off-contractual",
     callObjectives: [
-      "Explain the difference between a service that is not covered and a service that was coded wrongly.",
-      "Show the parent the two specific plan rules that produced the balance.",
+      "Explain the difference between a service the plan does not cover and a service that was coded wrongly.",
+      "Read the group code to the parent: CO-119 and CO-6 are contractual, so the practice writes both off and does not bill the family.",
       "Offer to schedule the next bitewings after the frequency window reopens.",
-      "Record the fluoride age cap on the account so it is quoted before the next visit.",
+      "Record the fluoride age cap on the account so the next over-age patient is decided before treatment.",
     ],
   },
   gradingRubric: {
@@ -413,13 +414,13 @@ const CASE_HYGIENE_RECALL: DentalCaseScenario = {
       { stage: "coding", criterion: "Selected the routine recall evaluation, not the comprehensive code", points: 15 },
       { stage: "coding", criterion: "Selected the cleaning code matching the patient's age", points: 10 },
       { stage: "claim", criterion: "Submitted a clean claim with no missing data", points: 10 },
-      { stage: "ar-follow-up", criterion: "Correctly classified both balances as patient responsibility rather than appealing", points: 15 },
+      { stage: "ar-follow-up", criterion: "Correctly wrote both non-payable lines off as contractual rather than appealing or billing the parent", points: 15 },
     ],
   },
   instructorKey: [
     "The whole case turns on two questions asked during eligibility. Neither is clinical.",
     "Students who appeal the fluoride denial should be shown that an exclusion by age has no clinical remedy.",
-    "Use this case to introduce the difference between the charged fee, the contracted allowance and the write-off.",
+    "Use this case to introduce the difference between the charged fee, the contracted allowance and the write-off — and to show that a CO line never carries a patient balance, however large it is.",
   ],
 };
 
@@ -1022,7 +1023,7 @@ const CASE_POSTERIOR_COMPOSITE_DOWNGRADE: DentalCaseScenario = {
       commonMistake: "The student writes an appeal arguing the fluoride was indicated for orthodontic decalcification risk.",
       whyItIsWrong:
         "The payer is not disputing the indication. The benefit stops at an age the patient has passed, and no clinical argument changes an age cap.",
-      correctAction: "Move the fluoride balance to the patient, and flag the account so the next over-age patient is quoted in advance.",
+      correctAction: "Write the fluoride off as contractual — an age cap is not a patient balance — and flag the account so the next over-age patient is decided before treatment.",
       producesDenialId: "DEN-AGE-LIMIT",
       pointsAtStake: 10,
     },
@@ -1046,20 +1047,20 @@ const CASE_POSTERIOR_COMPOSITE_DOWNGRADE: DentalCaseScenario = {
       code: "D1206",
       chargedUsd: 44,
       allowedUsd: 40,
-      contractualWriteOffUsd: 4,
+      contractualWriteOffUsd: 44,
       planPaysUsd: 0,
-      patientOwesUsd: 40,
+      patientOwesUsd: 0,
       denialId: "DEN-AGE-LIMIT",
       explanation:
-        "Past the plan's fluoride age cap of 15 — the patient is 16 on the date of service. Not payable at any percentage, and no clinical argument changes an age cap. Patient responsibility, quoted beforehand.",
+        "Past the plan's fluoride age cap of 15 (CO-6) — the patient is 16 on the date of service. Not payable at any percentage, no clinical argument changes an age cap, and the group code makes it a provider write-off rather than a balance for the parent.",
     },
   ],
   expectedTotals: {
     chargedUsd: 292,
     allowedUsd: 250,
     planPaysUsd: 104,
-    patientOwesUsd: 146,
-    writeOffUsd: 42,
+    patientOwesUsd: 106,
+    writeOffUsd: 82,
   },
   arFollowUp: {
     scenario:
@@ -1081,7 +1082,7 @@ const CASE_POSTERIOR_COMPOSITE_DOWNGRADE: DentalCaseScenario = {
       { stage: "coding", criterion: "Billed the composite actually delivered, not the amalgam code", points: 20 },
       { stage: "coding", criterion: "Coded the surfaces to match the clinical note", points: 15 },
       { stage: "claim", criterion: "Submitted a clean claim with the correct surfaces and tooth number", points: 10 },
-      { stage: "ar-follow-up", criterion: "Did not appeal the fluoride age cap; posted both balances correctly", points: 20 },
+      { stage: "ar-follow-up", criterion: "Did not appeal the fluoride age cap; billed the upgrade and wrote the fluoride off", points: 20 },
     ],
   },
   instructorKey: [
@@ -1275,9 +1276,9 @@ const CASE_ENDO_CROWN_FREQUENCY: DentalCaseScenario = {
       code: "D2740",
       chargedUsd: 1320,
       allowedUsd: 1100,
-      contractualWriteOffUsd: 220,
+      contractualWriteOffUsd: 1320,
       planPaysUsd: 0,
-      patientOwesUsd: 1100,
+      patientOwesUsd: 0,
       denialId: "DEN-FREQ-CROWN",
       explanation:
         "Denied on frequency: the plan paid for a crown on this tooth less than five years ago, and the replacement clock follows the tooth, not the dentist. Appealable because the prior crown failed from new decay — the pre-operative radiograph is the evidence.",
@@ -1287,12 +1288,12 @@ const CASE_ENDO_CROWN_FREQUENCY: DentalCaseScenario = {
     chargedUsd: 2920,
     allowedUsd: 2530,
     planPaysUsd: 690,
-    patientOwesUsd: 1840,
-    writeOffUsd: 390,
+    patientOwesUsd: 740,
+    writeOffUsd: 1490,
   },
   arFollowUp: {
     scenario:
-      "The remittance shows the root canal and post paid, and the crown denied on frequency. A student who stops there leaves a four-figure balance on the patient that a documented appeal would likely reverse.",
+      "The remittance shows the root canal and post paid, and the crown denied on frequency with a CO group code. A student who stops there leaves the practice absorbing a four-figure write-off that a documented appeal would likely reverse.",
     outcome: "appeal-with-documentation",
     callObjectives: [
       "Confirm on the remittance which lines paid and which denied, and note the denial reason for the crown.",
@@ -1312,7 +1313,7 @@ const CASE_ENDO_CROWN_FREQUENCY: DentalCaseScenario = {
       { stage: "claim", criterion: "Attached pre- and post-operative films for the root canal", points: 15 },
       { stage: "claim", criterion: "Used the cementation date for the crown", points: 15 },
       { stage: "ar-follow-up", criterion: "Recognised the denial as appealable and prepared the appeal", points: 20 },
-      { stage: "ar-follow-up", criterion: "Did not bill the frequency denial to the patient before appealing", points: 20 },
+      { stage: "ar-follow-up", criterion: "Treated the frequency denial as a CO write-off while the appeal runs, and did not bill the patient", points: 20 },
     ],
   },
   instructorKey: [

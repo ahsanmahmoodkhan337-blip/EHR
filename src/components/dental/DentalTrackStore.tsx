@@ -240,24 +240,47 @@ interface DentalTrackApi {
   removePayment: (id: string) => void;
   removeAdjustment: (id: string) => void;
   // scoring
-  scoreTally: { maxPoints: number; earned: number; passingPoints: number; criteria: { key: string; criterion: string; points: number; earned: number }[] };
+  scoreTally: {
+    maxPoints: number;
+    earned: number;
+    passingPoints: number;
+    /** Points the app can actually score. */
+    autoMaxPoints: number;
+    /** Points the student has earned on the auto-scored rows. */
+    autoEarned: number;
+    /** Pass mark recalculated over the auto-scored rows only. */
+    autoPassingPoints: number;
+    /** Points sitting on instructor-reviewed rows. */
+    pendingReviewPoints: number;
+    criteria: { key: string; criterion: string; points: number; earned: number; autoScored: boolean }[];
+  };
   traps: CaseTrap[];
 }
 
 const DentalTrackContext = createContext<DentalTrackApi | null>(null);
 
 /**
- * Auto-score the mechanically-verifiable rubric criteria. Judgment calls
- * ("correctly classified…") are left at 0 so an instructor can award them in
- * review — the debrief marks these clearly. Traps are a parallel axis and are
- * surfaced separately (spec §4.2: rubric = the score, traps = the debrief).
+ * Auto-score the mechanically-verifiable rubric criteria, and report which
+ * criteria the app is able to score at all.
+ *
+ * TASK 0 item 9: some rubric rows describe work the UI gives the student no
+ * scored action for — capturing subscriber details, asking the payer for the
+ * last bitewing date, spotting the fluoride age cap. Those rows are
+ * instructor-reviewed, so they are reported separately and excluded from the
+ * pass threshold. A student who does everything the app offers must be able to
+ * pass; before this change DCASE-001 put 50 of its 100 points on three steps
+ * that could not be performed, against a pass mark of 70.
+ *
+ * Traps remain a parallel axis and are surfaced separately (spec §4.2:
+ * rubric = the score, traps = the debrief).
  */
 function computeEarned(
   state: DentalTrackState,
   activeCase: DentalCaseScenario | undefined,
-): Record<string, number> {
+): { earned: Record<string, number>; autoScored: Set<string> } {
   const earned: Record<string, number> = { ...state.rubricByCriterion };
-  if (!activeCase) return earned;
+  const autoScored = new Set<string>();
+  if (!activeCase) return { earned, autoScored };
 
   const codes = state.lines.map((l) => l.code);
   const hasCode = (c: string) => codes.includes(c);
@@ -266,20 +289,35 @@ function computeEarned(
 
   activeCase.gradingRubric.criteria.forEach((c, idx) => {
     const key = `${c.stage}-${idx}`;
-    if (earned[key] !== undefined) return;
     const text = c.criterion.toLowerCase();
+    let checkable = false;
     let hit = false;
 
     if (c.stage === "coding") {
       if (activeCase.id === "DCASE-001") {
-        if (text.includes("routine recall")) hit = hasCode("D0120") && !hasCode("D0150");
-        if (text.includes("cleaning code")) hit = hasCode("D1110") && !hasCode("D1120");
+        if (text.includes("routine recall")) {
+          checkable = true;
+          hit = hasCode("D0120") && !hasCode("D0150");
+        }
+        if (text.includes("cleaning code")) {
+          checkable = true;
+          hit = hasCode("D1110") && !hasCode("D1120");
+        }
       } else if (activeCase.id === "DCASE-002") {
-        if (text.includes("crown actually delivered")) hit = hasCode("D2740") && !hasCode("D2790") && !hasCode("D2751");
+        if (text.includes("crown actually delivered")) {
+          checkable = true;
+          hit = hasCode("D2740") && !hasCode("D2790") && !hasCode("D2751");
+        }
       } else if (activeCase.id === "DCASE-003") {
-        if (text.includes("quadrant")) hit = hasCode("D4341") && hasCode("D4342");
+        if (text.includes("quadrant")) {
+          checkable = true;
+          hit = hasCode("D4341") && hasCode("D4342");
+        }
       }
     } else if (c.stage === "claim") {
+      // Submitting the claim is an action the app records, so every claim row
+      // is machine-checkable.
+      checkable = true;
       hit = state.claimSubmitted;
       if (activeCase.id === "DCASE-002") {
         const crown = state.lines.find((l) => l.code === "D2740");
@@ -288,19 +326,23 @@ function computeEarned(
         if (text.includes("buildup documentation")) hit = Boolean(buildup && buildup.attachments.length > 0);
       }
     } else if (c.stage === "ar-follow-up") {
-      if (activeCase.id === "DCASE-001" && text.includes("patient responsibility")) {
-        hit = hasResolution("billed-patient") && !hasResolution("appealed");
+      if (activeCase.id === "DCASE-001" && text.includes("contractual")) {
+        checkable = true;
+        hit = hasResolution("write-off") && !hasResolution("appealed") && !hasResolution("billed-patient");
       } else if (activeCase.id === "DCASE-002" && text.includes("did not appeal")) {
+        checkable = true;
         hit = !hasResolution("appealed") && state.arCallLog.length > 0;
       } else if (activeCase.id === "DCASE-003" && text.includes("periodontal maintenance")) {
+        checkable = true;
         hit = state.arCallLog.some((e) => e.note.toLowerCase().includes("periodontal maintenance"));
       }
     }
 
+    if (checkable) autoScored.add(key);
     if (hit) earned[key] = c.points;
   });
 
-  return earned;
+  return { earned, autoScored };
 }
 
 export function DentalTrackProvider({ children }: { children: ReactNode }) {
@@ -487,15 +529,35 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
 
   const scoreTally = useMemo(() => {
     const rubric = activeCase?.gradingRubric ?? { maxPoints: 0, passingPoints: 0, criteria: [] };
-    const earnedMap = computeEarned(state, activeCase);
-    const criteria = rubric.criteria.map((c, idx) => ({
-      key: `${c.stage}-${idx}`,
-      criterion: c.criterion,
-      points: c.points,
-      earned: earnedMap[`${c.stage}-${idx}`] ?? 0,
-    }));
+    const { earned: earnedMap, autoScored } = computeEarned(state, activeCase);
+    const criteria = rubric.criteria.map((c, idx) => {
+      const key = `${c.stage}-${idx}`;
+      return {
+        key,
+        criterion: c.criterion,
+        points: c.points,
+        earned: earnedMap[key] ?? 0,
+        autoScored: autoScored.has(key),
+      };
+    });
     const earned = criteria.reduce((sum, c) => sum + c.earned, 0);
-    return { maxPoints: rubric.maxPoints, earned, passingPoints: rubric.passingPoints, criteria };
+    const autoRows = criteria.filter((c) => c.autoScored);
+    const autoMaxPoints = autoRows.reduce((sum, c) => sum + c.points, 0);
+    const autoEarned = autoRows.reduce((sum, c) => sum + c.earned, 0);
+    // The pass mark keeps the rubric's own percentage, applied to the rows the
+    // app can score — otherwise instructor-reviewed points would make it
+    // unreachable.
+    const passingPct = rubric.maxPoints > 0 ? rubric.passingPoints / rubric.maxPoints : 0;
+    return {
+      maxPoints: rubric.maxPoints,
+      earned,
+      passingPoints: rubric.passingPoints,
+      autoMaxPoints,
+      autoEarned,
+      autoPassingPoints: Math.round(autoMaxPoints * passingPct),
+      pendingReviewPoints: rubric.maxPoints - autoMaxPoints,
+      criteria,
+    };
   }, [state, activeCase]);
 
   const api: DentalTrackApi = {

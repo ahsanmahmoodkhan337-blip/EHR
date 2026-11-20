@@ -20,6 +20,7 @@
  */
 
 import { CDT_CODE_INDEX } from "./cdtCodes";
+import { CARC_BY_CODE, type CarcCodeString, type CarcGroup } from "../claims/carc";
 
 export type DenialCategory =
   | "Eligibility"
@@ -42,10 +43,19 @@ export type DenialOutcome =
 
 export interface DentalDenial {
   id: string;
-  /** X12 Claim Adjustment Reason Code commonly used for this situation. */
-  carc: string;
-  /** Group code: CO = contractual obligation (not billable to patient), PR = patient responsibility. */
-  groupCode: "CO" | "PR" | "OA" | "PI";
+  /**
+   * The X12 Claim Adjustment Reason Code with its group letter, e.g. "PR-119".
+   * Group and number are stored together so no screen can print one without
+   * the other, and a code that is not in the single table in
+   * ~/data/claims/carc.ts fails to compile.
+   */
+  carc: CarcCodeString;
+  /**
+   * Group code, mirroring the letter in `carc`: CO = contractual obligation
+   * (not billable to the patient), PR = patient responsibility, OA = another
+   * payer's share, PI = payer initiated.
+   */
+  groupCode: CarcGroup;
   title: string;
   category: DenialCategory;
   /** Original plain-language reading of what the payer is saying. */
@@ -73,8 +83,8 @@ export interface DentalDenial {
 export const DENTAL_DENIALS: DentalDenial[] = [
   {
     id: "DEN-ANNUAL-MAX",
-    carc: "119",
-    groupCode: "CO",
+    carc: "PR-119",
+    groupCode: "PR",
     title: "Annual maximum reached",
     category: "Benefit limitation",
     plainLanguage:
@@ -100,7 +110,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-NOT-ELIGIBLE",
-    carc: "27",
+    carc: "PR-27",
     groupCode: "PR",
     title: "Patient not covered on the date of service",
     category: "Eligibility",
@@ -127,7 +137,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-FREQ-XRAY",
-    carc: "119",
+    carc: "CO-119",
     groupCode: "CO",
     title: "Radiograph frequency limit exceeded",
     category: "Frequency",
@@ -139,21 +149,21 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     correctiveActions: [
       "Pull the payer's stated last date of service and compare it with the practice's own history.",
       "If the practice's date is right and the payer's is wrong, appeal with the dated images.",
-      "If the payer is right, check whether the patient signed a financial agreement acknowledging the frequency limit before the images were taken.",
+      "If the payer is right, the line is a contractual write-off: a frequency limit caps what the plan buys, it is not a balance to bill the patient.",
       "Where a diagnostic emergency genuinely required the images, appeal with the narrative and the referring symptom.",
     ],
     preventable: true,
     prevention:
       "Build the last-taken date into the eligibility check and put a frequency flag in the hygiene schedule. A rolling window from the last service, not the benefit year, is what catches practices out.",
     appealable: true,
-    expectedOutcome: "bill-patient",
-    patientBillable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
     teachingPoint:
       "Rolling frequency windows run from the last date of service. January does not reset them.",
   },
   {
     id: "DEN-FREQ-PROPHY",
-    carc: "119",
+    carc: "CO-119",
     groupCode: "CO",
     title: "Cleaning frequency exceeded",
     category: "Frequency",
@@ -163,20 +173,20 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     commonCodes: ["D1110", "D1120", "D4910"],
     correctiveActions: [
       "Verify whether the plan counts cleanings and periodontal maintenance in one shared pool or separately — this changes the answer entirely.",
-      "If they are shared and the pool is used, bill the patient.",
+      "If they are shared and the pool is used, the line is a contractual write-off — a plan frequency limit is not a patient balance.",
       "If the plan counts them separately and the payer pooled them anyway, appeal citing the plan's own benefit summary.",
     ],
     preventable: true,
     prevention: "Confirm at the perio-recall conversation how many total hygiene visits the plan pays, and quote the patient for the rest.",
     appealable: true,
-    expectedOutcome: "bill-patient",
-    patientBillable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
     teachingPoint:
       "A three-month perio recall is good care that most plans do not fully fund. Say so before the patient is booked, not after.",
   },
   {
     id: "DEN-FREQ-SRP",
-    carc: "119",
+    carc: "CO-119",
     groupCode: "CO",
     title: "Scaling and root planing frequency limit",
     category: "Frequency",
@@ -192,13 +202,13 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     preventable: true,
     prevention: "Record the quadrant treated on every perio claim and keep a per-quadrant history in the chart.",
     appealable: true,
-    expectedOutcome: "correct-and-resubmit",
-    patientBillable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
     teachingPoint: "Perio frequency is per quadrant. Half of these denials are really the wrong quadrant on the claim.",
   },
   {
     id: "DEN-FREQ-EXAM",
-    carc: "119",
+    carc: "CO-119",
     groupCode: "CO",
     title: "Evaluation frequency exceeded",
     category: "Frequency",
@@ -209,18 +219,18 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     correctiveActions: [
       "Check whether the plan pools all evaluations into one allowance.",
       "If the visit was a genuine emergency, appeal with the presenting complaint and findings.",
-      "Otherwise bill the patient.",
+      "Otherwise the line is a contractual write-off, and the account is flagged so the next evaluation is counted before it is billed.",
     ],
     preventable: true,
     prevention: "Track evaluations as one combined count rather than per code.",
     appealable: true,
-    expectedOutcome: "bill-patient",
-    patientBillable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
     teachingPoint: "Most plans do not care which evaluation code you used — they count evaluations.",
   },
   {
     id: "DEN-FREQ-CROWN",
-    carc: "119",
+    carc: "CO-119",
     groupCode: "CO",
     title: "Crown replacement too soon",
     category: "Frequency",
@@ -232,19 +242,19 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     correctiveActions: [
       "Ask the payer for the paid date and the servicing provider on the prior crown.",
       "If the crown failed because of new decay or fracture rather than normal wear, appeal with radiographs and a narrative describing the failure.",
-      "If the window simply has not elapsed, bill the patient against the signed estimate.",
+      "If the window simply has not elapsed, the replacement is a contractual write-off until the interval runs out.",
     ],
     preventable: true,
     prevention:
       "During eligibility, ask the payer for the crown history on the specific tooth. It is a routine question and it prevents a four-figure surprise.",
     appealable: true,
     expectedOutcome: "appeal-with-documentation",
-    patientBillable: true,
+    patientBillable: false,
     teachingPoint: "Replacement clocks follow the tooth, not the dentist. A crown from a previous office still counts.",
   },
   {
     id: "DEN-FREQ-PROSTHETIC",
-    carc: "119",
+    carc: "CO-119",
     groupCode: "CO",
     title: "Prosthetic replacement too soon",
     category: "Frequency",
@@ -255,18 +265,18 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     correctiveActions: [
       "Consider whether a reline or repair is payable now instead of a replacement — often it is, and it solves the clinical problem.",
       "If the appliance was lost or damaged beyond repair, check whether the plan has any exception and appeal with the circumstances.",
-      "Otherwise present the patient with the self-pay fee and the date they become eligible.",
+      "Otherwise the replacement is a contractual write-off; tell the patient the date they become eligible so the timing is their choice.",
     ],
     preventable: true,
     prevention: "Ask for the placement date of the current appliance at the consultation, before any impressions are taken.",
     appealable: true,
-    expectedOutcome: "bill-patient",
-    patientBillable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
     teachingPoint: "For prosthetics, the first question is never clinical — it is 'when was the current one placed?'",
   },
   {
     id: "DEN-FREQ-FLUORIDE",
-    carc: "119",
+    carc: "CO-119",
     groupCode: "CO",
     title: "Fluoride frequency exceeded",
     category: "Frequency",
@@ -276,18 +286,18 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     commonCodes: ["D1206", "D1208"],
     correctiveActions: [
       "Check the age limit as well — it is common for both rules to fail at once and only one to be reported.",
-      "Bill the patient, having warned them in advance.",
+      "Write the application off as contractual — a plan frequency limit is not a balance to bill the patient.",
     ],
     preventable: true,
     prevention: "Flag high-risk recall patients whose clinical protocol exceeds their benefit, and get the fee agreed once rather than arguing it four times a year.",
     appealable: false,
-    expectedOutcome: "bill-patient",
-    patientBillable: true,
-    teachingPoint: "Good clinical protocol and plan frequency are different things. The patient needs to hear that from you first.",
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
+    teachingPoint: "Good clinical protocol and plan frequency are different things. Decide before the varnish is opened: once it is applied the plan will not pay, and under this contract the practice cannot bill for it.",
   },
   {
     id: "DEN-FREQ-PERIO-MAINT",
-    carc: "119",
+    carc: "CO-119",
     groupCode: "CO",
     title: "Periodontal maintenance frequency exceeded",
     category: "Frequency",
@@ -297,18 +307,18 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     commonCodes: ["D4910"],
     correctiveActions: [
       "Confirm whether maintenance shares a pool with routine cleanings under this plan.",
-      "Bill the patient for visits beyond the allowance under a signed financial agreement.",
+      "Write the visits beyond the allowance off as contractual, and record the limit on the account so the recall is planned around it.",
     ],
     preventable: true,
     prevention: "Set the patient's expectation at the time periodontal therapy is completed, when they are already discussing long-term maintenance.",
     appealable: false,
-    expectedOutcome: "bill-patient",
-    patientBillable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
     teachingPoint: "Periodontal patients are the most likely to have a clinical need the plan will not fund. Plan the conversation, not just the recall.",
   },
   {
     id: "DEN-FREQ-GUARD",
-    carc: "119",
+    carc: "CO-119",
     groupCode: "CO",
     title: "Occlusal guard frequency limit",
     category: "Frequency",
@@ -316,17 +326,17 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     payerRemark: "This appliance is not payable within the replacement interval from the previous one.",
     typicalTrigger: "A patient who chewed through their guard replacing it two years after the last one.",
     commonCodes: ["D9944"],
-    correctiveActions: ["Confirm the paid date of the previous guard.", "Bill the patient or defer until the interval elapses."],
+    correctiveActions: ["Confirm the paid date of the previous guard.", "Write it off as contractual, or defer until the interval elapses."],
     preventable: true,
     prevention: "Check the guard history whenever grinding is discussed, before the impression appointment.",
     appealable: false,
-    expectedOutcome: "bill-patient",
-    patientBillable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
     teachingPoint: "Appliance benefits are among the most restricted in dentistry, where they exist at all.",
   },
   {
     id: "DEN-AGE-LIMIT",
-    carc: "6",
+    carc: "CO-6",
     groupCode: "CO",
     title: "Service not payable at the patient's age",
     category: "Benefit limitation",
@@ -336,21 +346,21 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     commonCodes: ["D1206", "D1208", "D1351", "D1510"],
     correctiveActions: [
       "Confirm the patient's date of birth on file matches the payer's record — a wrong birth date produces false age denials and is fixable.",
-      "If the date is right and the patient has aged out, bill the patient.",
+      "If the date is right and the patient has aged out, the line is a contractual write-off — an age cap is a benefit limit, not a patient balance.",
       "Do not resubmit the same claim expecting a different result; nothing has changed.",
     ],
     preventable: true,
     prevention:
       "Have the hygiene schedule flag patients within a year of an age cap so the fee is quoted before the varnish is opened.",
     appealable: false,
-    expectedOutcome: "bill-patient",
-    patientBillable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
     teachingPoint: "Age is tested on the date of service. The birthday between two appointments changes the answer.",
   },
   {
     id: "DEN-MISSING-TOOTH",
-    carc: "96",
-    groupCode: "CO",
+    carc: "PR-96",
+    groupCode: "PR",
     title: "Missing tooth clause applied",
     category: "Benefit limitation",
     plainLanguage:
@@ -376,8 +386,8 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-ALT-BENEFIT",
-    carc: "59",
-    groupCode: "CO",
+    carc: "PR-45",
+    groupCode: "PR",
     title: "Alternate benefit applied",
     category: "Contractual",
     plainLanguage:
@@ -402,8 +412,8 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-WAITING",
-    carc: "26",
-    groupCode: "CO",
+    carc: "PR-26",
+    groupCode: "PR",
     title: "Service within the waiting period",
     category: "Eligibility",
     plainLanguage: "The patient has not been covered long enough for this class of service to be payable.",
@@ -425,7 +435,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-PREAUTH",
-    carc: "197",
+    carc: "CO-197",
     groupCode: "CO",
     title: "Predetermination or prior authorisation not obtained",
     category: "Authorisation",
@@ -450,7 +460,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-MED-NEC",
-    carc: "50",
+    carc: "CO-50",
     groupCode: "CO",
     title: "Not considered necessary by the payer",
     category: "Documentation",
@@ -477,7 +487,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-DOC-MISSING",
-    carc: "16",
+    carc: "CO-16",
     groupCode: "CO",
     title: "Claim missing required information",
     category: "Documentation",
@@ -501,7 +511,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-SURFACE-MISMATCH",
-    carc: "4",
+    carc: "CO-4",
     groupCode: "CO",
     title: "Surfaces inconsistent with the procedure or tooth",
     category: "Coding",
@@ -528,7 +538,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-SRP-TOOTH-COUNT",
-    carc: "151",
+    carc: "CO-151",
     groupCode: "CO",
     title: "Documentation does not support the quadrant-level code",
     category: "Documentation",
@@ -555,7 +565,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-BUNDLE-BUILDUP",
-    carc: "97",
+    carc: "CO-97",
     groupCode: "CO",
     title: "Buildup included in the crown",
     category: "Bundling",
@@ -578,7 +588,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-BUNDLE-EXAM",
-    carc: "97",
+    carc: "CO-97",
     groupCode: "CO",
     title: "Evaluation bundled with another service",
     category: "Bundling",
@@ -600,7 +610,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-BUNDLE-DIAG",
-    carc: "97",
+    carc: "CO-97",
     groupCode: "CO",
     title: "Diagnostic test bundled into the evaluation",
     category: "Bundling",
@@ -627,7 +637,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-BUNDLE-PERIO",
-    carc: "97",
+    carc: "CO-97",
     groupCode: "CO",
     title: "Periodontal service bundled with same-day treatment",
     category: "Bundling",
@@ -651,7 +661,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-BUNDLE-SURGICAL",
-    carc: "97",
+    carc: "CO-97",
     groupCode: "CO",
     title: "Surgical adjunct bundled into the extraction",
     category: "Bundling",
@@ -673,7 +683,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-BUNDLE-PALLIATIVE",
-    carc: "97",
+    carc: "CO-97",
     groupCode: "CO",
     title: "Palliative treatment bundled with definitive treatment",
     category: "Bundling",
@@ -694,7 +704,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-BUNDLE-RESTORATIVE",
-    carc: "97",
+    carc: "CO-97",
     groupCode: "CO",
     title: "Restorative step bundled into the definitive restoration",
     category: "Bundling",
@@ -716,7 +726,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-DOWNCODE-SURGICAL",
-    carc: "45",
+    carc: "CO-45",
     groupCode: "CO",
     title: "Surgical extraction paid at the simple extraction rate",
     category: "Documentation",
@@ -742,7 +752,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-DUPLICATE",
-    carc: "18",
+    carc: "CO-18",
     groupCode: "CO",
     title: "Duplicate claim or service",
     category: "Coding",
@@ -767,7 +777,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-TOOTH-ELIGIBILITY",
-    carc: "6",
+    carc: "CO-96",
     groupCode: "CO",
     title: "Tooth not eligible for this service",
     category: "Coding",
@@ -791,7 +801,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-NOT-COVERED",
-    carc: "204",
+    carc: "PR-204",
     groupCode: "PR",
     title: "Not a covered benefit under this plan",
     category: "Benefit limitation",
@@ -815,7 +825,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-TIMELY-FILING",
-    carc: "29",
+    carc: "CO-29",
     groupCode: "CO",
     title: "Timely filing limit exceeded",
     category: "Timeliness",
@@ -840,8 +850,8 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-COB-PRIMARY",
-    carc: "22",
-    groupCode: "CO",
+    carc: "OA-22",
+    groupCode: "OA",
     title: "Another plan is primary",
     category: "Eligibility",
     plainLanguage: "This payer believes it is the secondary plan and wants to see the primary's payment first.",
@@ -865,8 +875,8 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-PERIO-MAINT-CONFLICT",
-    carc: "97",
-    groupCode: "CO",
+    carc: "PR-97",
+    groupCode: "PR",
     title: "Maintenance and routine cleaning conflict",
     category: "Bundling",
     plainLanguage:
@@ -890,7 +900,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-ORTHO-AGE",
-    carc: "6",
+    carc: "CO-6",
     groupCode: "CO",
     title: "Orthodontic age limit exceeded",
     category: "Benefit limitation",
@@ -900,19 +910,19 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     commonCodes: ["D8080", "D8090"],
     correctiveActions: [
       "Confirm the age limit and the patient's age at the banding date, not at the consultation date.",
-      "Convert the case to a self-pay contract and set up the payment plan.",
+      "Treat the orthodontic benefit as a contractual write-off and agree any private fee with the patient in writing before banding.",
     ],
     preventable: true,
     prevention: "Verify orthodontic eligibility specifically, including the age cap and the banding-date rule, before records are taken.",
     appealable: false,
-    expectedOutcome: "bill-patient",
-    patientBillable: true,
+    expectedOutcome: "write-off-contractual",
+    patientBillable: false,
     teachingPoint: "Orthodontic benefits sit outside the rest of the plan and follow their own rules. Verify them separately.",
   },
   {
     id: "DEN-ORTHO-LIFETIME-MAX",
-    carc: "119",
-    groupCode: "CO",
+    carc: "PR-119",
+    groupCode: "PR",
     title: "Orthodontic lifetime maximum reached",
     category: "Benefit limitation",
     plainLanguage: "The plan has paid all it will ever pay toward orthodontics for this patient.",
@@ -934,7 +944,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-TIME-UNITS",
-    carc: "151",
+    carc: "CO-151",
     groupCode: "CO",
     title: "Time units not supported",
     category: "Documentation",
@@ -956,7 +966,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-PATIENT-DEDUCTIBLE",
-    carc: "1",
+    carc: "PR-1",
     groupCode: "PR",
     title: "Applied to the deductible",
     category: "Patient responsibility",
@@ -979,7 +989,7 @@ export const DENTAL_DENIALS: DentalDenial[] = [
   },
   {
     id: "DEN-CONTRACTUAL-WRITEOFF",
-    carc: "45",
+    carc: "CO-45",
     groupCode: "CO",
     title: "Charge exceeds the contracted allowance",
     category: "Contractual",
@@ -1009,6 +1019,70 @@ export const DENTAL_DENIAL_INDEX: Record<string, DentalDenial> = Object.fromEntr
 
 export function findDenial(id: string): DentalDenial | undefined {
   return DENTAL_DENIAL_INDEX[id];
+}
+
+/**
+ * The money consequence of a denial — the ONE place that decides whether a
+ * balance belongs to the patient or is a provider write-off.
+ *
+ * Adjudication (does the line carry a patient balance?), the pre-submit scrub
+ * (what will the payer do to this line?) and the AR screen (what do I do next?)
+ * all read this function, so the three cannot disagree about the same denial.
+ *
+ * The rule the group code states, applied without exception:
+ *   PR — the patient owes the balance.
+ *   CO — a contractual obligation: the practice writes it off, the patient is
+ *        never billed, whatever the amount.
+ *   OA — another payer's share: neither the patient's nor a write-off.
+ */
+export function denialMoney(denial: DentalDenial): {
+  /** True when the patient owes this balance. */
+  patientBalance: boolean;
+  /** True when the practice absorbs it as a contractual write-off. */
+  providerWriteOff: boolean;
+  /** Student-facing sentence for the scrub row and the AR card. */
+  label: string;
+} {
+  if (denial.groupCode === "PR") {
+    return {
+      patientBalance: true,
+      providerWriteOff: false,
+      label: "patient responsibility — the patient owes this balance",
+    };
+  }
+  if (denial.groupCode === "OA") {
+    return {
+      patientBalance: false,
+      providerWriteOff: false,
+      label: "another payer's share under coordination of benefits — neither the patient's nor a write-off",
+    };
+  }
+  return {
+    patientBalance: false,
+    providerWriteOff: true,
+    label: "contractual (CO) — provider write-off, not billable to the patient",
+  };
+}
+
+/** The single next action a denial calls for, in student-facing words. */
+export function denialActionLabel(denial: DentalDenial): string {
+  switch (denial.expectedOutcome) {
+    case "appeal-with-documentation":
+      return "appeal with documentation";
+    case "correct-and-resubmit":
+      return "correct the claim and resubmit";
+    case "bill-patient":
+      return "bill the patient";
+    case "write-off-contractual":
+      return "write the line off as contractual";
+    case "no-recourse-educate-patient":
+      return "close it and explain the exclusion to the patient";
+  }
+}
+
+/** One sentence combining the CARC, the money rule and the next action. */
+export function denialEffectSummary(denial: DentalDenial): string {
+  return `${denial.carc} — ${denialMoney(denial).label}; ${denialActionLabel(denial)}.`;
 }
 
 /**

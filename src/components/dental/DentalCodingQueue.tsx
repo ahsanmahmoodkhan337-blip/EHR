@@ -468,7 +468,7 @@ export function DentalCodingQueue() {
                 <div className="flex flex-wrap gap-1">
                   {riskDenials.map((d) => (
                     <span key={d.id} className="rounded-full bg-white px-1.5 py-0.5 text-[9px] text-blue-700 ring-1 ring-blue-100">
-                      {d.title}
+                      <b>{d.carc}</b> {d.title}
                     </span>
                   ))}
                 </div>

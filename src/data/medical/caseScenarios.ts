@@ -251,7 +251,7 @@ const CASE_HTN_FOLLOWUP: MedicalCaseScenario = {
   ],
   expectedTotals: { chargedUsd: 155, allowedUsd: 140, planPaysUsd: 112, patientOwesUsd: 28, writeOffUsd: 15 },
   arFollowUp: {
-    scenario: "The remittance returns paid in full. There is nothing to work; the lesson is that most claims should look like this.",
+    scenario: "The remittance returns the plan's 80% share and the claim is clean. There is still a coinsurance balance for the patient to be told about; the lesson is that most claims should look like this.",
     outcome: "clean-paid",
     callObjectives: [
       "Confirm the paid amount and coinsurance match the benefit quoted in advance.",
@@ -270,7 +270,7 @@ const CASE_HTN_FOLLOWUP: MedicalCaseScenario = {
     ],
   },
   instructorKey: [
-    "This is the baseline: a clean claim is the absence of the traps in the other six cases.",
+    "This is the baseline: a clean claim is the absence of the traps in the other nine cases.",
     "Have students defend the 99213 level in one sentence — that is the whole E/M level-selection habit.",
   ],
 };

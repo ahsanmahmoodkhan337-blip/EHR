@@ -16,7 +16,7 @@
 
 import { useMemo, useState } from "react";
 import { Phone, PhoneOff, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { findCDT, AR_CALL_GUIDANCE, type DentalDenial, type DenialOutcome } from "../../data/dental";
+import { findCDT, AR_CALL_GUIDANCE, denialMoney, type DentalDenial, type DenialOutcome } from "../../data/dental";
 import { adjudicateDentalClaim } from "./adjudication";
 import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
 
@@ -68,6 +68,7 @@ export function DentalAR() {
           code: l.code,
           denial: l.denial as DentalDenial,
           patientOwesUsd: l.result.patientOwesUsd,
+          writeOffUsd: l.result.contractualWriteOffUsd,
           resolution: state.lineResolutions[l.lineId] ?? ("not-handled" as DentalLineResolution),
         })),
     [adjudication, state.lineResolutions],
@@ -134,13 +135,15 @@ export function DentalAR() {
       )}
 
       <div className="mt-3 space-y-3">
-        {deniedLines.map(({ lineId, code, denial, patientOwesUsd, resolution }) => {
+        {deniedLines.map(({ lineId, code, denial, patientOwesUsd, writeOffUsd, resolution }) => {
           const codeInfo = findCDT(code);
           const objective = objectiveFor(denial);
           const isTarget = callTarget === lineId;
           const trap = arTrapForDenial(denial);
           const primary = PRIMARY_ACTION[denial.expectedOutcome];
           const canAppeal = denial.appealable;
+          // One record decides the money: a CO line never carries a patient balance.
+          const money = denialMoney(denial);
 
           return (
             <div key={lineId} className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -148,10 +151,22 @@ export function DentalAR() {
               <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
                 <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">{code}</code>
                 <span className="text-[11px] font-medium text-slate-700">{codeInfo?.shortName ?? "Unknown"}</span>
-                <span className="rounded bg-red-50 px-1.5 py-0.5 text-[9px] font-semibold text-red-700 ring-1 ring-red-100">
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-bold ring-1 ${
+                    money.patientBalance ? "bg-red-50 text-red-700 ring-red-100" : "bg-slate-100 text-slate-700 ring-slate-200"
+                  }`}
+                  title="Claim Adjustment Reason Code, group code first"
+                >
+                  {denial.carc}
+                </span>
+                <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[9px] font-medium text-slate-400 ring-1 ring-slate-100">
                   {denial.id}
                 </span>
-                <span className="ml-auto text-[11px] font-bold text-red-600">{fmtUsd(patientOwesUsd)} patient balance</span>
+                <span className={`ml-auto text-[11px] font-bold ${money.patientBalance ? "text-red-600" : "text-slate-500"}`}>
+                  {money.patientBalance
+                    ? `${fmtUsd(patientOwesUsd)} patient balance`
+                    : `${fmtUsd(writeOffUsd)} provider write-off — not billable to the patient`}
+                </span>
               </div>
 
               {/* denial body */}
@@ -159,7 +174,7 @@ export function DentalAR() {
                 <p className="text-[11px] font-semibold text-red-800">
                   {denial.title}
                   <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
-                    CARC {denial.carc} · Group {denial.groupCode}
+                    {denial.carc} · group {denial.groupCode}
                   </span>
                 </p>
                 <p className="text-[10px] text-slate-600">{denial.plainLanguage}</p>

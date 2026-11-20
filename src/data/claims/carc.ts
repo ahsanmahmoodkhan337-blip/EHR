@@ -32,6 +32,13 @@
  *   CO-177 as "credentialing" — unverified; the credentialing-class code here
  *            is B7 and it is not AR work.
  *   Any RARC number. RARC stays free text in this build; no RARC list ships.
+ *
+ * TWO GROUP CODES FOR THE SAME NUMBER
+ * A CARC number is not tied to one group. 119 is CO-119 when the plan's benefit
+ * is used up and nobody owes anything more, and PR-119 when the member owes the
+ * balance. The group letter is the money answer, so both are listed where the
+ * teaching cases use both, and a denial record stores the group and the number
+ * together ("PR-119") so the two can never drift apart.
  */
 
 /** The four adjustment groups. */
@@ -72,6 +79,17 @@ export const CARC_CODES = [
     howToFix:
       "Correct the line and resubmit with the right modifier (frequency code 7 on a corrected claim).",
     neededBy: ["Biller", "AR"],
+  },
+  {
+    code: "CO-6",
+    group: "CO",
+    category: "CO",
+    description: "Procedure is inconsistent with the patient's age",
+    meaning:
+      "The plan covers this service only inside an age range, and the patient's age on the date of service falls outside it.",
+    howToFix:
+      "Confirm the date of birth on file matches the payer's record first — a wrong birth date fakes this denial. If the age is right, the service is a contractual write-off on a frequency or age benefit; do not bill the patient for it.",
+    neededBy: ["Biller", "Poster", "AR"],
   },
   {
     code: "CO-11",
@@ -149,6 +167,50 @@ export const CARC_CODES = [
     neededBy: ["Biller", "Poster", "AR"],
   },
   {
+    code: "CO-26",
+    group: "CO",
+    category: "CO",
+    description: "Expenses incurred before coverage began",
+    meaning:
+      "The service was performed on a date the member was not yet covered — or, in dental, before the plan's waiting period for that class of service had elapsed.",
+    howToFix:
+      "Confirm the coverage start date and any waiting period. If the dates are right, this is a contractual write-off; if prior continuous coverage should have counted, appeal with proof of it.",
+    neededBy: ["Biller", "Poster", "AR"],
+  },
+  {
+    code: "CO-27",
+    group: "CO",
+    category: "CO",
+    description: "Expenses incurred after coverage ended",
+    meaning:
+      "The member's coverage with this plan had already terminated on the date the service was performed.",
+    howToFix:
+      "Check the termination date against the date of service and whether a different plan was active that day. Where no plan was active, the balance is the patient's and the group code on the remittance says so.",
+    neededBy: ["Biller", "Poster", "AR"],
+  },
+  {
+    code: "OA-22",
+    group: "OA",
+    category: "OA",
+    description: "Care may be covered by another payer (coordination of benefits)",
+    meaning:
+      "This plan believes another plan is responsible for the service, so it is not paying as billed. The amount is the other payer's share, not a write-off and not the patient's.",
+    howToFix:
+      "Establish which plan is primary, bill it first, then send this claim to the secondary with the primary's remittance attached.",
+    neededBy: ["Biller", "Poster", "AR"],
+  },
+  {
+    code: "CO-59",
+    group: "CO",
+    category: "CO",
+    description: "Processed under multiple or concurrent procedure rules",
+    meaning:
+      "The payer's concurrent-procedure edits applied: two procedures reported together are treated as one payable event, or one is priced as part of the other.",
+    howToFix:
+      "Check whether the two services were genuinely separate. If they were, appeal with the note that separates them; if not, the line is a contractual write-off. This is NOT the code for an alternate-benefit downgrade — that is 45.",
+    neededBy: ["Biller", "Poster", "AR"],
+  },
+  {
     code: "CO-45",
     group: "CO",
     category: "CO",
@@ -177,7 +239,7 @@ export const CARC_CODES = [
     description: "Not covered by this plan",
     meaning: "The plan excludes this service from its benefits entirely.",
     howToFix:
-      "Move the balance to the patient with a signed waiver. A plan exclusion is not appealable on clinical grounds.",
+      "A plan exclusion is not appealable on clinical grounds, and under a participating agreement the charge is not balance-billed to the member: the line is a contractual write-off. Where the contract does allow a non-covered service to be billed with a signed waiver, the payer reports that as PR-96, not CO-96.",
     neededBy: ["Poster", "AR"],
   },
   {
@@ -245,6 +307,17 @@ export const CARC_CODES = [
     neededBy: ["Biller", "AR"],
   },
   {
+    code: "CO-204",
+    group: "CO",
+    category: "CO",
+    description: "Not covered under the member's current benefit plan",
+    meaning:
+      "The plan the member holds does not include this service at any level. Nothing about the coding or the clinical need changes that.",
+    howToFix:
+      "Confirm the exclusion in writing. A plan exclusion is not appealable on clinical grounds, so the only question left is whether the contract allows the member to be billed for it — if it does, the payer reports that as PR-204, not CO-204.",
+    neededBy: ["Biller", "Poster", "AR"],
+  },
+  {
     code: "CO-236",
     group: "CO",
     category: "CO",
@@ -293,6 +366,83 @@ export const CARC_CODES = [
     description: "Copay",
     meaning: "The fixed amount the patient owes for this visit or service.",
     howToFix: "Bill the patient.",
+    neededBy: ["Poster", "AR"],
+  },
+  {
+    code: "PR-26",
+    group: "PR",
+    category: "PR",
+    description: "Service falls inside a waiting period the member owes for",
+    meaning:
+      "The plan does not pay for this class of service until the member has held the plan long enough, and the member is liable for the charge.",
+    howToFix:
+      "Bill the patient, and confirm the date the waiting period ends so the next course of treatment can be scheduled after it.",
+    neededBy: ["Poster", "AR"],
+  },
+  {
+    code: "PR-27",
+    group: "PR",
+    category: "PR",
+    description: "Service was outside the member's period of coverage",
+    meaning:
+      "No coverage was active on the date of service and no other plan has been found to be responsible, so the member owes the charge.",
+    howToFix:
+      "Bill the patient. Ask whether another plan was active that day before you do — that question is the difference between a patient balance and a payer balance.",
+    neededBy: ["Poster", "AR"],
+  },
+  {
+    code: "PR-45",
+    group: "PR",
+    category: "PR",
+    description: "Member owes the amount above the plan's allowable",
+    meaning:
+      "The plan paid to its allowance — including the allowance of a cheaper alternative procedure under an alternate-benefit provision — and the contract makes the difference the member's.",
+    howToFix:
+      "Bill the patient the difference against the signed estimate, and never rebill the cheaper code. Where the contract forbids balance billing, the same adjustment arrives as CO-45 instead.",
+    neededBy: ["Poster", "AR"],
+  },
+  {
+    code: "PR-96",
+    group: "PR",
+    category: "PR",
+    description: "Non-covered charge the member owes",
+    meaning:
+      "The service is not a covered benefit, and the member is liable for it — for example a dental missing-tooth clause applied to a replacement.",
+    howToFix:
+      "Bill the patient, with the reason in writing. Appeal first only where the underlying fact (when the tooth was lost, which plan was active) can be proved wrong.",
+    neededBy: ["Poster", "AR"],
+  },
+  {
+    code: "PR-97",
+    group: "PR",
+    category: "PR",
+    description: "Service is part of another service and the member owes it",
+    meaning:
+      "The payer treats this service as included in another service it paid, and the member — not the practice — carries the balance.",
+    howToFix:
+      "Confirm the contract puts the balance on the member, then bill the patient. If the services were genuinely separate, appeal with the note that shows it before billing anyone.",
+    neededBy: ["Poster", "AR"],
+  },
+  {
+    code: "PR-119",
+    group: "PR",
+    category: "PR",
+    description: "Benefit maximum reached — member owes the balance",
+    meaning:
+      "The plan has paid all it will pay for this service or this period, and the member is responsible for the rest.",
+    howToFix:
+      "Bill the patient against the pre-treatment estimate they signed, and offer to defer anything still unscheduled into the next benefit period.",
+    neededBy: ["Poster", "AR"],
+  },
+  {
+    code: "PR-204",
+    group: "PR",
+    category: "PR",
+    description: "Not a covered benefit, and the member owes it",
+    meaning:
+      "The plan does not sell this benefit at all, and under the member's contract the charge is theirs.",
+    howToFix:
+      "Bill the patient. There is no clinical appeal that makes a plan cover something it does not sell — explain the exclusion instead.",
     neededBy: ["Poster", "AR"],
   },
 ] as const satisfies readonly CarcCode[];

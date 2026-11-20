@@ -7,14 +7,19 @@
  * explains what the payer will probably do — it never hard-blocks submission
  * (the student should feel the payer's response, not be stopped from sending).
  *
- * Drives entirely from already-merged data:
- *   - missing required attachments      → `attachmentsForCode()`
- *   - predetermination-required codes   → `isPredeterminationCandidate()` +
- *     `predeterminationDriverFor()`
- *   - frequency + waiting-period hits   → `frequencyRulesFor()` +
- *     `DentalPlan.waitingPeriods`
- *   - expected downgrade-vs-denial      → `alternateBenefitFor()` +
- *     `CDTCode.commonDenials`
+ * WHERE A FINDING COMES FROM (TASK 0, items 2 and 3)
+ *  - Missing attachments and predetermination requirements are facts about the
+ *    code, so they are raised from `attachmentsForCode()` and
+ *    `isPredeterminationCandidate()`.
+ *  - A denial is raised ONLY when this case's own facts produce it — paid
+ *    history, the patient's age, the plan's rules, the deductible — by reading
+ *    the same adjudication the claim and AR screens read. A code that merely
+ *    *can* deny no longer produces a flag; the old list of every denial ever
+ *    seen against a code is gone.
+ *  - The money wording ("patient responsibility" / "provider write-off") comes
+ *    from `denialMoney()` in denialReasons.ts, the same function adjudication
+ *    uses, so the scrub cannot tell the student to bill a patient the AR screen
+ *    says is not billable.
  *
  * Guardrail: an alternate-benefit is rendered as a downgrade (a reduction), never
  * as a denial.
@@ -23,17 +28,15 @@
 import { useMemo } from "react";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import {
-  alternateBenefitFor,
   attachmentsForCode,
-  findCDT,
-  findDenial,
+  denialActionLabel,
+  denialMoney,
   findPlan,
-  frequencyRulesFor,
   isPredeterminationCandidate,
   predeterminationDriverFor,
-  type BenefitClass,
   type DentalPlan,
 } from "../../data/dental";
+import { adjudicateDentalClaim, type DentalClaimAdjudication } from "./adjudication";
 import { useDentalTrack, type DentalClaimLine } from "./DentalTrackStore";
 
 export type ScrubCategory =
@@ -59,32 +62,20 @@ const CATEGORY_BADGE: Record<ScrubCategory, string> = {
   "Denial risk": "status-badge is-danger",
 };
 
-/** "Adjunctive" prices like Basic for waiting-period purposes (same rule the evaluator uses). */
-function waitingMonths(plan: DentalPlan, cls: BenefitClass): number {
-  switch (cls === "Adjunctive" ? "Basic" : cls) {
-    case "Preventive":
-      return plan.waitingPeriods.preventiveMonths;
-    case "Basic":
-      return plan.waitingPeriods.basicMonths;
-    case "Major":
-      return plan.waitingPeriods.majorMonths;
-    case "Orthodontic":
-      return plan.waitingPeriods.orthodonticMonths;
-  }
-}
-
-/** Universal-numbering posterior teeth (premolars + molars). */
-function isPosteriorTooth(n: number): boolean {
-  return (n >= 1 && n <= 5) || (n >= 12 && n <= 16) || (n >= 17 && n <= 21) || (n >= 28 && n <= 32);
-}
-
 /**
  * Pure scrub function — reusable by the coding queue (pre-submit) and the
  * billing ledger (summary). Returns warnings only; never mutates state.
+ *
+ * `adjudication` is the result of `adjudicateDentalClaim()` for the same lines.
+ * When it is supplied, every denial finding is one this case actually
+ * triggers, with the CARC, the money rule and the next action the AR screen
+ * will show. When it is absent (no active case, so nothing to adjudicate), only
+ * the code-level facts — attachments and predetermination — are raised.
  */
 export function scrubDentalClaim(
   lines: DentalClaimLine[],
   plan: DentalPlan | undefined,
+  adjudication?: DentalClaimAdjudication,
 ): ScrubFinding[] {
   const findings: ScrubFinding[] = [];
   if (lines.length === 0) {
@@ -96,9 +87,8 @@ export function scrubDentalClaim(
   }
 
   for (const line of lines) {
-    const cdt = findCDT(line.code);
 
-    // ── 1. missing required attachments ─────────────────────────────────
+    // ── 1. missing required attachments (a fact about the code) ─────────
     for (const r of attachmentsForCode(line.code)) {
       if (!line.attachments.includes(r.type)) {
         findings.push({
@@ -109,7 +99,7 @@ export function scrubDentalClaim(
       }
     }
 
-    // ── 2. predetermination-required codes ──────────────────────────────
+    // ── 2. predetermination-required codes (a fact about the code) ──────
     if (isPredeterminationCandidate(line.code)) {
       const driver = predeterminationDriverFor(line.code);
       findings.push({
@@ -121,59 +111,43 @@ export function scrubDentalClaim(
       });
     }
 
-    // ── 3. frequency + waiting-period hits ──────────────────────────────
-    if (plan) {
-      for (const f of frequencyRulesFor(plan, line.code)) {
-        findings.push({
-          category: "Frequency",
-          code: line.code,
-          message: `${f.label} — allowed ${f.timesAllowed}× per ${f.windowMonths} months (${f.basis === "rolling-from-last-service" ? "rolling from last service" : "benefit period"}).`,
-        });
-      }
-
-      if (cdt) {
-        const w = waitingMonths(plan, cdt.typicalBenefitClass);
-        if (w > 0) {
-          findings.push({
-            category: "Waiting period",
-            code: line.code,
-            message: `${cdt.typicalBenefitClass} services carry a ${w}-month waiting period on this plan.`,
-          });
-        }
-      }
+    // ── 3. what THIS case's facts do to this line ───────────────────────
+    const result = adjudication?.lines.find((l) => l.lineId === line.id);
+    if (result?.denial) {
+      const denial = result.denial;
+      findings.push({
+        category: "Denial risk",
+        code: line.code,
+        message: `${denial.carc} ${denial.title}. ${denialMoney(denial).label}. Expected next step: ${denialActionLabel(denial)}.${
+          result.result.blockedReason ? ` Why this line: ${result.result.blockedReason}` : ""
+        }`,
+      });
+    } else if (result?.isDowngrade) {
+      findings.push({
+        category: "Downgrade",
+        code: line.code,
+        message: `Alternate benefit applies: the plan pays at the ${result.result.alternateBenefit?.paidAtCode ?? "cheaper"} allowance — a reduction (downgrade), NOT a denial.`,
+      });
     }
 
-    // ── 4. expected downgrade-vs-denial ─────────────────────────────────
-    if (plan && cdt) {
-      const posterior = line.tooth ? isPosteriorTooth(Number(line.tooth)) : undefined;
-      const alt = alternateBenefitFor(plan, line.code, posterior);
-      if (alt) {
-        findings.push({
-          category: "Downgrade",
-          code: line.code,
-          message: `Alternate benefit applies: pays at the ${alt.paidAtCode} allowance — a reduction (downgrade), NOT a denial.`,
-        });
-      }
-      for (const dId of cdt.commonDenials ?? []) {
-        const d = findDenial(dId);
-        findings.push({
-          category: "Denial risk",
-          code: line.code,
-          message: d
-            ? `${d.title} — ${d.groupCode === "PR" ? "patient responsibility" : "not billable to patient (correct & resubmit)"}.`
-            : `${dId} is a common denial for this code.`,
-        });
-      }
-    }
+    // A code with no case context and no adjudicated result raises no denial
+    // risk: "this code can deny" is not a finding, it is a library entry.
   }
 
   return findings;
 }
 
 export function DentalClaimScrub({ compact = false }: { compact?: boolean }) {
-  const { state, planId } = useDentalTrack();
+  const { state, planId, activeCase } = useDentalTrack();
   const plan = useMemo(() => findPlan(planId), [planId]);
-  const findings = useMemo(() => scrubDentalClaim(state.lines, plan), [state.lines, plan]);
+  const adjudication = useMemo(
+    () => adjudicateDentalClaim(state.lines, activeCase),
+    [state.lines, activeCase],
+  );
+  const findings = useMemo(
+    () => scrubDentalClaim(state.lines, plan, adjudication),
+    [state.lines, plan, adjudication],
+  );
 
   if (compact) {
     return (
@@ -192,7 +166,7 @@ export function DentalClaimScrub({ compact = false }: { compact?: boolean }) {
     return (
       <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-medium text-emerald-700">
         <CheckCircle2 className="h-4 w-4 shrink-0" />
-        Scrub passed — no attachment, predetermination, frequency, waiting-period or downgrade flags.
+        Scrub passed — no attachment, predetermination, frequency, age or downgrade flags on these lines.
       </div>
     );
   }
