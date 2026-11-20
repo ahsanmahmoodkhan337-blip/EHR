@@ -38,7 +38,7 @@ import { CMS1500Form } from "./CMS1500Form";
 import { Ub04Form } from "./Ub04Form";
 import { UB04_LAYOUT, UB04_PDF_COLUMNS } from "../../data/claims/ub04Layout";
 import { REVENUE_CODES as UB04_REVENUE_CODES } from "../../data/claims/revenueCodes";
-import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
+import { CMS1500_LAYOUT, CMS1500_LINE_COLUMNS } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
 import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, reseedIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
 import { validateCMS1500, validateUB04, type ClaimIssue } from "../../utils/claimValidation";
@@ -57,20 +57,18 @@ import { toast } from "sonner";
 
 type BillingTab = "form" | "scrubber" | "remittance" | "denials" | "references";
 
-/** Column spec for the box-24 table in the downloaded PDF. */
-const CMS1500_PDF_COLUMNS = [
-  { key: "dateOfService", label: "24A DATE(S)", width: 0.12, kind: "date" as const },
-  { key: "placeOfService", label: "24B POS", width: 0.06, kind: "text" as const },
-  { key: "emg", label: "24C EMG", width: 0.05, kind: "text" as const },
-  { key: "cpt", label: "24D CPT", width: 0.12, kind: "text" as const },
-  { key: "modifiers", label: "24D MOD", width: 0.09, kind: "text" as const },
-  { key: "diagnosisPointer", label: "24E PTR", width: 0.07, kind: "text" as const },
-  { key: "charge", label: "24F CHARGE", width: 0.11, kind: "money" as const },
-  { key: "units", label: "24G UNITS", width: 0.06, kind: "number" as const },
-  { key: "epsdt", label: "24H EPSDT", width: 0.07, kind: "text" as const },
-  { key: "idQualifier", label: "24I QUAL", width: 0.08, kind: "text" as const },
-  { key: "renderingNpi", label: "24J ID #", width: 0.17, kind: "text" as const },
-];
+/**
+ * Column spec for the box-24 table in the downloaded PDF — the same list the
+ * on-screen table prints from, so the paper and the PDF cannot disagree about
+ * which 837P element a column becomes.
+ */
+const CMS1500_PDF_COLUMNS = CMS1500_LINE_COLUMNS.map((col) => ({
+  key: col.key,
+  label: `${col.box} ${col.caption}`,
+  width: col.width,
+  kind: col.kind,
+  x12: col.x12,
+}));
 
 export function BillingLedger() {
   const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm, setDemoFillMissingBoxes, transmitClaim, adjudicateClaim, postRemittance } = usePipeline();

@@ -18,6 +18,8 @@ import { DIAGNOSIS_POINTERS } from "../data/claims/cms1500Layout";
 /** The CMS-1500 / ADA printed rule colour (red-brown). */
 const FORM_RED: [number, number, number] = [163, 58, 43];
 const INK: [number, number, number] = [23, 23, 23];
+/** The X12 tag's grey — a teaching annotation, not part of the printed form. */
+const MUTED: [number, number, number] = [120, 120, 120];
 
 export interface ClaimPdfColumn {
   key: string;
@@ -25,6 +27,8 @@ export interface ClaimPdfColumn {
   /** Share of the table width (sums to 1). */
   width: number;
   kind?: "text" | "money" | "date" | "number";
+  /** X12 segment + element this column becomes, printed under its label. */
+  x12?: string;
 }
 
 export interface ClaimPdfOptions {
@@ -91,11 +95,11 @@ export function exportClaimFormPDF({
     h: number,
     label: string,
     body: (bx: number, by: number, bw: number) => void,
-    band = false,
+    opts: { band?: boolean; shaded?: boolean; x12?: string } = {},
   ) => {
     doc.setDrawColor(...FORM_RED);
     doc.setLineWidth(0.25);
-    if (band) {
+    if (opts.band) {
       doc.setFillColor(247, 232, 228);
       doc.rect(x, yy, w, h, "FD");
       doc.setTextColor(...FORM_RED);
@@ -104,13 +108,32 @@ export function exportClaimFormPDF({
       doc.text(doc.splitTextToSize(label, w - 2).slice(0, 1), x + 1, yy + h / 2 + 1);
       return;
     }
-    doc.rect(x, yy, w, h);
+    if (opts.shaded) {
+      // A box the 02/12 prints shaded and reserved: caption, no value.
+      doc.setFillColor(244, 236, 234);
+      doc.rect(x, yy, w, h, "FD");
+    } else {
+      doc.rect(x, yy, w, h);
+    }
+
+    // The X12 tag sits in the box's top-right corner. The caption's wrap width
+    // is cut by the tag's width first, so the caption and the tag can never
+    // print over each other however narrow the box is.
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(3.2);
+    const tag = opts.x12 ?? "";
+    const tagW = tag ? Math.min(doc.getTextWidth(tag), w * 0.55) : 0;
 
     doc.setTextColor(...FORM_RED);
-    doc.setFont("helvetica", "bold");
     doc.setFontSize(4.2);
-    const labelLines = doc.splitTextToSize(label, w - 1.6).slice(0, 2) as string[];
+    const labelLines = doc.splitTextToSize(label, w - 1.6 - (tagW ? tagW + 1.2 : 0)).slice(0, 2) as string[];
     labelLines.forEach((line, i) => doc.text(line, x + 0.8, yy + 2.4 + i * 1.7));
+
+    if (tag) {
+      doc.setTextColor(...MUTED);
+      doc.setFontSize(3.2);
+      doc.text(doc.splitTextToSize(tag, tagW).slice(0, 1) as string[], x + w - 0.8, yy + 2.0, { align: "right" });
+    }
 
     doc.setTextColor(...INK);
     doc.setFont("helvetica", "normal");
@@ -131,7 +154,7 @@ export function exportClaimFormPDF({
       const w = (usableW * cell.colSpan) / 12;
 
       if (cell.structural === "band") {
-        drawBox(x, y, w, rowH, cell.label, () => {}, true);
+        drawBox(x, y, w, rowH, cell.label, () => {}, { band: true });
       } else if (cell.structural === "pointerGrid") {
         drawBox(x, y, w, rowH, cell.label, (bx, by, bw) => {
           const codes = (values.diagnosisCodes as string[]) ?? [];
@@ -143,18 +166,27 @@ export function exportClaimFormPDF({
             doc.setFontSize(5.4);
             doc.text(text, bx + col * colW, by + line * 3.4);
           });
-        });
+        }, { x12: cell.x12 });
       } else if (cell.structural === "table") {
         drawBox(x, y, w, rowH, cell.label, (bx, by, bw) => {
-          // header
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(4.2);
+          // header: the printed column caption, with the X12 element it
+          // becomes printed beneath it (box 24 is a table, not a box, so its
+          // eleven columns carry their own name).
           let cx = bx;
           columns.forEach((col) => {
             const cw = bw * col.width;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(4.2);
+            doc.setTextColor(...FORM_RED);
             doc.text(doc.splitTextToSize(col.label, cw - 0.6).slice(0, 1) as string[], cx, by);
+            if (col.x12) {
+              doc.setFontSize(3.2);
+              doc.setTextColor(...MUTED);
+              doc.text(doc.splitTextToSize(col.x12, cw - 0.6).slice(0, 1) as string[], cx, by + 2.1);
+            }
             cx += cw;
           });
+          doc.setTextColor(...INK);
           doc.setFont("helvetica", "normal");
           doc.setFontSize(5);
           const rowH2 = Math.min(4.2, (rowH - 8) / Math.max(1, lines.length || 1));
@@ -211,23 +243,12 @@ export function exportClaimFormPDF({
               fx += fw;
             });
           }
-        });
+        }, { x12: cell.x12 });
       } else if (cell.reserved) {
         // A box the 02/12 prints shaded and reserved: caption, no value.
-        doc.setDrawColor(...FORM_RED);
-        doc.setLineWidth(0.25);
-        doc.setFillColor(244, 236, 234);
-        doc.rect(x, y, w, rowH, "FD");
-        doc.setTextColor(...FORM_RED);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(4.2);
-        doc.text(
-          doc.splitTextToSize(cell.label, w - 1.6).slice(0, 2) as string[],
-          x + 0.8,
-          y + 2.4,
-        );
+        drawBox(x, y, w, rowH, cell.label, () => {}, { shaded: true, x12: cell.x12 });
       } else {
-        drawBox(x, y, w, rowH, cell.label, () => {});
+        drawBox(x, y, w, rowH, cell.label, () => {}, { x12: cell.x12 });
       }
 
       x += w;

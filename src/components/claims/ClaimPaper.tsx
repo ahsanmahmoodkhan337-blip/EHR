@@ -55,6 +55,11 @@ export function ClaimPaper({ layout, values, issues, table, set, note, demoField
           <p className="text-[8px] font-medium text-ink-muted">
             {layout.formCode} · Healthcare Hustlers teaching replica
           </p>
+          {layout.x12Set && (
+            <p className="text-[7.5px] font-medium text-ink-muted" data-x12-set={layout.x12Set}>
+              X12 {layout.x12Set} · the segment each box becomes on an electronic claim
+            </p>
+          )}
         </div>
         <p className="text-[8px] font-semibold uppercase tracking-wide text-form-red">Demo data — not a real claim</p>
       </div>
@@ -107,9 +112,23 @@ function Box({
       } ${invalid ? "outline outline-2 -outline-offset-2 outline-danger" : ""}`}
       style={{ flex: box.colSpan }}
       data-box={box.id}
+      data-x12={box.x12}
       title={invalid ? issue?.message : box.hint}
     >
       <p className="text-[6.5px] font-semibold uppercase leading-tight text-form-red">{box.label}</p>
+
+      {/* The 837P segment and element this box becomes. A box the electronic
+          claim has no element for says `paper-only` here rather than a name we
+          cannot stand behind. */}
+      {box.x12 && (
+        <p
+          className="mt-px inline-block max-w-full rounded-sm bg-slate-100 px-0.5 text-[5.5px] font-semibold uppercase leading-tight tracking-wide text-slate-500"
+          title={box.x12Note ?? `On an electronic claim this box becomes ${box.x12}.`}
+          data-x12-tag={box.x12}
+        >
+          {box.x12}
+        </p>
+      )}
 
       {box.structural === "table" && <div className="mt-0.5">{table}</div>}
 

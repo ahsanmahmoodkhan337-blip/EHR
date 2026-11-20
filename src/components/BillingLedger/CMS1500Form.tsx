@@ -17,27 +17,22 @@
 import { Plus, Trash2 } from "lucide-react";
 import { ClaimPaper } from "../claims/ClaimPaper";
 import type { ClaimPaperApi } from "../claims/ClaimFormShell";
-import { CMS1500_LAYOUT, EMG_OPTIONS, ID_QUALIFIER_OPTIONS, POS_CODE_OPTIONS } from "../../data/claims/cms1500Layout";
+import {
+  CMS1500_LAYOUT,
+  CMS1500_LINE_COLUMNS,
+  EMG_OPTIONS,
+  ID_QUALIFIER_OPTIONS,
+  POS_CODE_OPTIONS,
+} from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
 import type { ClaimServiceLine } from "../../store/pipelineStore";
 
 /**
  * The eleven printed columns of box 24, A–J (24D carries the code and the
- * modifier). Widths are shares of the table and sum to 100 %.
+ * modifier), with the 837P element each one becomes. The list lives in
+ * `cms1500Layout.ts` so the screen and the PDF cannot drift apart.
  */
-const COLUMNS: { key: keyof ClaimServiceLine | "modifiers"; label: string; width: string }[] = [
-  { key: "dateOfService", label: "24A · DATE(S)", width: "12%" },
-  { key: "placeOfService", label: "24B · POS", width: "6%" },
-  { key: "emg", label: "24C · EMG", width: "5%" },
-  { key: "cpt", label: "24D · CPT/HCPCS", width: "12%" },
-  { key: "modifiers", label: "24D · MOD", width: "9%" },
-  { key: "diagnosisPointer", label: "24E · PTR", width: "7%" },
-  { key: "charge", label: "24F · CHARGE", width: "11%" },
-  { key: "units", label: "24G · UNITS", width: "6%" },
-  { key: "epsdt", label: "24H · EPSDT", width: "7%" },
-  { key: "idQualifier", label: "24I · QUAL", width: "8%" },
-  { key: "renderingNpi", label: "24J · ID #", width: "17%" },
-];
+const COLUMNS = CMS1500_LINE_COLUMNS;
 
 export function CMS1500Form({
   values,
@@ -64,9 +59,19 @@ export function CMS1500Form({
     <div className="mt-0.5">
       <div className="flex gap-0.5 border-b border-form-red/40 pb-0.5">
         {COLUMNS.map((col) => (
-          <p key={col.label} style={{ width: col.width }} className="shrink-0 text-[5.5px] font-bold uppercase leading-none text-form-red">
-            {col.label}
-          </p>
+          <div key={`${col.box}-${col.caption}`} style={{ width: `${col.width * 100}%` }} className="shrink-0">
+            <p className="text-[5.5px] font-bold uppercase leading-none text-form-red">
+              {col.box} · {col.caption}
+            </p>
+            {/* The 837P element this column becomes — same list as the PDF. */}
+            <p
+              className="mt-px text-[4.5px] font-semibold uppercase leading-none text-slate-400"
+              title={col.x12Note ?? `On an electronic claim this column becomes ${col.x12}.`}
+              data-x12-tag={col.x12}
+            >
+              {col.x12}
+            </p>
+          </div>
         ))}
         <span className="w-3 shrink-0 print:hidden" aria-hidden />
       </div>
