@@ -4,8 +4,9 @@
  * Primary data is stored in Supabase for cross-device sync.
  * localStorage serves as a fast read cache and fallback.
  * Student-facing pages never bulk-sync: login asks about one phone number via
- * lookupPhoneStatus(). The full table is only synced inside the authenticated
- * admin panel (syncFromSupabase).
+ * lookupPhoneStatus(). The admin panel reads the table one page at a time
+ * through fetchAccessRequestsPage() and never writes that page to
+ * localStorage.
  * On write, Supabase is updated first, then localStorage cache.
  */
 
@@ -55,55 +56,106 @@ export function normalizePhone(phone: string): string {
   return d;
 }
 
-// ─── Supabase ↔ localStorage sync ──────────────────────────────────
+// ─── Admin paged read (server → admin panel, 50 rows at a time) ─────
+//
+// The admin panel is the only place that shows the enrolment table, and it
+// must never receive more than one page of it. This reads named columns with
+// an exact count and an explicit range, and deliberately does NOT cache the
+// result in localStorage — the page lives in component state only, so a
+// browser that once held the admin panel keeps no copy of the table.
 
-// Sync all requests from Supabase to localStorage cache
 let lastSyncError: string | null = null;
 export function getLastSyncError(): string | null {
   return lastSyncError;
 }
-export async function syncFromSupabase(): Promise<void> {
+
+export const ADMIN_PAGE_SIZE = 50;
+
+const ADMIN_COLUMNS =
+  "id, full_name, phone, email, payment_method, transaction_id, submitted_at, status, subscription_end_date, duration_label";
+
+export interface AdminRequestPage {
+  rows: AccessRequest[];
+  total: number;
+  error: string | null;
+}
+
+export async function fetchAccessRequestsPage(opts: {
+  page: number;
+  pageSize?: number;
+  status?: "pending" | "approved";
+  search?: string;
+}): Promise<AdminRequestPage> {
+  const pageSize = opts.pageSize ?? ADMIN_PAGE_SIZE;
+  const page = Math.max(0, Math.floor(opts.page));
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+
   if (!supabase) {
     lastSyncError = "Supabase is not configured (missing keys).";
-    return; // local-only mode — localStorage cache is the source of truth
+    return { rows: [], total: 0, error: lastSyncError };
   }
+
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("access_requests")
-      .select("*")
-      .order("submitted_at", { ascending: false });
+      .select(ADMIN_COLUMNS, { count: "exact" });
+
+    if (opts.status) query = query.eq("status", opts.status);
+
+    // Search runs on the server so it covers every row, not just this page.
+    // Strip characters that would break PostgREST's or() filter syntax.
+    const term = (opts.search ?? "").trim().replace(/[,()%\\*]/g, "");
+    if (term) query = query.or(`full_name.ilike.%${term}%,phone.ilike.%${term}%`);
+
+    const { data, error, count } = await query
+      .order("submitted_at", { ascending: false })
+      .range(from, to);
 
     if (error) {
       lastSyncError = error.message;
-      console.warn("Supabase sync failed, using localStorage cache:", error.message);
-      return;
+      console.warn("fetchAccessRequestsPage: read failed:", error.message);
+      return { rows: [], total: 0, error: error.message };
     }
 
     lastSyncError = null;
-    if (data) {
-      const mapped: AccessRequest[] = data.map((r: any) => ({
-        id: r.id,
-        fullName: r.full_name,
-        phone: r.phone,
-        email: r.email,
-        paymentMethod: r.payment_method,
-        transactionId: r.transaction_id,
-        submittedAt: r.submitted_at,
-        status: r.status,
-        subscriptionEndDate: r.subscription_end_date,
-        durationLabel: r.duration_label,
-      }));
-      localStorage.setItem(ACCESS_REQUESTS_KEY, JSON.stringify(mapped));
-
-      // Also sync approved phones
-      const approved = mapped
-        .filter((r) => r.status === "approved")
-        .map((r) => r.phone);
-      localStorage.setItem(APPROVED_PHONES_KEY, JSON.stringify([...new Set(approved)]));
-    }
+    const rows: AccessRequest[] = (data ?? []).map((r: any) => ({
+      id: r.id,
+      fullName: r.full_name,
+      phone: r.phone,
+      email: r.email ?? "",
+      paymentMethod: r.payment_method,
+      transactionId: r.transaction_id ?? "",
+      submittedAt: r.submitted_at,
+      status: r.status,
+      subscriptionEndDate: r.subscription_end_date ?? undefined,
+      durationLabel: r.duration_label ?? undefined,
+    }));
+    return { rows, total: count ?? rows.length, error: null };
   } catch (e) {
     lastSyncError = e instanceof Error ? e.message : String(e);
-    console.warn("Supabase sync error, using localStorage cache:", e);
+    console.warn("fetchAccessRequestsPage: read error:", e);
+    return { rows: [], total: 0, error: lastSyncError };
+  }
+}
+
+/** Exact row count for the admin header cards — no rows transferred. */
+export async function countAccessRequests(
+  status?: "pending" | "approved" | "rejected"
+): Promise<number | null> {
+  if (!supabase) return null;
+  try {
+    let query = supabase.from("access_requests").select("id", { count: "exact", head: true });
+    if (status) query = query.eq("status", status);
+    const { count, error } = await query;
+    if (error) {
+      console.warn("countAccessRequests failed:", error.message);
+      return null;
+    }
+    return count ?? 0;
+  } catch (e) {
+    console.warn("countAccessRequests error:", e);
+    return null;
   }
 }
 

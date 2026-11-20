@@ -1,16 +1,20 @@
 /**
  * AdminPage — Admin Panel for Access Request Management
  *
- * Password-gated admin dashboard where administrators can:
- * - View all pending access requests
+ * Sign-in-gated admin dashboard where administrators can:
+ * - View pending access requests
  * - Approve or reject requests
- * - See approved phone numbers
- * - Simple authentication with "admin123" password
+ * - Browse approved students 50 at a time
+ *
+ * Access is a real Supabase Auth email + password sign-in (no shared password
+ * string in the bundle). Nothing is read from the enrolment table until a
+ * session exists, and each read is one page of named columns.
  *
  * Inspiration: Epic security / admin workflow
  */
 
 import { useState, useEffect } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Shield,
@@ -28,18 +32,18 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  getAccessRequests,
+  fetchAccessRequestsPage,
+  countAccessRequests,
   updateRequestStatus,
-  getApprovedPhones,
   getSessionTimeoutMinutes,
   setSessionTimeoutMinutes,
+  ADMIN_PAGE_SIZE,
   type AccessRequest,
-  getSubscriptionStatus,
-  getDaysRemaining,
   calculateEndDate,
   revokeApprovedPhone,
   saveAccessRequest,
 } from "../store/accessStore";
+import { supabase } from "../store/supabase";
 import { fetchAdminSharingSummaries, MAX_DEVICE_COUNT, type AdminSharingSummary } from "../store/accountSecurity";
 import {
   getAllPins,
@@ -54,14 +58,71 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
+/**
+ * Turn a Supabase auth failure into something the admin can act on, instead of
+ * one generic "login failed".
+ */
+function describeAuthError(error: { message?: string; code?: string; status?: number }): string {
+  const message = (error?.message || "").toLowerCase();
+  const code = (error?.code || "").toLowerCase();
+  if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
+    return "Email not confirmed — confirm this address in Supabase Auth, then sign in again.";
+  }
+  if (code === "invalid_credentials" || message.includes("invalid login credentials")) {
+    return "Invalid login credentials — check the admin email and password.";
+  }
+  if (code.includes("rate_limit") || message.includes("rate limit") || error?.status === 429) {
+    return "Too many attempts — wait a minute and try again.";
+  }
+  if (
+    message.includes("failed to fetch") ||
+    message.includes("networkerror") ||
+    message.includes("network error")
+  ) {
+    return "Could not reach the server — check the connection and try again.";
+  }
+  return error?.message || "Sign-in failed.";
+}
+
+/**
+ * Subscription state read straight from the row, so the table never depends on
+ * a local cache of the enrolment table.
+ */
+function subscriptionState(row: AccessRequest): {
+  status: "active" | "expiring-soon" | "expired" | "no-expiry";
+  days: number;
+} {
+  const end = row.subscriptionEndDate ? new Date(row.subscriptionEndDate) : null;
+  if (!end || Number.isNaN(end.getTime())) return { status: "no-expiry", days: Infinity };
+  const days = Math.ceil((end.getTime() - Date.now()) / 86_400_000);
+  if (days <= 0) return { status: "expired", days };
+  if (days <= 30) return { status: "expiring-soon", days };
+  return { status: "active", days };
+}
+
 function AdminPage() {
-  const [authenticated, setAuthenticated] = useState(false);
+  // ─── Auth (Supabase email + password) ───
+  const [session, setSession] = useState<Session | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [requests, setRequests] = useState<AccessRequest[]>([]);
-  const [approvedPhones, setApprovedPhones] = useState<string[]>([]);
+  const [authError, setAuthError] = useState("");
+  const [signingIn, setSigningIn] = useState(false);
+
+  // ─── Enrolment table: one page at a time, never cached ───
+  const [approvedRows, setApprovedRows] = useState<AccessRequest[]>([]);
+  const [approvedTotal, setApprovedTotal] = useState(0);
+  const [approvedPage, setApprovedPage] = useState(0);
+  const [pendingRows, setPendingRows] = useState<AccessRequest[]>([]);
+  const [pendingTotal, setPendingTotal] = useState(0);
+  const [pendingPage, setPendingPage] = useState(0);
+  const [totalRequests, setTotalRequests] = useState<number | null>(null);
+  const [listLoading, setListLoading] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+
   const [pins, setPins] = useState<StagePinMap>({ scribe: "1111", coder: "2222", biller: "3333", "prior-auth": "4444", "ar-voice": "5555" });
   const [editPinRole, setEditPinRole] = useState<Role | null>(null);
   const [editPinValue, setEditPinValue] = useState("");
@@ -70,36 +131,109 @@ function AdminPage() {
   const [sessionTimeout, setSessionTimeout] = useState(getSessionTimeoutMinutes());
   const [timeoutSaved] = useState(false);
   const [durationModal, setDurationModal] = useState<{ id: string; duration: string } | null>(null);
-    const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [sharingSignals, setSharingSignals] = useState<Record<string, AdminSharingSummary>>({});
-  const pageSize = 20;
 
-  // Load data — sync from Supabase first, then read localStorage cache.
-  // This bulk read is admin-only: it sits behind the authenticated branch.
+  // Restore an existing session on mount and follow sign-in / sign-out / expiry.
   useEffect(() => {
-    if (authenticated) {
-      import("../store/accessStore").then(m => {
-        m.syncFromSupabase().then(() => {
-          const reqs = getAccessRequests();
-          setRequests(reqs);
-          setApprovedPhones(getApprovedPhones());
-          setSyncError(m.getLastSyncError());
-        });
-      });
-      setPins(getAllPins());
-      setEditPinRole(null);
-      setPinSaved(false);
+    if (!supabase) {
+      setAuthChecked(true);
+      return;
     }
-  }, [authenticated, refreshKey]);
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setSession(data.session ?? null);
+      setAuthChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      setSession(next ?? null);
+      setAuthChecked(true);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
-  const handleLogin = () => {
-    if (password === "Khankhail@1122") {
-      setAuthenticated(true);
-      setPasswordError("");
-    } else {
-      setPasswordError("Invalid admin password");
+  // Debounce the search box so typing doesn't fire a query per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setActiveSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Every panel read sits behind the session. No session → no request, no data.
+  useEffect(() => {
+    if (!session) {
+      setApprovedRows([]);
+      setApprovedTotal(0);
+      setPendingRows([]);
+      setPendingTotal(0);
+      setTotalRequests(null);
+      setSharingSignals({});
+      setListLoading(false);
+      return;
     }
+    let cancelled = false;
+    setListLoading(true);
+    (async () => {
+      const [approved, pending, total] = await Promise.all([
+        fetchAccessRequestsPage({ page: approvedPage, status: "approved", search: activeSearch }),
+        fetchAccessRequestsPage({ page: pendingPage, status: "pending" }),
+        countAccessRequests(),
+      ]);
+      if (cancelled) return;
+      setApprovedRows(approved.rows);
+      setApprovedTotal(approved.total);
+      setPendingRows(pending.rows);
+      setPendingTotal(pending.total);
+      setTotalRequests(total);
+      setSyncError(approved.error || pending.error || null);
+      setListLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session, approvedPage, pendingPage, activeSearch, refreshKey]);
+
+  useEffect(() => {
+    if (!session) return;
+    setPins(getAllPins());
+    setEditPinRole(null);
+    setPinSaved(false);
+  }, [session, refreshKey]);
+
+  const handleSignIn = async () => {
+    if (!supabase) {
+      setAuthError("Sign-in is not available in this build — the server connection is not configured.");
+      return;
+    }
+    if (!email.trim() || !password) {
+      setAuthError("Enter the admin email and password.");
+      return;
+    }
+    setSigningIn(true);
+    setAuthError("");
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setSigningIn(false);
+    if (error) {
+      setAuthError(describeAuthError(error));
+      return;
+    }
+    setPassword("");
+  };
+
+  const handleSignOut = async () => {
+    await supabase?.auth.signOut();
+    setSession(null);
+    setPassword("");
+    setSearchQuery("");
+    setActiveSearch("");
+    setApprovedPage(0);
+    setPendingPage(0);
+    setDurationModal(null);
   };
 
   const handleApprove = (id: string, duration: string) => {
@@ -123,7 +257,6 @@ function AdminPage() {
 
   const handleRevoke = (phone: string) => {
     revokeApprovedPhone(phone);
-    setApprovedPhones(getApprovedPhones());
     setRefreshKey((k) => k + 1);
   };
 
@@ -137,34 +270,24 @@ function AdminPage() {
     }
   };
 
-  const pendingRequests = requests.filter((r) => r.status === "pending");
-  const approvedRequests = requests.filter((r) => r.status === "approved");
-  const filteredApproved = approvedRequests.filter((req) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return req.fullName.toLowerCase().includes(q) || req.phone.includes(q);
-  });
-  const totalPages = Math.max(1, Math.ceil(filteredApproved.length / pageSize));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedApproved = filteredApproved.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const showingFrom = filteredApproved.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const showingTo = Math.min(safePage * pageSize, filteredApproved.length);
-  const pagePhonesKey = paginatedApproved.map((r) => r.phone).join("|");
+  const pagePhonesKey = approvedRows.map((r) => r.phone).join("|");
 
-  // Account-sharing signal (detection-only, non-blocking) for the 20 approved
-  // users on the current page only — never the whole approved list, so no
-  // single user_data call carries more than 20 phone numbers.
+  // Account-sharing signal (detection-only, non-blocking) for the approved
+  // users on the current page only — batched in groups of 20, so no single
+  // user_data call carries more than 20 phone numbers.
   useEffect(() => {
-    if (!authenticated) return;
+    if (!session) return;
     const phones = pagePhonesKey ? pagePhonesKey.split("|") : [];
     if (phones.length === 0) {
       setSharingSignals({});
       return;
     }
     let cancelled = false;
-    fetchAdminSharingSummaries(phones)
-      .then((summaries) => {
-        if (!cancelled) setSharingSignals(summaries);
+    const batches: string[][] = [];
+    for (let i = 0; i < phones.length; i += 20) batches.push(phones.slice(i, i + 20));
+    Promise.all(batches.map((batch) => fetchAdminSharingSummaries(batch)))
+      .then((results) => {
+        if (!cancelled) setSharingSignals(Object.assign({}, ...results));
       })
       .catch(() => {
         if (!cancelled) setSharingSignals({});
@@ -172,37 +295,61 @@ function AdminPage() {
     return () => {
       cancelled = true;
     };
-  }, [authenticated, pagePhonesKey, refreshKey]);
+  }, [session, pagePhonesKey, refreshKey]);
 
-  if (!authenticated) {
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-slate-900 p-4">
+        <div className="flex items-center gap-2 text-sm text-slate-400">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          Checking sign-in…
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-900 p-4">
         <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800 p-6 shadow-xl">
           <div className="mb-6 text-center">
             <Shield className="mx-auto mb-3 h-10 w-10 text-brand-400" />
             <h1 className="text-lg font-bold text-white">Admin Panel</h1>
-            <p className="text-sm text-slate-400">Enter admin password to continue</p>
+            <p className="text-sm text-slate-400">Sign in with your admin email and password</p>
           </div>
           <div className="space-y-3">
             <input
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setAuthError("");
+              }}
+              placeholder="Admin email"
+              className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-400 outline-none focus:border-brand-500"
+            />
+            <input
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
-                setPasswordError("");
+                setAuthError("");
               }}
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              placeholder="Enter admin password"
+              onKeyDown={(e) => e.key === "Enter" && !signingIn && handleSignIn()}
+              placeholder="Password"
               className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-400 outline-none focus:border-brand-500"
             />
-            {passwordError && (
-              <p className="text-xs text-red-400">{passwordError}</p>
+            {authError && (
+              <p className="text-xs text-red-400">{authError}</p>
             )}
             <button
-              onClick={handleLogin}
-              className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600"
+              onClick={handleSignIn}
+              disabled={signingIn}
+              className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
             >
-              Sign In
+              {signingIn ? "Signing in…" : "Sign In"}
             </button>
           </div>
           <div className="mt-4 text-center">
@@ -224,6 +371,9 @@ function AdminPage() {
           <h1 className="text-sm font-bold text-white">Admin Panel</h1>
         </div>
         <div className="flex items-center gap-3">
+          <span className="hidden text-[11px] text-slate-400 sm:inline">
+            {session.user.email}
+          </span>
           <button
             onClick={() => setRefreshKey((k) => k + 1)}
             className="flex items-center gap-1 rounded-lg bg-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-600"
@@ -257,11 +407,11 @@ function AdminPage() {
             Manual Add
           </button>
           <button
-            onClick={() => setAuthenticated(false)}
+            onClick={handleSignOut}
             className="flex items-center gap-1 rounded-lg bg-red-900/50 px-3 py-1.5 text-xs text-red-300 hover:bg-red-900"
           >
             <LogOut className="h-3 w-3" />
-            Logout
+            Sign out
           </button>
         </div>
       </header>
@@ -273,19 +423,19 @@ function AdminPage() {
             <div className="mt-1 text-xs text-red-300">The approved list could not load from the server. This usually means this device cannot reach Supabase (network/DNS).</div>
           </div>
         )}
-        {/* Stats */}
+        {/* Stats — exact counts from the server, no rows fetched */}
         <div className="mb-6 grid grid-cols-3 gap-4">
           <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
             <p className="text-xs text-slate-400">Pending</p>
-            <p className="text-2xl font-bold text-amber-400">{pendingRequests.length}</p>
+            <p className="text-2xl font-bold text-amber-400">{pendingTotal}</p>
           </div>
           <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
             <p className="text-xs text-slate-400">Approved</p>
-            <p className="text-2xl font-bold text-green-400">{approvedRequests.length}</p>
+            <p className="text-2xl font-bold text-green-400">{approvedTotal}</p>
           </div>
           <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
-            <p className="text-xs text-slate-400">Approved Phones</p>
-            <p className="text-2xl font-bold text-brand-400">{approvedPhones.length}</p>
+            <p className="text-xs text-slate-400">All requests</p>
+            <p className="text-2xl font-bold text-brand-400">{totalRequests ?? "—"}</p>
           </div>
         </div>
 
@@ -295,14 +445,15 @@ function AdminPage() {
             <Clock className="h-4 w-4 text-amber-400" />
             <h2 className="text-sm font-semibold text-white">Pending Requests</h2>
             <span className="rounded-full bg-amber-900/50 px-2 py-0.5 text-[10px] font-medium text-amber-300">
-              {pendingRequests.length}
+              {pendingTotal}
             </span>
+            {listLoading && <RefreshCw className="h-3 w-3 animate-spin text-slate-500" />}
           </div>
-          {pendingRequests.length === 0 ? (
+          {pendingRows.length === 0 ? (
             <div className="p-8 text-center text-sm text-slate-500">No pending requests</div>
           ) : (
             <div className="divide-y divide-slate-700">
-              {pendingRequests.map((req) => (
+              {pendingRows.map((req) => (
                 <div key={req.id} className="flex items-center justify-between px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-white">{req.fullName}</p>
@@ -331,6 +482,37 @@ function AdminPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {pendingTotal > ADMIN_PAGE_SIZE && (
+            <div className="flex items-center justify-between border-t border-slate-700 px-4 py-3">
+              <p className="text-xs text-slate-400">
+                Showing {pendingPage * ADMIN_PAGE_SIZE + 1}&ndash;
+                {Math.min((pendingPage + 1) * ADMIN_PAGE_SIZE, pendingTotal)} of {pendingTotal}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPendingPage((p) => Math.max(0, p - 1))}
+                  disabled={pendingPage === 0}
+                  className="rounded bg-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Prev
+                </button>
+                <span className="px-2 text-xs text-slate-400">
+                  Page {pendingPage + 1} of {Math.ceil(pendingTotal / ADMIN_PAGE_SIZE)}
+                </span>
+                <button
+                  onClick={() =>
+                    setPendingPage((p) =>
+                      (p + 1) * ADMIN_PAGE_SIZE < pendingTotal ? p + 1 : p
+                    )
+                  }
+                  disabled={(pendingPage + 1) * ADMIN_PAGE_SIZE >= pendingTotal}
+                  className="rounded bg-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -381,20 +563,20 @@ function AdminPage() {
               <CheckCircle2 className="h-4 w-4 text-green-400" />
               <h2 className="text-sm font-semibold text-white">All Approved Users</h2>
               <span className="rounded-full bg-green-900/50 px-2 py-0.5 text-[10px] font-medium text-green-300">
-                {approvedRequests.length}
+                {approvedTotal}
               </span>
             </div>
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => { setSearchQuery(e.target.value); setApprovedPage(0); }}
               placeholder="Search by name or phone..."
               className="w-56 rounded-lg border border-slate-600 bg-slate-700 px-3 py-1.5 text-xs text-white placeholder-slate-400 outline-none focus:border-brand-500"
             />
           </div>
-          {filteredApproved.length === 0 ? (
+          {approvedRows.length === 0 ? (
             <div className="p-8 text-center text-sm text-slate-500">
-              {searchQuery ? "No users match your search" : "No approved users"}
+              {activeSearch ? "No users match your search" : "No approved users"}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -414,9 +596,8 @@ function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/50">
-                  {paginatedApproved.map((req) => {
-                    const status = getSubscriptionStatus(req.phone);
-                    const days = getDaysRemaining(req.phone);
+                  {approvedRows.map((req) => {
+                    const { status, days } = subscriptionState(req);
                     const statusBadge =
                       status === "expired"
                         ? "bg-red-900/40 text-red-300 border-red-700/50"
@@ -505,44 +686,31 @@ function AdminPage() {
             </div>
           )}
 
-        {/* Pagination */}
-        {filteredApproved.length > pageSize && (
+        {/* Pagination — one page of 50 rows at a time, total from the server */}
+        {approvedTotal > 0 && (
           <div className="mb-6 flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800 px-4 py-3">
             <p className="text-xs text-slate-400">
-              Showing {showingFrom}&ndash;{showingTo} of {filteredApproved.length} approved user{filteredApproved.length !== 1 ? "s" : ""}
+              Showing {approvedTotal === 0 ? 0 : approvedPage * ADMIN_PAGE_SIZE + 1}&ndash;
+              {Math.min((approvedPage + 1) * ADMIN_PAGE_SIZE, approvedTotal)} of {approvedTotal} approved user{approvedTotal !== 1 ? "s" : ""}
             </p>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={safePage <= 1}
+                onClick={() => setApprovedPage((p) => Math.max(0, p - 1))}
+                disabled={approvedPage === 0}
                 className="rounded bg-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Prev
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1).reduce<(number | "...")[]>((acc, p, idx, arr) => {
-                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
-                acc.push(p);
-                return acc;
-              }, []).map((item, i) =>
-                item === "..." ? (
-                  <span key={`ellipsis-${i}`} className="px-1 text-xs text-slate-500">&hellip;</span>
-                ) : (
-                  <button
-                    key={item}
-                    onClick={() => setCurrentPage(item as number)}
-                    className={`rounded px-2.5 py-1 text-xs font-medium ${
-                      safePage === item
-                        ? "bg-brand-600 text-white"
-                        : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                )
-              )}
+              <span className="px-2 text-xs text-slate-400">
+                Page {approvedPage + 1} of {Math.max(1, Math.ceil(approvedTotal / ADMIN_PAGE_SIZE))}
+              </span>
               <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={safePage >= totalPages}
+                onClick={() =>
+                  setApprovedPage((p) =>
+                    (p + 1) * ADMIN_PAGE_SIZE < approvedTotal ? p + 1 : p
+                  )
+                }
+                disabled={(approvedPage + 1) * ADMIN_PAGE_SIZE >= approvedTotal}
                 className="rounded bg-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Next
