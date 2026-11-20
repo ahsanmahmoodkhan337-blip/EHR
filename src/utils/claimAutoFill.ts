@@ -54,6 +54,10 @@ import {
 } from "../data/claims/providerProfile";
 import { emptyADAForm, type ADAFormData, type ADAServiceLine } from "../data/claims/adaLayout";
 import type { ClaimType } from "../data/claims/claimType";
+import {
+  frequencyFromResubmissionCode,
+  typeOfBillDefaultForPos,
+} from "../data/claims/typeOfBill";
 
 const today = (): string => new Date().toISOString().slice(0, 10);
 
@@ -129,6 +133,61 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
     billingProviderAddress: `${provider.address}, ${provider.cityStateZip}`,
     billingProviderNpi: provider.npi,
     billingProviderTaxId: provider.taxId,
+    // ─── UB-04 locators ───
+    // Nothing is seeded here that the encounter has not captured: a blank box
+    // prints its caption and names the stage that fills it. Box 66 is the one
+    // fixed value — "0" is ICD-10-CM and the simulator never codes otherwise.
+    medicalRecordNumber: "",
+    typeOfBill: "",
+    statementFrom: "",
+    statementThrough: "",
+    coveredDays: 0,
+    admissionDate: "",
+    admissionHour: "",
+    admissionType: "",
+    admissionSource: "",
+    dischargeHour: "",
+    patientStatus: "",
+    conditionCodes: "",
+    accidentState: "",
+    occurrenceCodes: "",
+    occurrenceSpan: "",
+    responsibleParty: "",
+    valueCodes: "",
+    releaseOfInformation: "",
+    assignmentOfBenefits: "",
+    priorPayments: 0,
+    estimatedAmountDue: 0,
+    otherProviderIdQualifier: "",
+    otherProviderId: "",
+    insuredGroupName: "",
+    insuranceGroupNumber: "",
+    treatmentAuthorizationCode: "",
+    documentControlNumber: "",
+    diagnosisVersion: "0",
+    principalDiagnosis: "",
+    otherDiagnoses: "",
+    admittingDiagnosis: "",
+    patientReasonVisit: "",
+    ppsCode: "",
+    eciCode: "",
+    principalProcedureCode: "",
+    principalProcedureDate: "",
+    principalProcedureQualifier: "",
+    otherProcedureCode: "",
+    otherProcedureDate: "",
+    attendingNpi: provider.npi,
+    attendingQualifier: "",
+    attendingLastName: "",
+    attendingFirstName: "",
+    operatingProviderNpi: "",
+    otherProviderNpi: "",
+    otherProviderNpi2: "",
+    remarks: "",
+    codeCodeA: "",
+    codeCodeB: "",
+    codeCodeC: "",
+    codeCodeD: "",
   };
 }
 
@@ -148,6 +207,10 @@ export function blankServiceLine(
     // 24J is an NPI on every path this app builds, so 24I is XX by default.
     idQualifier: "XX",
     renderingNpi: provider.npi,
+    // UB-04 42 / 48 — the revenue code is the Coder's decision and is never
+    // guessed from the CPT; non-covered charges start at zero.
+    revenueCode: "",
+    nonCovered: 0,
   };
 }
 
@@ -437,6 +500,23 @@ export function buildClaimForm({
   const identityBoxes = patientIdentityBoxes(patient, displayName);
   const seedKey = identitySeedFor(patient, displayName);
 
+  // ─── UB-04 boxes that are *derived* from what the encounter captured ───
+  // Box 4 is the encounter's setting read back as a type of bill (POS 23 → 131,
+  // POS 21 → 111, POS 24 → 831); the frequency digit follows the resubmission
+  // code, so a replacement bill is a 7 and a void is an 8. Box 6 is the span the
+  // service lines actually cover. Box 67 is the first code of the Coder's list.
+  // None of it is invented: with no POS, no dates and no codes these stay blank.
+  const primaryPos = serviceLines[0]?.placeOfService ?? "";
+  const posDefault = typeOfBillDefaultForPos(primaryPos);
+  const typeOfBill = posDefault?.typeOfBill
+    ? `${posDefault.typeOfBill.slice(0, 2)}${frequencyFromResubmissionCode(base.resubmissionCode)}`
+    : "";
+  const serviceDates = serviceLines
+    .map((line) => line.dateOfService)
+    .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date))
+    .sort();
+  const diagnosisCodes = (pipeline.icdCodes ?? []).slice(0, 12);
+
   return {
     ...base,
     claimType,
@@ -448,10 +528,16 @@ export function buildClaimForm({
       ),
     ),
     ...identityBoxes,
-    diagnosisCodes: (pipeline.icdCodes ?? []).slice(0, 12),
+    diagnosisCodes,
     priorAuthNumber: paNumber ?? "",
     serviceLines,
     totalCharge,
+    typeOfBill,
+    statementFrom: serviceDates[0] ?? "",
+    statementThrough: serviceDates[serviceDates.length - 1] ?? "",
+    principalDiagnosis: diagnosisCodes[0] ?? "",
+    otherDiagnoses: diagnosisCodes.slice(1).join(", "),
+    attendingLastName: provider.signatureName,
   };
 }
 

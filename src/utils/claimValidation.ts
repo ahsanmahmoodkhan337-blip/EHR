@@ -12,6 +12,7 @@
 
 import type { ClaimFormData } from "../store/pipelineStore";
 import type { ADAFormData } from "../data/claims/adaLayout";
+import { isRoomAndBoardRevenueCode } from "../data/claims/revenueCodes";
 
 export interface ClaimIssue {
   box: string;
@@ -243,6 +244,110 @@ export function validateADA(form: ADAFormData): ClaimIssue[] {
     err("37", "Box 37 or 38: the claim needs the subscriber's or the dentist's signature.");
   }
   if (blank(form.signatureDate)) err("36", "Box 36: signature date is required.");
+
+  return issues;
+}
+
+// ─── UB-04 (CMS-1450) institutional claim ───────────────────────────
+
+/**
+ * The institutional paper's edit checks, quoted against its own locators.
+ *
+ * Two rules of the teaching design are enforced here rather than in the form:
+ *
+ *  - a 13x outpatient bill is **not** asked for the admission and discharge
+ *    boxes (12–17) or the condition / occurrence / value blocks (18–41). A
+ *    scrubber that demands them teaches a student to fill a box to clear a
+ *    warning, so on an outpatient bill a blank there is correct and silent;
+ *  - a wrong revenue code is **flagged with the denial it would earn**, never
+ *    auto-corrected: a room-and-board code on an outpatient bill is what the
+ *    payer answers with CARC 16 + MA130.
+ */
+export function validateUB04(form: ClaimFormData): ClaimIssue[] {
+  const issues: ClaimIssue[] = [];
+  const err = (box: string, message: string) => issues.push({ box, message, severity: "error" });
+  const warn = (box: string, message: string) => issues.push({ box, message, severity: "warn" });
+
+  const typeOfBill = String(form.typeOfBill ?? "").trim();
+  if (blank(typeOfBill)) {
+    err("4", "Box 4: the type of bill is required — three digits, facility · care type · frequency.");
+  } else if (!/^[0-9]{3}$/.test(typeOfBill)) {
+    err("4", "Box 4: the type of bill is three digits, e.g. 131 for a hospital outpatient bill.");
+  }
+  const outpatient = typeOfBill.length === 3 && typeOfBill[1] === "3";
+  const replacement = typeOfBill.length === 3 && (typeOfBill[2] === "7" || typeOfBill[2] === "8");
+
+  if (blank(form.patientName)) err("8", "Box 8: patient name is required.");
+  if (blank(form.patientDob)) err("10", "Box 10: patient birth date is required.");
+  if (blank(form.payerName)) err("50", "Box 50: payer name is required — row A is the primary payer.");
+  if (blank(form.payerEdiId)) {
+    warn("51", "Box 51: the plan's health plan ID is blank. The payer matches the claim on it; capture it at Registration rather than guessing one.");
+  }
+
+  const taxId = String(form.federalTaxId ?? "").trim();
+  const taxType = String(form.federalTaxIdType ?? "").trim();
+  if (blank(taxId)) err("5", "Box 5: the federal tax number is required.");
+  else if (taxType === "SSN" ? !SSN_RE.test(taxId) : !TAX_ID_RE.test(taxId)) {
+    err("5", `Box 5: a federal tax number entered as ${taxType || "an EIN"} must look like ${
+      taxType === "SSN" ? "XXX-XX-XXXX" : "XX-XXXXXXX"
+    }.`);
+  }
+
+  if (blank(form.statementFrom) || blank(form.statementThrough)) {
+    err("6", "Box 6: STATEMENT COVERS PERIOD needs both the FROM and the THROUGH date.");
+  } else if (form.statementFrom > form.statementThrough) {
+    err("6", "Box 6: the FROM date is after the THROUGH date.");
+  }
+
+  if (blank(form.billingProviderNpi)) err("56", "Box 56: the billing provider's NPI is required.");
+  else if (!isValidNpi(form.billingProviderNpi)) {
+    err("56", "Box 56: the NPI must be 10 digits and pass the NPI check digit test.");
+  }
+
+  if (blank(form.principalDiagnosis)) {
+    err("67", "Box 67: the principal diagnosis is required — the first code of the Coder's final list.");
+  } else if (!ICD10_RE.test(form.principalDiagnosis)) {
+    err("67", `Box 67: "${form.principalDiagnosis}" is not a valid ICD-10-CM code.`);
+  }
+
+  const lines = (form.serviceLines || []).filter(
+    (l) => l && (!blank(l.cpt) || !blank(l.dateOfService) || money(l.charge) > 0),
+  );
+  if (lines.length === 0) err("42", "Box 42: at least one revenue-coded service line is required.");
+
+  lines.forEach((line, i) => {
+    const row = `line ${i + 1}`;
+    const revenueCode = String(line.revenueCode ?? "").trim();
+    if (blank(revenueCode)) {
+      err("42", `Box 42 (${row}): a revenue code is required — the department that earned the charge.`);
+    } else if (!/^[0-9]{4}$/.test(revenueCode)) {
+      err("42", `Box 42 (${row}): a revenue code is four digits, e.g. 0450 for the emergency department.`);
+    } else if (outpatient && isRoomAndBoardRevenueCode(revenueCode)) {
+      err(
+        "42",
+        `Box 42 (${row}): ${revenueCode} is room and board, and this is a 13x outpatient bill with no room to charge for. The payer answers CARC 16 with MA130 — pick the ancillary code for the service.`,
+      );
+    }
+    if (blank(line.dateOfService)) warn("45", `Box 45 (${row}): service date is blank.`);
+    if (money(line.nonCovered) > money(line.charge)) {
+      err("48", `Box 48 (${row}): non-covered charges cannot exceed the line's total charge.`);
+    }
+  });
+
+  const lineTotal = lines.reduce((sum, l) => sum + money(l.charge), 0);
+  if (!near(lineTotal, money(form.totalCharge))) {
+    warn(
+      "47",
+      `Box 47: the total charges (${money(form.totalCharge).toFixed(2)}) do not equal the sum of the service lines (${lineTotal.toFixed(2)}).`,
+    );
+  }
+
+  if (replacement && blank(form.documentControlNumber)) {
+    err(
+      "64",
+      "Box 64: a replacement (frequency 7) or void (frequency 8) bill must quote the payer's document control number for the claim it corrects.",
+    );
+  }
 
   return issues;
 }

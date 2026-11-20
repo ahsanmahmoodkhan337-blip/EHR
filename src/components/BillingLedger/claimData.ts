@@ -64,21 +64,6 @@ export const CMS1500_BLOCKS: FormBlock[] = [
   { box: "33", label: "Billing Provider Info", description: "Billing provider's name, address, NPI, and Tax ID.", commonError: "Billing NPI missing or incorrect." },
 ];
 
-// ─── Revenue Codes ──────────────────────────────────────────────────────
-
-export const REVENUE_CODES = [
-  { code: "0250", description: "General Pharmacy", type: "Pharmacy" },
-  { code: "0260", description: "IV Therapy", type: "Therapy" },
-  { code: "0270", description: "Medical/Surgical Supplies", type: "Supplies" },
-  { code: "0300", description: "General Laboratory", type: "Lab" },
-  { code: "0320", description: "Radiology — Diagnostic", type: "Radiology" },
-  { code: "0330", description: "Nuclear Medicine", type: "Radiology" },
-  { code: "0370", description: "Anesthesia", type: "Surgery" },
-  { code: "0450", description: "Emergency Room", type: "ER" },
-  { code: "0500", description: "General ICU", type: "ICU" },
-  { code: "0762", description: "Specialty — Observation", type: "Observation" },
-];
-
 // ─── Place of Service Codes ─────────────────────────────────────────────
 
 export const POS_CODES = [
