@@ -26,7 +26,7 @@ import { ClaimFormShell } from "../claims/ClaimFormShell";
 import { CMS1500Form } from "./CMS1500Form";
 import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
-import { buildClaimForm, blankServiceLine, patientIdentityBoxes } from "../../utils/claimAutoFill";
+import { buildClaimForm, blankServiceLine, backfillIdentityBoxes } from "../../utils/claimAutoFill";
 import { validateCMS1500, type ClaimIssue } from "../../utils/claimValidation";
 import {
   useEncounterPatientId,
@@ -136,13 +136,13 @@ export function BillingLedger() {
       );
       return;
     }
-    // A claim opened before its patient was known — or before claim types
-    // existed — gets the identity boxes and the type filled in place. Codes,
-    // charges and anything the student edited are left alone.
+    // A claim opened before its patient was known — or written by a build that
+    // had no patient to seed it — gets the identity boxes filled in place.
+    // Codes, charges and anything the student edited are left alone.
     const patch: Partial<ClaimFormData> = {};
     if (!claimForm.claimType) patch.claimType = suggestion.claimType;
-    if (!claimForm.patientName) {
-      Object.assign(patch, patientIdentityBoxes(patient, state.displayName));
+    if (!claimForm.identitySeeded) {
+      Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
     }
     if (Object.keys(patch).length > 0) setClaimForm({ ...claimForm, ...patch });
   }, [patientId, claimForm, patient, state, paRecords, setClaimForm, suggestion.claimType]);
