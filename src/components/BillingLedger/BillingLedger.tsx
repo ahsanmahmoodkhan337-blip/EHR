@@ -26,7 +26,7 @@ import { ClaimFormShell } from "../claims/ClaimFormShell";
 import { CMS1500Form } from "./CMS1500Form";
 import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
-import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
+import { buildClaimForm, blankServiceLine, reseedIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
 import { validateCMS1500, type ClaimIssue } from "../../utils/claimValidation";
 import {
   useEncounterPatientId,
@@ -152,9 +152,14 @@ export function BillingLedger() {
     // A claim written by an earlier build carries an invented member ID and
     // group number; clear them so the boxes fall through to the tagged demo.
     Object.assign(patch, stripFabricatedIds(claimForm));
-    if (!claimForm.identitySeeded) {
-      Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
-    }
+    // Re-evaluate the identity boxes against the patient the encounter resolves
+    // now. A claim opened before the chart knew its patient — a student's own
+    // registered patient, a restored session, "Skip to Billing" — picks the
+    // patient up here instead of staying blank, and a patient whose
+    // demographics or insurance changed updates the boxes still holding the
+    // seeded value. A box the student typed is never touched.
+    const identityPatch = reseedIdentityBoxes(claimForm, patient, state.displayName);
+    if (identityPatch) Object.assign(patch, identityPatch);
     if (Object.keys(patch).length > 0) setClaimForm({ ...claimForm, ...patch });
   }, [patientId, claimForm, patient, state, paRecords, setClaimForm, suggestion.claimType, encounterDate]);
 

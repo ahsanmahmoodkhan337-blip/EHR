@@ -24,6 +24,7 @@ import {
   encounterKey,
   EMPTY_ENCOUNTER,
   normalizePipelineStore,
+  roleForStage,
   type ClaimFormData,
   type ClaimServiceLine,
   type PipelineEncounter,
@@ -233,12 +234,24 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       const key = encounterKey(patientId);
       const existing = prev.encounters[key];
       const encounter = existing ?? createEncounter(patientId);
-      if (prev.activePatientId === patientId && existing) return prev;
+      // Restore the stage this patient was left at. The encounter's `role` is
+      // the screen the student last worked; when it was never set (or is still
+      // the blank chart's default) the stage says where the work got to, so a
+      // patient worked to the Biller reopens on the Biller instead of Scribe.
+      const restoredRole =
+        encounter.role && encounter.role !== "scribe"
+          ? encounter.role
+          : roleForStage(encounter.stage);
+      if (prev.activePatientId === patientId && existing) {
+        return prev.currentRole === restoredRole
+          ? prev
+          : { ...prev, currentRole: restoredRole };
+      }
       return {
         ...prev,
         activePatientId: patientId,
         encounters: existing ? prev.encounters : { ...prev.encounters, [key]: encounter },
-        currentRole: encounter.role ?? "scribe",
+        currentRole: restoredRole,
       };
     });
   };
@@ -246,11 +259,14 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   const setRole = (role: Role) => {
     setStore((prev) => {
       const key = encounterKey(prev.activePatientId);
-      const enc = prev.encounters[key];
+      // Always write the role onto the encounter, creating it if the student
+      // switched role before the encounter existed — otherwise the stage they
+      // left would be lost on the next patient switch.
+      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
       return {
         ...prev,
         currentRole: role,
-        encounters: enc ? { ...prev.encounters, [key]: { ...enc, role } } : prev.encounters,
+        encounters: { ...prev.encounters, [key]: { ...enc, role } },
       };
     });
   };
@@ -267,6 +283,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       cptCodes: ["99214", "93000"],
       status: "charted",
       stage: "coder",
+      role: "coder",
     }));
   };
 
@@ -290,6 +307,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       ...enc,
       scribeNote: note,
       stage: "coder",
+      role: "coder",
       status: "charted",
     }));
   };
@@ -302,6 +320,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       cptCodes,
       codingLines: lines ?? enc.codingLines,
       stage: "prior-auth",
+      role: "prior-auth",
       status: "coded",
     }));
   };
@@ -330,6 +349,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       ...enc,
       paData,
       stage: "biller",
+      role: "biller",
       // Keep existing status (typically "coded") — status = "paid" only after actual claim settlement
       denialInfo: null,
     }));
@@ -341,6 +361,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       ...enc,
       claimData,
       stage: "ar-voice",
+      role: "ar-voice",
       status: "billed",
     }));
   };

@@ -62,6 +62,17 @@ export interface ClaimFormData {
    * student clears afterwards stays cleared instead of being refilled.
    */
   identitySeeded?: boolean;
+  /**
+   * What the identity boxes were seeded from, and the values that seed wrote.
+   *
+   * Re-seeding compares the patient's current identity boxes with this record:
+   * a box still holding the seeded value (or blank) follows the patient, while a
+   * box the student typed is left alone. This is what lets a claim opened before
+   * its patient was known — a student's own registered patient, or a restored
+   * session — pick the patient up once the chart resolves them, instead of
+   * freezing on the blanks it was born with.
+   */
+  identitySeed?: { signature: string; values: Record<string, string> };
   insuranceType: string;        // 1
   insuredId: string;            // 1a
   patientName: string;          // 2
@@ -186,6 +197,14 @@ export function encounterKey(patientId: string | null | undefined): string {
   return patientId || UNASSIGNED_ENCOUNTER_KEY;
 }
 
+/**
+ * The role a stage belongs to. A finished pipeline was last worked by the AR
+ * Voice specialist, so `complete` maps back there.
+ */
+export function roleForStage(stage: PipelineEncounter["stage"]): Role {
+  return stage === "complete" ? "ar-voice" : stage;
+}
+
 /** A brand-new, empty encounter — a patient never visited starts here. */
 export function createEncounter(patientId: string | null): PipelineEncounter {
   return {
@@ -224,7 +243,7 @@ export function normalizeEncounter(
     codingLines: Array.isArray(raw.codingLines) ? raw.codingLines : [],
     claimData: raw.claimData && typeof raw.claimData === "object" ? raw.claimData : {},
     paData: raw.paData && typeof raw.paData === "object" ? raw.paData : {},
-    role: raw.role ?? base.role,
+    role: raw.role ?? roleForStage(raw.stage ?? base.stage),
     stage: raw.stage ?? base.stage,
     status: raw.status ?? base.status,
   };
@@ -256,11 +275,19 @@ export function normalizePipelineStore(
       encounters[key] = normalizeEncounter(enc as Partial<PipelineEncounter>, patientId);
     }
     const activePatientId = value.activePatientId ?? null;
+    const active = encounters[encounterKey(activePatientId)];
+    // Where the active patient was left beats the last role used on any chart:
+    // a stored `currentRole` from another patient must not decide this one.
+    const activeRole = active
+      ? active.role !== "scribe"
+        ? active.role
+        : roleForStage(active.stage)
+      : null;
     return {
       activePatientId,
       encounters,
       demoFillMissingBoxes: value.demoFillMissingBoxes !== false,
-      currentRole: value.currentRole ?? encounters[encounterKey(activePatientId)]?.role ?? fallbackRole,
+      currentRole: activeRole ?? value.currentRole ?? fallbackRole,
     };
   }
 

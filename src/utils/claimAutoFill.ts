@@ -308,6 +308,67 @@ export function backfillIdentityBoxes(
   return patch;
 }
 
+/**
+ * The `identitySeed` marker for a claim: the values a seed from this patient
+ * writes, plus a signature of them. Undefined when there is no patient (and no
+ * display name) to seed from — the claim must try again later.
+ */
+export function identitySeedFor(
+  patient: Patient | null | undefined,
+  displayName?: string | null,
+): ClaimFormData["identitySeed"] {
+  if (!patient && !displayName) return undefined;
+  const known = patientIdentityBoxes(patient, displayName) as Record<string, unknown>;
+  const values: Record<string, string> = {};
+  for (const [key, value] of Object.entries(known)) {
+    if (typeof value === "string" && value !== "") values[key] = value;
+  }
+  return { signature: JSON.stringify(values), values };
+}
+
+/**
+ * Re-seed the identity boxes from the patient the encounter now resolves.
+ *
+ * `identitySeeded` used to be a one-shot marker: a claim opened while the chart
+ * had no patient (the student's own registered patient, a restored session, the
+ * Coder's "Skip to Billing") was stamped as seeded and never looked again, so
+ * boxes 1a–7 stayed blank or kept another patient's values even after the chart
+ * knew who it was working on.
+ *
+ * This compares the patient's identity boxes with what the last seed wrote
+ * (`identitySeed`):
+ *   - blank box            → filled from the patient;
+ *   - box still holding the seeded value → follows the patient when its
+ *     demographics or insurance change;
+ *   - box the student typed (a value that is neither) → left untouched.
+ *
+ * Returns `null` when the claim already matches this patient, so the caller can
+ * call it on every render without looping.
+ */
+export function reseedIdentityBoxes(
+  form: ClaimFormData,
+  patient: Patient | null | undefined,
+  displayName?: string | null,
+): Partial<ClaimFormData> | null {
+  const seed = identitySeedFor(patient, displayName);
+  if (!seed) return null;
+  const { signature, values } = seed;
+  if (form.identitySeed?.signature === signature && form.identitySeeded) return null;
+
+  const previous = form.identitySeed?.values ?? {};
+  const patch: Partial<ClaimFormData> = {};
+  for (const [key, value] of Object.entries(values)) {
+    const current = (form as unknown as Record<string, unknown>)[key];
+    const wasSeeded = previous[key] !== undefined && current === previous[key];
+    if (isBlank(current) || wasSeeded) {
+      (patch as Record<string, unknown>)[key] = value;
+    }
+  }
+  patch.identitySeeded = true;
+  patch.identitySeed = seed;
+  return patch;
+}
+
 /** Build the claim record from the encounter. */
 export function buildClaimForm({
   patient,
@@ -331,6 +392,7 @@ export function buildClaimForm({
     ...base,
     claimType,
     identitySeeded: Boolean(patient || displayName),
+    identitySeed: identitySeedFor(patient, displayName),
     ...patientIdentityBoxes(patient, displayName),
     diagnosisCodes: (pipeline.icdCodes ?? []).slice(0, 12),
     priorAuthNumber: paNumber ?? "",

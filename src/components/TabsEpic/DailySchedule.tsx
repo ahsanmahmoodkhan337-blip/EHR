@@ -14,6 +14,8 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
+
+import { buildInsuranceRecord } from "../../utils/insuranceRecord";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   CalendarDays, ChevronLeft, ChevronRight, User, Plus, FileEdit,
@@ -144,6 +146,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
   const updateAppointment = useEhrStore((s) => s.updateAppointment);
   const setAppointmentStatus = useEhrStore((s) => s.setAppointmentStatus);
   const registerPatient = useEhrStore((s) => s.registerPatient);
+  const updatePatientInsurance = useEhrStore((s) => s.updatePatientInsurance);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -157,6 +160,13 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
   const [newDob, setNewDob] = useState("");
   const [newSex, setNewSex] = useState("Female");
   const [newPhone, setNewPhone] = useState("");
+  // The address and coverage the claim reads back (boxes 5, 1a, 4, 6, 7, 11).
+  const [newAddress, setNewAddress] = useState("");
+  const [newPayer, setNewPayer] = useState("");
+  const [newMemberId, setNewMemberId] = useState("");
+  const [newGroup, setNewGroup] = useState("");
+  const [newPayerId, setNewPayerId] = useState("");
+  const [newRelationship, setNewRelationship] = useState("Self");
   const [modalType, setModalType] = useState("Follow-up");
   const [modalTime, setModalTime] = useState("09:00");
   const [modalDuration, setModalDuration] = useState(30);
@@ -287,7 +297,25 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
         dateOfBirth: newDob || undefined,
         sex: newSex,
         phone: newPhone || undefined,
+        address: newAddress || undefined,
       });
+      // Whatever coverage the front desk typed is written onto the patient, so
+      // the claim's insured boxes read it instead of falling to demo values.
+      if (newPayer || newMemberId || newGroup || newPayerId) {
+        updatePatientInsurance(
+          created.id,
+          buildInsuranceRecord({
+            primary: {
+              payerName: newPayer,
+              subscriberId: newMemberId,
+              groupNumber: newGroup,
+              ediPayerId: newPayerId,
+              relationshipToSubscriber: newRelationship,
+              planName: newPayer,
+            },
+          }),
+        );
+      }
       patientId = created.id;
       patientName = `${created.firstName} ${created.lastName}`;
     }
@@ -870,6 +898,47 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                           placeholder="Phone (optional)"
                           className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
                         />
+                        <input
+                          value={newAddress}
+                          onChange={(e) => setNewAddress(e.target.value)}
+                          placeholder="Address — fills claim box 5"
+                          className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            value={newPayer}
+                            onChange={(e) => setNewPayer(e.target.value)}
+                            placeholder="Payer (box 11c)"
+                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                          />
+                          <input
+                            value={newMemberId}
+                            onChange={(e) => setNewMemberId(e.target.value)}
+                            placeholder="Member ID (box 1a)"
+                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                          />
+                          <input
+                            value={newGroup}
+                            onChange={(e) => setNewGroup(e.target.value)}
+                            placeholder="Group (box 11)"
+                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                          />
+                          <input
+                            value={newPayerId}
+                            onChange={(e) => setNewPayerId(e.target.value)}
+                            placeholder="Payer EDI ID"
+                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                          />
+                          <select
+                            value={newRelationship}
+                            onChange={(e) => setNewRelationship(e.target.value)}
+                            className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                          >
+                            {["Self", "Spouse", "Child", "Other"].map((r) => (
+                              <option key={r} value={r}>{r}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     )}
                   </>
