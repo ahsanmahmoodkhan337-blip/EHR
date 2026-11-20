@@ -188,6 +188,20 @@ export function exportClaimFormPDF({
             fx += fw;
           });
         });
+      } else if (cell.reserved) {
+        // A box the 02/12 prints shaded and reserved: caption, no value.
+        doc.setDrawColor(...FORM_RED);
+        doc.setLineWidth(0.25);
+        doc.setFillColor(244, 236, 234);
+        doc.rect(x, y, w, rowH, "FD");
+        doc.setTextColor(...FORM_RED);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(4.2);
+        doc.text(
+          doc.splitTextToSize(cell.label, w - 1.6).slice(0, 2) as string[],
+          x + 0.8,
+          y + 2.4,
+        );
       } else {
         drawBox(x, y, w, rowH, cell.label, () => {});
       }

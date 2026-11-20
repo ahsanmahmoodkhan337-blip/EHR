@@ -90,14 +90,31 @@ export interface ClaimFormData {
   insuredAddress: string;       // 7
   otherInsuranceName: string;   // 9
   otherInsurancePlan: string;   // 9a
+  /**
+   * Box 9c — EMPLOYER'S OR SCHOOL'S NAME, inside the other-insured block.
+   *
+   * The key keeps its old name so a value a student typed into box 11b under
+   * the previous build is carried forward verbatim: 11b was labelled
+   * "OTHER CLAIM ID / EMPLOYER" and this field has always meant the employer,
+   * so the stored value now prints where the 02/12 prints it (9c) instead of
+   * being dropped.
+   */
+  insuredEmployer: string;      // 9c
   conditionEmployment: boolean; // 10a
   conditionAuto: boolean;       // 10b
   conditionOther: boolean;      // 10c
   insuredPolicyGroup: string;   // 11
   insuredDob: string;           // 11a
-  insuredEmployer: string;      // 11b
+  /** Box 11b — OTHER CLAIM ID (ID). Not the employer; that is 9c. */
+  otherClaimId: string;         // 11b
   insuredPlanName: string;      // 11c
   otherBenefitPlan: string;     // 11d
+  /** Box 8 — PATIENT STATUS. The 02/12 prints five checkboxes, any of which may apply. */
+  patientStatusSingle: boolean;          // 8
+  patientStatusMarried: boolean;         // 8
+  patientStatusEmployed: boolean;        // 8
+  patientStatusFullTimeStudent: boolean; // 8
+  patientStatusPartTimeStudent: boolean; // 8
   /**
    * Payer name and EDI payer ID from the patient's insurance record. The
    * CMS-1500 has no box for either (11c carries the plan name), but the UB-04
@@ -114,6 +131,8 @@ export interface ClaimFormData {
   unableToWorkFrom: string;     // 16
   unableToWorkTo: string;       // 16
   referringProvider: string;    // 17
+  /** Box 17a — OTHER ID #: the qualifier/other-ID box, not the NPI. */
+  referringOtherId: string;     // 17a
   referringNpi: string;         // 17b
   hospitalizationFrom: string;  // 18
   hospitalizationTo: string;    // 18
@@ -129,7 +148,14 @@ export interface ClaimFormData {
   acceptAssignment: string;     // 27
   totalCharge: number;          // 28
   amountPaid: number;           // 29
-  balanceDue: number;           // 30
+  /**
+   * @deprecated Box 30 on the 02/12 is `R.S. AMOUNT` — shaded and reserved, with
+   * no data. Nothing prints this any more, and no autofill writes it. It is kept
+   * only so a claim saved by an earlier build keeps the value it held instead of
+   * losing it on load. A patient's balance is summed from the ledger
+   * (`domain/ledger.ts`), never from a claim box.
+   */
+  balanceDue: number;           // 30 — reserved on the 02/12, no longer printed
   providerSignature: string;    // 31
   providerSignatureDate: string;// 31
   facilityName: string;         // 32

@@ -1,5 +1,5 @@
 /**
- * ADA Dental Claim Form (2019, J430) layout — the dental equivalent of the
+ * ADA Dental Claim Form (2019, J430D) layout — the dental equivalent of the
  * CMS-1500 replica, on the same shell.
  *
  * Same idea as `cms1500Layout.ts`: every printed box is data — its number, its
@@ -302,7 +302,7 @@ const ADA_ROWS: ClaimRow[] = [
 export const ADA_LAYOUT: ClaimLayout = {
   id: "ada2019",
   title: "DENTAL CLAIM FORM",
-  formCode: "ADA 2019 (J430)",
+  formCode: "ADA 2019 (J430D)",
   maxLines: 6,
   lineShape: ["dateOfService", "cdt", "description", "tooth", "surface", "quadrant", "fee", "units"],
   rows: ADA_ROWS,

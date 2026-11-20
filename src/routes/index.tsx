@@ -43,6 +43,7 @@ import {
 
 import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
 import { PipelineProvider, usePipeline, encounterHasWork, type Role } from "../store/pipelineStore";
+import { ledgerBalance } from "../domain/ledger";
 import { isLoggedIn, getLoggedInPhone } from "../store/accessStore";
 import { useAllAppointments, useEhrStore, flushEhrStore } from "../store/ehrStore";
 import { checkSessionExpired, clearSession, setSessionStart } from "../store/accessStore";
@@ -2008,7 +2009,11 @@ function Home() {
         <PatientBanner
           patient={selectedPatient ?? null}
           fallbackName={displayName}
-          balanceDue={pipelineState.claimForm?.balanceDue}
+          patientBalance={
+            pipelineState.ledger.length > 0
+              ? ledgerBalance(pipelineState.ledger).patientBalanceCents / 100
+              : undefined
+          }
         />
       }
       leftPanel={

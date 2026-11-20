@@ -49,7 +49,7 @@ export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {
     stage: "Registration & eligibility (group number)",
   },
   insuredEmployer: {
-    box: "11b",
+    box: "9c",
     value: "RETIREE — MEDFORD CITY SCHOOLS",
     stage: "Registration & eligibility (employer)",
   },

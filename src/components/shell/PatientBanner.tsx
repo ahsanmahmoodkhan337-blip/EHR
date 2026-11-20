@@ -49,11 +49,15 @@ interface PatientBannerProps {
   /** Name override for a custom (non-database) appointment patient. */
   fallbackName?: string;
   /**
-   * This encounter's patient balance, read from its claim (box 30). Left
-   * undefined when the encounter has no claim yet — the banner then says so
-   * instead of printing a zero nobody computed.
+   * This encounter's patient balance, summed from its ledger
+   * (`domain/ledger.ts` — charges, insurance payments, adjustments and patient
+   * payments). Left undefined while nothing has been posted, so the banner says
+   * "—" instead of printing a zero nobody computed.
+   *
+   * It is not read from the claim: box 30 on the CMS-1500 is reserved
+   * `R.S. AMOUNT` and carries no money.
    */
-  balanceDue?: number;
+  patientBalance?: number;
 }
 
 function parseDate(raw?: string): Date | null {
@@ -102,7 +106,7 @@ function Chip({ tone, children, title }: { tone: "ok" | "warn" | "danger" | "neu
   );
 }
 
-export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBannerProps) {
+export function PatientBanner({ patient, fallbackName, patientBalance }: PatientBannerProps) {
   // No patient and no name to show — the strip stays out of the way.
   if (!patient && !fallbackName) return null;
 
@@ -204,14 +208,14 @@ export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBann
 
         <span
           title={
-            balanceDue === undefined
-              ? "No patient balance is recorded on this encounter yet — one appears once the claim is adjudicated."
-              : "Patient balance carried on this encounter's claim (CMS-1500 box 30)."
+            patientBalance === undefined
+              ? "Nothing has been posted to this encounter's ledger yet — a patient balance appears once the 835 is posted."
+              : "Patient balance summed from this encounter's ledger (posted charges, insurance payments, adjustments and patient payments)."
           }
         >
           Balance:{" "}
-          <span className={balanceDue && balanceDue > 0 ? "font-semibold text-amber-200" : "text-slate-300"}>
-            {balanceDue === undefined ? "—" : formatMoney(balanceDue)}
+          <span className={patientBalance && patientBalance > 0 ? "font-semibold text-amber-200" : "text-slate-300"}>
+            {patientBalance === undefined ? "—" : formatMoney(patientBalance)}
           </span>
         </span>
 
