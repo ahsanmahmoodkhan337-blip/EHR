@@ -56,6 +56,22 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
     );
   }
 
+  // A patient registered without a date of birth has neither a valid date nor a
+  // known age. Build the demographic line from what is actually known, so the
+  // summary never prints "0 yrs" or "DOB: Invalid Date".
+  const rawDob = (patient.dateOfBirth || "").trim();
+  const parsedDob = rawDob ? new Date(rawDob) : null;
+  const dobKnown = !!parsedDob && !Number.isNaN(parsedDob.getTime());
+  const ageKnown =
+    dobKnown && typeof patient.age === "number" && Number.isFinite(patient.age);
+  const demographicLine = [
+    patient.gender?.trim() || null,
+    ageKnown ? `${patient.age} yrs` : null,
+    dobKnown ? `DOB: ${parsedDob!.toLocaleDateString()}` : null,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
   return (
     <aside className="w-72 shrink-0 border-l border-slate-200 bg-slate-50 overflow-y-auto">
       {/* Patient Demographics Header */}
@@ -71,10 +87,9 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
           </div>
         ) : (
           <>
-            <p className="text-sm text-slate-500">
-              {patient.gender} | {patient.age} yrs | DOB:{" "}
-              {new Date(patient.dateOfBirth).toLocaleDateString()}
-            </p>
+            {demographicLine && (
+              <p className="text-sm text-slate-500">{demographicLine}</p>
+            )}
             <p className="text-xs text-slate-400">MRN: {patient.mrn}</p>
             {patient.preferredName && (
               <p className="text-xs text-brand-600">
