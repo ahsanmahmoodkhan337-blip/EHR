@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Healthcare Hustlers EHR — practise the whole revenue cycle</title>
+    <meta
+      name="description"
+      content="A hands-on EHR and revenue-cycle simulator for healthcare students: registration, charting, ICD-10/CPT coding, prior authorisation, CMS-1500 billing, AR calls, plus a full dental RCM track. $20 / 5,500 PKR per student."
+    />
+    <meta property="og:title" content="Healthcare Hustlers EHR — practise the whole revenue cycle" />
+    <meta
+      property="og:description"
+      content="Students work a real patient encounter from check-in to payment: charting, coding, prior auth, billing and payer calls. Medical and dental tracks in one access."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/healthcarehustlers-logo.png" />
+    <meta name="theme-color" content="#192166" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <style>
+      :root {
+        --navy: #192166;
+        --royal: #2040c0;
+        --royal-dark: #1a2888;
+        --hero: #8fba47;
+        --ink: #1e293b;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --canvas: #f4f6fd;
+        --pad: clamp(20px, 3.4vw, 56px);
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: #fff;
+        color: var(--ink);
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; }
+      /* full-bleed layout: content uses the whole viewport, like the simulator */
+      .wrap { width: 100%; max-width: 1680px; margin: 0 auto; padding: 0 var(--pad); }
+
+      header.top {
+        position: sticky; top: 0; z-index: 20;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+      }
+      header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px var(--pad); max-width: none; }
+      header.top img { height: 44px; width: auto; display: block; }
+      nav.links { display: none; gap: 28px; font-size: 14px; font-weight: 500; color: #475569; }
+      nav.links a { text-decoration: none; }
+      nav.links a:hover { color: var(--navy); }
+      @media (min-width: 820px) { nav.links { display: flex; } }
+
+      .btn {
+        display: inline-block; border-radius: 8px; padding: 12px 20px;
+        font-size: 14px; font-weight: 600; text-decoration: none; border: 1px solid transparent;
+      }
+      .btn-primary { background: var(--royal); color: #fff; }
+      .btn-primary:hover { background: var(--royal-dark); }
+      .btn-ghost { border-color: rgba(25, 33, 102, 0.25); color: var(--navy); }
+      .btn-ghost:hover { border-color: rgba(25, 33, 102, 0.5); background: var(--canvas); }
+      .btn-light { background: #fff; color: var(--navy); }
+      .btn-light:hover { background: #eef1fb; }
+
+      .hero { background: linear-gradient(to bottom, var(--canvas), #fff); border-bottom: 1px solid var(--line); }
+      .hero .wrap { display: grid; gap: 44px; padding: clamp(36px, 4vw, 72px) var(--pad); }
+      @media (min-width: 1040px) {
+        .hero .wrap { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); align-items: center; gap: clamp(40px, 4vw, 72px); }
+      }
+      .hero img.logo { height: 68px; width: auto; display: block; margin-bottom: 22px; }
+      .pill {
+        display: inline-flex; align-items: center; gap: 8px;
+        border: 1px solid var(--line); background: #fff; color: var(--navy);
+        border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600;
+      }
+      .pill .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--hero); }
+      h1 {
+        margin: 20px 0 0; color: var(--navy); letter-spacing: -0.025em;
+        font-size: clamp(32px, 3.6vw, 58px); line-height: 1.06;
+      }
+      .lead { margin: 20px 0 0; max-width: 32em; font-size: clamp(16px, 1.15vw, 19px); line-height: 1.65; color: #475569; }
+      .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+      .price { margin: 16px 0 0; font-size: 14px; color: var(--muted); }
+      figure.shot {
+        margin: 0; border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+        background: #f1f5f9; box-shadow: 0 24px 60px -24px rgba(25, 33, 102, 0.4);
+      }
+      figure.shot img { width: 100%; display: block; }
+      figure.shot figcaption { background: #fff; border-top: 1px solid var(--line); padding: 12px 16px; font-size: 12px; color: var(--muted); }
+
+      section { padding: clamp(44px, 5vw, 84px) 0; }
+      h2 { margin: 0; color: var(--navy); font-size: clamp(22px, 2.3vw, 34px); letter-spacing: -0.015em; }
+      .sub { margin: 12px 0 0; max-width: 48em; font-size: clamp(15px, 1vw, 17px); color: #475569; line-height: 1.65; }
+
+      .cards { display: grid; gap: 24px; margin-top: 32px; }
+      @media (min-width: 900px) {
+        .cards.three { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+        .cards.two { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+      }
+      .card { border: 1px solid var(--line); border-radius: 14px; padding: 26px; background: #fff; }
+      .card h3 { margin: 0; font-size: 15px; color: var(--navy); }
+      .card p { margin: 10px 0 0; font-size: 14px; line-height: 1.65; color: #475569; }
+
+      .tracks { background: var(--canvas); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+      .track { border-radius: 16px; border: 1px solid var(--line); background: #fff; padding: 28px; }
+      .track.dental { border-color: rgba(143, 186, 71, 0.45); }
+      .chip { display: inline-block; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+      .chip.medical { background: rgba(32, 64, 192, 0.1); color: var(--royal); }
+      .chip.dental { background: rgba(143, 186, 71, 0.16); color: #4d6b1f; }
+      .track h3 { margin: 14px 0 0; font-size: 19px; color: var(--navy); }
+      ol.stages, ul.stages { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 18px; }
+      ol.stages li { display: flex; gap: 12px; }
+      .num {
+        flex: none; width: 24px; height: 24px; border-radius: 999px; background: var(--royal);
+        color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center;
+      }
+      .stages .t { font-size: 14px; font-weight: 600; }
+      .stages .d { margin: 2px 0 0; font-size: 14px; line-height: 1.6; color: #475569; }
+      ul.stages li { border-left: 2px solid var(--hero); padding-left: 12px; display: block; }
+
+      .access { background: var(--navy); color: #fff; }
+      .access h2 { color: #fff; }
+      .access .sub { color: rgba(255, 255, 255, 0.75); }
+      .pricebox { margin-top: 28px; border-radius: 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 28px; }
+      .amount { margin: 0; font-size: 34px; font-weight: 700; }
+      .amount span { font-size: 16px; font-weight: 500; color: rgba(255, 255, 255, 0.7); }
+      .perks { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+      .perks li { display: flex; gap: 8px; }
+      .perks .tick { color: var(--hero); }
+      .steps { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 12px; }
+      .steps li { display: flex; gap: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 16px; }
+      .steps .num { background: var(--hero); color: var(--navy); }
+      .steps .t { font-size: 14px; font-weight: 600; }
+      .steps .d { margin: 2px 0 0; font-size: 14px; line-height: 1.6; color: rgba(255, 255, 255, 0.7); }
+      .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }
+
+      footer { background: var(--navy); color: rgba(255, 255, 255, 0.7); border-top: 1px solid rgba(255, 255, 255, 0.1); }
+      footer .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; padding: 28px var(--pad); font-size: 12px; }
+      footer .brand { display: flex; align-items: center; gap: 12px; }
+      footer .plate { background: #fff; border-radius: 8px; padding: 6px 10px; }
+      footer img { height: 28px; width: auto; display: block; }
+      footer p { margin: 0; max-width: 40em; line-height: 1.6; }
+      footer a { color: #fff; }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <div class="wrap">
+        <a href="/welcome" aria-label="Healthcare Hustlers home">
+          <img src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers — be a med hero" width="1024" height="280" />
+        </a>
+        <nav class="links">
+          <a href="#tracks">Tracks</a>
+          <a href="#who">Who it's for</a>
+          <a href="#access">Access &amp; price</a>
+        </nav>
+        <a class="btn btn-primary" href="/">Open the simulator</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="wrap">
+          <div>
+            <img class="logo" src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers" width="1024" height="280" />
+            <p class="pill"><span class="dot"></span> Medical and dental tracks live</p>
+            <h1>Practise the whole revenue cycle before you touch a real chart.</h1>
+            <p class="lead">
+              An EHR and revenue-cycle simulator for healthcare students. One patient encounter, start to
+              finish: registration, charting, coding, prior authorisation, billing, payer calls — and the same
+              discipline for the dental front office.
+            </p>
+            <div class="cta">
+              <a class="btn btn-primary" href="/">Open the simulator</a>
+              <a class="btn btn-ghost" href="https://wa.me/923350340888">Request access on WhatsApp</a>
+            </div>
+            <p class="price">$20 USD / 5,500 PKR per student · both tracks included · no software to install</p>
+          </div>
+          <figure class="shot">
+            <img
+              src="/screenshots/coder-pos-modifier.png"
+              alt="Coder work queue showing an E/M code with modifier 25 and place of service 11 on each CPT line"
+              loading="eager"
+            />
+            <figcaption>The coder work queue: modifier 25 on the E/M line, place of service captured per CPT line.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <div class="cards three">
+            <div class="card">
+              <h3>The whole cycle, not one screen</h3>
+              <p>Most practice tools stop at the note. This one keeps going: the code you pick is the claim that gets scrubbed, the claim that gets denied, and the AR call you have to make.</p>
+            </div>
+            <div class="card">
+              <h3>Built to be taught from</h3>
+              <p>Seeded teaching cases, five revenue-cycle roles you can switch between, and progress kept per student.</p>
+            </div>
+            <div class="card">
+              <h3>Two revenue cycles, one login</h3>
+              <p>Medical and dental. Same patient-journey discipline, different code set, different claim form, different payer rules.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tracks" id="tracks">
+        <div class="wrap">
+          <h2>Two revenue cycles, side by side</h2>
+          <p class="sub">The student picks a track at login. Every stage hands its output to the next role, so nothing is practised in isolation.</p>
+          <div class="cards two">
+            <div class="track">
+              <span class="chip medical">Medical</span>
+              <span style="font-size: 12px; color: var(--muted); margin-left: 8px">Live</span>
+              <h3>Clinical to financial, in six stages</h3>
+              <ol class="stages">
+                <li><span class="num">1</span><div><div class="t">Registration &amp; eligibility</div><p class="d">Register the patient, run the 270/271 eligibility check, catch the coverage problems before they cost money.</p></div></li>
+                <li><span class="num">2</span><div><div class="t">Provider / Scribe</div><p class="d">SOAP notes, vitals, HPI, a 12-system exam matrix, E/M leveling with the MDM wizard and smart phrases.</p></div></li>
+                <li><span class="num">3</span><div><div class="t">Medical coder</div><p class="d">ICD-10 and CPT on every line, modifier 25 traps, free-text modifiers and place of service per line.</p></div></li>
+                <li><span class="num">4</span><div><div class="t">Prior authorisation</div><p class="d">Conditional auth with payer portals, document bundles and peer-to-peer review.</p></div></li>
+                <li><span class="num">5</span><div><div class="t">Biller</div><p class="d">CMS-1500, claim scrubbing, clearinghouse rejections and denial paths.</p></div></li>
+                <li><span class="num">6</span><div><div class="t">AR voice specialist</div><p class="d">Work the AR ledger, take a simulated payer call and get scored on live speech-to-text.</p></div></li>
+              </ol>
+            </div>
+            <div class="track dental">
+              <span class="chip dental">Dental</span>
+              <span style="font-size: 12px; color: var(--muted); margin-left: 8px">Live</span>
+              <h3>The nine-stage dental RCM spine</h3>
+              <ul class="stages">
+                <li><div class="t">CDT coding</div><p class="d">Tooth, surface and quadrant on every procedure code.</p></li>
+                <li><div class="t">Odontogram &amp; perio</div><p class="d">Universal numbering, permanent and primary dentition, six probing depths, BOP, recession, mobility and furcation.</p></li>
+                <li><div class="t">Treatment planning</div><p class="d">Phased plans with a per-item estimate the patient can actually see.</p></li>
+                <li><div class="t">Benefit adjudication</div><p class="d">Annual maximums, frequency limits, waiting periods, missing-tooth clause and alternate-benefit downgrades.</p></li>
+                <li><div class="t">Claims &amp; ledger</div><p class="d">Claim status queue, patient ledger with aging and the ADA claim form with attachment rules and predetermination.</p></li>
+                <li><div class="t">Denials &amp; ERA</div><p class="d">Denial to appeal, then ERA/EOB posting. Nine seeded teaching cases.</p></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="who">
+        <div class="wrap">
+          <h2>Who it's for</h2>
+          <p class="sub">Healthcare education programmes, and individuals getting ready for a first RCM role.</p>
+          <div class="cards two">
+            <div class="card"><h3>Programmes</h3><p>Medical, nursing, PA and health-informatics schools, plus medical and dental billing and coding institutes — particularly in South Asia.</p></div>
+            <div class="card"><h3>Individual trainees</h3><p>Anyone preparing for clinical rotations, CPC/COSC certification or a first job in billing and AR.</p></div>
+            <div class="card"><h3>Instructors</h3><p>Walk students through all five revenue-cycle roles, and see each student's progress per stage.</p></div>
+            <div class="card"><h3>Institutions</h3><p>Per-seat licensing per term for a whole cohort is the next thing we are building.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="access" id="access">
+        <div class="wrap">
+          <div class="cards two" style="margin-top: 0">
+            <div>
+              <h2>Access &amp; price</h2>
+              <p class="sub">One fee per student, both tracks included. Payment is handled personally — no card details ever touch this site.</p>
+              <div class="pricebox">
+                <p class="amount">$20 <span>USD</span></p>
+                <p style="margin: 4px 0 0; font-size: 14px; color: rgba(255, 255, 255, 0.7)">or 5,500 PKR — per student, both tracks</p>
+                <ul class="perks">
+                  <li><span class="tick">✓</span> Full medical and dental simulator</li>
+                  <li><span class="tick">✓</span> Progress saved per student</li>
+                  <li><span class="tick">✓</span> Works in the browser on a laptop or tablet</li>
+                </ul>
+              </div>
+            </div>
+            <div>
+              <p class="kicker">How to get in</p>
+              <ol class="steps">
+                <li><span class="num">1</span><div><div class="t">Message us on WhatsApp</div><p class="d">Tell us your name, your programme and how many students. We reply with the payment details.</p></div></li>
+                <li><span class="num">2</span><div><div class="t">Pay the fee</div><p class="d">Bank Islami, EasyPaisa or PayPal. Keep the transaction ID.</p></div></li>
+                <li><span class="num">3</span><div><div class="t">Send us the transaction ID</div><p class="d">On WhatsApp. We confirm the receipt and approve your phone number.</p></div></li>
+                <li><span class="num">4</span><div><div class="t">Log in with your phone number</div><p class="d">That number is your account. Log in and start on the first stage.</p></div></li>
+              </ol>
+              <p style="margin: 24px 0 0"><a class="btn btn-light" href="https://wa.me/923350340888">WhatsApp +92 335 0340888</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="brand">
+          <span class="plate"><img src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers" width="1024" height="280" /></span>
+          <p>© <span id="y">2026</span> — a teaching simulator.</p>
+        </div>
+        <p>Workflows are patterned on widely used EHR and practice-management systems. Code sets are paraphrased teaching subsets, not the official CPT, CDT or ICD-10-CM wording. <a href="https://wa.me/923350340888">WhatsApp</a>.</p>
+      </div>
+    </footer>
+    <script>
+      document.getElementById("y").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
