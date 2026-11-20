@@ -55,7 +55,7 @@ import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
 import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
 import { statusEventsFor } from "../../domain/statusEvent";
 import { ADAForm } from "./ADAForm";
-import { ADA_LAYOUT, type ADAFormData, type ADAServiceLine } from "../../data/claims/adaLayout";
+import { ADA_LAYOUT, ADA_LINE_COLUMNS, type ADAFormData, type ADAServiceLine } from "../../data/claims/adaLayout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
 import { buildADAForm } from "../../utils/claimAutoFill";
 import { validateADA, type ClaimIssue } from "../../utils/claimValidation";
@@ -145,16 +145,15 @@ export function DentalBillingLedger() {
         layout: ADA_LAYOUT,
         values,
         lines,
-        columns: [
-          { key: "dateOfService", label: "31 DATE", width: 0.12, kind: "date" },
-          { key: "cdt", label: "31 CDT", width: 0.11, kind: "text" },
-          { key: "description", label: "31 DESCRIPTION", width: 0.25, kind: "text" },
-          { key: "tooth", label: "31 TOOTH", width: 0.09, kind: "text" },
-          { key: "surface", label: "31 SURF", width: 0.1, kind: "text" },
-          { key: "quadrant", label: "31 QD", width: 0.07, kind: "text" },
-          { key: "fee", label: "31 FEE", width: 0.12, kind: "money" },
-          { key: "units", label: "31 UNITS", width: 0.1, kind: "number" },
-        ],
+        // The same list the on-screen table prints from, so the PDF cannot
+        // disagree with the screen about which 837D element a column becomes.
+        columns: ADA_LINE_COLUMNS.map((col) => ({
+          key: col.key,
+          label: col.pdfLabel,
+          width: col.width,
+          kind: col.kind,
+          x12: col.x12,
+        })),
         fileName: `ADA_claim_${name || "dental"}.pdf`,
         note: DEMO_PROVIDER_NOTE,
       });

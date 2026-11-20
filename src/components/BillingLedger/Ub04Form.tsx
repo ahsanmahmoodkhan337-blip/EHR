@@ -56,13 +56,20 @@ export function Ub04Form({
       <div className="min-w-[560px]">
         <div className="flex gap-0.5 border-b border-form-red/40 pb-0.5">
           {UB04_LINE_COLUMNS.map((col) => (
-            <p
-              key={col.key}
-              style={{ width: `${col.width * 100}%` }}
-              className="shrink-0 text-[5.5px] font-bold uppercase leading-none text-form-red"
-            >
-              {col.label}
-            </p>
+            <div key={col.key} style={{ width: `${col.width * 100}%` }} className="shrink-0">
+              <p className="text-[5.5px] font-bold uppercase leading-none text-form-red">
+                {col.label}
+              </p>
+              {/* The 837I element this column becomes — the same list the PDF
+                  prints, so the screen and the paper cannot disagree. */}
+              <p
+                className="mt-px text-[4.5px] font-semibold uppercase leading-none text-slate-400"
+                title={col.x12Note ?? `On an electronic claim this column becomes ${col.x12}.`}
+                data-x12-tag={col.x12}
+              >
+                {col.x12}
+              </p>
+            </div>
           ))}
           <span className="w-5 shrink-0 print:hidden" />
         </div>

@@ -14,19 +14,15 @@
 import { Plus, Trash2 } from "lucide-react";
 import { ClaimPaper } from "../claims/ClaimPaper";
 import type { ClaimPaperApi } from "../claims/ClaimFormShell";
-import { ADA_LAYOUT, type ADAServiceLine } from "../../data/claims/adaLayout";
+import { ADA_LAYOUT, ADA_LINE_COLUMNS, type ADAServiceLine } from "../../data/claims/adaLayout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
 
-const COLUMNS: { key: keyof ADAServiceLine; label: string; width: string }[] = [
-  { key: "dateOfService", label: "31 · DATE", width: "12%" },
-  { key: "cdt", label: "31 · CDT", width: "11%" },
-  { key: "description", label: "31 · DESCRIPTION", width: "25%" },
-  { key: "tooth", label: "31 · TOOTH", width: "9%" },
-  { key: "surface", label: "31 · SURF", width: "10%" },
-  { key: "quadrant", label: "31 · QD", width: "7%" },
-  { key: "fee", label: "31 · FEE", width: "12%" },
-  { key: "units", label: "31 · UNITS", width: "10%" },
-];
+/**
+ * The eight printed columns of box 31, with the 837D element each one becomes.
+ * The list lives in `adaLayout.ts` so the screen, the paper and the PDF cannot
+ * drift apart.
+ */
+const COLUMNS = ADA_LINE_COLUMNS;
 
 export function ADAForm({ values, lines, set, setLine, addLine, removeLine, issues }: ClaimPaperApi) {
   const rows = lines as unknown as ADAServiceLine[];
@@ -39,9 +35,17 @@ export function ADAForm({ values, lines, set, setLine, addLine, removeLine, issu
     <div className="mt-0.5">
       <div className="flex gap-0.5 border-b border-form-red/40 pb-0.5">
         {COLUMNS.map((col) => (
-          <p key={col.label} style={{ width: col.width }} className="shrink-0 text-[5.5px] font-bold uppercase leading-none text-form-red">
-            {col.label}
-          </p>
+          <div key={col.label} style={{ width: `${col.width * 100}%` }} className="shrink-0">
+            <p className="text-[5.5px] font-bold uppercase leading-none text-form-red">{col.label}</p>
+            {/* The 837D element this column becomes — same list as the PDF. */}
+            <p
+              className="mt-px text-[4.5px] font-semibold uppercase leading-none text-slate-400"
+              title={col.x12Note ?? `On an electronic claim this column becomes ${col.x12}.`}
+              data-x12-tag={col.x12}
+            >
+              {col.x12}
+            </p>
+          </div>
         ))}
         <span className="w-3 shrink-0 print:hidden" aria-hidden />
       </div>
