@@ -550,11 +550,23 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                     {selectedICDs.map((c, idx) => (
                       <div key={c.code} className="flex items-center gap-2 rounded-lg border border-brand-100 bg-brand-50/50 px-2 py-1.5 text-[10px]">
                         <div className="flex flex-col gap-0.5">
-                          <button onClick={() => moveICD(idx, "up")} disabled={idx === 0} className={`h-3 w-3 ${idx === 0 ? "text-slate-300" : "text-brand-600 hover:text-brand-700"}`}>
-                            <ArrowUp className="h-3 w-3" />
+                          <button
+                            onClick={() => moveICD(idx, "up")}
+                            disabled={idx === 0}
+                            aria-label={`Move ${c.code} up in the diagnosis order`}
+                            title={idx === 0 ? "Already first — the principal diagnosis is listed first" : `Move ${c.code} up`}
+                            className={`h-3 w-3 ${idx === 0 ? "text-slate-300" : "text-brand-600 hover:text-brand-700"}`}
+                          >
+                            <ArrowUp className="h-3 w-3" aria-hidden="true" />
                           </button>
-                          <button onClick={() => moveICD(idx, "down")} disabled={idx === selectedICDs.length - 1} className={`h-3 w-3 ${idx === selectedICDs.length - 1 ? "text-slate-300" : "text-brand-600 hover:text-brand-700"}`}>
-                            <ArrowDown className="h-3 w-3" />
+                          <button
+                            onClick={() => moveICD(idx, "down")}
+                            disabled={idx === selectedICDs.length - 1}
+                            aria-label={`Move ${c.code} down in the diagnosis order`}
+                            title={idx === selectedICDs.length - 1 ? "Already last — there is no code below it" : `Move ${c.code} down`}
+                            className={`h-3 w-3 ${idx === selectedICDs.length - 1 ? "text-slate-300" : "text-brand-600 hover:text-brand-700"}`}
+                          >
+                            <ArrowDown className="h-3 w-3" aria-hidden="true" />
                           </button>
                         </div>
                         <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold text-white ${
@@ -715,6 +727,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                   min="1"
                                   max="99"
                                   value={data.units}
+                                  aria-label={`Units for ${cpt.code}`}
                                   onChange={e => updateCptData(cpt.code, d => ({ ...d, units: Math.max(1, parseInt(e.target.value) || 1) }))}
                                   className="w-12 rounded border border-slate-200 px-1.5 py-0.5 text-[9px] outline-none focus:border-brand-500"
                                 />
@@ -727,6 +740,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                   min="0"
                                   step="0.01"
                                   value={data.charges || ""}
+                                  aria-label={`Charge in dollars for ${cpt.code}`}
                                   onChange={e => updateCptData(cpt.code, d => ({ ...d, charges: parseFloat(e.target.value) || 0 }))}
                                   placeholder="0.00"
                                   className="w-20 rounded border border-slate-200 px-1.5 py-0.5 text-[9px] outline-none focus:border-brand-500"

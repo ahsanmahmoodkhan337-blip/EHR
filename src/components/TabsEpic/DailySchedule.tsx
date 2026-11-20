@@ -482,11 +482,21 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               >
                 Today
               </button>
-              <button onClick={prevMonth} className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100">
-                <ChevronLeft className="h-4 w-4" />
+              <button
+                onClick={prevMonth}
+                aria-label="Previous month"
+                title="Previous month"
+                className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100"
+              >
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </button>
-              <button onClick={nextMonth} className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100">
-                <ChevronRight className="h-4 w-4" />
+              <button
+                onClick={nextMonth}
+                aria-label="Next month"
+                title="Next month"
+                className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100"
+              >
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>
               <span className="ml-1 text-sm font-semibold text-slate-700">
                 {MONTHS[currentMonth]} {currentYear}
