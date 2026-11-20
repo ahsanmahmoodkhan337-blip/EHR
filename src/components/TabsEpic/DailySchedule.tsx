@@ -217,8 +217,14 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
   // Open new appointment modal
   const openNewAppointment = (dateStr?: string) => {
     setEditAppointment(null);
-    setModalPatientId(null);
-    setPatientQuery("");
+    // The patient already open in the encounter is the one being scheduled, so
+    // seed the picker with them. Without this the dialog showed their name (the
+    // encounter patient) while modalPatientId stayed null, which left Create
+    // Appointment disabled with nothing on screen saying why.
+    setModalPatientId(selectedPatient ? selectedPatient.id : null);
+    setPatientQuery(
+      selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : "",
+    );
     setShowRegister(false);
     setNewFirst("");
     setNewLast("");
@@ -1046,6 +1052,12 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                 >
                   <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                   <span>{saveError}</span>
+                </p>
+              )}
+              {!editAppointment && !modalPatientId && !canRegister && (
+                <p className="mb-2 text-[10px] leading-snug text-slate-500">
+                  Create Appointment stays disabled until a patient is chosen above — pick one from the
+                  search, or type a first and last name in the register panel to add a new patient.
                 </p>
               )}
               <div className="flex items-center justify-end gap-2">
