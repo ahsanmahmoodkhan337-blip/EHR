@@ -20,7 +20,12 @@ import { PatientProvider } from "../store/patientStore";
 import { AppShell } from "../components/AppShell";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { getSharingSignal, MAX_DEVICE_COUNT, resetOtherSessions } from "../store/accountSecurity";
-import { encounterKey, type PipelineStoreState, type Role } from "../store/pipelineStore";
+import { encounterKey, type PipelineStoreState } from "../store/pipelineStore";
+import {
+  ENCOUNTER_FLOW_STAGES,
+  currentFlowStage,
+  flowStageIndex,
+} from "../domain/encounterFlow";
 import type { DentalTrackState, DentalStageName } from "../components/dental/DentalTrackStore";
 
 export const Route = createFileRoute("/dashboard")({
@@ -33,13 +38,13 @@ export const Route = createFileRoute("/dashboard")({
   ),
 });
 
-const MEDICAL_STAGES: { role: Role; label: string }[] = [
-  { role: "scribe", label: "Scribe" },
-  { role: "coder", label: "Coder" },
-  { role: "prior-auth", label: "Prior Auth" },
-  { role: "biller", label: "Biller" },
-  { role: "ar-voice", label: "AR Voice" },
-];
+/**
+ * The medical encounter's stages, in the owner's order, from the one flow
+ * module — so the number printed here is the number the encounter's stepper
+ * prints (owner's audit, 2026-11-20, item 1). The old list numbered the roles
+ * (Coder 2, Prior Auth 3, Biller 4), which contradicted the real order.
+ */
+const MEDICAL_STAGES = ENCOUNTER_FLOW_STAGES;
 
 const DENTAL_STAGE_LABELS: Record<DentalStageName, string> = {
   "case-select": "Select a case",
@@ -51,16 +56,6 @@ const DENTAL_STAGE_LABELS: Record<DentalStageName, string> = {
   remittance: "Remittance",
   ar: "AR follow-up",
   debrief: "Debrief",
-};
-
-const STATUS_TONE: Record<string, string> = {
-  paid: "bg-green-50 text-green-700 ring-green-200",
-  denied: "bg-red-50 text-red-700 ring-red-200",
-  charted: "bg-brand-50 text-brand-700 ring-brand-200",
-  coded: "bg-brand-50 text-brand-700 ring-brand-200",
-  billed: "bg-accent-50 text-accent-700 ring-accent-200",
-  pending: "bg-slate-100 text-slate-600 ring-slate-200",
-  reprocessed: "bg-amber-50 text-amber-700 ring-amber-200",
 };
 
 function readDentalState(phone: string | null): DentalTrackState | null {
@@ -118,10 +113,17 @@ function DashboardPage() {
   const subStatus = getSubscriptionStatus(phone);
   const signal = getSharingSignal(phone);
 
-  // Medical progress
-  const currentRole: Role | "complete" = activeEncounter?.stage ?? "scribe";
-  const medicalIdx = currentRole === "complete" ? MEDICAL_STAGES.length : MEDICAL_STAGES.findIndex((s) => s.role === currentRole);
-  const medicalDone = currentRole === "complete" ? MEDICAL_STAGES.length : Math.max(0, medicalIdx);
+  // Medical progress — the stage the encounter's own record is on, numbered in
+  // the owner's order. Registration/eligibility are front-desk work, not stages.
+  const encounterStage = activeEncounter?.stage ?? "scribe";
+  const medicalDone =
+    encounterStage === "complete"
+      ? MEDICAL_STAGES.length
+      : Math.max(0, flowStageIndex(currentFlowStage({
+          role: encounterStage,
+          chartStage: activeEncounter?.chartStage ?? null,
+        })));
+  const medicalIdx = medicalDone;
   const medicalPct = Math.round((medicalDone / MEDICAL_STAGES.length) * 100);
 
   // Dental progress
@@ -169,7 +171,7 @@ function DashboardPage() {
               </div>
               <div>
                 <h2 className="text-base font-bold text-slate-800">Medical RCM</h2>
-                <p className="text-[11px] text-slate-400">5-stage encounter pipeline</p>
+                <p className="text-[11px] text-slate-400">7-stage encounter pipeline</p>
               </div>
             </div>
 
@@ -179,7 +181,7 @@ function DashboardPage() {
                 const done = i < medicalDone;
                 const active = i === medicalIdx;
                 return (
-                  <div key={s.role} className="flex items-center gap-2">
+                  <div key={s.id} className="flex items-center gap-2">
                     <div className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
                       done ? "bg-green-500 text-white" : active ? "bg-brand-600 text-white" : "bg-slate-200 text-slate-500"
                     }`}>
@@ -197,11 +199,6 @@ function DashboardPage() {
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500">Progress</span>
                 <span className="text-xs font-bold text-slate-700">{medicalPct}%</span>
-                {activeEncounter?.status && (
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${STATUS_TONE[activeEncounter.status] ?? STATUS_TONE.pending}`}>
-                    {activeEncounter.status}
-                  </span>
-                )}
               </div>
               <div className="flex items-center gap-2">
                 <Link to="/medical-cases" className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">

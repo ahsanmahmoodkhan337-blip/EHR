@@ -137,9 +137,11 @@ export function AppSidebar({
 
   return (
     <>
-      {/* Desktop / tablet rail — sticky, full height, never wider than the page */}
+      {/* Desktop / tablet rail — sticky under the navy bar (the bar runs the
+          full width above it, as the 19 Nov build did), never wider than the
+          page. Its offset is the header's measured height. */}
       <aside
-        className={`hidden shrink-0 border-r border-slate-200 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col dark:border-slate-800 ${
+        className={`hidden shrink-0 border-r border-slate-200 lg:sticky lg:top-[var(--app-header-h,3.25rem)] lg:flex lg:h-[calc(100dvh-var(--app-header-h,3.25rem))] lg:flex-col dark:border-slate-800 ${
           collapsed ? "lg:w-16" : "lg:w-56"
         }`}
       >

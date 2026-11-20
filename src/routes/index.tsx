@@ -68,6 +68,18 @@ import {
   completedEncounterSteps,
   lastEncounterStepId,
 } from "../domain/encounterSteps";
+import {
+  ENCOUNTER_FLOW_STAGES,
+  completedFlowStages,
+  currentFlowStage,
+  flowStage,
+  flowStageIndex,
+  lastFlowStageId,
+  nextFlowStage,
+  previousFlowStage,
+  type BillingDeskTab,
+  type EncounterFlowStageId,
+} from "../domain/encounterFlow";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
 import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
 import { EligibilityStage } from "../components/WorkflowAthena/EligibilityStage";
@@ -104,6 +116,13 @@ const PIPELINE_ROLES: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-v
  * patient opens on step 1, Registration (spec `encounter-continuity.md`).
  */
 const SCRIBE_STAGES = CHART_STEPS;
+
+/**
+ * The progress note's own sections — the chart steps that document the visit.
+ * Sign & Lock is not one of them: it is stage 2 of the encounter's own flow
+ * (`domain/encounterFlow.ts`), drawn by the stepper at the top of the workspace.
+ */
+const NOTE_SECTIONS = SCRIBE_STAGES.filter((stage) => stage.id !== "sign-lock");
 
 /**
  * The stage before each role's screen, for the one Back control (spec item 3).
@@ -1387,7 +1406,7 @@ function Home() {
   const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
 
   // ── Right-panel financial KPIs — derived from REAL pipeline data ──
   // (was hardcoded 12500/8700/2400/32 demo figures)
@@ -1406,6 +1425,13 @@ function Home() {
    * while still starting the visit at the beginning.
    */
   const [activeStage, setActiveStage] = useState(CHART_OPENING_STEP);
+  /**
+   * Which of the biller's two screens is in front of the student. The encounter's
+   * flow has two stages on that desk — Billing / Claim (the claim paper) and
+   * Payments (835) (the remittance and ledger) — so the stepper's stage decides
+   * the tab (`domain/encounterFlow.ts`).
+   */
+  const [billingTab, setBillingTab] = useState<BillingDeskTab>("form");
 
   /**
    * Move to a chart step and remember it on the encounter, so reopening the
@@ -2021,6 +2047,60 @@ function Home() {
     "sign-lock": noteSigned,
   });
 
+  // ── The encounter's seven stages, in the owner's order ──────────────────
+  // (owner's audit, 2026-11-20, item 1 — `domain/encounterFlow.ts`). The stage
+  // on screen comes from the role and the screen in front of the student, so the
+  // stepper's highlight and the workspace cannot disagree.
+  const flowStageId = currentFlowStage({
+    role: currentRole,
+    chartStage: activeStage,
+    billingTab,
+  });
+
+  // What the record says is finished. Read from the encounter itself, never
+  // from a stored click, so a tick and the work can never disagree.
+  const noteWritten = hpiDone && examDone && planGaps.length === 0;
+  const coded = pipelineState.icdCodes.length > 0 && pipelineState.cptCodes.length > 0;
+  const claimCreated = Boolean(pipelineState.claimNumber);
+  const remittancePosted = (pipelineState.remittances ?? []).some((r) => Boolean(r.postedAt));
+  const arItems = pipelineState.arItems ?? [];
+  const arCleared = arItems.length > 0 && arItems.every((item) => item.status === "resolved");
+  const completedFlow = completedFlowStages({
+    "progress-note": noteWritten,
+    "sign-lock": noteSigned,
+    coding: coded,
+    // A claim can only be submitted once the prior-auth desk has settled its
+    // question, so a claim on the encounter is the PA stage's own answer.
+    "prior-auth": claimCreated,
+    billing: claimCreated,
+    payments: remittancePosted,
+    "denials-ar": arCleared,
+  });
+
+  /** Open one stage of the encounter. Navigation only — nothing is written. */
+  const openFlowStage = (id: string) => {
+    const stage = flowStage(id);
+    if (!stage) return;
+    if (stage.role === "scribe") {
+      setRole("scribe");
+      if (stage.chartStage) goToChartStage(stage.chartStage);
+      return;
+    }
+    if (stage.role === "biller") {
+      setRole("biller");
+      setBillingTab(stage.billingTab ?? "form");
+      setActiveStage("");
+      return;
+    }
+    setRole(stage.role);
+    setActiveStage("");
+  };
+
+  const flowNext = nextFlowStage(flowStageId);
+  const flowPrevious = previousFlowStage(flowStageId);
+  const onLastFlowStage = flowStageId === lastFlowStageId();
+  const flowIndex = flowStageIndex(flowStageId);
+
   // The one step back and the one step forward for the stage on screen
   // (spec `tutorial-start-and-back.md` item 3). The first stage has no Back.
   const scribeStageIndex = SCRIBE_STAGES.findIndex((stage) => stage.id === activeStage);
@@ -2198,29 +2278,47 @@ function Home() {
       {/* Work Queues live on Home and nowhere else (spec item 5). */}
       <HomeWorkQueues onOpenMedicalStage={openMedicalStage} />
 
+      {/* ─── The encounter's seven stages, in the owner's order ───
+          Owner's audit, 2026-11-20, item 1: one persistent stepper at the top of
+          the encounter — every stage, the current one highlighted, the finished
+          ones ticked and clickable, numbered in the real order. */}
+      {selectedPatient && (
+        <EncounterStepper
+          steps={ENCOUNTER_FLOW_STAGES.map((stage) => ({ id: stage.id, label: stage.label }))}
+          currentId={flowStageId}
+          furthestId={lastFlowStageId()}
+          completedIds={completedFlow}
+          numbered
+          onSelect={openFlowStage}
+          accent="blue"
+          label="Encounter stages"
+          meta={
+            <div className="flex items-center gap-2">
+              <span
+                className={
+                  submittedToCoding
+                    ? "rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700"
+                    : noteWritten
+                      ? "rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                      : "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
+                }
+              >
+                {submittedToCoding ? "Signed" : noteWritten ? "Draft" : "Empty"}
+              </span>
+              <NoteSavedIndicator savedAt={lastNoteSavedAt} />
+            </div>
+          }
+        />
+      )}
+
       {/* ─── Role-Based Workspace ─── */}
       {selectedPatient && currentRole !== "scribe" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
-          {/* One way back to the stage this work came from. It changes the stage
-              shown and nothing else — no note, code or claim is touched. */}
-          {roleBack && (
-            <div className="shrink-0 border-b border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
-              <StageNav
-                back={{
-                  label: roleBack.label,
-                  onClick: () => {
-                    if (roleBack.stage) goToChartStage(roleBack.stage);
-                    setRole(roleBack.role);
-                  },
-                }}
-              />
-            </div>
-          )}
           {currentRole === "coder" && (
             <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
           )}
           {currentRole === "biller" && (
-            <BillingLedger />
+            <BillingLedger openTab={billingTab} />
           )}
           {currentRole === "prior-auth" && (
             <PriorAuthPortal />
@@ -2242,6 +2340,28 @@ function Home() {
               </div>
               <h3 className="mt-4 text-xl font-bold text-slate-800">Pipeline Complete!</h3>
               <p className="mt-2 text-sm text-slate-500">All stages have been completed. Great work!</p>
+            </div>
+          )}
+          {/* Every stage carries Back and Continue to the next stage (owner's
+              audit, item 1). Navigation only: no note, code, claim or posting is
+              touched. The last stage's button ends the encounter. */}
+          {pipelineState.stage !== "complete" && (
+            <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+              <StageNav
+                back={
+                  flowPrevious
+                    ? { label: flowPrevious.label, onClick: () => openFlowStage(flowPrevious.id) }
+                    : undefined
+                }
+                next={
+                  flowNext
+                    ? { label: flowNext.label, onClick: () => openFlowStage(flowNext.id) }
+                    : onLastFlowStage
+                      ? { label: "the encounter", onClick: completePipeline }
+                      : undefined
+                }
+                forwardLabel={onLastFlowStage ? "End encounter" : undefined}
+              />
             </div>
           )}
         </FadeTransition>
@@ -2289,38 +2409,26 @@ function Home() {
                       (spec `encounter-continuity.md`). The step on screen is the
                       current one; the steps the record says are finished carry a
                       tick; Back / Next below walk one step at a time. */}
+                  {/* The note's own sections, inside the Progress Note stage.
+                      They are the five documentation steps — Sign & Lock is the
+                      encounter's own stage 2 above, so it is not repeated here. */}
                   <EncounterStepper
-                    steps={SCRIBE_STAGES.map((stage) => ({ id: stage.id, label: stage.label }))}
+                    steps={NOTE_SECTIONS.map((stage) => ({ id: stage.id, label: stage.label }))}
                     currentId={activeStage}
                     furthestId={lastEncounterStepId()}
                     completedIds={completedChartSteps}
-                    numbered
                     onSelect={goToChartStage}
                     accent="blue"
-                    label="Encounter steps"
+                    label="Progress note sections"
                     meta={
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={
-                            submittedToCoding
-                              ? "rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700"
-                              : soapNote.subjective || soapNote.objective || soapNote.assessment || soapNote.plan
-                                ? "rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
-                                : "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
-                          }
-                        >
-                          {submittedToCoding ? "Signed" : soapNote.subjective || soapNote.objective || soapNote.assessment || soapNote.plan ? "Draft" : "Empty"}
-                        </span>
-                        <NoteSavedIndicator savedAt={lastNoteSavedAt} />
-                        <button
-                          type="button"
-                          onClick={() => setActiveStage("")}
-                          aria-label="Show chart tabs"
-                          className="min-h-10 rounded bg-brand-100 px-2.5 text-[10px] font-medium text-brand-700 hover:bg-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-                        >
-                          Show Chart Tabs
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveStage("")}
+                        aria-label="Show chart tabs"
+                        className="min-h-10 rounded bg-brand-100 px-2.5 text-[10px] font-medium text-brand-700 hover:bg-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                      >
+                        Show Chart Tabs
+                      </button>
                     }
                   />
                   <div className="flex-1 overflow-y-auto p-4 animate-slide-in" key={activeStage}>
@@ -2409,10 +2517,14 @@ function Home() {
                           : undefined
                       }
                       next={
-                        scribeNext
-                          ? { label: scribeNext.label, onClick: () => goToChartStage(scribeNext.id) }
-                          : undefined
+                        activeStage === "sign-lock"
+                          ? { label: "Coding", onClick: () => openFlowStage("coding") }
+                          : scribeNext
+                            ? { label: scribeNext.label, onClick: () => goToChartStage(scribeNext.id) }
+                            : undefined
                       }
+                      nextDisabled={activeStage === "sign-lock" && !noteSigned}
+                      nextDisabledReason="Sign and lock the note first — nothing can be coded off an unsigned note."
                     />
                   </div>
                 </div>

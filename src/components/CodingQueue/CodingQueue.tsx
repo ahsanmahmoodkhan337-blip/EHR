@@ -400,7 +400,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
         <div className="flex items-center gap-2">
           <Code className="h-5 w-5 text-brand-600" />
           <h2 className="text-sm font-bold text-slate-800">Medical Coding — Enhanced Coding Queue</h2>
-          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 2</span>
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 3</span>
         </div>
       </div>
 

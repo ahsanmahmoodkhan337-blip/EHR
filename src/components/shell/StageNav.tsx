@@ -11,6 +11,12 @@
  * bottom of the step. Both are navigation only: they change which stage is
  * shown and nothing else — no note, code, claim or posted entry is touched.
  *
+ * Owner's audit, 2026-11-20 (`specs/encounter-flow-audit-2026-11-20.md` item 1):
+ * every stage of the encounter carries **Back** and **Continue to <next stage>**,
+ * and the last stage's button ends the encounter rather than advancing. So the
+ * forward control is labelled with the stage it opens, and it is disabled — with
+ * the reason in its `title` — while the record does not yet support the move.
+ *
  * Each control is a real `<button>` with a visible label, keyboard focus and a
  * 40 px minimum hit area (STANDING-RULES 5).
  */
@@ -28,10 +34,30 @@ interface StageNavProps {
   back?: StageNavTarget;
   /** The next stage, when the student may move on. */
   next?: StageNavTarget;
+  /**
+   * True while the record does not yet support the move. The control keeps its
+   * label and stays focusable (aria-disabled, not `disabled`) so a screen reader
+   * can announce why it is refused instead of the control vanishing.
+   */
+  nextDisabled?: boolean;
+  /** Why the move is refused — shown as the control's title. */
+  nextDisabledReason?: string;
+  /**
+   * The forward label when the stage on screen is the last one: "End encounter"
+   * closes the encounter instead of advancing it.
+   */
+  forwardLabel?: string;
   className?: string;
 }
 
-export function StageNav({ back, next, className = "" }: StageNavProps) {
+export function StageNav({
+  back,
+  next,
+  nextDisabled = false,
+  nextDisabledReason,
+  forwardLabel,
+  className = "",
+}: StageNavProps) {
   if (!back && !next) return null;
   return (
     <div
@@ -52,10 +78,17 @@ export function StageNav({ back, next, className = "" }: StageNavProps) {
       {next ? (
         <button
           type="button"
-          onClick={next.onClick}
-          className="btn-primary flex min-h-10 items-center gap-1.5"
+          onClick={() => {
+            if (nextDisabled) return;
+            next.onClick();
+          }}
+          aria-disabled={nextDisabled || undefined}
+          title={nextDisabled ? nextDisabledReason : undefined}
+          className={`btn-primary flex min-h-10 items-center gap-1.5 ${
+            nextDisabled ? "cursor-not-allowed opacity-60" : ""
+          }`}
         >
-          Next: {next.label}
+          {forwardLabel ?? `Continue to ${next.label}`}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
       ) : null}

@@ -8,21 +8,26 @@
  * Replaces the three separate headers the app used to carry (the medical
  * workspace header, the dental track header and the medical-cases header):
  *
- * ┌────────┬──────────────────────────────────────────┐
- * │        │  Top bar (search, track, role, timer…)   │  ← sticky
- * │  Side  ├──────────────────────────────────────────┤
- * │  bar   │  Patient banner (sticky under the bar)   │
- * │        ├──────────┬────────────────────┬──────────┤
- * │        │  Left    │  Work area         │  Right   │
- * │        │  panel   │  (min-w-0, flex-1) │  panel   │
- * └────────┴──────────┴────────────────────┴──────────┘
+ * ┌───────────────────────────────────────────────────┐
+ * │  Top bar (search, track, role, timer…)            │  ← sticky, full width
+ * │  Patient banner (sticky under the bar)            │
+ * ├────────┬───────────────────────────┬──────────────┤
+ * │  Side  │  Work area                │  Right       │
+ * │  bar   │  (min-w-0, flex-1)        │  panel       │
+ * └────────┴───────────────────────────┴──────────────┘
+ *
+ * Owner's audit, 2026-11-20 (slice A): the navy top bar runs the **full width
+ * above the rail**, exactly as the 19 November build did. Before this it started
+ * to the right of the rail, so the bar looked cut in half. The rail sits under
+ * the bar now, and sticks below it — the header's measured height is published as
+ * `--app-header-h` so the rail's sticky offset follows the banner too.
  *
  * The shell owns only the frame: navigation state, the collapsible rail, the
  * top bar and where the banner sticks. Page content is passed in as children
  * and is never restructured here.
  */
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AppSidebar } from "./shell/AppSidebar";
 import { AppTopBar } from "./shell/AppTopBar";
 import type { ShellNavId, ShellTrack } from "./shell/navItems";
@@ -99,60 +104,81 @@ export function AppShell({
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
+  // The header's real height (top bar, plus the patient banner when one is
+  // drawn) is published to the frame as `--app-header-h`, so the rail sticks
+  // directly under it instead of guessing a pixel value.
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(52);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHeaderHeight(el.offsetHeight);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="app-shell">
-      <AppSidebar
-        track={track}
-        activeNav={activeNav}
-        onHomeClick={onHomeClick}
-        collapsed={collapsed}
-        onToggleCollapsed={() => setCollapsed((value) => !value)}
-        mobileOpen={mobileOpen}
-        onCloseMobile={closeMobile}
-      />
+    <div
+      className="app-shell"
+      style={{ ["--app-header-h" as string]: `${headerHeight}px` }}
+    >
+      {/* Navy bar + banner: full width, above the rail (19 Nov build). */}
+      <div ref={headerRef} className="app-shell-header sticky top-0 z-40 shrink-0">
+        <AppTopBar
+          track={track}
+          selectedPatientId={selectedPatientId}
+          onPatientSelect={onPatientSelect}
+          roleLabel={roleLabel}
+          examMode={examMode}
+          examTimeRemaining={examTimeRemaining}
+          onToggleExamMode={onToggleExamMode}
+          onOpenSidebar={() => setMobileOpen(true)}
+          extras={topBarExtras}
+        />
+        {banner}
+      </div>
 
-      <div className="app-shell-main">
-        {/* Top bar + patient banner stay put while the work area scrolls */}
-        <div className="sticky top-0 z-40 shrink-0">
-          <AppTopBar
-            track={track}
-            selectedPatientId={selectedPatientId}
-            onPatientSelect={onPatientSelect}
-            roleLabel={roleLabel}
-            examMode={examMode}
-            examTimeRemaining={examTimeRemaining}
-            onToggleExamMode={onToggleExamMode}
-            onOpenSidebar={() => setMobileOpen(true)}
-            extras={topBarExtras}
-          />
-          {banner}
+      <div className="app-shell-row">
+        <AppSidebar
+          track={track}
+          activeNav={activeNav}
+          onHomeClick={onHomeClick}
+          collapsed={collapsed}
+          onToggleCollapsed={() => setCollapsed((value) => !value)}
+          mobileOpen={mobileOpen}
+          onCloseMobile={closeMobile}
+        />
+
+        <div className="app-shell-main">
+          {/* Middle: 3-zone body */}
+          <div className="app-shell-body min-h-0 flex-1">
+            {leftPanel && (
+              <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-white lg:block dark:border-slate-800 dark:bg-slate-900">
+                {leftPanel}
+              </aside>
+            )}
+
+            {/* The one scroll container in the app: the workspace scrolls
+                itself, the page never does (spec phase-2-layout.md §1). */}
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
+
+            {rightPanel && showRightPanel && (
+              <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-slate-200 xl:block dark:border-slate-800">
+                {rightPanel}
+              </aside>
+            )}
+
+            {/* Reference drawer — the split pane beside the work area. It renders
+                itself (inline pane, collapsed rail, or slide-over) so it works at
+                360 px as well as 1920 px. */}
+            {reference}
+          </div>
+
+          {footer}
         </div>
-
-        {/* Middle: 3-zone body */}
-        <div className="app-shell-body min-h-0 flex-1">
-          {leftPanel && (
-            <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-white lg:block dark:border-slate-800 dark:bg-slate-900">
-              {leftPanel}
-            </aside>
-          )}
-
-          {/* The one scroll container in the app: the workspace scrolls
-              itself, the page never does (spec phase-2-layout.md §1). */}
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
-
-          {rightPanel && showRightPanel && (
-            <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-slate-200 xl:block dark:border-slate-800">
-              {rightPanel}
-            </aside>
-          )}
-
-          {/* Reference drawer — the split pane beside the work area. It renders
-              itself (inline pane, collapsed rail, or slide-over) so it works at
-              360 px as well as 1920 px. */}
-          {reference}
-        </div>
-
-        {footer}
       </div>
 
       {/* One help button, collapsed to a 44 px launcher so it never sits over a

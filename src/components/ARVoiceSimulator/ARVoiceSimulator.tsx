@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────
-// ARVoiceSimulator.tsx — AR Voice Specialist Workstation (Stage 5)
+// ARVoiceSimulator.tsx — AR Voice Specialist Workstation (Stage 7, Denials & AR)
 // Comprehensive AR tool: aging ledger, call scripts, appeal letter generator,
 // accent practice mode, and escalation workflow.
 // Inspired by: Epic Resolute Hospital Billing AR Workbench
@@ -228,7 +228,7 @@ export default function ARVoiceSimulator() {
         <div className="flex items-center gap-2">
           <PhoneCall className="h-4 w-4 text-brand-600" />
           <h2 className="text-sm font-bold text-slate-800">AR Voice Specialist</h2>
-          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 5</span>
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 7</span>
           <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">
             {arCalls.length} Calls
           </span>
@@ -402,7 +402,7 @@ export default function ARVoiceSimulator() {
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <CheckCircle2 className="mb-2 h-10 w-10 text-green-400" />
                 <p className="text-sm font-medium text-slate-500">No claims in this bucket</p>
-                <p className="text-xs text-slate-400">All resolved. Simulate a denial in Stage 3 to populate this view.</p>
+                <p className="text-xs text-slate-400">All resolved. Simulate a denial in Stage 5 to populate this view.</p>
               </div>
             ) : (
               <div className="space-y-2">
