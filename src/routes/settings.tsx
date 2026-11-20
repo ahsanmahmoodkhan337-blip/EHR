@@ -13,9 +13,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
-  ArrowLeft,
   CheckCircle2,
   Download,
   History,
@@ -23,9 +22,11 @@ import {
   ShieldAlert,
   Upload,
   UserRound,
-  Database,
 } from "lucide-react";
 import { getLoggedInPhone, isLoggedIn } from "../store/accessStore";
+import { PatientProvider } from "../store/patientStore";
+import { AppShell } from "../components/AppShell";
+import { requestPatientOpen } from "../components/shell/pendingPatient";
 import {
   SCHEMA_VERSION,
   bootstrapEhrStore,
@@ -35,12 +36,18 @@ import {
 } from "../store/ehrStore";
 
 export const Route = createFileRoute("/settings")({
-  component: SettingsPage,
+  // Same shell as every other page; the top bar's search needs the patient list.
+  component: () => (
+    <PatientProvider>
+      <SettingsPage />
+    </PatientProvider>
+  ),
 });
 
 type Status = { tone: "ok" | "error"; message: string } | null;
 
 function SettingsPage() {
+  const navigate = useNavigate();
   const loggedIn = isLoggedIn();
   const phone = getLoggedInPhone();
   const hydrated = useEhrStore((s) => s.hydrated);
@@ -120,29 +127,23 @@ function SettingsPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-slate-50">
-      <header className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-brand-700 via-brand-600 to-brand-400 px-5 py-4 text-white shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
-            <Database className="h-5 w-5" />
-          </div>
+    <AppShell
+      track="medical"
+      activeNav="settings"
+      onPatientSelect={(patientId) => {
+        // Settings has no patient workspace: open the chart at "/".
+        requestPatientOpen(patientId);
+        void navigate({ to: "/" });
+      }}
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50">
+        <div className="mx-auto max-w-3xl space-y-4 p-5">
           <div>
-            <h1 className="text-base font-bold leading-tight">Settings</h1>
-            <p className="text-[11px] text-brand-100">
+            <h1 className="text-base font-bold leading-tight text-slate-800">Settings</h1>
+            <p className="text-[11px] text-slate-500">
               Practice data for {phone} · schema v{SCHEMA_VERSION}
             </p>
           </div>
-        </div>
-        <Link
-          to="/dashboard"
-          className="flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-brand-700 shadow-sm hover:bg-brand-50"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to dashboard
-        </Link>
-      </header>
-
-      <main className="mx-auto max-w-3xl space-y-4 p-5">
         {status && (
           <div
             className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-xs ${
@@ -299,8 +300,9 @@ function SettingsPage() {
         <p className="pb-4 text-center text-[10px] text-slate-400">
           Simulated data, not for clinical use. All patients are fictional.
         </p>
-      </main>
-    </div>
+        </div>
+      </div>
+    </AppShell>
   );
 }
 

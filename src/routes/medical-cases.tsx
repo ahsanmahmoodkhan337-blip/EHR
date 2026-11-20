@@ -8,10 +8,14 @@
  */
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Home, LogOut, Stethoscope } from "lucide-react";
-import { isLoggedIn, logout } from "../store/accessStore";
-import { MedicalCaseProvider } from "../components/medical/MedicalCaseStore";
+import { Stethoscope } from "lucide-react";
+import { isLoggedIn } from "../store/accessStore";
+import { PatientProvider } from "../store/patientStore";
+import { MedicalCaseProvider, useMedicalCase } from "../components/medical/MedicalCaseStore";
 import { MedicalCaseRunner } from "../components/medical/MedicalCaseRunner";
+import { AppShell } from "../components/AppShell";
+import { PatientBanner, type BannerPatient } from "../components/shell/PatientBanner";
+import { requestPatientOpen } from "../components/shell/pendingPatient";
 
 export const Route = createFileRoute("/medical-cases")({
   component: MedicalCasesPage,
@@ -19,15 +23,19 @@ export const Route = createFileRoute("/medical-cases")({
 
 function MedicalCasesPage() {
   return (
-    <MedicalCaseProvider>
-      <MedicalCasesShell />
-    </MedicalCaseProvider>
+    <PatientProvider>
+      <MedicalCaseProvider>
+        <MedicalCasesShell />
+      </MedicalCaseProvider>
+    </PatientProvider>
   );
 }
 
 function MedicalCasesShell() {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
+  // The graded case's own patient record — the patient this runner is working.
+  const { activeCase, plan } = useMedicalCase();
 
   if (!loggedIn) {
     return (
@@ -47,47 +55,38 @@ function MedicalCasesShell() {
     );
   }
 
+  // The case's patient is the patient the runner is working, so the shell's
+  // sticky banner shows them for as long as a case is open. Only what the case
+  // actually recorded is passed; the rest prints as "—" rather than being made
+  // up. Nothing from the free-form chart leaks in here.
+  const casePatient: BannerPatient | null = activeCase
+    ? {
+        firstName: activeCase.patient.firstName,
+        lastName: activeCase.patient.lastName,
+        dateOfBirth: activeCase.patient.dateOfBirth,
+        gender: activeCase.patient.gender,
+        insurance: plan?.name,
+        insuranceRecord: plan
+          ? { primary: { payerName: plan.name, subscriberId: activeCase.patient.memberId } }
+          : undefined,
+      }
+    : null;
+
   return (
-    <div className="flex h-screen flex-col bg-slate-100">
-      <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2 shadow-sm">
-        <div className="flex shrink-0 items-center gap-3">
-          <Link
-            to="/"
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-            title="Medical home"
-          >
-            <Home className="h-4 w-4" />
-          </Link>
-          <img src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers" className="h-7 w-auto" style={{ maxWidth: "120px" }} />
-          <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-            Medical RCM
-          </span>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <Link
-            to="/dental"
-            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
-          >
-            Dental track
-          </Link>
-          <button
-            onClick={() => {
-              logout();
-              navigate({ to: "/login" });
-            }}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
-            title="Logout"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Log out
-          </button>
-        </div>
-      </header>
-
-      <main className="min-h-0 flex-1 overflow-hidden">
+    <AppShell
+      track="medical"
+      activeNav="practice-cases"
+      banner={<PatientBanner patient={casePatient} />}
+      onPatientSelect={(patientId) => {
+        // Graded cases run inside this runner; a patient picked from the
+        // shell's search opens in the free-form medical workspace instead.
+        requestPatientOpen(patientId);
+        void navigate({ to: "/" });
+      }}
+    >
+      <div className="min-h-0 flex-1 overflow-hidden">
         <MedicalCaseRunner />
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

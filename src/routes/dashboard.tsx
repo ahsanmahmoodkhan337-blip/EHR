@@ -13,20 +13,24 @@
 
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, LogOut, Stethoscope, Smile, Sparkles } from "lucide-react";
-import {
-  getLoggedInPhone,
-  getSubscriptionStatus,
-  isLoggedIn,
-  logout,
-} from "../store/accessStore";
+import { ArrowRight, Stethoscope, Smile, Sparkles } from "lucide-react";
+import { getLoggedInPhone, getSubscriptionStatus, isLoggedIn } from "../store/accessStore";
 import { loadUserData } from "../store/persistence";
+import { PatientProvider } from "../store/patientStore";
+import { AppShell } from "../components/AppShell";
+import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { getSharingSignal, MAX_DEVICE_COUNT, resetOtherSessions } from "../store/accountSecurity";
 import { encounterKey, type PipelineStoreState, type Role } from "../store/pipelineStore";
 import type { DentalTrackState, DentalStageName } from "../components/dental/DentalTrackStore";
 
 export const Route = createFileRoute("/dashboard")({
-  component: DashboardPage,
+  // The dashboard sits inside the same shell as every other page, so it needs
+  // the patient list the top bar's search reads.
+  component: () => (
+    <PatientProvider>
+      <DashboardPage />
+    </PatientProvider>
+  ),
 });
 
 const MEDICAL_STAGES: { role: Role; label: string }[] = [
@@ -126,33 +130,17 @@ function DashboardPage() {
   const dentalStarted = Boolean(dental?.caseId);
 
   return (
-    <div className="brand-gradient min-h-dvh">
-      {/* header */}
-      <header className="flex items-center justify-between border-b border-brand-200 bg-white/80 px-4 py-3 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <img src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers" className="h-7 w-auto" style={{ maxWidth: "150px" }} />
-          <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
-            Student dashboard
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="hidden text-xs text-slate-500 sm:block">{phone}</span>
-          <Link to="/settings" className="btn-ghost px-3 py-1.5 text-xs">
-            Settings
-          </Link>
-          <button
-            onClick={() => {
-              logout();
-              navigate({ to: "/login" });
-            }}
-            className="btn-ghost px-3 py-1.5 text-xs"
-          >
-            <LogOut className="h-3.5 w-3.5" /> Log out
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-4xl px-4 py-8">
+    <AppShell
+      track="medical"
+      activeNav="home"
+      onPatientSelect={(patientId) => {
+        // The dashboard has no patient workspace: open the chart at "/".
+        requestPatientOpen(patientId);
+        void navigate({ to: "/" });
+      }}
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50">
+        <div className="mx-auto max-w-4xl px-4 py-8">
         {/* welcome */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -292,7 +280,8 @@ function DashboardPage() {
             </button>
           )}
         </div>
-      </main>
-    </div>
+        </div>
+      </div>
+    </AppShell>
   );
 }
