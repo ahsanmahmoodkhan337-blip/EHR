@@ -62,6 +62,18 @@ export interface ClaimFormData {
    * student clears afterwards stays cleared instead of being refilled.
    */
   identitySeeded?: boolean;
+  /**
+   * The patient fingerprint the identity boxes were last seeded from — see
+   * `identitySeedFor` in `utils/claimAutoFill.ts`. When the encounter's patient
+   * changes, or that patient's demographics / insurance record change, the
+   * fingerprint differs and the identity boxes are re-seeded. A one-shot
+   * `identitySeeded` flag froze the claim on whatever was known the first time
+   * it opened, which is why a patient the student registered themselves never
+   * reached the paper.
+   */
+  identitySeedKey?: string;
+  /** The values this claim was seeded with, so a typed value is never overwritten. */
+  identitySeedValues?: Record<string, string>;
   insuranceType: string;        // 1
   insuredId: string;            // 1a
   patientName: string;          // 2

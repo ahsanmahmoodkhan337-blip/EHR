@@ -26,7 +26,7 @@ import { ClaimFormShell } from "../claims/ClaimFormShell";
 import { CMS1500Form } from "./CMS1500Form";
 import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
-import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
+import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, reseedIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
 import { validateCMS1500, type ClaimIssue } from "../../utils/claimValidation";
 import {
   useEncounterPatientId,
@@ -152,9 +152,12 @@ export function BillingLedger() {
     // A claim written by an earlier build carries an invented member ID and
     // group number; clear them so the boxes fall through to the tagged demo.
     Object.assign(patch, stripFabricatedIds(claimForm));
-    if (!claimForm.identitySeeded) {
-      Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
-    }
+    // Re-seeded per patient, not once: a patient the student registered
+    // themselves gets an id, a DOB and (once Registration runs) an insurance
+    // record after this claim may already have been opened. A box the student
+    // typed is never overwritten.
+    Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
+    Object.assign(patch, reseedIdentityBoxes(claimForm, patient, state.displayName));
     if (Object.keys(patch).length > 0) setClaimForm({ ...claimForm, ...patch });
   }, [patientId, claimForm, patient, state, paRecords, setClaimForm, suggestion.claimType, encounterDate]);
 
