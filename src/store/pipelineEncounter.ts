@@ -186,6 +186,27 @@ export function encounterKey(patientId: string | null | undefined): string {
   return patientId || UNASSIGNED_ENCOUNTER_KEY;
 }
 
+/**
+ * The role a pipeline stage belongs to. The stage is the durable record of how
+ * far the student got; the role is the screen that shows it. A finished
+ * pipeline was last worked by the AR Voice specialist, so `complete` maps back
+ * there.
+ */
+export function roleForStage(stage: PipelineEncounter["stage"]): Role {
+  return stage === "complete" ? "ar-voice" : stage;
+}
+
+/**
+ * The role to open a patient's encounter on. The stored role is used when the
+ * student chose one explicitly; otherwise the stage says where the work got to,
+ * so a patient worked to the Biller reopens on the Biller and never on Scribe.
+ */
+export function restoredRoleFor(encounter: PipelineEncounter): Role {
+  return encounter.role && encounter.role !== "scribe"
+    ? encounter.role
+    : roleForStage(encounter.stage);
+}
+
 /** A brand-new, empty encounter — a patient never visited starts here. */
 export function createEncounter(patientId: string | null): PipelineEncounter {
   return {
@@ -224,7 +245,7 @@ export function normalizeEncounter(
     codingLines: Array.isArray(raw.codingLines) ? raw.codingLines : [],
     claimData: raw.claimData && typeof raw.claimData === "object" ? raw.claimData : {},
     paData: raw.paData && typeof raw.paData === "object" ? raw.paData : {},
-    role: raw.role ?? base.role,
+    role: raw.role ?? roleForStage(raw.stage ?? base.stage),
     stage: raw.stage ?? base.stage,
     status: raw.status ?? base.status,
   };
@@ -256,11 +277,15 @@ export function normalizePipelineStore(
       encounters[key] = normalizeEncounter(enc as Partial<PipelineEncounter>, patientId);
     }
     const activePatientId = value.activePatientId ?? null;
+    const active = encounters[encounterKey(activePatientId)];
+    // The active patient's own encounter decides the stage being shown; a
+    // `currentRole` saved from another chart must not override it.
+    const activeRole = active ? restoredRoleFor(active) : null;
     return {
       activePatientId,
       encounters,
       demoFillMissingBoxes: value.demoFillMissingBoxes !== false,
-      currentRole: value.currentRole ?? encounters[encounterKey(activePatientId)]?.role ?? fallbackRole,
+      currentRole: activeRole ?? value.currentRole ?? fallbackRole,
     };
   }
 
