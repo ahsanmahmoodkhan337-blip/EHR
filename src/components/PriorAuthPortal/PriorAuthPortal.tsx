@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
+import { memberIdOnFile, NOT_ON_FILE, patientCard } from "../../domain/patientCard";
 import {
   PA_PROCEDURES,
   PA_COMMON_ERRORS,
@@ -122,6 +123,9 @@ export default function PriorAuthPortal() {
   // Get the first patient from the pipeline state or the first mock patient
   const patientId = state.patientId || "";
   const patient = getPatientById(patientId);
+  // The card this panel prints is the selected patient's own; a patient with
+  // no card reads "Not on file" (`domain/patientCard.ts`).
+  const card = patientCard(patient);
 
   // Active tab
   const [activeTab, setActiveTab] = useState<TabView>("queue");
@@ -674,8 +678,8 @@ export default function PriorAuthPortal() {
                 <p className="text-[10px] font-semibold text-brand-700 mb-2">Patient Insurance Information</p>
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
                   <div><span className="text-slate-400">Payer:</span><p className="font-medium text-slate-700">{payer}</p></div>
-                  <div><span className="text-slate-400">Member ID:</span><p className="font-medium text-slate-700">{patient?.mrn || "MRN-1001"}</p></div>
-                  <div><span className="text-slate-400">Group #:</span><p className="font-medium text-slate-700">GRP-{Math.floor(Math.random() * 90000) + 10000}</p></div>
+                  <div><span className="text-slate-400">Member ID:</span><p className="font-medium text-slate-700">{memberIdOnFile(card)}</p></div>
+                  <div><span className="text-slate-400">Group #:</span><p className="font-medium text-slate-700">{card.groupNumber || NOT_ON_FILE}</p></div>
                   <div><span className="text-slate-400">Patient:</span><p className="font-medium text-slate-700">{patient ? `${patient.firstName} ${patient.lastName}` : "���"}</p></div>
                 </div>
               </div>

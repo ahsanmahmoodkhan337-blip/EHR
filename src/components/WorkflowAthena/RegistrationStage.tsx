@@ -34,6 +34,7 @@ import {
   SUBSCRIBER_RELATIONSHIPS,
   buildInsuranceRecord,
 } from "../../utils/insuranceRecord";
+import { registrationCardFor } from "../../domain/patientCard";
 
 /**
  * Turn the form's MM/DD/YYYY date of birth into the ISO `YYYY-MM-DD` the chart
@@ -93,25 +94,56 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
   /** No insurance: the patient pays cash. Coverage is then "Self-pay". */
   const [selfPay, setSelfPay] = useState(false);
 
-  // Re-open a patient that already has a record: show what the chart holds, so
-  // re-verifying corrects it instead of silently replacing it with blanks. The
-  // store hydrates after the first render, so this also runs when it lands.
+  // Re-open a patient that already has a card: show the card THIS patient owns,
+  // so re-verifying corrects it instead of silently replacing it with blanks.
+  //
+  // The form is rebuilt from the selected patient on every patient change, and
+  // never from the values already in it: the patient opened before this one may
+  // have had a different card, and carrying its member ID over would both print
+  // a neighbour's card and — on Verify — write it onto this patient's chart
+  // (`domain/patientCard.ts`).
   const prefilledFor = useRef<string | null>(null);
   useEffect(() => {
-    const record = patient?.insuranceRecord;
-    if (!record || prefilledFor.current === patient?.id) return;
-    prefilledFor.current = patient?.id ?? null;
+    const id = patient?.id ?? null;
+    if (prefilledFor.current === id) {
+      // Same patient: the store hydrates after the first render, so a card that
+      // lands late fills the boxes the student has not filled themselves.
+      const record = patient?.insuranceRecord;
+      if (!record) return;
+      setForm((prev) => ({
+        ...prev,
+        payerName: prev.payerName || record.primary.payerName,
+        subscriberId: prev.subscriberId || record.primary.subscriberId,
+        groupNumber: prev.groupNumber || record.primary.groupNumber,
+        payerId: prev.payerId || record.primary.ediPayerId,
+        relationship: record.primary.relationshipToSubscriber || prev.relationship,
+        secondaryPayerName: record.secondary?.payerName ?? "",
+        secondaryPayerId: record.secondary?.ediPayerId ?? "",
+        secondarySubscriberId: record.secondary?.subscriberId ?? "",
+        secondaryGroupNumber: record.secondary?.groupNumber ?? "",
+      }));
+      return;
+    }
+    prefilledFor.current = id;
+    const card = registrationCardFor(patient);
+    const hasCard = Boolean(card.payerName || card.subscriberId || card.groupNumber || card.payerId);
     setForm((prev) => ({
       ...prev,
-      payerName: record.primary.payerName || prev.payerName,
-      subscriberId: record.primary.subscriberId || prev.subscriberId,
-      groupNumber: record.primary.groupNumber || prev.groupNumber,
-      payerId: record.primary.ediPayerId || prev.payerId,
-      relationship: record.primary.relationshipToSubscriber || prev.relationship,
-      secondaryPayerName: record.secondary?.payerName ?? "",
-      secondaryPayerId: record.secondary?.ediPayerId ?? "",
-      secondarySubscriberId: record.secondary?.subscriberId ?? "",
-      secondaryGroupNumber: record.secondary?.groupNumber ?? "",
+      // A patient with no card on file starts from the blank form — never from
+      // the patient opened before them.
+      ...(hasCard
+        ? card
+        : {
+            payerName: "",
+            subscriberId: "",
+            groupNumber: "",
+            payerId: "",
+            relationship: "Self",
+            secondaryPayerName: "",
+            secondaryPayerId: "",
+            secondarySubscriberId: "",
+            secondaryGroupNumber: "",
+          }),
     }));
   }, [patient?.id, patient?.insuranceRecord]);
 
