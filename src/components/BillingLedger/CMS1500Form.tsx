@@ -30,7 +30,7 @@ const COLUMNS: { key: keyof ClaimServiceLine | "modifiers"; label: string; width
   { key: "renderingNpi", label: "24J · NPI", width: "18%" },
 ];
 
-export function CMS1500Form({ values, lines, set, setLine, addLine, removeLine, issues }: ClaimPaperApi) {
+export function CMS1500Form({ values, lines, set, setLine, addLine, removeLine, issues, demoFields }: ClaimPaperApi) {
   const rows = lines as unknown as ClaimServiceLine[];
   const maxLines = CMS1500_LAYOUT.maxLines;
 
@@ -172,5 +172,15 @@ export function CMS1500Form({ values, lines, set, setLine, addLine, removeLine, 
     </div>
   );
 
-  return <ClaimPaper layout={CMS1500_LAYOUT} values={values} issues={issues} set={set} table={table} note={DEMO_PROVIDER_NOTE} />;
+  return (
+    <ClaimPaper
+      layout={CMS1500_LAYOUT}
+      values={values}
+      issues={issues}
+      set={set}
+      table={table}
+      note={DEMO_PROVIDER_NOTE}
+      demoFields={demoFields}
+    />
+  );
 }
