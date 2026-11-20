@@ -17,6 +17,7 @@
 
 import { AlertTriangle, CalendarDays, ShieldCheck, User } from "lucide-react";
 import { eligibilityOf, eligibilitySummary, type EligibilityCoverage } from "../../domain/eligibility";
+import { cardLine, patientCard } from "../../domain/patientCard";
 
 /**
  * What the banner needs in order to draw a patient.
@@ -117,10 +118,12 @@ export function PatientBanner({ patient, fallbackName, patientBalance, copayUsd 
   const age = patient ? computeAge(patient.dateOfBirth) : null;
   const dobText = patient ? formatDob(patient.dateOfBirth) : null;
 
-  const coverage = patient?.insuranceRecord?.primary ?? null;
-  const payerName = coverage?.payerName || patient?.insurance || "";
-  const planName = coverage?.planName || "";
-  const memberId = coverage?.subscriberId || "";
+  // The card printed here is the selected patient's own (`domain/patientCard.ts`).
+  // It is never filled from another patient, from a seed list or from a default,
+  // so a patient with no card reads "Not on file".
+  const card = patientCard(patient);
+  const payerName = card.payerName;
+  const cardText = cardLine(card);
 
   const allergies = patient?.allergies;
   const allergyText =
@@ -202,14 +205,12 @@ export function PatientBanner({ patient, fallbackName, patientBalance, copayUsd 
         <span className="flex min-w-0 items-center gap-1">
           <ShieldCheck className="h-3 w-3 shrink-0 text-slate-400" aria-hidden="true" />
           <span className="min-w-0 break-words">
-            {payerName ? (
-              <>
-                {payerName}
-                {planName ? ` · ${planName}` : ""}
-                {memberId ? ` · ID ${memberId}` : ""}
-              </>
+            {card.onFile ? (
+              cardText
             ) : (
-              "Insurance: —"
+              <span title="This patient's chart holds no insurance card — no payer, plan or member ID has been captured for them.">
+                Insurance: {cardText}
+              </span>
             )}
           </span>
         </span>

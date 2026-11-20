@@ -46,6 +46,7 @@
 
 import type { ClaimFormData, ClaimServiceLine, PipelineState } from "../store/pipelineStore";
 import type { Patient } from "../store/patientStore";
+import { patientCard } from "../domain/patientCard";
 import { CPT_CODES } from "../components/CodingQueue/cptData";
 import {
   MEDICAL_PROVIDER_PROFILE,
@@ -328,15 +329,19 @@ export function patientIdentityBoxes(
   // learns to invent one. Now every identifier comes from the record, and an
   // identifier the student never captured stays blank so the box falls through
   // to the tagged demo value in `demoClaimData.ts`.
+  // The card is the selected patient's own (`domain/patientCard.ts`) — the same
+  // reader the banner and Registration use, so the claim cannot print a card the
+  // chart above it is not showing.
+  const card = patientCard(patient);
   const coverage = patient?.insuranceRecord?.primary;
   const secondary = patient?.insuranceRecord?.secondary ?? null;
-  const payerName = coverage?.payerName?.trim() || insurance;
-  const relationship = coverage?.relationshipToSubscriber?.trim() || "Self";
+  const payerName = card.payerName || insurance;
+  const relationship = card.relationship || "Self";
   const isSelf = relationship.toLowerCase() === "self";
 
   return {
     insuranceType: coverageTypeFor(payerName) || "Group Health Plan",
-    insuredId: coverage?.subscriberId?.trim() ?? "",
+    insuredId: card.memberId,
     patientName: name,
     patientDob: patient?.dateOfBirth ?? "",
     patientSex: patient?.gender ? patient.gender.charAt(0).toUpperCase() : "",
@@ -345,7 +350,7 @@ export function patientIdentityBoxes(
     patientAddress: patient?.address ?? "",
     patientRelationship: relationship,
     insuredAddress: patient?.address ?? "",
-    insuredPolicyGroup: coverage?.groupNumber?.trim() ?? "",
+    insuredPolicyGroup: card.groupNumber,
     insuredDob: coverage?.subscriberDob?.trim() || (isSelf ? patient?.dateOfBirth ?? "" : ""),
     // Box 11a's SEX sits beside the insured's date of birth. For Self it is the
     // patient's own sex; for a dependant it stays blank until the subscriber's
@@ -356,11 +361,11 @@ export function patientIdentityBoxes(
         ? patient.gender.charAt(0).toUpperCase()
         : ""
       : coverage?.subscriberSex?.trim().charAt(0).toUpperCase() ?? "",
-    insuredPlanName: coverage?.planName?.trim() || payerName,
+    insuredPlanName: card.planName || payerName,
     // Boxes 50 / 51 on the UB-04 — carried on the claim so the institutional
     // paper reads the payer from the same record the CMS-1500 uses.
     payerName,
-    payerEdiId: coverage?.ediPayerId?.trim() ?? "",
+    payerEdiId: card.payerId,
     // Boxes 9 / 9a / 9b / 9d — other coverage, when registration captured any.
     // 9d is the plan name only; the group number has its own box (9a) now.
     otherInsuranceName: secondary?.payerName?.trim() ?? "",
@@ -474,11 +479,22 @@ export function reseedIdentityBoxes(
   const patch: Partial<ClaimFormData> = {};
 
   for (const [box, value] of Object.entries(known)) {
-    if (typeof value !== "string" || value === "") continue;
+    if (typeof value !== "string") continue;
     const current = (form as unknown as Record<string, unknown>)[box];
-    const untouched =
-      isBlank(current) || (box in seededBefore && current === seededBefore[box]);
+    const seeded = box in seededBefore ? seededBefore[box] : undefined;
+    const untouched = isBlank(current) || (seeded !== undefined && current === seeded);
     if (!untouched) continue;                // the student typed this box
+    if (value === "") {
+      // This patient has nothing in that box, and the value standing there is
+      // one this claim last seeded from another patient's card (a member ID, a
+      // plan, a group number). Clear it: a claim must never print a neighbour's
+      // card, and a cleared box falls through to the tagged demo value instead.
+      if (seeded !== undefined && current === seeded) {
+        (patch as Record<string, unknown>)[box] = "";
+        delete values[box];
+      }
+      continue;
+    }
     (patch as Record<string, unknown>)[box] = value;
     values[box] = value;
   }

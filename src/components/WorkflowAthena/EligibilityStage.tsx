@@ -26,6 +26,7 @@ import {
   eligibilityOf,
   runEligibility270,
 } from "../../domain/eligibility";
+import { memberIdOnFile, patientCard } from "../../domain/patientCard";
 
 export function EligibilityStage({ patientId }: { patientId?: string | null }) {
   const { getPatientById } = usePatientStore();
@@ -35,6 +36,9 @@ export function EligibilityStage({ patientId }: { patientId?: string | null }) {
 
   const patient = patientId ? getPatientById(patientId) : undefined;
   const coverage = patient?.insuranceRecord?.primary ?? null;
+  // The member ID is the selected patient's own (`domain/patientCard.ts`); a
+  // patient with no card reads "Not on file" rather than a blank or a neighbour's.
+  const card = patientCard(patient);
   const stored = eligibilityOf(coverage);
   const checked = stored.status !== "not-checked";
 
@@ -82,7 +86,7 @@ export function EligibilityStage({ patientId }: { patientId?: string | null }) {
               <span className="font-medium">DOB:</span> {patient?.dateOfBirth || "—"}
             </span>
             <span>
-              <span className="font-medium">Member ID:</span> {coverage?.subscriberId || "—"}
+              <span className="font-medium">Member ID:</span> {memberIdOnFile(card)}
             </span>
           </div>
 
