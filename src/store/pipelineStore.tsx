@@ -35,6 +35,7 @@ import {
   type Role,
 } from "./pipelineEncounter";
 import { nextClaimNumber, type ClaimStatus } from "../domain/claimStatus";
+import { buildSubmissionEvents } from "../domain/clearinghouse";
 import {
   appendStatusEvent as appendEvent,
   makeStatusEvent,
@@ -131,6 +132,24 @@ interface PipelineContextValue {
    * nothing, and there is no way to edit or delete an entry.
    */
   appendStatusEvent: (input: StatusEventInput) => void;
+  /**
+   * Transmit the active patient's claim to the clearinghouse: the 837P goes out
+   * and the 277CA comes back. Ready, Submitted and the outcome are recorded in
+   * one store write, so the claim's status never exists without its timeline.
+   * The outcome is read back off the timeline with `ackForClaim`.
+   */
+  transmitClaim: (input: {
+    /** Box 1a as submitted. */
+    subscriberId: string;
+    /** Box 1a as the coverage record holds it. */
+    subscriberIdOnFile: string;
+    /** Box 3 as submitted. */
+    patientDob: string;
+    /** Box 3 as the chart holds it. */
+    patientDobOnFile: string;
+    lineCount: number;
+    payerName?: string;
+  }) => void;
   handleDenial: (denialCode: string, meta?: { amount?: number; patientName?: string }) => void;
   submitPA: (paData: Record<string, string>) => void;
   completePipeline: () => void;
@@ -434,6 +453,52 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  /**
+   * Clearinghouse submission (money-cycle items 8 and 9). One write appends the
+   * 837P, the 277CA and — on a first transmission — the edit checks passing, and
+   * moves the claim's status to whatever the 277CA said. A rejection leaves the
+   * claim on the biller's desk: it never becomes a denial, and no money moves.
+   */
+  const transmitClaim: PipelineContextValue["transmitClaim"] = (input) => {
+    setStore((prev) => {
+      const key = encounterKey(prev.activePatientId);
+      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
+      // No claim number, no claim: the paper mints it when it first opens.
+      if (!enc.claimNumber) return prev;
+      const { events, ack } = buildSubmissionEvents({
+        facts: {
+          track: "medical",
+          claimNumber: enc.claimNumber,
+          subscriberId: input.subscriberId,
+          subscriberIdOnFile: input.subscriberIdOnFile,
+          patientDob: input.patientDob,
+          patientDobOnFile: input.patientDobOnFile,
+        },
+        from: enc.claimStatus,
+        patientId: enc.patientId,
+        by: getLoggedInPhone() ?? "system",
+        jobRole: "biller",
+        lineCount: input.lineCount,
+        payerName: input.payerName,
+        existing: enc.statusEvents,
+      });
+      // Every row was already recorded — a double-click adds nothing.
+      if (events === enc.statusEvents) return prev;
+      return {
+        ...prev,
+        encounters: {
+          ...prev.encounters,
+          [key]: {
+            ...enc,
+            statusEvents: events,
+            claimStatus: (ack.category === "A1" ? "accepted" : "rejected") as ClaimStatus,
+            claimStatusMigrated: false,
+          },
+        },
+      };
+    });
+  };
+
   const patchClaimForm = (patch: Partial<ClaimFormData>) => {
     updateActive((enc) => ({
       ...enc,
@@ -574,6 +639,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         patchClaimForm,
         setDemoFillMissingBoxes,
         appendStatusEvent,
+        transmitClaim,
         handleDenial,
         submitPA,
         completePipeline,

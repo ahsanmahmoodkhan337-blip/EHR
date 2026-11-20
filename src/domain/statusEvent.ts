@@ -37,6 +37,19 @@ export interface StatusEventRefs {
   approvedBy?: string;
   correctedClaimId?: string;
   refNumber?: string;
+  /**
+   * 277CA claim status category (A1 accepted, A3 rejected) and entity code.
+   * Read back by `domain/clearinghouse.ts` so the outcome panel is a projection
+   * of the timeline rather than a second copy of the truth.
+   */
+  ackCategory?: "A1" | "A3";
+  ackEntity?: string;
+  /**
+   * The rejection rule that fired. Deliberately *not* named `ruleId`: `ruleId`
+   * is an idempotency discriminator, and the same rejection after a correction
+   * is a new event, not a duplicate.
+   */
+  rejectionRuleId?: string;
 }
 
 /** One row of the timeline. Append-only: see the file header. */

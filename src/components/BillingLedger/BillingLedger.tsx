@@ -14,7 +14,7 @@
  * Inspiration: Epic Resolute Hospital Billing / AAPC CPB curriculum
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Receipt, AlertTriangle, CheckCircle2, XCircle, Search, DollarSign, BookOpen, Info, Route, Star, Shield, FileDown } from "lucide-react";
 import { usePipeline, type ClaimFormData, type ClaimServiceLine } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
@@ -26,7 +26,10 @@ import { exportClaimFormPDF } from "../../utils/claimFormPdf";
 import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scoring";
 import { ClaimFormShell } from "../claims/ClaimFormShell";
 import { StatusTimeline } from "../status/StatusTimeline";
+import { ClaimAckChip, ClaimAckPanel } from "../status/ClaimAckPanel";
 import { statusEventsFor } from "../../domain/statusEvent";
+import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
+import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
 import { CMS1500Form } from "./CMS1500Form";
 import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
@@ -60,7 +63,7 @@ const CMS1500_PDF_COLUMNS = [
 ];
 
 export function BillingLedger() {
-  const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm, setDemoFillMissingBoxes } = usePipeline();
+  const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm, setDemoFillMissingBoxes, transmitClaim } = usePipeline();
   const claimForm = state.claimForm;
   const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
   // The encounter knows its patient even when the pipeline's nullable
@@ -85,7 +88,10 @@ export function BillingLedger() {
   const [routingMemo, setRoutingMemo] = useState("");
   const [isTransmitting, setIsTransmitting] = useState(false);
   const [transmitProgress, setTransmitProgress] = useState(0);
-  const [transmitResult, setTransmitResult] = useState<"paid" | "denied" | null>(null);
+  /** The modifier-25 edit check, reported after acceptance as an edit, not an outcome. */
+  const [modifierWarning, setModifierWarning] = useState(false);
+  /** The top of the claim paper — where a rejected claim sends the student back to. */
+  const formTopRef = useRef<HTMLDivElement | null>(null);
 
   // Claim scrubber state
   const [scrubResults, setScrubResults] = useState<{ check: string; pass: boolean; note: string }[] | null>(null);
@@ -109,6 +115,13 @@ export function BillingLedger() {
   // The claim's own timeline — every recorded change to this claim, in order.
   // Read-only, and identified by the claim number the engine minted for it.
   const claimEvents = statusEventsFor(state.statusEvents, "claim", state.claimNumber);
+
+  // The 277CA this claim last received — read off the timeline, never stored a
+  // second time, so the panel and the timeline can never disagree.
+  const ack = useMemo(
+    () => ackForClaim(state.statusEvents, state.claimNumber),
+    [state.statusEvents, state.claimNumber],
+  );
 
   // `demoFillMissingBoxes` (owner decision 2026-11-20) — a claim box with no
   // captured value shows a tagged demo value. Default on; an instructor switches
@@ -316,45 +329,94 @@ export function BillingLedger() {
             .some((m) => m.replace(/^-/, "").trim() === "25");
         }) || Boolean(cs?.modifier25Applied);
       const missingMod25 = state.cptCodes.length > 1 && !modifier25Applied;
+
+      // What the clearinghouse checks, read from the claim as the student submitted
+      // it: box 1a against the coverage record and box 3 against the chart. The
+      // outcome shown afterwards is read back off the timeline (`ack`), so a
+      // reload shows the same 277CA.
+      const submissionFacts = {
+        track: "medical" as const,
+        claimNumber: state.claimNumber ?? "",
+        subscriberId: String(values.insuredId ?? ""),
+        subscriberIdOnFile: patient?.insuranceRecord?.primary?.subscriberId?.trim() ?? "",
+        patientDob: String(values.patientDob ?? ""),
+        patientDobOnFile: patient?.dateOfBirth ?? "",
+        alreadyAccepted: state.claimStatus === "accepted",
+      };
+      const willAccept = evaluateSubmission(submissionFacts, 1, payer).category === "A1";
+
       setIsTransmitting(true);
       setTransmitProgress(0);
-      setTransmitResult(null);
+      // The bar is theatre; the transmission itself is one event-handler write when
+      // it finishes. Nothing on this screen writes during a render (error #185).
+      let progress = 0;
       const interval = setInterval(() => {
-        setTransmitProgress((p) => {
-          if (p >= 100) {
-            clearInterval(interval);
-            setTransmitResult(missingMod25 ? "denied" : "paid");
-            setIsTransmitting(false);
-            if (missingMod25) {
-              setBillingStatus(patientId, "DRAFT");
-              addAuditLog(patientId, {
-                timestamp: new Date().toISOString(),
-                role: "biller",
-                message: "837P transmitted — Modifier 25 missing, claim denied",
-                status: "error",
-              });
-            } else {
-              setBillingStatus(patientId, "CLEARED_AND_SENT");
-              addAuditLog(patientId, {
-                timestamp: new Date().toISOString(),
-                role: "biller",
-                message: "837P transmitted successfully — claim paid",
-                status: "success",
-              });
-              submitClaim({ ...legacyBoxMap(values), payer, posCode, submittedAt: new Date().toISOString() });
-              setSubmitted(true);
-              const score = scoreBiller(true, false, false);
-              setBillingScore(score);
-              updateStageScore(getStudentName(), "biller", score);
-            }
-            return 100;
-          }
-          return p + 5;
+        progress += 10;
+        setTransmitProgress(progress);
+        if (progress < 100) return;
+        clearInterval(interval);
+
+        transmitClaim({
+          subscriberId: submissionFacts.subscriberId,
+          subscriberIdOnFile: submissionFacts.subscriberIdOnFile,
+          patientDob: submissionFacts.patientDob,
+          patientDobOnFile: submissionFacts.patientDobOnFile,
+          lineCount: lines.length,
+          payerName: payer,
         });
-      }, 100);
+        setIsTransmitting(false);
+        setModifierWarning(willAccept && missingMod25);
+
+        if (!willAccept) {
+          // A rejection is not a denial: the claim comes back to this desk for
+          // correction. It does not advance a stage and no money moves.
+          addAuditLog(patientId, {
+            timestamp: new Date().toISOString(),
+            role: "biller",
+            message: `837P transmitted to ${payer} — 277CA rejected, claim returned for correction`,
+            status: "error",
+          });
+          return;
+        }
+
+        // Accepted by the clearinghouse. Acceptance is not payment: the payer
+        // adjudicates next, and its 835 is what pays or denies the claim.
+        setBillingStatus(patientId, "CLEARED_AND_SENT");
+        addAuditLog(patientId, {
+          timestamp: new Date().toISOString(),
+          role: "biller",
+          message: `837P transmitted to ${payer} — 277CA accepted, claim with the payer for adjudication`,
+          status: "success",
+        });
+        submitClaim({ ...legacyBoxMap(values), payer, posCode, submittedAt: new Date().toISOString() });
+        setSubmitted(true);
+        // The modifier-25 trap still costs the student its score; it is not a
+        // clearinghouse rejection, so it is reported as an edit check, not an outcome.
+        if (!missingMod25) {
+          const score = scoreBiller(true, false, false);
+          setBillingScore(score);
+          updateStageScore(getStudentName(), "biller", score);
+        }
+      }, 80);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [paRecords, patientId, needsPriorAuth, payer, posCode, state.cptCodes, cs?.modifier25Applied, claimForm, paCptList],
+    [
+      paRecords,
+      patientId,
+      patient,
+      needsPriorAuth,
+      payer,
+      posCode,
+      state.cptCodes,
+      state.claimNumber,
+      state.claimStatus,
+      cs?.modifier25Applied,
+      claimForm,
+      paCptList,
+      transmitClaim,
+      commitClaim,
+      setClaimForm,
+    ],
   );
 
   const runScrubber = () => {
@@ -434,20 +496,29 @@ export function BillingLedger() {
           <Receipt className="h-5 w-5 text-brand-600" />
           <h2 className="text-sm font-bold text-slate-800">Medical Billing — Enhanced Billing Ledger</h2>
           <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 3</span>
+          <ClaimAckChip ack={ack} />
         </div>
       </div>
 
       {submitted ? (
         <div className="flex flex-1 items-center justify-center p-4">
-          <div className="max-w-md rounded-xl border border-brand-200 bg-brand-50 p-8 text-center">
-            <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-500" />
-            <p className="text-sm font-medium text-brand-700">Claim Submitted Successfully!</p>
-            <p className="mt-2 text-xs text-brand-600">
-              The claim has been submitted to the payer.
-              {state.icdCodes?.some(c => c.startsWith('Z') || c.startsWith('S') || c.startsWith('M'))
-                ? ' This encounter may require Prior Authorization. Please proceed to the Prior Auth stage to verify.'
-                : ' No prior authorization is needed for this encounter. The claim has been processed.'}
+          <div className="max-w-lg rounded-xl border border-brand-200 bg-brand-50 p-6 text-center">
+            <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-500" aria-hidden="true" />
+            <p className="text-sm font-medium text-brand-700">
+              Claim {state.claimNumber ?? ""} transmitted — 277CA {ack?.category ?? "A1"}
             </p>
+            <p className="mt-1 text-xs text-brand-600">
+              The clearinghouse acknowledged the 837P. Nothing has been paid yet: the payer
+              adjudicates next, and its 835 is what pays, part-pays or denies the claim.
+            </p>
+            {ack && <ClaimAckPanel ack={ack} track="medical" className="mt-3 text-left" />}
+            {modifierWarning && (
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left text-[10px] text-amber-800">
+                <strong>Edit check:</strong> a second procedure on the same date of service carries no
+                modifier. A clearinghouse does not check modifiers — that is the payer's adjudication,
+                which is the next stage. No biller score is awarded while this edit is open.
+              </p>
+            )}
             {billingScore !== null && (
               <div className="mt-3 flex items-center justify-center gap-1.5 text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5 text-xs">
                 <Star className="h-3.5 w-3.5" />
@@ -474,7 +545,12 @@ export function BillingLedger() {
       ) : state.status === "coded" || state.status === "billed" ? (
         <div className="flex flex-1 overflow-hidden">
           {/* ─── Left: CMS-1500 Form + Actions ─── */}
-          <div className="flex flex-1 flex-col overflow-y-auto p-4">
+          <div
+            ref={formTopRef}
+            tabIndex={-1}
+            aria-label="Claim paper and actions"
+            className="flex flex-1 flex-col overflow-y-auto p-4 outline-none"
+          >
             {/* Tab navigation */}
             <div className="flex gap-1 border-b border-slate-200 pb-2 mb-4">
               {[
@@ -561,11 +637,7 @@ export function BillingLedger() {
                       formCode="CMS-1500 (02/12)"
                       formTitle="Health Insurance Claim Form"
                       statusLabel={`${state.claimNumber ? `${state.claimNumber} · ` : ""}${
-                        transmitResult === "paid"
-                          ? "Accepted — paid"
-                          : transmitResult === "denied"
-                            ? "Rejected — CO-4"
-                            : "Draft"
+                        CLAIM_STATUS_LABELS[state.claimStatus ?? "draft"]
                       }`}
                       history={(cs?.auditLogs ?? []).map((l) => ({ at: l.timestamp, message: l.message }))}
                       values={claimValues}
@@ -800,21 +872,18 @@ export function BillingLedger() {
                   </div>
                 )}
 
-                {/* Transmit Result */}
-                {transmitResult === "paid" && (
-                  <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3">
-                    <p className="flex items-center gap-1 text-xs font-medium text-green-700">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> 837P Transmitted — Claim Paid
-                    </p>
-                  </div>
-                )}
-                {transmitResult === "denied" && (
-                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
-                    <p className="flex items-center gap-1 text-xs font-medium text-red-700">
-                      <XCircle className="h-3.5 w-3.5" /> Modifier 25 Missing — Claim Denied (CO-4)
-                    </p>
-                    <p className="mt-1 text-[10px] text-red-600">Route to AR for remediation.</p>
-                  </div>
+                {/* 277CA — a rejection comes back to this desk, not to AR */}
+                {ack && ack.category === "A3" && (
+                  <ClaimAckPanel
+                    ack={ack}
+                    track="medical"
+                    className="mt-3"
+                    onCorrect={() => {
+                      setActiveTab("form");
+                      formTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      formTopRef.current?.focus();
+                    }}
+                  />
                 )}
 
                 {/* Phase 3: Routing Modal */}

@@ -49,6 +49,11 @@ import { adjudicateDentalClaim, type TraceStep } from "./adjudication";
 import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
 import { DentalClaimScrub } from "./DentalClaimScrub";
 import { ClaimFormShell } from "../claims/ClaimFormShell";
+import { ClaimAckChip, ClaimAckPanel } from "../status/ClaimAckPanel";
+import { StatusTimeline } from "../status/StatusTimeline";
+import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
+import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
+import { statusEventsFor } from "../../domain/statusEvent";
 import { ADAForm } from "./ADAForm";
 import { ADA_LAYOUT, type ADAFormData, type ADAServiceLine } from "../../data/claims/adaLayout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
@@ -68,6 +73,17 @@ export function DentalBillingLedger() {
   );
 
   const [openTrace, setOpenTrace] = useState<Record<string, boolean>>({});
+
+  // The claim's own timeline, and the 277CA it last received — both read off the
+  // record, so a reload shows the same acknowledgement (money-cycle items 8, 9).
+  const claimEvents = useMemo(
+    () => statusEventsFor(state.statusEvents, "claim", state.claimNumber),
+    [state.statusEvents, state.claimNumber],
+  );
+  const ack = useMemo(
+    () => ackForClaim(state.statusEvents, state.claimNumber),
+    [state.statusEvents, state.claimNumber],
+  );
 
   // ── ADA 2019 claim record ──────────────────────────────────────────
   // Seeded once from the case and the CDT lines; after that the student owns
@@ -146,10 +162,41 @@ export function DentalBillingLedger() {
     [],
   );
 
-  const handleSubmitClaim = useCallback(() => {
-    submitClaim();
-    toast.success("ADA claim submitted to the payer");
-  }, [submitClaim]);
+  const handleSubmitClaim = useCallback(
+    (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
+      const patient = activeCase?.patient ?? null;
+      // The same pure check the store runs, used only to pick the message. The
+      // outcome shown on screen is read back off the timeline (`ack`).
+      const accepted =
+        evaluateSubmission(
+          {
+            track: "dental",
+            claimNumber: state.claimNumber ?? "",
+            subscriberId: String(values.subscriberId ?? ""),
+            subscriberIdOnFile: patient?.memberId ?? "",
+            patientDob: String(values.patientDob ?? ""),
+            patientDobOnFile: patient?.dateOfBirth ?? "",
+            alreadyAccepted: state.claimStatus === "accepted",
+          },
+          1,
+          plan?.payerName,
+        ).category === "A1";
+      submitClaim({
+        subscriberId: String(values.subscriberId ?? ""),
+        subscriberIdOnFile: patient?.memberId ?? "",
+        patientDob: String(values.patientDob ?? ""),
+        patientDobOnFile: patient?.dateOfBirth ?? "",
+        lineCount: lines.length,
+        payerName: plan?.payerName,
+      });
+      if (accepted) {
+        toast.success("837D transmitted — 277CA accepted. The payer adjudicates next; nothing is paid yet.");
+      } else {
+        toast.error("277CA rejected — the claim comes back for correction. A rejection is not a denial.");
+      }
+    },
+    [submitClaim, state.claimNumber, state.claimStatus, activeCase, plan],
+  );
 
   // Claim-level EOB aggregates, summed from the engine's per-line output only
   // (no benefit maths re-implemented here).
@@ -173,18 +220,23 @@ export function DentalBillingLedger() {
         <span className="rounded bg-slate-100 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
           Fictional payer · illustrative fees
         </span>
-        {state.claimSubmitted && (
-          <span className="rounded bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-700">
-            Claim submitted
+        {state.claimNumber && (
+          <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-600">
+            {state.claimNumber}
           </span>
         )}
+        <ClaimAckChip ack={ack} />
       </div>
 
       {adaForm ? (
         <ClaimFormShell
           formCode="ADA 2019 (J430)"
           formTitle="Dental Claim Form"
-          statusLabel={state.claimSubmitted ? "Submitted" : "Draft"}
+          statusLabel={
+            state.claimNumber
+              ? `${state.claimNumber} · ${CLAIM_STATUS_LABELS[state.claimStatus ?? "draft"]}`
+              : "Draft"
+          }
           history={state.arCallLog.slice(-3).map((e) => ({ at: e.at, message: e.objective }))}
           values={adaValues}
           lines={adaLines}
@@ -214,6 +266,16 @@ export function DentalBillingLedger() {
           <p className="empty-hint">The paper is filled from the dental case.</p>
         </div>
       )}
+
+      {/* ── 277CA: the clearinghouse's answer, and the claim's own timeline ── */}
+      <ClaimAckPanel ack={ack} track="dental" className="mt-2" />
+      <StatusTimeline
+        events={claimEvents}
+        title="Claim timeline"
+        subject={state.claimNumber}
+        emptyHint="Nothing has happened to this claim yet — transmitting it records Ready, Submitted and the 277CA."
+        className="mt-2"
+      />
 
       {/* ── claim lines + trace ──────────────────────────────────────────── */}
       {adjudication.lines.length === 0 && (

@@ -44,7 +44,7 @@ const style = {
 };
 
 export function DentalCodingQueue() {
-  const { state, activeCase, addLine, removeLine, submitClaim, triggerTrap, traps, goTo } = useDentalTrack();
+  const { state, activeCase, addLine, removeLine, triggerTrap, traps, goTo } = useDentalTrack();
 
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>(CDT_CATEGORY_ORDER[0] ?? "Diagnostic");
@@ -193,7 +193,8 @@ export function DentalCodingQueue() {
       setError("Add at least one CDT line before submitting the claim.");
       return;
     }
-    submitClaim();
+    // The claim is transmitted from the claim stage, where the ADA paper and its
+    // 277CA acknowledgement live — leaving coding only opens that stage.
     goTo("claim");
   };
 
