@@ -136,6 +136,62 @@ const band = (label: string): ClaimBox => ({
   structural: "band",
 });
 
+// ─── Service-line columns (box 31) ──────────────────────────────────
+
+export interface ADALineColumn {
+  key: keyof ADAServiceLine;
+  /** The printed caption, as the screen shows it. */
+  label: string;
+  /** The same caption in the PDF's table header. */
+  pdfLabel: string;
+  /** Share of the table width (sums to 1). */
+  width: number;
+  kind?: "text" | "money" | "date" | "number";
+  /** The 837D element this column becomes — screen and PDF print the same one. */
+  x12: string;
+  /** Plain-language caveat about the mapping; a tooltip, never printed. */
+  x12Note?: string;
+}
+
+/**
+ * Box 31's eight columns, each with the 837D element it becomes. One list, so
+ * the paper, the screen and the PDF cannot drift apart.
+ */
+export const ADA_LINE_COLUMNS: ADALineColumn[] = [
+  { key: "dateOfService", label: "31 · DATE", pdfLabel: "31 DATE", width: 0.12, kind: "date", x12: "DTP*472" },
+  {
+    key: "cdt",
+    label: "31 · CDT",
+    pdfLabel: "31 CDT",
+    width: 0.11,
+    kind: "text",
+    x12: "SV301-1=AD / SV301-2",
+    x12Note: "SV301-3 to SV301-6 carry the CDT code's modifiers.",
+  },
+  {
+    key: "description",
+    label: "31 · DESCRIPTION",
+    pdfLabel: "31 DESCRIPTION",
+    width: 0.25,
+    kind: "text",
+    x12: "paper-only",
+    x12Note: "The payer's own CDT table supplies the words; no element carries them.",
+  },
+  {
+    key: "tooth",
+    label: "31 · TOOTH",
+    pdfLabel: "31 TOOTH",
+    width: 0.09,
+    kind: "text",
+    x12: "TOO01",
+    x12Note: "The TOO segment; some payers read the tooth from SV304 instead — undetermined which this payer takes.",
+  },
+  { key: "surface", label: "31 · SURF", pdfLabel: "31 SURF", width: 0.1, kind: "text", x12: "TOO02" },
+  { key: "quadrant", label: "31 · QD", pdfLabel: "31 QD", width: 0.07, kind: "text", x12: "TOO03" },
+  { key: "fee", label: "31 · FEE", pdfLabel: "31 FEE", width: 0.12, kind: "money", x12: "SV302" },
+  { key: "units", label: "31 · UNITS", pdfLabel: "31 UNITS", width: 0.1, kind: "number", x12: "SV306" },
+];
+
 const ADA_ROWS: ClaimRow[] = [
   {
     heightMm: 13,
@@ -143,12 +199,18 @@ const ADA_ROWS: ClaimRow[] = [
       {
         id: "1",
         label: "1. TYPE OF TRANSACTION",
+        x12: "BHT06 — undetermined",
+        x12Note:
+          "The transaction type rides in BHT06 plus a payer convention; no single element carries it.",
         colSpan: 7,
         fields: [{ field: "transactionType", kind: "select", options: ADA_TRANSACTION_OPTIONS }],
       },
       {
         id: "2",
         label: "2. PREDETERMINATION / PREAUTHORIZATION NUMBER",
+        x12: "REF*G3 / REF*G1 — qualifier undetermined",
+        x12Note:
+          "Prior authorisation is G1; predetermination is commonly G3, which the spec does not confirm.",
         colSpan: 5,
         fields: [{ field: "predeterminationNumber", kind: "text" }],
       },
@@ -160,6 +222,9 @@ const ADA_ROWS: ClaimRow[] = [
       {
         id: "3",
         label: "3. OTHER COVERAGE?",
+        x12: "SBR01 + loop 2320",
+        x12Note:
+          "There is no yes/no element: coordination of benefits is the responsibility code plus sending loop 2320.",
         colSpan: 12,
         fields: [{ field: "otherCoverage", kind: "select", options: ADA_OTHER_COVERAGE_OPTIONS }],
       },
@@ -172,12 +237,14 @@ const ADA_ROWS: ClaimRow[] = [
       {
         id: "4",
         label: "4. INSURED / SUBSCRIBER NAME",
+        x12: "NM1*IL (2010BA)",
         colSpan: 7,
         fields: [{ field: "insuredName", kind: "text" }],
       },
       {
         id: "5",
         label: "5. INSURED / SUBSCRIBER ADDRESS",
+        x12: "N3 / N4 (2010BA)",
         colSpan: 5,
         fields: [{ field: "insuredAddress", kind: "text" }],
       },
@@ -186,71 +253,71 @@ const ADA_ROWS: ClaimRow[] = [
   {
     heightMm: 10,
     cells: [
-      { id: "6", label: "6. INSURED / SUBSCRIBER PHONE", colSpan: 4, fields: [{ field: "insuredPhone", kind: "text" }] },
-      { id: "7", label: "7. INSURED / SUBSCRIBER DATE OF BIRTH", colSpan: 4, fields: [{ field: "insuredDob", kind: "date" }] },
-      { id: "8", label: "8. INSURED / SUBSCRIBER GENDER", colSpan: 4, fields: [{ field: "insuredSex", kind: "select", options: ADA_GENDER_OPTIONS }] },
+      { id: "6", label: "6. INSURED / SUBSCRIBER PHONE", x12: "paper-only", x12Note: "PER is payer-specific; the 837D has no standard subscriber telephone.", colSpan: 4, fields: [{ field: "insuredPhone", kind: "text" }] },
+      { id: "7", label: "7. INSURED / SUBSCRIBER DATE OF BIRTH", x12: "DMG02 (2010BA)", colSpan: 4, fields: [{ field: "insuredDob", kind: "date" }] },
+      { id: "8", label: "8. INSURED / SUBSCRIBER GENDER", x12: "DMG03 (2010BA)", colSpan: 4, fields: [{ field: "insuredSex", kind: "select", options: ADA_GENDER_OPTIONS }] },
     ],
   },
   {
     heightMm: 10,
     cells: [
-      { id: "9", label: "9. SUBSCRIBER ID / MEMBER ID", colSpan: 4, fields: [{ field: "subscriberId", kind: "text" }] },
-      { id: "10", label: "10. GROUP NUMBER", colSpan: 4, fields: [{ field: "groupNumber", kind: "text" }] },
-      { id: "11", label: "11. PLAN / PROGRAM NAME", colSpan: 4, fields: [{ field: "planName", kind: "text" }] },
+      { id: "9", label: "9. SUBSCRIBER ID / MEMBER ID", x12: "NM108=MI / NM109 (2010BA)", colSpan: 4, fields: [{ field: "subscriberId", kind: "text" }] },
+      { id: "10", label: "10. GROUP NUMBER", x12: "SBR03", colSpan: 4, fields: [{ field: "groupNumber", kind: "text" }] },
+      { id: "11", label: "11. PLAN / PROGRAM NAME", x12: "SBR04", colSpan: 4, fields: [{ field: "planName", kind: "text" }] },
     ],
   },
   { heightMm: 7, cells: [band("12. PATIENT INFORMATION")] },
   {
     heightMm: 10,
     cells: [
-      { id: "12", label: "12. PATIENT NAME", colSpan: 7, fields: [{ field: "patientName", kind: "text" }] },
-      { id: "13", label: "13. PATIENT ADDRESS", colSpan: 5, fields: [{ field: "patientAddress", kind: "text" }] },
+      { id: "12", label: "12. PATIENT NAME", x12: "NM1*QC (2010CA)", x12Note: "Or NM1*IL when the patient is the subscriber.", colSpan: 7, fields: [{ field: "patientName", kind: "text" }] },
+      { id: "13", label: "13. PATIENT ADDRESS", x12: "N3 / N4 (2010CA)", colSpan: 5, fields: [{ field: "patientAddress", kind: "text" }] },
     ],
   },
   {
     heightMm: 10,
     cells: [
-      { id: "14", label: "14. PATIENT PHONE", colSpan: 4, fields: [{ field: "patientPhone", kind: "text" }] },
-      { id: "15", label: "15. PATIENT DATE OF BIRTH", colSpan: 4, fields: [{ field: "patientDob", kind: "date" }] },
-      { id: "16", label: "16. PATIENT GENDER", colSpan: 4, fields: [{ field: "patientSex", kind: "select", options: ADA_GENDER_OPTIONS }] },
+      { id: "14", label: "14. PATIENT PHONE", x12: "paper-only", x12Note: "The patient telephone has no standard 837D element.", colSpan: 4, fields: [{ field: "patientPhone", kind: "text" }] },
+      { id: "15", label: "15. PATIENT DATE OF BIRTH", x12: "DMG02 (2010CA)", colSpan: 4, fields: [{ field: "patientDob", kind: "date" }] },
+      { id: "16", label: "16. PATIENT GENDER", x12: "DMG03 (2010CA)", colSpan: 4, fields: [{ field: "patientSex", kind: "select", options: ADA_GENDER_OPTIONS }] },
     ],
   },
   {
     heightMm: 10,
     cells: [
-      { id: "17", label: "17. PATIENT ID / ACCOUNT #", colSpan: 6, fields: [{ field: "patientId", kind: "text" }] },
-      { id: "18", label: "18. RELATIONSHIP TO SUBSCRIBER", colSpan: 6, fields: [{ field: "relationship", kind: "select", options: ADA_RELATIONSHIP_OPTIONS }] },
+      { id: "17", label: "17. PATIENT ID / ACCOUNT #", x12: "CLM01", x12Note: "The practice's own account number, not a payer ID.", colSpan: 6, fields: [{ field: "patientId", kind: "text" }] },
+      { id: "18", label: "18. RELATIONSHIP TO SUBSCRIBER", x12: "PAT01 (2000C)", x12Note: "SBR02=18 when the patient is the subscriber.", colSpan: 6, fields: [{ field: "relationship", kind: "select", options: ADA_RELATIONSHIP_OPTIONS }] },
     ],
   },
   { heightMm: 7, cells: [band("20. TREATING DENTIST AND CLAIM DETAIL")] },
   {
     heightMm: 10,
     cells: [
-      { id: "20", label: "20. TREATING DENTIST NAME", colSpan: 7, fields: [{ field: "dentistName", kind: "text" }] },
-      { id: "21", label: "21. TREATING DENTIST NPI", colSpan: 5, fields: [{ field: "dentistNpi", kind: "text" }] },
+      { id: "20", label: "20. TREATING DENTIST NAME", x12: "NM1*82 (2310B)", colSpan: 7, fields: [{ field: "dentistName", kind: "text" }] },
+      { id: "21", label: "21. TREATING DENTIST NPI", x12: "NM108=XX / NM109 (2310B)", colSpan: 5, fields: [{ field: "dentistNpi", kind: "text" }] },
     ],
   },
   {
     heightMm: 10,
     cells: [
-      { id: "22", label: "22. TREATING DENTIST ADDRESS", colSpan: 8, fields: [{ field: "dentistAddress", kind: "text" }] },
-      { id: "23", label: "23. TREATING DENTIST PHONE", colSpan: 4, fields: [{ field: "dentistPhone", kind: "text" }] },
+      { id: "22", label: "22. TREATING DENTIST ADDRESS", x12: "paper-only", x12Note: "Loop 2310B carries no N3 or N4.", colSpan: 8, fields: [{ field: "dentistAddress", kind: "text" }] },
+      { id: "23", label: "23. TREATING DENTIST PHONE", x12: "paper-only", x12Note: "Loop 2310B carries no PER.", colSpan: 4, fields: [{ field: "dentistPhone", kind: "text" }] },
     ],
   },
   {
     heightMm: 10,
     cells: [
-      { id: "24", label: "24. PLACE OF TREATMENT", colSpan: 4, fields: [{ field: "placeOfTreatment", kind: "select", options: ADA_PLACE_OF_TREATMENT_OPTIONS }] },
-      { id: "25", label: "25. PATIENT'S STATUS", colSpan: 4, fields: [{ field: "patientStatus", kind: "select", options: ADA_PATIENT_STATUS_OPTIONS }] },
-      { id: "26", label: "26. DATE OF ACCIDENT", colSpan: 4, fields: [{ field: "accidentDate", kind: "date" }] },
+      { id: "24", label: "24. PLACE OF TREATMENT", x12: "CLM05-1", colSpan: 4, fields: [{ field: "placeOfTreatment", kind: "select", options: ADA_PLACE_OF_TREATMENT_OPTIONS }] },
+      { id: "25", label: "25. PATIENT'S STATUS", x12: "paper-only", x12Note: "The 837D has no marital or student-status element — the same gap as CMS-1500 box 8.", colSpan: 4, fields: [{ field: "patientStatus", kind: "select", options: ADA_PATIENT_STATUS_OPTIONS }] },
+      { id: "26", label: "26. DATE OF ACCIDENT", x12: "DTP*439", colSpan: 4, fields: [{ field: "accidentDate", kind: "date" }] },
     ],
   },
   {
     heightMm: 10,
     cells: [
-      { id: "27", label: "27. ORTHODONTIC TREATMENT?", colSpan: 3, fields: [{ field: "orthodontic", kind: "select", options: YES_NO_OPTIONS }] },
-      { id: "28", label: "28. PROSTHESIS?", colSpan: 3, fields: [{ field: "prosthesis", kind: "select", options: YES_NO_OPTIONS }] },
-      { id: "29", label: "29. OTHER TREATMENT INFORMATION", colSpan: 6, fields: [{ field: "otherTreatmentInfo", kind: "text" }] },
+      { id: "27", label: "27. ORTHODONTIC TREATMENT?", x12: "undetermined", x12Note: "Carried by the orthodontic CDT codes and an NTE, not by an element of its own.", colSpan: 3, fields: [{ field: "orthodontic", kind: "select", options: YES_NO_OPTIONS }] },
+      { id: "28", label: "28. PROSTHESIS?", x12: "undetermined", x12Note: "Carried by the D5xxx replacement code; the prior-placement date needs a payer-specific DTP.", colSpan: 3, fields: [{ field: "prosthesis", kind: "select", options: YES_NO_OPTIONS }] },
+      { id: "29", label: "29. OTHER TREATMENT INFORMATION", x12: "NTE (NTE01=ADD)", colSpan: 6, fields: [{ field: "otherTreatmentInfo", kind: "text" }] },
     ],
   },
   {
@@ -259,6 +326,7 @@ const ADA_ROWS: ClaimRow[] = [
       {
         id: "30",
         label: "30. DIAGNOSIS CODE(S) — ICD-10 (required for oral surgery / medical cross-coding)",
+        x12: "HI (ABK, then ABF)",
         colSpan: 12,
         fields: [{ field: "diagnosisCodes", kind: "text" }],
       },
@@ -270,6 +338,9 @@ const ADA_ROWS: ClaimRow[] = [
       {
         id: "31",
         label: "31. SERVICES — DATE  PROCEDURE CODE  DESCRIPTION  TOOTH  SURFACE  QUADRANT  FEE  UNITS",
+        x12: "2400 loop · LX / SV3",
+        x12Note:
+          "Each column of the service table carries its own element.",
         colSpan: 12,
         structural: "table",
       },
@@ -278,23 +349,23 @@ const ADA_ROWS: ClaimRow[] = [
   {
     heightMm: 10,
     cells: [
-      { id: "32", label: "32. OTHER FEES", colSpan: 4, fields: [{ field: "otherFees", kind: "money" }] },
-      { id: "33", label: "33. TOTAL FEE", colSpan: 4, fields: [{ field: "totalFee", kind: "money" }] },
-      { id: "34", label: "34. AMOUNT PAID", colSpan: 4, fields: [{ field: "amountPaid", kind: "money" }] },
+      { id: "32", label: "32. OTHER FEES", x12: "paper-only", x12Note: "The payer's total is the sum of SV302; there is no separate other-fees element.", colSpan: 4, fields: [{ field: "otherFees", kind: "money" }] },
+      { id: "33", label: "33. TOTAL FEE", x12: "CLM02", colSpan: 4, fields: [{ field: "totalFee", kind: "money" }] },
+      { id: "34", label: "34. AMOUNT PAID", x12: "AMT*F5 (2300)", colSpan: 4, fields: [{ field: "amountPaid", kind: "money" }] },
     ],
   },
   {
     heightMm: 10,
     cells: [
-      { id: "35", label: "35. BALANCE DUE", colSpan: 4, fields: [{ field: "balanceDue", kind: "money" }] },
-      { id: "36", label: "36. DATE OF SIGNATURE", colSpan: 4, fields: [{ field: "signatureDate", kind: "date" }] },
-      { id: "37", label: "37. SIGNATURE OF SUBSCRIBER / PATIENT", colSpan: 4, fields: [{ field: "patientSignature", kind: "checkbox", label: "SIGNATURE ON FILE" }] },
+      { id: "35", label: "35. BALANCE DUE", x12: "paper-only", x12Note: "Derived on the paper: total fee less amount paid.", colSpan: 4, fields: [{ field: "balanceDue", kind: "money" }] },
+      { id: "36", label: "36. DATE OF SIGNATURE", x12: "paper-only", x12Note: "No segment carries the date a signature was given.", colSpan: 4, fields: [{ field: "signatureDate", kind: "date" }] },
+      { id: "37", label: "37. SIGNATURE OF SUBSCRIBER / PATIENT", x12: "CLM09 / CLM10", x12Note: "Our field is a checkbox; X12 wants the release code and the signature source code.", colSpan: 4, fields: [{ field: "patientSignature", kind: "checkbox", label: "SIGNATURE ON FILE" }] },
     ],
   },
   {
     heightMm: 12,
     cells: [
-      { id: "38", label: "38. SIGNATURE OF DENTIST", colSpan: 12, fields: [{ field: "dentistSignature", kind: "text" }] },
+      { id: "38", label: "38. SIGNATURE OF DENTIST", x12: "CLM06", x12Note: "CLM06 is a Y/N code — the typed name this box prints is carried by no segment.", colSpan: 12, fields: [{ field: "dentistSignature", kind: "text" }] },
     ],
   },
 ];
@@ -303,6 +374,9 @@ export const ADA_LAYOUT: ClaimLayout = {
   id: "ada2019",
   title: "DENTAL CLAIM FORM",
   formCode: "ADA 2019 (J430D)",
+  // A dental claim is an 837D — its own transaction set, with SV3 rather than
+  // the 837P's SV1 or the 837I's SV2.
+  x12Set: "837D",
   maxLines: 6,
   lineShape: ["dateOfService", "cdt", "description", "tooth", "surface", "quadrant", "fee", "units"],
   rows: ADA_ROWS,
