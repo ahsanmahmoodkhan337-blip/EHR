@@ -48,9 +48,9 @@ describe("the Tutorial patient opens at the beginning", () => {
     expect(prefill).not.toContain('role: "coder"');
   });
 
-  test("the tutorial opens on the scribing step, not Registration and not Sign & Lock", () => {
-    // Revised by spec `start-at-scribing.md`: every patient opens at Intake /
-    // Vitals, with Registration one Back away.
+  test("the tutorial opens on step 1, and never lands on a later step", () => {
+    // Revised by spec `encounter-continuity.md`: every patient opens on step 1,
+    // Registration, and walks forward from there.
     expect(INDEX).toContain("setActiveStage(CHART_OPENING_STEP);");
     expect(INDEX).not.toContain('setActiveStage("registration");');
     expect(INDEX).not.toContain('setActiveStage("sign-lock");');
