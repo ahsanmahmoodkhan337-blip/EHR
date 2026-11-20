@@ -16,7 +16,7 @@
  *      (downgrade rendered as an adjustment, never a denial).
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, ClipboardCheck, Info, Receipt } from "lucide-react";
 import {
   PREDETERMINATION_CANDIDATE_INDEX,
@@ -29,6 +29,7 @@ import {
   type AttachmentType,
   type PredeterminationDriver,
   type PredeterminationScenario,
+  type PredeterminationVerdict,
 } from "../../data/dental";
 import { useDentalTrack, type DentalClaimLine } from "./DentalTrackStore";
 import { adjudicateDentalClaim } from "./adjudication";
@@ -41,6 +42,21 @@ const DRIVER_LABEL: Record<PredeterminationDriver, string> = {
   "removable-appliance": "Removable appliance",
   surgical: "Surgical",
   "frequency-sensitive": "Frequency-sensitive",
+};
+
+/** The four answers a payer can give a line. The student picks one before the estimate is shown. */
+const PREDICTION_OPTIONS: { value: PredeterminationVerdict; label: string }[] = [
+  { value: "allowed", label: "Allowed" },
+  { value: "downgraded", label: "Downgraded" },
+  { value: "frequency-limited", label: "Frequency-limited" },
+  { value: "excluded", label: "Excluded" },
+];
+
+const VERDICT_LABEL: Record<PredeterminationVerdict, string> = {
+  allowed: "Allowed",
+  downgraded: "Downgraded",
+  "frequency-limited": "Frequency-limited",
+  excluded: "Excluded",
 };
 
 interface CheckableService {
@@ -112,6 +128,20 @@ export function DentalPredetermination() {
   const selectedScenario = state.predeterminationScenarioId
     ? findPredeterminationScenario(state.predeterminationScenarioId)
     : undefined;
+
+  /* ── Rule 6 — the student predicts before the payer's answer is printed ────
+     One verdict per estimated line, held in this session only (never in the
+     case record), and a commit that opens the estimate and the trap card.
+     Switching scenario or patient re-asks the question. */
+  const [predictions, setPredictions] = useState<Record<string, PredeterminationVerdict>>({});
+  const [committedScenarioId, setCommittedScenarioId] = useState<string | null>(null);
+
+  const predictionKey = (scenarioId: string, line: number) => `${scenarioId}:${line}`;
+  const committed = Boolean(selectedScenario && committedScenarioId === selectedScenario.id);
+  const allPredicted = Boolean(
+    selectedScenario &&
+      selectedScenario.estimate.every((l) => Boolean(predictions[predictionKey(selectedScenario.id, l.line)])),
+  );
 
   return (
     <div className="h-full overflow-y-auto p-4">
@@ -294,29 +324,101 @@ export function DentalPredetermination() {
             </p>
           </div>
 
-          <PredeterminationEstimate scenario={selectedScenario} />
-
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-              Trap: {selectedScenario.trap.title}
+          {/* Rule 6 — predict the payer's answer per line; the estimate and the
+              trap card below stay hidden until the prediction is committed. */}
+          <div className="rounded-xl border border-teal-200 bg-white p-3 shadow-sm">
+            <p className="text-[11px] font-semibold text-slate-800">
+              Predict the payer&rsquo;s answer for each line, then commit to see what the estimate says.
             </p>
-            <p className="mt-1 text-[10px] leading-snug text-amber-800">
-              <span className="font-semibold">Mistake: </span>
-              {selectedScenario.trap.mistake}
-            </p>
-            <p className="mt-1 text-[10px] leading-snug text-amber-800">
-              <span className="font-semibold">Consequence: </span>
-              {selectedScenario.trap.consequence}
-            </p>
-            <p className="mt-1 text-[10px] leading-snug text-emerald-800">
-              <span className="font-semibold">Correct action: </span>
-              {selectedScenario.trap.correctAction}
-            </p>
-            <p className="mt-1.5 border-t border-amber-100 pt-1.5 text-[10px] leading-snug text-slate-700">
-              <span className="font-semibold">Teaching point: </span>
-              {selectedScenario.teachingPoint}
-            </p>
+            <div className="mt-2 space-y-2">
+              {selectedScenario.estimate.map((line) => {
+                const key = predictionKey(selectedScenario.id, line.line);
+                const picked = predictions[key];
+                return (
+                  <fieldset key={line.line} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                    <legend className="px-1 text-[10px] font-semibold text-slate-700">
+                      Line {line.line} · {line.code}
+                      {line.tooth ? ` · #${line.tooth}` : ""} — {line.description}
+                    </legend>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PREDICTION_OPTIONS.map((opt) => (
+                        <label
+                          key={opt.value}
+                          className={`flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium ${
+                            picked === opt.value
+                              ? "border-teal-500 bg-teal-50 text-teal-800"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-teal-200"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`prediction-${selectedScenario.id}-${line.line}`}
+                            value={opt.value}
+                            checked={picked === opt.value}
+                            disabled={committed}
+                            onChange={() => {
+                              setPredictions((prev) => ({ ...prev, [key]: opt.value }));
+                              setCommittedScenarioId(null);
+                            }}
+                            className="h-3.5 w-3.5 accent-teal-600"
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
+                    </div>
+                    {committed && picked && (
+                      <p
+                        className={`mt-1 text-[9px] font-medium ${
+                          picked === line.verdict ? "text-emerald-700" : "text-amber-700"
+                        }`}
+                      >
+                        You predicted {VERDICT_LABEL[picked]} · the estimate says {VERDICT_LABEL[line.verdict]}
+                        {picked === line.verdict ? " ✓" : " ✗"}
+                      </p>
+                    )}
+                  </fieldset>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setCommittedScenarioId(selectedScenario.id)}
+              disabled={!allPredicted || committed}
+              className="mt-2 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ClipboardCheck className="h-3.5 w-3.5" /> {committed ? "Prediction committed" : "Commit my prediction"}
+            </button>
+            {!allPredicted && (
+              <p className="mt-1 text-[9px] text-slate-400">Answer every line before committing.</p>
+            )}
           </div>
+
+          {committed && (
+            <>
+              <PredeterminationEstimate scenario={selectedScenario} />
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                  Trap: {selectedScenario.trap.title}
+                </p>
+                <p className="mt-1 text-[10px] leading-snug text-amber-800">
+                  <span className="font-semibold">Mistake: </span>
+                  {selectedScenario.trap.mistake}
+                </p>
+                <p className="mt-1 text-[10px] leading-snug text-amber-800">
+                  <span className="font-semibold">Consequence: </span>
+                  {selectedScenario.trap.consequence}
+                </p>
+                <p className="mt-1 text-[10px] leading-snug text-emerald-800">
+                  <span className="font-semibold">Correct action: </span>
+                  {selectedScenario.trap.correctAction}
+                </p>
+                <p className="mt-1.5 border-t border-amber-100 pt-1.5 text-[10px] leading-snug text-slate-700">
+                  <span className="font-semibold">Teaching point: </span>
+                  {selectedScenario.teachingPoint}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -362,8 +464,9 @@ function ScenarioCard({
         )}
       </div>
       <p className="mt-1.5 flex-1 text-[11px] font-medium leading-snug text-slate-700">{scenario.title}</p>
+      {/* Rule 6 — the card names the subject matter, not the payer's verdicts. */}
       <p className="mt-1 text-[9px] text-slate-400">
-        Verdicts: {[...new Set(scenario.estimate.map((l) => l.verdict))].join(", ")} · Codes: {codes.join(", ")}
+        {scenario.estimate.length} line{scenario.estimate.length === 1 ? "" : "s"} · Codes: {codes.join(", ")}
       </p>
       <button
         onClick={onRequest}

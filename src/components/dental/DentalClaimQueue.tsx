@@ -47,13 +47,22 @@ export function DentalClaimQueue() {
     [planId],
   );
 
-  const denialScenarios = useMemo(
-    () => DENIAL_SCENARIOS.filter((s) => s.planId === planId),
-    [planId],
-  );
+  /* Rule 6 — the debrief teaches from the denials THIS claim actually earned,
+     never from every scenario filed under the patient's plan. */
+  const denialScenarios = useMemo(() => {
+    const earned = new Set(
+      adjudication.lines.filter((l) => l.denial).map((l) => l.denial!.id),
+    );
+    return DENIAL_SCENARIOS.filter((s) => earned.has(s.denialId));
+  }, [adjudication]);
 
   const hasLines = state.lines.length > 0;
   const sent = state.claimSubmitted;
+
+  // The debrief opens only once every denied line has been worked.
+  const allDeniedLinesResolved = adjudication.lines
+    .filter((l) => l.denial)
+    .every((l) => Boolean(state.lineResolutions[l.lineId]));
 
   // Overall claim stage.
   const anyDeniedUnresolved = adjudication.lines.some(
@@ -184,7 +193,7 @@ export function DentalClaimQueue() {
       {/* Denial debrief — situations, expected lines, and corrective action */}
       {sent && denialScenarios.length > 0 && (
         <div className="mt-4">
-          <DentalDenialDebrief scenarios={denialScenarios} />
+          <DentalDenialDebrief scenarios={denialScenarios} canReveal={allDeniedLinesResolved} />
         </div>
       )}
 
