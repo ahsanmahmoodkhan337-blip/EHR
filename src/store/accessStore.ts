@@ -3,7 +3,9 @@
  *
  * Primary data is stored in Supabase for cross-device sync.
  * localStorage serves as a fast read cache and fallback.
- * On app load, data is synced from Supabase to localStorage.
+ * Student-facing pages never bulk-sync: login asks about one phone number via
+ * lookupPhoneStatus(). The full table is only synced inside the authenticated
+ * admin panel (syncFromSupabase).
  * On write, Supabase is updated first, then localStorage cache.
  */
 
@@ -102,6 +104,111 @@ export async function syncFromSupabase(): Promise<void> {
   } catch (e) {
     lastSyncError = e instanceof Error ? e.message : String(e);
     console.warn("Supabase sync error, using localStorage cache:", e);
+  }
+}
+
+// ─── Single-phone status lookup ────────────────────────────────────
+//
+// The login path must never pull the enrolment table into the browser. This
+// asks the server about exactly one phone number: the check_access() function
+// when it exists, otherwise a column-limited query, otherwise (offline) the
+// device's own cache.
+
+export interface PhoneStatus {
+  status: "pending" | "approved" | "rejected";
+  subscriptionEndDate: string | null;
+  durationLabel: string | null;
+}
+
+function isPhoneStatusValue(v: unknown): v is PhoneStatus["status"] {
+  return v === "pending" || v === "approved" || v === "rejected";
+}
+
+function readCachedPhoneStatus(phone: string): PhoneStatus | null {
+  const target = normalizePhone(phone);
+  const cached = getAccessRequests().find((r) => normalizePhone(r.phone) === target);
+  if (!cached) return null;
+  return {
+    status: cached.status,
+    subscriptionEndDate: cached.subscriptionEndDate ?? null,
+    durationLabel: cached.durationLabel ?? null,
+  };
+}
+
+export async function lookupPhoneStatus(rawPhone: string): Promise<PhoneStatus | null> {
+  const phone = (rawPhone || "").trim();
+  if (!phone) return null;
+
+  if (!supabase) {
+    lastSyncError = "Supabase is not configured (missing keys).";
+    return readCachedPhoneStatus(phone);
+  }
+
+  // Preferred path: the check_access() function returns this one phone's
+  // status. It starts working once specs/supabase-close-exposure.sql has run.
+  try {
+    const { data, error } = await supabase.rpc("check_access", { p_phone: phone });
+    if (!error) {
+      lastSyncError = null;
+      const row = (Array.isArray(data) ? data[0] : data) as Record<string, any> | null | undefined;
+      if (!row) return null;
+      if (!isPhoneStatusValue(row.status)) return null;
+      return {
+        status: row.status,
+        subscriptionEndDate: row.subscription_end_date ?? null,
+        durationLabel: row.duration_label ?? null,
+      };
+    }
+    // Function not deployed yet — fall through to the narrow query below.
+  } catch {
+    // Network/RPC failure — fall through too.
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("access_requests")
+      .select("status, subscription_end_date, duration_label")
+      .in("phone", [phone, normalizePhone(phone)])
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      lastSyncError = error.message;
+      console.warn("lookupPhoneStatus: Supabase read failed, using localStorage cache:", error.message);
+      return readCachedPhoneStatus(phone);
+    }
+
+    lastSyncError = null;
+    if (!data) return null;
+    if (!isPhoneStatusValue((data as any).status)) return null;
+    return {
+      status: (data as any).status,
+      subscriptionEndDate: (data as any).subscription_end_date ?? null,
+      durationLabel: (data as any).duration_label ?? null,
+    };
+  } catch (e) {
+    lastSyncError = e instanceof Error ? e.message : String(e);
+    console.warn("lookupPhoneStatus: Supabase lookup error, using localStorage cache:", e);
+    return readCachedPhoneStatus(phone);
+  }
+}
+
+/**
+ * Record what the server just said about one phone in this device's local
+ * allowlist, so isLoggedIn() keeps working after a reload without any bulk
+ * download. Only the phone string is stored — no enrolment record is cached.
+ */
+export function cachePhoneStatus(phone: string, status: PhoneStatus): void {
+  const target = normalizePhone(phone);
+  const phones = getApprovedPhones();
+  const has = phones.some((p) => normalizePhone(p) === target);
+  if (status.status === "approved") {
+    if (!has) addApprovedPhone(phone);
+  } else if (has) {
+    localStorage.setItem(
+      APPROVED_PHONES_KEY,
+      JSON.stringify(phones.filter((p) => normalizePhone(p) !== target))
+    );
   }
 }
 

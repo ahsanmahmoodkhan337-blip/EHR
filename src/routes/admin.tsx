@@ -75,7 +75,8 @@ function AdminPage() {
   const [sharingSignals, setSharingSignals] = useState<Record<string, AdminSharingSummary>>({});
   const pageSize = 20;
 
-  // Load data — sync from Supabase first, then read localStorage cache
+  // Load data — sync from Supabase first, then read localStorage cache.
+  // This bulk read is admin-only: it sits behind the authenticated branch.
   useEffect(() => {
     if (authenticated) {
       import("../store/accessStore").then(m => {
@@ -84,12 +85,6 @@ function AdminPage() {
           setRequests(reqs);
           setApprovedPhones(getApprovedPhones());
           setSyncError(m.getLastSyncError());
-          // Surface the account-sharing signal for approved users so the owner
-          // can review who's sharing accounts (detection-only, non-blocking).
-          const approvedPhones = reqs.filter((r) => r.status === "approved").map((r) => r.phone);
-          fetchAdminSharingSummaries(approvedPhones)
-            .then(setSharingSignals)
-            .catch(() => setSharingSignals({}));
         });
       });
       setPins(getAllPins());
@@ -142,6 +137,43 @@ function AdminPage() {
     }
   };
 
+  const pendingRequests = requests.filter((r) => r.status === "pending");
+  const approvedRequests = requests.filter((r) => r.status === "approved");
+  const filteredApproved = approvedRequests.filter((req) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return req.fullName.toLowerCase().includes(q) || req.phone.includes(q);
+  });
+  const totalPages = Math.max(1, Math.ceil(filteredApproved.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedApproved = filteredApproved.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const showingFrom = filteredApproved.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const showingTo = Math.min(safePage * pageSize, filteredApproved.length);
+  const pagePhonesKey = paginatedApproved.map((r) => r.phone).join("|");
+
+  // Account-sharing signal (detection-only, non-blocking) for the 20 approved
+  // users on the current page only — never the whole approved list, so no
+  // single user_data call carries more than 20 phone numbers.
+  useEffect(() => {
+    if (!authenticated) return;
+    const phones = pagePhonesKey ? pagePhonesKey.split("|") : [];
+    if (phones.length === 0) {
+      setSharingSignals({});
+      return;
+    }
+    let cancelled = false;
+    fetchAdminSharingSummaries(phones)
+      .then((summaries) => {
+        if (!cancelled) setSharingSignals(summaries);
+      })
+      .catch(() => {
+        if (!cancelled) setSharingSignals({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authenticated, pagePhonesKey, refreshKey]);
+
   if (!authenticated) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-900 p-4">
@@ -182,19 +214,6 @@ function AdminPage() {
       </div>
     );
   }
-
-  const pendingRequests = requests.filter((r) => r.status === "pending");
-  const approvedRequests = requests.filter((r) => r.status === "approved");
-    const filteredApproved = approvedRequests.filter((req) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return req.fullName.toLowerCase().includes(q) || req.phone.includes(q);
-  });
-  const totalPages = Math.max(1, Math.ceil(filteredApproved.length / pageSize));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedApproved = filteredApproved.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const showingFrom = filteredApproved.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const showingTo = Math.min(safePage * pageSize, filteredApproved.length);
 
   return (
     <div className="min-h-dvh bg-slate-900">

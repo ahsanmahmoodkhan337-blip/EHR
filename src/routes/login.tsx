@@ -24,13 +24,13 @@ import { WhatsAppFloat } from "../components/WhatsAppFloat";
 import {
   isPhoneApproved,
   getAccessRequests,
+  getSubscriptionEndDate,
   setLoggedInPhone,
-  syncFromSupabase,
+  lookupPhoneStatus,
+  cachePhoneStatus,
   getLastSyncError,
   normalizePhone,
   type AccessRequest,
-  isSubscriptionExpired,
-  getDaysRemaining,
   revokeApprovedPhone,
 } from "../store/accessStore";
 import { recordLogin, MAX_DEVICE_COUNT, resetOtherSessions, type SharingSignal } from "../store/accountSecurity";
@@ -69,16 +69,30 @@ function LoginPage() {
 
     setError("");
 
-    // Pull the latest approved list from Supabase before checking, so a
-    // student who was just approved on the admin's device can log in from
-    // theirs (localStorage is per-device and may be stale/empty).
-    await syncFromSupabase();
+    // Ask the server about this one number only — the login path never reads
+    // the enrolment table, so a fresh browser cannot pull it down.
+    const remote = await lookupPhoneStatus(cleaned);
     setSyncError(getLastSyncError());
 
-    // Check if approved
-    if (isPhoneApproved(cleaned)) {
-      // Check subscription expiry — auto-revoke if expired
-      if (isSubscriptionExpired(cleaned)) {
+    // Offline path: if the server could not answer, fall back to what this
+    // device already knows.
+    const target = normalizePhone(cleaned);
+    const existing = getAccessRequests().find((r) => normalizePhone(r.phone) === target);
+    const effectiveStatus: "pending" | "approved" | "rejected" | null =
+      remote?.status ?? (isPhoneApproved(cleaned) ? "approved" : existing?.status ?? null);
+
+    if (effectiveStatus === "approved") {
+      // Keep this device's local allowlist in step with the server so the
+      // session survives a reload (isLoggedIn reads the local list).
+      if (remote) cachePhoneStatus(cleaned, remote);
+
+      // Subscription expiry — prefer the server's end date, else the cache.
+      const endDateStr = remote ? remote.subscriptionEndDate : getSubscriptionEndDate(cleaned);
+      const days = endDateStr
+        ? Math.ceil((new Date(endDateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        : Infinity;
+
+      if (days !== Infinity && days <= 0) {
         revokeApprovedPhone(cleaned);
         setStatus("denied");
         setExpiryWarning("Your subscription has expired. Please renew via WhatsApp at +92 335 0340888.");
@@ -98,7 +112,6 @@ function LoginPage() {
       setLoggedInPhone(cleaned);
 
       // Show expiry warning if < 30 days
-      const days = getDaysRemaining(cleaned);
       if (days < 30 && days !== Infinity) {
         setExpiryWarning(`Your subscription expires in ${days} day${days === 1 ? "" : "s"}. Please renew via WhatsApp.`);
       } else {
@@ -113,21 +126,14 @@ function LoginPage() {
       return;
     }
 
-    // Check if there's a pending request
-    const requests = getAccessRequests();
-    const target = normalizePhone(cleaned);
-    const existing = requests.find((r) => normalizePhone(r.phone) === target);
-    if (existing) {
-      setRequestInfo(existing);
-      if (existing.status === "pending") {
-        setStatus("pending");
-      } else if (existing.status === "rejected") {
-        setStatus("denied");
-      }
+    if (effectiveStatus === "pending") {
+      setRequestInfo(existing ?? null);
+      setStatus("pending");
       return;
     }
 
-    // No request found at all
+    // Rejected, or no request found at all
+    setRequestInfo(null);
     setStatus("denied");
   };
 
@@ -261,16 +267,18 @@ function LoginPage() {
                   Need help? Contact us on WhatsApp at +92 335 0340888.
                 </p>
               </div>
-            ) : status === "pending" && requestInfo ? (
+            ) : status === "pending" ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
                 <AlertCircle className="mx-auto mb-2 h-8 w-8 text-amber-500" />
                 <h3 className="font-semibold text-amber-800">Access Pending Approval</h3>
                 <p className="mt-1 text-sm text-amber-600">
                   Your request is under review. You'll receive access once an admin approves your account.
                 </p>
-                <p className="mt-3 text-xs text-amber-500">
-                  Submitted: {new Date(requestInfo.submittedAt).toLocaleDateString()}
-                </p>
+                {requestInfo?.submittedAt && (
+                  <p className="mt-3 text-xs text-amber-500">
+                    Submitted: {new Date(requestInfo.submittedAt).toLocaleDateString()}
+                  </p>
+                )}
               </div>
             ) : status === "denied" ? (
               <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center">
