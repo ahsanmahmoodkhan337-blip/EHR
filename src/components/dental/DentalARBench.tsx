@@ -5,7 +5,7 @@
  * system — a pool of ready-made denials a student can work on without first
  * coding and submitting a claim.
  *
- * Two views, one route: the picker (seven premade scenarios, facts only) and the
+ * Two views, one route: the picker (nine premade scenarios, facts only) and the
  * scenario itself, which renders the real `DentalAR` workspace against that
  * scenario's own record. Practice runs live in `state.practice` keyed by
  * scenario id, so nothing here can reach a graded case's lines, resolutions,

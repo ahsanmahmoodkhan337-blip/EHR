@@ -45,6 +45,7 @@ import {
   findCDT,
   findPlan,
   findTooth,
+  appealGateFor,
   appealOutcomeFor,
   type DentalAppealOutcome,
   type DentalDenial,
@@ -55,6 +56,7 @@ import {
 import { adjudicateDentalClaim, type TraceStep } from "./adjudication";
 import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
 import { DentalClaimScrub } from "./DentalClaimScrub";
+import { AppealDocumentationChecklist } from "./AppealDocumentationChecklist";
 import { ClaimFormShell } from "../claims/ClaimFormShell";
 import { ClaimAckChip, ClaimAckPanel } from "../status/ClaimAckPanel";
 import { StatusTimeline } from "../status/StatusTimeline";
@@ -567,6 +569,10 @@ function DenialAppeal({
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [narrative, setNarrative] = useState("");
+  /** The two required items of the documentation gate (`specs/appeal-documentation-gate.md`). */
+  const [filmAttached, setFilmAttached] = useState(false);
+  const [reasonId, setReasonId] = useState<string | null>(null);
+  const [refusal, setRefusal] = useState<{ rule: string; consequence: string } | null>(null);
   const [writeOffNote, setWriteOffNote] = useState<string | null>(null);
 
   const winnable = denial.expectedOutcome === "appeal-with-documentation";
@@ -678,33 +684,59 @@ function DenialAppeal({
               <li key={i}>{a}</li>
             ))}
           </ol>
-          <label className="block">
-            <span className="text-[10px] font-medium text-slate-600">Appeal narrative (what you are telling the payer):</span>
-            <textarea
-              value={narrative}
-              onChange={(e) => setNarrative(e.target.value)}
-              rows={3}
-              placeholder="Describe the clinical necessity / documentation you are attaching…"
-              className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300"
+          <p className="text-[10px] font-semibold text-slate-700">Assemble the appeal:</p>
+          {denial.appealEvidence ? (
+            <AppealDocumentationChecklist
+              idPrefix={`ledger-appeal-${lineId}`}
+              denial={denial}
+              filmAttached={filmAttached}
+              reasonId={reasonId}
+              narrative={narrative}
+              onFilm={setFilmAttached}
+              onReason={setReasonId}
+              onNarrative={setNarrative}
+              refusal={refusal}
             />
-          </label>
+          ) : (
+            <label htmlFor={`ledger-narrative-${lineId}`} className="block">
+              <span className="text-[10px] font-medium text-slate-600">
+                Appeal narrative (what you are telling the payer):
+              </span>
+              <textarea
+                id={`ledger-narrative-${lineId}`}
+                value={narrative}
+                onChange={(e) => setNarrative(e.target.value)}
+                rows={3}
+                placeholder="Describe the clinical necessity / documentation you are attaching…"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300"
+              />
+            </label>
+          )}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setStep(1)}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
+              className="min-h-[40px] rounded-lg border border-slate-200 px-3 py-1.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
             >
               Back
             </button>
             <button
               onClick={() => {
-                // The outcome is the payer's answer to what was lodged, decided
-                // here and only here — after the student has committed.
-                const outcome = appealOutcomeFor(denial, narrative);
+                // The gate comes first: an appeal without the film or a stated
+                // reason is refused here and nothing is recorded. The outcome
+                // is the payer's answer to a complete lodgement — decided here
+                // and only here, after the student has committed.
+                const lodgement = { filmAttached, reasonId, narrative };
+                const gate = appealGateFor(denial, lodgement);
+                if (!gate.complete) {
+                  setRefusal({ rule: gate.rule ?? "", consequence: gate.consequence ?? "" });
+                  return;
+                }
+                setRefusal(null);
+                const outcome = appealOutcomeFor(denial, lodgement);
                 onResolve(lineId, "appealed", outcome ?? undefined);
                 setStep(3);
               }}
-              disabled={!narrative.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-red-500"
             >
               <Send className="h-3 w-3" /> Lodge appeal
             </button>
