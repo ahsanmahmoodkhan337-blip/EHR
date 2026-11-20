@@ -340,7 +340,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
 
     savingRef.current = true;
     try {
-      createAppointment({
+      const created = createAppointment({
         patientId,
         patientName,
         date: modalDate,
@@ -352,6 +352,18 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
         status: modalStatus,
         isNewPatient,
       });
+      // The modal only closes when the row is really in the store — the whole
+      // point of the button. Read it back rather than trusting the call: a save
+      // that lands nowhere must say so instead of looking like it worked.
+      const landed = useEhrStore
+        .getState()
+        .user.appointments.some((a) => a.id === created.id);
+      if (!landed) {
+        setSaveError(
+          "The appointment did not reach the schedule. Nothing was lost — press Create Appointment again, and if it keeps happening reload the page first.",
+        );
+        return;
+      }
     } catch (err) {
       setSaveError(
         `The appointment could not be created: ${err instanceof Error ? err.message : "unknown error"}.`,

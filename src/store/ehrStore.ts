@@ -582,39 +582,62 @@ function hasIndexedDb(): boolean {
   }
 }
 
+/** ISO timestamps compare correctly as strings; a missing one is the oldest. */
+function envelopeStamp(raw: unknown): number {
+  const value = (raw as { updatedAt?: unknown } | null)?.updatedAt;
+  const ms = typeof value === "string" ? Date.parse(value) : NaN;
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+/** Newest of the two stored copies. A write that only landed in one backend
+ * must never be shadowed by an older copy in the other. */
+function newestOf(a: unknown | null, b: unknown | null): unknown | null {
+  if (!a) return b;
+  if (!b) return a;
+  return envelopeStamp(b) > envelopeStamp(a) ? b : a;
+}
+
 async function readEnvelope(phone: string): Promise<unknown | null> {
+  let fromIdb: unknown | null = null;
   if (hasIndexedDb()) {
     try {
-      const value = await idbGet<unknown>(`${IDB_KEY_PREFIX}${phone}`, idbStore);
-      if (value) return value;
+      fromIdb = (await idbGet<unknown>(`${IDB_KEY_PREFIX}${phone}`, idbStore)) ?? null;
     } catch (e) {
       console.warn("ehrStore: IndexedDB read failed, trying localStorage", e);
     }
   }
+  let fromLs: unknown | null = null;
   try {
     const raw = localStorage.getItem(`${LS_KEY_PREFIX}${phone}`);
-    return raw ? (JSON.parse(raw) as unknown) : null;
+    fromLs = raw ? (JSON.parse(raw) as unknown) : null;
   } catch (e) {
     console.warn("ehrStore: localStorage read failed", e);
-    return null;
   }
+  return newestOf(fromIdb, fromLs);
 }
 
+/** Set false the first time the mirror is rejected (quota), so a full
+ * localStorage does not throw on every save for the rest of the session. */
+let mirrorEnabled = true;
+
 async function writeEnvelope(phone: string, envelope: EhrEnvelope): Promise<void> {
-  let wroteToIdb = false;
-  if (hasIndexedDb()) {
-    try {
-      await idbSet(`${IDB_KEY_PREFIX}${phone}`, envelope, idbStore);
-      wroteToIdb = true;
-    } catch (e) {
-      console.warn("ehrStore: IndexedDB write failed, falling back to localStorage", e);
-    }
-  }
-  if (!wroteToIdb) {
+  // Mirror to localStorage first and synchronously. This copy is what survives a
+  // page teardown that happens before the IndexedDB transaction commits — the
+  // sign-out/supersession path calls unload() and reloads in the same tick.
+  if (mirrorEnabled) {
     try {
       localStorage.setItem(`${LS_KEY_PREFIX}${phone}`, JSON.stringify(envelope));
     } catch (e) {
-      console.warn("ehrStore: localStorage write failed", e);
+      mirrorEnabled = false;
+      console.warn("ehrStore: localStorage mirror failed, continuing with IndexedDB only", e);
+    }
+  }
+  if (hasIndexedDb()) {
+    try {
+      await idbSet(`${IDB_KEY_PREFIX}${phone}`, envelope, idbStore);
+      return;
+    } catch (e) {
+      console.warn("ehrStore: IndexedDB write failed, relying on the localStorage copy", e);
     }
   }
 }
@@ -681,6 +704,53 @@ interface EhrState {
   importUserData: (json: string) => { ok: boolean; error?: string; counts?: Record<string, number> };
 }
 
+/** True when the in-memory record set holds anything a student would miss. */
+function userHasRecords(user: UserData): boolean {
+  return (
+    user.patients.length > 0 ||
+    user.appointments.length > 0 ||
+    user.encounters.length > 0 ||
+    user.notes.length > 0 ||
+    user.claims.length > 0 ||
+    Object.keys(user.caseStates).length > 0 ||
+    Object.keys(user.noteDrafts).length > 0
+  );
+}
+
+/**
+ * Merge two record sets, `over` winning on every id.
+ *
+ * Used when a hydration read finishes after the student has already done work
+ * in this session: the work on screen is newer than the copy on disk, so it
+ * must never be replaced by it. Both sides are kept, nothing is dropped.
+ */
+function mergeUsers(base: UserData, over: UserData): UserData {
+  const byId = <T extends { id: string }>(a: T[], b: T[]): T[] => {
+    const map = new Map<string, T>();
+    for (const record of a) map.set(record.id, record);
+    for (const record of b) map.set(record.id, record);
+    return [...map.values()];
+  };
+  return {
+    patients: byId(base.patients, over.patients),
+    appointments: byId(base.appointments, over.appointments),
+    encounters: byId(base.encounters, over.encounters),
+    notes: byId(base.notes, over.notes),
+    orders: byId(base.orders, over.orders),
+    claims: byId(base.claims, over.claims),
+    priorAuths: byId(base.priorAuths, over.priorAuths),
+    payments: byId(base.payments, over.payments),
+    tasks: byId(base.tasks, over.tasks),
+    activity: [...base.activity, ...over.activity].slice(-MAX_ACTIVITY_ENTRIES),
+    caseStates: { ...base.caseStates, ...over.caseStates },
+    context: over.context?.updatedAt ? over.context : base.context,
+    noteDrafts: { ...base.noteDrafts, ...over.noteDrafts },
+    dental: over.dental ?? base.dental,
+    legacy: over.legacy ?? base.legacy,
+    mrnSequence: Math.max(base.mrnSequence, over.mrnSequence),
+  };
+}
+
 function envelopeFor(phone: string, user: UserData): EhrEnvelope {
   return {
     app: APP_ID,
@@ -708,7 +778,18 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
     }
     if (get().phone === phone && get().hydrated) return;
 
+    const startPhone = get().phone;
+    const startUser = get().user;
     const stored = await readEnvelope(phone);
+
+    // The read is asynchronous, so the session can move on while it is in
+    // flight: another student is loaded, this one already hydrated, or the
+    // student has registered a patient and booked them an appointment. In every
+    // one of those cases this read is stale and must not replace what is on
+    // screen — a late hydrate used to wipe work saved in the same session.
+    const after = get();
+    if (after.phone !== startPhone || after.hydrated) return;
+
     let user: UserData;
     if (stored) {
       const migrated = migrateEnvelope(stored);
@@ -717,6 +798,8 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
       // First load for this student — absorb the legacy keys rather than orphan them.
       user = absorbLegacyKeys(phone);
     }
+    // Anything created while the read was in flight is newer than the disk copy.
+    if (after.user !== startUser) user = mergeUsers(user, after.user);
     user.mrnSequence = Math.max(
       user.mrnSequence,
       highestMrnSequence([...get().seedPatients, ...user.patients]),
@@ -726,7 +809,10 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
 
   unload: () => {
     const { phone, user, hydrated } = get();
-    if (phone && hydrated) {
+    // Write even when hydration never completed, as long as there is work in
+    // memory: a store that never hydrated is holding the only copy of that
+    // patient and that appointment. Requiring `hydrated` here threw them away.
+    if (phone && (hydrated || userHasRecords(user))) {
       void writeEnvelope(phone, envelopeFor(phone, user));
     }
     set({ phone: null, hydrated: false, user: emptyUser() });
@@ -786,6 +872,10 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
         activity: appendActivity(s.user.activity, entry),
       },
     }));
+    // Write now instead of waiting out the 300 ms debounce: a sign-out, a
+    // superseded session or a reload straight after the click would otherwise
+    // drop the appointment before it ever reached the disk.
+    flushEhrStore();
     return patient;
   },
 
@@ -915,6 +1005,9 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
         activity: appendActivity(s.user.activity, entry),
       },
     }));
+    // Flush straight away — the appointment must be on disk before the modal
+    // closes, not 300 ms later.
+    flushEhrStore();
     return appointment;
   },
 
@@ -1121,26 +1214,47 @@ export function defaultCaseState(patientId: string): CaseState {
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Who is signed in, according to the access layer. Registered from
+ * `accessStore` so the store can still persist when it was never told the
+ * phone — a store stuck at `phone: null` used to drop every save silently,
+ * which is how a registered patient's appointment vanished.
+ */
+let loggedInPhoneResolver: () => string | null = () => null;
+
+export function registerLoggedInPhoneResolver(fn: () => string | null): void {
+  loggedInPhoneResolver = fn;
+}
+
+function persistencePhone(state: EhrState): string | null {
+  return state.phone ?? loggedInPhoneResolver();
+}
+
 /** Write the current user slice for `phone` right now (used by reset/import). */
 export function flushEhrStore(): void {
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
-  const { phone, hydrated, user } = useEhrStore.getState();
-  if (!phone || !hydrated) return;
-  void writeEnvelope(phone, envelopeFor(phone, user));
+  const state = useEhrStore.getState();
+  const phone = persistencePhone(state);
+  if (!phone) return;
+  // Never write an empty record set over one that may be on disk; do write
+  // whatever is in memory when the store never hydrated.
+  if (!state.hydrated && !userHasRecords(state.user)) return;
+  void writeEnvelope(phone, envelopeFor(phone, state.user));
 }
 
 useEhrStore.subscribe((state, prev) => {
-  if (!state.phone || !state.hydrated) return;
   if (state.user === prev.user) return;
-  const phone = state.phone;
+  const phone = persistencePhone(state);
+  if (!phone) return;
+  if (!state.hydrated && !userHasRecords(state.user)) return;
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveTimer = null;
     const current = useEhrStore.getState();
-    if (current.phone !== phone) return;
+    if (persistencePhone(current) !== phone) return;
     void writeEnvelope(phone, envelopeFor(phone, current.user));
   }, SAVE_DEBOUNCE_MS);
 });
