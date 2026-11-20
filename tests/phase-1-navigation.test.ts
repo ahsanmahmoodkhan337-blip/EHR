@@ -113,7 +113,7 @@ describe("every new page is a route of its own", () => {
   const pages: [string, string, string][] = [
     ["/schedule", "src/routes/schedule.tsx", "schedule"],
     ["/patients", "src/routes/patients.tsx", "patients"],
-    ["/cases", "src/routes/cases.tsx", "practice-cases"],
+    ["/cases/", "src/routes/cases.index.tsx", "practice-cases"],
     ["/reference", "src/routes/reference.tsx", "reference"],
   ];
 
@@ -128,6 +128,25 @@ describe("every new page is a route of its own", () => {
 
   test("Home marks the Home item active", () => {
     expect(read("src/routes/index.tsx")).toContain('activeNav={shellActiveNav}');
+  });
+
+  /**
+   * The regression this guards: `/cases` is the parent of
+   * `/cases/$track/$caseId/$stage`, so it must draw its child. When it drew the
+   * list itself and rendered no `<Outlet />`, every case deep link showed the
+   * case list instead of the case.
+   */
+  test("/cases is a layout that draws its child, and the list is its index child", () => {
+    const layout = read("src/routes/cases.tsx");
+    expect(layout).toContain('createFileRoute("/cases")');
+    expect(layout).toContain("<Outlet />");
+    expect(layout).not.toContain("<AppShell");
+    expect(read("src/routes/cases.index.tsx")).toContain('createFileRoute("/cases/")');
+    // The generated tree must carry the index child under the layout, or the
+    // list never draws and `/cases` is a blank frame.
+    const tree = read("src/routeTree.gen.ts");
+    expect(tree).toContain("CasesIndexRoute: typeof CasesIndexRoute");
+    expect(tree).toContain("getParentRoute: () => CasesRoute,");
   });
 });
 

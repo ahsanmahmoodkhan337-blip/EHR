@@ -28,6 +28,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as DentalCaseIdStageRouteImport } from './routes/dental.$caseId.$stage'
 import { Route as MedicalCasesCaseIdStageRouteImport } from './routes/medical-cases.$caseId.$stage'
 import { Route as CasesTrackCaseIdStageRouteImport } from './routes/cases.$track.$caseId.$stage'
+import { Route as CasesIndexRouteImport } from './routes/cases.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -124,12 +125,18 @@ const CasesTrackCaseIdStageRoute = CasesTrackCaseIdStageRouteImport.update({
   path: '/$track/$caseId/$stage',
   getParentRoute: () => CasesRoute,
 } as any)
+const CasesIndexRoute = CasesIndexRouteImport.update({
+  id: '/cases/',
+  path: '/',
+  getParentRoute: () => CasesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
   '/cases': typeof CasesRouteWithChildren
+  '/cases/': typeof CasesIndexRoute
   '/charts': typeof ChartsRoute
   '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRouteWithChildren
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
   '/cases': typeof CasesRouteWithChildren
+  '/cases/': typeof CasesIndexRoute
   '/charts': typeof ChartsRoute
   '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRouteWithChildren
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
   '/cases': typeof CasesRouteWithChildren
+  '/cases/': typeof CasesIndexRoute
   '/charts': typeof ChartsRoute
   '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRouteWithChildren
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/admin'
     | '/cases'
+    | '/cases/'
     | '/charts'
     | '/dashboard'
     | '/dental'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/admin'
     | '/cases'
+    | '/cases/'
     | '/charts'
     | '/dashboard'
     | '/dental'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/admin'
     | '/cases'
+    | '/cases/'
     | '/charts'
     | '/dashboard'
     | '/dental'
@@ -409,15 +421,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CasesTrackCaseIdStageRouteImport
       parentRoute: typeof CasesRoute
     }
+    '/cases/': {
+      id: '/cases/'
+      path: '/'
+      fullPath: '/cases/'
+      preLoaderRoute: typeof CasesIndexRouteImport
+      parentRoute: typeof CasesRoute
+    }
   }
 }
 
 interface CasesRouteChildren {
   CasesTrackCaseIdStageRoute: typeof CasesTrackCaseIdStageRoute
+  CasesIndexRoute: typeof CasesIndexRoute
 }
 
 const CasesRouteChildren: CasesRouteChildren = {
   CasesTrackCaseIdStageRoute: CasesTrackCaseIdStageRoute,
+  CasesIndexRoute: CasesIndexRoute,
 }
 
 const CasesRouteWithChildren = CasesRoute._addFileChildren(CasesRouteChildren)
