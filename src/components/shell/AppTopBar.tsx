@@ -22,6 +22,7 @@ import { DarkModeToggle } from "../DarkModeToggle";
 import { TrackSwitcher } from "../dental/TrackSwitcher";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
 import { AutosaveIndicator } from "./AutosaveIndicator";
+import { setActiveTrack } from "./activeTrack";
 import type { ShellTrack } from "./navItems";
 
 interface AppTopBarProps {
@@ -159,7 +160,10 @@ export function AppTopBar({
       compact
       onTrackChange={(next) => {
         setOverflowOpen(false);
-        void navigate({ to: next === "dental" ? "/dental" : "/" });
+        // The choice is remembered before the navigation, so the case list the
+        // student lands on is the one for the track they just picked.
+        setActiveTrack(next);
+        void navigate({ to: "/cases" });
       }}
     />
   );

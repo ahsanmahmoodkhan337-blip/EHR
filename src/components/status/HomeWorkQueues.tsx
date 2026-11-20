@@ -282,8 +282,8 @@ function EntryLink({
     const { caseId, stage } = entry.target;
     return (
       <Link
-        to="/dental/$caseId/$stage"
-        params={{ caseId, stage }}
+        to="/cases/$track/$caseId/$stage"
+        params={{ track: "dental", caseId, stage }}
         className={className}
         aria-label={`Open ${entry.label} at the ${stage} stage`}
       >
@@ -292,7 +292,7 @@ function EntryLink({
     );
   }
   return (
-    <Link to="/dental" className={className} aria-label="Open the dental track">
+    <Link to="/cases" className={className} aria-label="Open the dental cases">
       {label("Open the dental track")}
     </Link>
   );

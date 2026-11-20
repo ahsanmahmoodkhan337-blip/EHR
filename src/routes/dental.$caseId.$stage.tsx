@@ -1,20 +1,25 @@
 /**
- * /dental/$caseId/$stage — one dental case stage at its own address
+ * /dental/$caseId/$stage — the old dental case-stage address
  *
- * Inspired by: Epic's Chart activity URLs, where the encounter you are in is
- * part of the address. It renders the same dental case-runner page as /dental;
- * the params only tell the runner which case and stage to open, so a refresh,
- * a bookmark or a shared link lands the student exactly there.
+ * Inspired by: Epic's Chart activity URLs. The brief's shape is
+ * `/cases/:track/:caseId/:stage` now (`phase-1-navigation-addendum.md` item 2),
+ * so this address redirects there and keeps both the case and the stage.
+ *
+ * The stage is translated on the way through: the two dental steps that used to
+ * sit outside the eight-stage model are now `claim` and `remittance`, so a
+ * bookmark to `/dental/DCASE-001/ledger` lands on Remittance, not on a stage id
+ * that no longer exists.
  */
 
-import { createFileRoute } from "@tanstack/react-router";
-import { DentalTrackPage } from "./dental";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { normalizeDentalStageId } from "../components/dental/DentalTrackStore";
 
 export const Route = createFileRoute("/dental/$caseId/$stage")({
-  component: DentalCaseStageRoute,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/cases/$track/$caseId/$stage",
+      params: { track: "dental", caseId: params.caseId, stage: normalizeDentalStageId(params.stage) },
+      replace: true,
+    });
+  },
 });
-
-function DentalCaseStageRoute() {
-  const { caseId, stage } = Route.useParams();
-  return <DentalTrackPage caseId={caseId} stage={stage} />;
-}

@@ -211,7 +211,7 @@ describe("saved progress is migrated, never invented", () => {
       adjustments: [{ id: "adj-1", amountUsd: 22, type: "contractual-write-off", at: "2026-11-01T09:10:00.000Z" }],
     });
 
-    expect(migrated.version).toBe(6);
+    expect(migrated.version).toBe(7);
     expect(migrated.ledger.length).toBe(3);
     expect(migrated.ledger.every((entry) => entry.userId === "migrated")).toBe(true);
     expect(migrated.ledger.every((entry) => entry.description.includes("Moved from the pre-ledger"))).toBe(true);

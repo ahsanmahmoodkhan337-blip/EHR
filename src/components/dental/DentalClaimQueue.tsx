@@ -6,16 +6,19 @@
  * pending/adjudicated → paid / denied / appealed / resubmitted. This is a read
  * of the dental track state and `adjudicateDentalClaim()` — it never mutates
  * adjudication results.
+ *
+ * Scope (spec `sidebar-stage-fixes.md`, defect 2): this is the **Claim** stage's
+ * submission status — the 277CA outcome and the claim timeline. The payer's 835,
+ * the sample ERAs and the posting live in the Remittance stage
+ * (`DentalRemittance.tsx`), which is the next step, so nothing here posts money.
  */
 
 import { useMemo } from "react";
 import { CheckCircle2, Clock, FileText, Send, AlertTriangle, RotateCcw, Phone, User, ArrowRight } from "lucide-react";
-import { DENIAL_SCENARIOS, ERA_REMITTANCES, findCDT, findDenial } from "../../data/dental";
+import { DENIAL_SCENARIOS, findCDT, findDenial } from "../../data/dental";
 import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
 import { adjudicateDentalClaim } from "./adjudication";
-import { DentalEraRemittance } from "./DentalEraRemittance";
 import { DentalDenialDebrief } from "./DentalDenialDebrief";
-import { buildDentalClaimRemittance } from "../../domain/dentalRemittance";
 
 type ClaimStage = "created" | "sent" | "pending" | "settled";
 
@@ -39,42 +42,9 @@ function lineStatus(resolution: DentalLineResolution | undefined, denied: boolea
   return { label: "Pending", tone: "bg-slate-100 text-slate-600" };
 }
 
-export function DentalClaimQueue() {
-  const { state, activeCase, planId, goTo, postRemittance, isRemittancePosted } = useDentalTrack();
+export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = {}) {
+  const { state, activeCase, goTo } = useDentalTrack();
   const adjudication = useMemo(() => adjudicateDentalClaim(state.lines, activeCase), [state.lines, activeCase]);
-
-  const remittances = useMemo(
-    () => ERA_REMITTANCES.filter((r) => r.payerPlanId === planId),
-    [planId],
-  );
-
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
-
-  /**
-   * This claim's own 835 (spec item 1). Built from the adjudication, never from
-   * a sample: one line per CDT code, with the group code + CARC behind every
-   * adjustment, and the claim number the clearinghouse accepted. This is the
-   * only remittance on this screen that can be posted.
-   */
-  const claimRemittance = useMemo(() => {
-    if (!state.claimSubmitted || !state.claimNumber || !activeCase || adjudication.lines.length === 0) {
-      return null;
-    }
-    return buildDentalClaimRemittance({
-      claimNumber: state.claimNumber,
-      payerPlanId: planId,
-      patientName: `${activeCase.patient.firstName} ${activeCase.patient.lastName}`,
-      remittanceDate: today,
-      lines: adjudication.lines.map((line, index) => ({
-        line: index + 1,
-        code: line.code,
-        tooth: line.claimLine.tooth,
-        dateOfService: line.claimLine.dateOfService,
-        result: line.result,
-        denial: line.denial,
-      })),
-    });
-  }, [state.claimSubmitted, state.claimNumber, activeCase, planId, adjudication.lines, today]);
 
   /* Rule 6 — the debrief teaches from the denials THIS claim actually earned,
      never from every scenario filed under the patient's plan. */
@@ -102,7 +72,7 @@ export function DentalClaimQueue() {
   const stageIdx = STEPS.findIndex((s) => s.id === stage);
 
   return (
-    <div className="h-full overflow-y-auto p-4">
+    <div className={embedded ? "p-4" : "h-full overflow-y-auto p-4"}>
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Claim Status Queue</h3>
@@ -199,50 +169,6 @@ export function DentalClaimQueue() {
         })}
       </div>
 
-      {/* ERA (835) remittance — this claim's own, postable, then the samples */}
-      {sent && claimRemittance && (
-        <div className="mt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-slate-800">835 remittance for this claim</h3>
-              <p className="text-[10px] text-slate-400">
-                The payer's answer on {claimRemittance.claimControlNumber}. Read it, then post it to the patient ledger.
-              </p>
-            </div>
-            <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
-              {claimRemittance.lines.length} line{claimRemittance.lines.length === 1 ? "" : "s"}
-            </span>
-          </div>
-          <DentalEraRemittance
-            remittance={claimRemittance}
-            onPost={() => postRemittance(claimRemittance)}
-            posted={isRemittancePosted(claimRemittance)}
-          />
-        </div>
-      )}
-
-      {sent && remittances.length > 0 && (
-        <div className="mt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-slate-800">Sample ERAs — practice reading</h3>
-              <p className="text-[10px] text-slate-400">
-                Extra 835s to read and reconcile. They belong to other patients and other claims, so they are
-                read-only — nothing here can be posted to this patient's ledger.
-              </p>
-            </div>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-              {remittances.length} sample{remittances.length === 1 ? "" : "s"}
-            </span>
-          </div>
-          <div className="space-y-3">
-            {remittances.map((r) => (
-              <DentalEraRemittance key={r.id} remittance={r} />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Denial debrief — situations, expected lines, and corrective action */}
       {sent && denialScenarios.length > 0 && (
         <div className="mt-4">
@@ -252,15 +178,16 @@ export function DentalClaimQueue() {
 
       <p className="mt-3 flex items-center gap-1 text-[9px] text-slate-400">
         <Phone className="h-3 w-3 shrink-0" />
-        Denied lines can be worked in the AR stage (voice follow-up) — resolutions you record there appear here.
+        The payer's 835 and the posting are in the Remittance stage. Denied lines are worked in AR.
       </p>
 
       <div className="mt-3 flex justify-end">
         <button
-          onClick={() => goTo("ar")}
-          className="flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"
+          type="button"
+          onClick={() => goTo("remittance")}
+          className="flex min-h-[40px] items-center gap-1.5 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white hover:bg-teal-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
         >
-          Continue to AR follow-up <ArrowRight className="h-3.5 w-3.5" />
+          Continue to Remittance <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
     </div>

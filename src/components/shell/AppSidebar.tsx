@@ -6,9 +6,10 @@
  * activity toolbar.
  *
  * It replaces the per-page headers' ad-hoc Home / Settings / track links: one
- * list of destinations, the same on every page, driven by `navItems.ts`. An
- * item whose screen does not exist yet is rendered as unavailable with its
- * reason on screen — it never links to a page that is not there.
+ * list of destinations, the same on every page, driven by `navItems.ts`. Every
+ * entry is a real page (spec `phase-1-navigation.md` item 1): there is no
+ * "SOON" state any more, so every item is a link and the current one is marked
+ * with `aria-current="page"`.
  *
  * Accessibility (STANDING-RULES): every item is at least 40 px tall, keeps a
  * visible label or an `aria-label`, and is reachable by keyboard. Below `lg`
@@ -23,8 +24,6 @@ interface AppSidebarProps {
   track: ShellTrack;
   /** The item to show as the current page, or null when none matches. */
   activeNav: ShellNavId | null;
-  /** Switches an in-page workspace (medical track). */
-  onWorkspaceSelect?: (workspace: string) => void;
   collapsed: boolean;
   onToggleCollapsed: () => void;
   /** True while the off-canvas drawer is open (below `lg`). */
@@ -35,7 +34,6 @@ interface AppSidebarProps {
 export function AppSidebar({
   track,
   activeNav,
-  onWorkspaceSelect,
   collapsed,
   onToggleCollapsed,
   mobileOpen,
@@ -75,78 +73,26 @@ export function AppSidebar({
       <nav aria-label="Primary" className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
         <ul className="flex flex-col gap-1">
           {SHELL_NAV_ITEMS.map((item) => {
-            const target = item.target(track);
             const Icon = item.icon;
             const isActive = activeNav === item.id;
             const baseClass =
               "flex min-h-10 w-full items-center gap-3 rounded-lg px-2.5 text-left text-[13px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600";
-
-            if (target.kind === "soon") {
-              return (
-                <li key={item.id}>
-                  <span
-                    aria-disabled="true"
-                    title={`${item.label} — ${target.reason}`}
-                    className={`${baseClass} cursor-not-allowed text-slate-500 dark:text-slate-400`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    {iconOnly ? (
-                      <span className="sr-only">{item.label} — not available yet</span>
-                    ) : (
-                      <>
-                        <span className="truncate">{item.label}</span>
-                        <span className="ml-auto shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                          Soon
-                        </span>
-                      </>
-                    )}
-                  </span>
-                </li>
-              );
-            }
-
             const activeClass = isActive
               ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200 dark:bg-brand-900/30 dark:text-brand-200 dark:ring-brand-800"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white";
 
-            if (target.kind === "route") {
-              const to = target.to;
-              return (
-                <li key={item.id}>
-                  <a
-                    href={to}
-                    aria-current={isActive ? "page" : undefined}
-                    aria-label={iconOnly ? item.label : undefined}
-                    title={iconOnly ? item.label : undefined}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      onCloseMobile();
-                      void navigate({ to });
-                    }}
-                    className={`${baseClass} ${activeClass}`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    {iconOnly ? (
-                      <span className="sr-only">{item.label}</span>
-                    ) : (
-                      <span className="truncate">{item.label}</span>
-                    )}
-                  </a>
-                </li>
-              );
-            }
-
             return (
               <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onWorkspaceSelect?.(target.workspace);
-                    onCloseMobile();
-                  }}
+                <a
+                  href={item.to}
                   aria-current={isActive ? "page" : undefined}
                   aria-label={iconOnly ? item.label : undefined}
                   title={iconOnly ? item.label : undefined}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onCloseMobile();
+                    void navigate({ to: item.to });
+                  }}
                   className={`${baseClass} ${activeClass}`}
                 >
                   <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -155,7 +101,7 @@ export function AppSidebar({
                   ) : (
                     <span className="truncate">{item.label}</span>
                   )}
-                </button>
+                </a>
               </li>
             );
           })}

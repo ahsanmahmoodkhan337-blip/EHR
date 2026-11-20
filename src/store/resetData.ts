@@ -87,6 +87,10 @@ export const UNTOUCHED_STORES = [
   "hh_reference_open",
   "hh_reference_tab",
   "hh_shell_sidebar_collapsed",
+  // Which track (medical / dental) the top bar switch last chose — a view
+  // preference, not student work. Deleting it would silently flip the student's
+  // track back to medical.
+  "hh_active_track",
   "hh_selected_patient",
   "hh_custom_patients",
   "hh_scenario",

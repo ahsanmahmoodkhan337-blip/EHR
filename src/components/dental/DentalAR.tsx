@@ -218,13 +218,25 @@ export function DentalAR() {
             {decidedCount} of {deniedLines.length} lines decided
           </span>
         ) : (
-          <button
-            onClick={() => goTo("ledger")}
-            disabled={!allResolved}
-            className="min-h-[40px] rounded-lg bg-teal-700 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            {allResolved ? "Post to ledger →" : "Resolve all lines to finish"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* A view of the ledger, never a posting step: the 835 was posted in
+                Remittance, which is the stage before this one. */}
+            <button
+              type="button"
+              onClick={() => goTo("remittance")}
+              className="flex min-h-[40px] items-center rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
+            >
+              View ledger
+            </button>
+            <button
+              type="button"
+              onClick={() => goTo("debrief")}
+              disabled={!allResolved}
+              className="min-h-[40px] rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-slate-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
+            >
+              {allResolved ? "Continue to Debrief →" : "Resolve all lines to finish"}
+            </button>
+          </div>
         )}
       </div>
 

@@ -1,122 +1,84 @@
 /**
- * Shell navigation model — the one list of destinations the sidebar renders.
+ * navItems.ts — the one sidebar model
  *
- * Inspiration: athenaOne's left navigation rail (one entry per revenue-cycle
- * workspace, collapsible to icons) with Epic Hyperspace's activity toolbar as
- * the secondary reference.
+ * Inspired by athenaOne's left navigation rail and Epic Hyperspace's activity
+ * toolbar: one entry per destination, the same list on every page.
  *
- * Every item states honestly what exists today (specs/task-1-app-shell.md,
- * item 1, and the "honest dependencies" section):
- *  - `route`     — a real page that already ships; the item links to it.
- *  - `workspace` — a workspace that already exists inside the medical track;
- *                  the item switches to it in place.
- *  - `soon`      — no screen exists yet. The item is rendered as unavailable
- *                  with the reason on screen, never as a link to nowhere. The
- *                  money-cycle screens arrive with TASK 4 + TASK 5.
+ * Spec `phase-1-navigation.md` items 1 and 2, and the addendum of 2026-11-20:
+ * every item in the rail is a page of its own, in this order — Home, Schedule,
+ * Patients, Charts, Practice Cases, Settings — and nothing else. There is no
+ * "coming soon" entry any more: a rail item that does not open a page is not in
+ * the rail. The stages that used to sit here as SOON (Coding, Claims, Payments,
+ * Denials and AR, Reports) are reached inside a case, where they are stages of
+ * one encounter.
+ *
+ * Charts took the slot Reference held in PR #120: the owner's six are Home,
+ * Schedule, Patients, Charts, Practice Cases, Settings. Reference is the drawer
+ * beside the work, not a page students need in a six-button rail — its route
+ * (`/reference`) still exists, it is simply not in the rail.
+ *
+ * Kept free of React on purpose: the router, the sidebar and the tests all read
+ * this one list.
  */
 
 import {
-  AlertTriangle,
-  BarChart3,
   BookOpen,
   CalendarDays,
-  FileText,
   Home,
-  Receipt,
   Settings,
   Stethoscope,
   Users,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
 /** The two revenue cycles the shell serves. */
 export type ShellTrack = "medical" | "dental";
 
+/**
+ * Every destination the shell can mark as current. Six of them are the rail;
+ * `reference` stays here because `/reference` is still a page with its own
+ * address, it is just not one of the six.
+ */
 export type ShellNavId =
   | "home"
   | "schedule"
   | "patients"
   | "charts"
-  | "coding"
-  | "claims"
-  | "payments"
-  | "denials"
-  | "reports"
   | "practice-cases"
-  | "settings";
+  | "settings"
+  | "reference";
 
-/** A page that already exists. Kept as literals so the router can type them. */
-export type ShellRoutePath = "/" | "/dental" | "/medical-cases" | "/settings";
+/** A page that exists. Literals so the router can type the link. */
+export type ShellRoutePath =
+  | "/"
+  | "/schedule"
+  | "/patients"
+  | "/charts"
+  | "/cases"
+  | "/reference"
+  | "/settings";
 
 export interface ShellNavItem {
   id: ShellNavId;
   label: string;
   icon: LucideIcon;
-  /** Where the item goes, per track. */
-  target: (track: ShellTrack) => ShellNavTarget;
+  /** The page this item opens. Always a real route. */
+  to: ShellRoutePath;
+  /** True when the page is shared by both tracks (all of them are, today). */
+  shared?: boolean;
 }
 
-export type ShellNavTarget =
-  | { kind: "route"; to: ShellRoutePath }
-  | { kind: "workspace"; workspace: string }
-  | { kind: "soon"; reason: string };
-
-const NOT_BUILT_YET =
-  "No screen for this yet — it arrives with the money cycle (TASK 4 + 5).";
-
-const DENTAL_ONLY_IN_CASE =
-  "Dental practices this inside a running case — open the dental track.";
-
 export const SHELL_NAV_ITEMS: ShellNavItem[] = [
-  {
-    id: "home",
-    label: "Home",
-    icon: Home,
-    target: (track) => ({ kind: "route", to: track === "dental" ? "/dental" : "/" }),
-  },
-  {
-    id: "schedule",
-    label: "Schedule",
-    icon: CalendarDays,
-    target: (track) =>
-      track === "medical"
-        ? { kind: "workspace", workspace: "schedule" }
-        : { kind: "soon", reason: DENTAL_ONLY_IN_CASE },
-  },
-  {
-    id: "patients",
-    label: "Patients",
-    icon: Users,
-    target: (track) =>
-      track === "medical"
-        ? { kind: "workspace", workspace: "chart" }
-        : { kind: "soon", reason: DENTAL_ONLY_IN_CASE },
-  },
-  {
-    id: "charts",
-    label: "Charts",
-    icon: FileText,
-    target: (track) =>
-      track === "medical"
-        ? { kind: "workspace", workspace: "note" }
-        : { kind: "soon", reason: DENTAL_ONLY_IN_CASE },
-  },
-  { id: "coding", label: "Coding", icon: Stethoscope, target: () => ({ kind: "soon", reason: NOT_BUILT_YET }) },
-  { id: "claims", label: "Claims", icon: Receipt, target: () => ({ kind: "soon", reason: NOT_BUILT_YET }) },
-  { id: "payments", label: "Payments", icon: Wallet, target: () => ({ kind: "soon", reason: NOT_BUILT_YET }) },
-  {
-    id: "denials",
-    label: "Denials and AR",
-    icon: AlertTriangle,
-    target: () => ({ kind: "soon", reason: NOT_BUILT_YET }),
-  },
-  { id: "reports", label: "Reports", icon: BarChart3, target: () => ({ kind: "soon", reason: NOT_BUILT_YET }) },
-  {
-    id: "practice-cases",
-    label: "Practice Cases",
-    icon: BookOpen,
-    target: (track) => ({ kind: "route", to: track === "dental" ? "/dental" : "/medical-cases" }),
-  },
-  { id: "settings", label: "Settings", icon: Settings, target: () => ({ kind: "route", to: "/settings" }) },
+  { id: "home", label: "Home", icon: Home, to: "/", shared: true },
+  { id: "schedule", label: "Schedule", icon: CalendarDays, to: "/schedule", shared: true },
+  { id: "patients", label: "Patients", icon: Users, to: "/patients", shared: true },
+  { id: "charts", label: "Charts", icon: Stethoscope, to: "/charts", shared: true },
+  { id: "practice-cases", label: "Practice Cases", icon: BookOpen, to: "/cases", shared: true },
+  { id: "settings", label: "Settings", icon: Settings, to: "/settings", shared: true },
 ];
+
+/**
+ * The rail's ids in order — the contract the tests hold the rail to, and the
+ * order a reader of the brief expects to see.
+ */
+export const SHELL_NAV_ORDER: ShellNavId[] = SHELL_NAV_ITEMS.map((item) => item.id);

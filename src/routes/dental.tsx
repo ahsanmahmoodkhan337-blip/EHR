@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { Smile } from "lucide-react";
 import { isLoggedIn } from "../store/accessStore";
 import { PatientProvider } from "../store/patientStore";
@@ -31,10 +31,23 @@ import { ReferenceDrawer } from "../components/shell/ReferenceDrawer";
 import { dentalReferenceTabs } from "../components/shell/referenceTabs";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { LockedStageNotice, useStageUrlSync } from "../components/shell/useStageUrlSync";
+import { setActiveTrack } from "../components/shell/activeTrack";
 import type { CaseStageParams } from "./medical-cases";
 
+/**
+ * The dental case list lives on `/cases` with the medical one now (spec
+ * `phase-1-navigation.md` item 6). This address redirects so no bookmarked URL
+ * dies; the dental runner keeps its own per-stage addresses below it.
+ *
+ * The redirect also records that the student chose the dental track, so the case
+ * list it lands on is the dental one — the switch used to come through here and
+ * change nothing.
+ */
 export const Route = createFileRoute("/dental")({
-  component: () => <DentalTrackPage />,
+  beforeLoad: () => {
+    setActiveTrack("dental");
+    throw redirect({ to: "/cases", replace: true });
+  },
 });
 
 export function DentalTrackPage({ caseId, stage }: CaseStageParams = {}) {
@@ -54,12 +67,16 @@ function DentalTrackShell({ urlCaseId, urlStage }: { urlCaseId?: string; urlStag
 
   const goToStage = useCallback(
     (caseId: string, stage: string, replace = false) => {
-      void navigate({ to: "/dental/$caseId/$stage", params: { caseId, stage }, replace });
+      void navigate({
+        to: "/cases/$track/$caseId/$stage",
+        params: { track: "dental", caseId, stage },
+        replace,
+      });
     },
     [navigate],
   );
   const goToBase = useCallback(() => {
-    void navigate({ to: "/dental", replace: true });
+    void navigate({ to: "/cases", replace: true });
   }, [navigate]);
 
   const { blockedStage, dismissBlocked } = useStageUrlSync({

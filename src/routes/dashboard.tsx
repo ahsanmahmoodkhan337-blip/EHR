@@ -48,9 +48,8 @@ const DENTAL_STAGE_LABELS: Record<DentalStageName, string> = {
   predetermination: "Predetermination",
   coding: "Coding",
   claim: "Claim",
-  claims: "Claim status",
+  remittance: "Remittance",
   ar: "AR follow-up",
-  ledger: "Ledger",
   debrief: "Debrief",
 };
 

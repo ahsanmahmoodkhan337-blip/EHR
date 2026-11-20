@@ -9,19 +9,67 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccessRouteImport } from './routes/access'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as CasesRouteImport } from './routes/cases'
+import { Route as ChartsRouteImport } from './routes/charts'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DentalRouteImport } from './routes/dental'
+import { Route as InstructorRouteImport } from './routes/instructor'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MedicalCasesRouteImport } from './routes/medical-cases'
+import { Route as PatientsRouteImport } from './routes/patients'
+import { Route as PracticeArRouteImport } from './routes/practice-ar'
 import { Route as QuizRouteImport } from './routes/quiz'
-import { Route as InstructorRouteImport } from './routes/instructor'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AccessRouteImport } from './routes/access'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as DentalRouteImport } from './routes/dental'
+import { Route as ReferenceRouteImport } from './routes/reference'
+import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as MedicalCasesCaseIdStageRouteImport } from './routes/medical-cases.$caseId.$stage'
 import { Route as DentalCaseIdStageRouteImport } from './routes/dental.$caseId.$stage'
+import { Route as MedicalCasesCaseIdStageRouteImport } from './routes/medical-cases.$caseId.$stage'
+import { Route as CasesTrackCaseIdStageRouteImport } from './routes/cases.$track.$caseId.$stage'
+import { Route as CasesIndexRouteImport } from './routes/cases.index'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccessRoute = AccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CasesRoute = CasesRouteImport.update({
+  id: '/cases',
+  path: '/cases',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChartsRoute = ChartsRouteImport.update({
+  id: '/charts',
+  path: '/charts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DentalRoute = DentalRouteImport.update({
+  id: '/dental',
+  path: '/dental',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstructorRoute = InstructorRouteImport.update({
+  id: '/instructor',
+  path: '/instructor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -32,39 +80,29 @@ const MedicalCasesRoute = MedicalCasesRouteImport.update({
   path: '/medical-cases',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PatientsRoute = PatientsRouteImport.update({
+  id: '/patients',
+  path: '/patients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PracticeArRoute = PracticeArRouteImport.update({
+  id: '/practice-ar',
+  path: '/practice-ar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuizRoute = QuizRouteImport.update({
   id: '/quiz',
   path: '/quiz',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InstructorRoute = InstructorRouteImport.update({
-  id: '/instructor',
-  path: '/instructor',
+const ReferenceRoute = ReferenceRouteImport.update({
+  id: '/reference',
+  path: '/reference',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccessRoute = AccessRouteImport.update({
-  id: '/access',
-  path: '/access',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DentalRoute = DentalRouteImport.update({
-  id: '/dental',
-  path: '/dental',
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -72,111 +110,196 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MedicalCasesCaseIdStageRoute = MedicalCasesCaseIdStageRouteImport.update({
-  id: '/medical-cases/$caseId/$stage',
-  path: '/medical-cases/$caseId/$stage',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DentalCaseIdStageRoute = DentalCaseIdStageRouteImport.update({
-  id: '/dental/$caseId/$stage',
-  path: '/dental/$caseId/$stage',
-  getParentRoute: () => rootRouteImport,
+  id: '/$caseId/$stage',
+  path: '/$caseId/$stage',
+  getParentRoute: () => DentalRoute,
+} as any)
+const MedicalCasesCaseIdStageRoute = MedicalCasesCaseIdStageRouteImport.update({
+  id: '/$caseId/$stage',
+  path: '/$caseId/$stage',
+  getParentRoute: () => MedicalCasesRoute,
+} as any)
+const CasesTrackCaseIdStageRoute = CasesTrackCaseIdStageRouteImport.update({
+  id: '/$track/$caseId/$stage',
+  path: '/$track/$caseId/$stage',
+  getParentRoute: () => CasesRoute,
+} as any)
+const CasesIndexRoute = CasesIndexRouteImport.update({
+  id: '/cases/',
+  path: '/',
+  getParentRoute: () => CasesRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/cases': typeof CasesRouteWithChildren
+  '/cases/': typeof CasesIndexRoute
+  '/charts': typeof ChartsRoute
   '/dashboard': typeof DashboardRoute
-  '/dental': typeof DentalRoute
+  '/dental': typeof DentalRouteWithChildren
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
-  '/medical-cases': typeof MedicalCasesRoute
+  '/medical-cases': typeof MedicalCasesRouteWithChildren
+  '/patients': typeof PatientsRoute
+  '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
+  '/reference': typeof ReferenceRoute
+  '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
+  '/cases/$track/$caseId/$stage': typeof CasesTrackCaseIdStageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/cases': typeof CasesRouteWithChildren
+  '/cases/': typeof CasesIndexRoute
+  '/charts': typeof ChartsRoute
   '/dashboard': typeof DashboardRoute
-  '/dental': typeof DentalRoute
+  '/dental': typeof DentalRouteWithChildren
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
-  '/medical-cases': typeof MedicalCasesRoute
+  '/medical-cases': typeof MedicalCasesRouteWithChildren
+  '/patients': typeof PatientsRoute
+  '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
+  '/reference': typeof ReferenceRoute
+  '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
+  '/cases/$track/$caseId/$stage': typeof CasesTrackCaseIdStageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/admin': typeof AdminRoute
+  '/cases': typeof CasesRouteWithChildren
+  '/cases/': typeof CasesIndexRoute
+  '/charts': typeof ChartsRoute
   '/dashboard': typeof DashboardRoute
-  '/dental': typeof DentalRoute
+  '/dental': typeof DentalRouteWithChildren
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
-  '/medical-cases': typeof MedicalCasesRoute
+  '/medical-cases': typeof MedicalCasesRouteWithChildren
+  '/patients': typeof PatientsRoute
+  '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
+  '/reference': typeof ReferenceRoute
+  '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
+  '/cases/$track/$caseId/$stage': typeof CasesTrackCaseIdStageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
+  fullPaths:
+    | '/'
+    | '/access'
+    | '/admin'
+    | '/cases'
+    | '/cases/'
+    | '/charts'
+    | '/dashboard'
+    | '/dental'
+    | '/instructor'
+    | '/login'
+    | '/medical-cases'
+    | '/patients'
+    | '/practice-ar'
+    | '/quiz'
+    | '/reference'
+    | '/schedule'
+    | '/settings'
+    | '/dental/$caseId/$stage'
+    | '/medical-cases/$caseId/$stage'
+    | '/cases/$track/$caseId/$stage'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
-  id: '__root__' | '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
+  to:
+    | '/'
+    | '/access'
+    | '/admin'
+    | '/cases'
+    | '/cases/'
+    | '/charts'
+    | '/dashboard'
+    | '/dental'
+    | '/instructor'
+    | '/login'
+    | '/medical-cases'
+    | '/patients'
+    | '/practice-ar'
+    | '/quiz'
+    | '/reference'
+    | '/schedule'
+    | '/settings'
+    | '/dental/$caseId/$stage'
+    | '/medical-cases/$caseId/$stage'
+    | '/cases/$track/$caseId/$stage'
+  id:
+    | '__root__'
+    | '/'
+    | '/access'
+    | '/admin'
+    | '/cases'
+    | '/cases/'
+    | '/charts'
+    | '/dashboard'
+    | '/dental'
+    | '/instructor'
+    | '/login'
+    | '/medical-cases'
+    | '/patients'
+    | '/practice-ar'
+    | '/quiz'
+    | '/reference'
+    | '/schedule'
+    | '/settings'
+    | '/dental/$caseId/$stage'
+    | '/medical-cases/$caseId/$stage'
+    | '/cases/$track/$caseId/$stage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessRoute: typeof AccessRoute
   AdminRoute: typeof AdminRoute
+  CasesRoute: typeof CasesRouteWithChildren
+  ChartsRoute: typeof ChartsRoute
   DashboardRoute: typeof DashboardRoute
-  DentalRoute: typeof DentalRoute
+  DentalRoute: typeof DentalRouteWithChildren
   InstructorRoute: typeof InstructorRoute
   LoginRoute: typeof LoginRoute
-  MedicalCasesRoute: typeof MedicalCasesRoute
+  MedicalCasesRoute: typeof MedicalCasesRouteWithChildren
+  PatientsRoute: typeof PatientsRoute
+  PracticeArRoute: typeof PracticeArRoute
   QuizRoute: typeof QuizRoute
+  ReferenceRoute: typeof ReferenceRoute
+  ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
-  DentalCaseIdStageRoute: typeof DentalCaseIdStageRoute
-  MedicalCasesCaseIdStageRoute: typeof MedicalCasesCaseIdStageRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/medical-cases': {
-      id: '/medical-cases'
-      path: '/medical-cases'
-      fullPath: '/medical-cases'
-      preLoaderRoute: typeof MedicalCasesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quiz': {
-      id: '/quiz'
-      path: '/quiz'
-      fullPath: '/quiz'
-      preLoaderRoute: typeof QuizRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/instructor': {
-      id: '/instructor'
-      path: '/instructor'
-      fullPath: '/instructor'
-      preLoaderRoute: typeof InstructorRouteImport
+    '/access': {
+      id: '/access'
+      path: '/access'
+      fullPath: '/access'
+      preLoaderRoute: typeof AccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -184,6 +307,20 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cases': {
+      id: '/cases'
+      path: '/cases'
+      fullPath: '/cases'
+      preLoaderRoute: typeof CasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/charts': {
+      id: '/charts'
+      path: '/charts'
+      fullPath: '/charts'
+      preLoaderRoute: typeof ChartsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -200,18 +337,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DentalRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/access': {
-      id: '/access'
-      path: '/access'
-      fullPath: '/access'
-      preLoaderRoute: typeof AccessRouteImport
+    '/instructor': {
+      id: '/instructor'
+      path: '/instructor'
+      fullPath: '/instructor'
+      preLoaderRoute: typeof InstructorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/medical-cases': {
+      id: '/medical-cases'
+      path: '/medical-cases'
+      fullPath: '/medical-cases'
+      preLoaderRoute: typeof MedicalCasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patients': {
+      id: '/patients'
+      path: '/patients'
+      fullPath: '/patients'
+      preLoaderRoute: typeof PatientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/practice-ar': {
+      id: '/practice-ar'
+      path: '/practice-ar'
+      fullPath: '/practice-ar'
+      preLoaderRoute: typeof PracticeArRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quiz': {
+      id: '/quiz'
+      path: '/quiz'
+      fullPath: '/quiz'
+      preLoaderRoute: typeof QuizRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reference': {
+      id: '/reference'
+      path: '/reference'
+      fullPath: '/reference'
+      preLoaderRoute: typeof ReferenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -221,44 +400,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/medical-cases/$caseId/$stage': {
-      id: '/medical-cases/$caseId/$stage'
-      path: '/medical-cases/$caseId/$stage'
-      fullPath: '/medical-cases/$caseId/$stage'
-      preLoaderRoute: typeof MedicalCasesCaseIdStageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dental/$caseId/$stage': {
       id: '/dental/$caseId/$stage'
-      path: '/dental/$caseId/$stage'
+      path: '/$caseId/$stage'
       fullPath: '/dental/$caseId/$stage'
       preLoaderRoute: typeof DentalCaseIdStageRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DentalRoute
+    }
+    '/medical-cases/$caseId/$stage': {
+      id: '/medical-cases/$caseId/$stage'
+      path: '/$caseId/$stage'
+      fullPath: '/medical-cases/$caseId/$stage'
+      preLoaderRoute: typeof MedicalCasesCaseIdStageRouteImport
+      parentRoute: typeof MedicalCasesRoute
+    }
+    '/cases/$track/$caseId/$stage': {
+      id: '/cases/$track/$caseId/$stage'
+      path: '/$track/$caseId/$stage'
+      fullPath: '/cases/$track/$caseId/$stage'
+      preLoaderRoute: typeof CasesTrackCaseIdStageRouteImport
+      parentRoute: typeof CasesRoute
+    }
+    '/cases/': {
+      id: '/cases/'
+      path: '/'
+      fullPath: '/cases/'
+      preLoaderRoute: typeof CasesIndexRouteImport
+      parentRoute: typeof CasesRoute
     }
   }
 }
+
+interface CasesRouteChildren {
+  CasesTrackCaseIdStageRoute: typeof CasesTrackCaseIdStageRoute
+  CasesIndexRoute: typeof CasesIndexRoute
+}
+
+const CasesRouteChildren: CasesRouteChildren = {
+  CasesTrackCaseIdStageRoute: CasesTrackCaseIdStageRoute,
+  CasesIndexRoute: CasesIndexRoute,
+}
+
+const CasesRouteWithChildren = CasesRoute._addFileChildren(CasesRouteChildren)
+
+interface DentalRouteChildren {
+  DentalCaseIdStageRoute: typeof DentalCaseIdStageRoute
+}
+
+const DentalRouteChildren: DentalRouteChildren = {
+  DentalCaseIdStageRoute: DentalCaseIdStageRoute,
+}
+
+const DentalRouteWithChildren =
+  DentalRoute._addFileChildren(DentalRouteChildren)
+
+interface MedicalCasesRouteChildren {
+  MedicalCasesCaseIdStageRoute: typeof MedicalCasesCaseIdStageRoute
+}
+
+const MedicalCasesRouteChildren: MedicalCasesRouteChildren = {
+  MedicalCasesCaseIdStageRoute: MedicalCasesCaseIdStageRoute,
+}
+
+const MedicalCasesRouteWithChildren = MedicalCasesRoute._addFileChildren(
+  MedicalCasesRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessRoute: AccessRoute,
   AdminRoute: AdminRoute,
+  CasesRoute: CasesRouteWithChildren,
+  ChartsRoute: ChartsRoute,
   DashboardRoute: DashboardRoute,
-  DentalRoute: DentalRoute,
+  DentalRoute: DentalRouteWithChildren,
   InstructorRoute: InstructorRoute,
   LoginRoute: LoginRoute,
-  MedicalCasesRoute: MedicalCasesRoute,
+  MedicalCasesRoute: MedicalCasesRouteWithChildren,
+  PatientsRoute: PatientsRoute,
+  PracticeArRoute: PracticeArRoute,
   QuizRoute: QuizRoute,
+  ReferenceRoute: ReferenceRoute,
+  ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
-  DentalCaseIdStageRoute: DentalCaseIdStageRoute,
-  MedicalCasesCaseIdStageRoute: MedicalCasesCaseIdStageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: ReturnType<typeof getRouter>
-  }
-}
