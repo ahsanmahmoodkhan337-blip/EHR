@@ -35,6 +35,11 @@ import {
   nextEncounterStep,
   previousEncounterStep,
 } from "../src/domain/encounterSteps";
+import {
+  ENCOUNTER_FLOW_STAGES,
+  flowStageNumber,
+  lastFlowStageId,
+} from "../src/domain/encounterFlow";
 
 const root = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
@@ -119,12 +124,50 @@ describe("step 1 is Registration, and every patient opens there", () => {
 
 describe("the chart draws the shared step bar at the top of the workspace", () => {
   test("it is the one EncounterStepper, numbered, with the record's ticks", () => {
-    expect(INDEX).toContain("<EncounterStepper");
-    expect(INDEX).toContain("numbered");
-    expect(INDEX).toContain("completedIds={completedChartSteps}");
-    expect(INDEX).toContain("furthestId={lastEncounterStepId()}");
-    expect(INDEX).toContain("onSelect={goToChartStage}");
-    expect(INDEX).toContain('label="Encounter steps"');
+    // The top of the workspace carries the encounter's own seven stages, in the
+    // owner's real order, numbered (owner's audit, 2026-11-20, item 1).
+    const flowBar = INDEX.slice(
+      INDEX.indexOf("<EncounterStepper"),
+      INDEX.indexOf("<EncounterStepper", INDEX.indexOf("<EncounterStepper") + 1),
+    );
+    expect(flowBar).toContain(
+      "steps={ENCOUNTER_FLOW_STAGES.map((stage) => ({ id: stage.id, label: stage.label }))}",
+    );
+    expect(flowBar).toContain("currentId={flowStageId}");
+    expect(flowBar).toContain("completedIds={completedFlow}");
+    expect(flowBar).toContain("furthestId={lastFlowStageId()}");
+    expect(flowBar).toContain("onSelect={openFlowStage}");
+    expect(flowBar).toContain("numbered");
+    expect(flowBar).toContain('label="Encounter stages"');
+
+    // Seven stages, numbered 1..7 in the order the money cycle runs.
+    expect(ENCOUNTER_FLOW_STAGES.map((stage) => stage.id)).toEqual([
+      "progress-note",
+      "sign-lock",
+      "coding",
+      "prior-auth",
+      "billing",
+      "payments",
+      "denials-ar",
+    ]);
+    ENCOUNTER_FLOW_STAGES.forEach((stage, i) => {
+      expect(flowStageNumber(stage.id)).toBe(i + 1);
+    });
+    expect(lastFlowStageId()).toBe("denials-ar");
+
+    // The note's own sections are the same component but unnumbered: they are
+    // the documentation steps inside the Progress Note stage, not stages of the
+    // encounter, so they never print a second set of stage numbers.
+    const noteBarStart = INDEX.indexOf("<EncounterStepper", INDEX.indexOf("<EncounterStepper") + 1);
+    const noteBar = INDEX.slice(noteBarStart, INDEX.indexOf("/>", noteBarStart));
+    expect(noteBar).toContain(
+      "steps={NOTE_SECTIONS.map((stage) => ({ id: stage.id, label: stage.label }))}",
+    );
+    expect(noteBar).toContain("completedIds={completedChartSteps}");
+    expect(noteBar).toContain("furthestId={lastEncounterStepId()}");
+    expect(noteBar).toContain("onSelect={goToChartStage}");
+    expect(noteBar).toContain('label="Progress note sections"');
+    expect(noteBar).not.toContain("numbered");
   });
 
   test("the bar is drawn above the step bodies, not after them", () => {
@@ -188,9 +231,15 @@ describe("the steps walk one at a time, first to last", () => {
     expect(INDEX).toContain("const scribeNext =");
     expect(INDEX).toContain("onClick: () => goToChartStage(scribeNext.id)");
     expect(STAGE_NAV).toContain("Back to {back.label}");
-    expect(STAGE_NAV).toContain("Next: {next.label}");
-    // Exactly one Back and one Next: no nested or duplicate control.
+    // The forward control names the stage it opens: "Continue to <stage>"
+    // (owner's audit, item 1), not a bare "Next".
+    expect(STAGE_NAV).toContain("Continue to ${next.label}");
+    // The last note section hands over to the encounter's own next stage, so the
+    // note bar and the seven-stage stepper read the one flow list.
+    expect(INDEX).toContain('{ label: "Coding", onClick: () => openFlowStage("coding") }');
+    // Exactly one Back and one Continue: no nested or duplicate control.
     expect(STAGE_NAV.match(/Back to \{back\.label\}/g)?.length).toBe(1);
+    expect(STAGE_NAV.match(/Continue to \$\{next\.label\}/g)?.length).toBe(1);
   });
 });
 

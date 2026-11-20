@@ -87,10 +87,15 @@ describe("every stage after the first has one way back", () => {
   test("going back changes the stage and nothing else", () => {
     // The Back handler only moves the stage: no reset, no submit, no delete.
     const handler = INDEX.slice(INDEX.indexOf("const handleHomeClick"));
-    // Both Back controls go through the one handler that moves the step and
-    // remembers the furthest one reached (spec `start-at-scribing.md` item 5).
+    // The note sections' Back goes through the one handler that moves the chart
+    // step and remembers the furthest one reached (spec `start-at-scribing.md`).
     expect(INDEX).toContain("onClick: () => goToChartStage(scribeBack.id)");
-    expect(INDEX).toContain("if (roleBack.stage) goToChartStage(roleBack.stage);");
+    // Every role stage's Back goes through the one flow handler that opens the
+    // previous stage of the seven-stage encounter — navigation only.
+    expect(INDEX).toContain("const flowPrevious = previousFlowStage(flowStageId);");
+    expect(INDEX).toContain(
+      "? { label: flowPrevious.label, onClick: () => openFlowStage(flowPrevious.id) }",
+    );
     expect(handler).not.toContain("resetEncounter(");
   });
 });
