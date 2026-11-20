@@ -11,9 +11,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Stethoscope } from "lucide-react";
 import { isLoggedIn } from "../store/accessStore";
 import { PatientProvider } from "../store/patientStore";
-import { MedicalCaseProvider } from "../components/medical/MedicalCaseStore";
+import { MedicalCaseProvider, useMedicalCase } from "../components/medical/MedicalCaseStore";
 import { MedicalCaseRunner } from "../components/medical/MedicalCaseRunner";
 import { AppShell } from "../components/AppShell";
+import { PatientBanner, type BannerPatient } from "../components/shell/PatientBanner";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 
 export const Route = createFileRoute("/medical-cases")({
@@ -33,6 +34,8 @@ function MedicalCasesPage() {
 function MedicalCasesShell() {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
+  // The graded case's own patient record — the patient this runner is working.
+  const { activeCase, plan } = useMedicalCase();
 
   if (!loggedIn) {
     return (
@@ -52,10 +55,28 @@ function MedicalCasesShell() {
     );
   }
 
+  // The case's patient is the patient the runner is working, so the shell's
+  // sticky banner shows them for as long as a case is open. Only what the case
+  // actually recorded is passed; the rest prints as "—" rather than being made
+  // up. Nothing from the free-form chart leaks in here.
+  const casePatient: BannerPatient | null = activeCase
+    ? {
+        firstName: activeCase.patient.firstName,
+        lastName: activeCase.patient.lastName,
+        dateOfBirth: activeCase.patient.dateOfBirth,
+        gender: activeCase.patient.gender,
+        insurance: plan?.name,
+        insuranceRecord: plan
+          ? { primary: { payerName: plan.name, subscriberId: activeCase.patient.memberId } }
+          : undefined,
+      }
+    : null;
+
   return (
     <AppShell
       track="medical"
       activeNav="practice-cases"
+      banner={<PatientBanner patient={casePatient} />}
       onPatientSelect={(patientId) => {
         // Graded cases run inside this runner; a patient picked from the
         // shell's search opens in the free-form medical workspace instead.

@@ -135,15 +135,10 @@ export function AppTopBar({
         <Menu className="h-5 w-5" aria-hidden="true" />
       </button>
 
-      {/* Brand */}
+      {/* Track marker — the logo lives once, at the top of the sidebar. */}
       <div className="flex min-w-0 shrink items-center gap-2">
-        <img
-          src="/healthcarehustlers-logo.png"
-          alt="Healthcare Hustlers"
-          className="h-7 w-auto max-w-[96px] object-contain sm:max-w-[130px]"
-        />
         <span
-          className={`hidden shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide sm:inline ${
+          className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
             track === "dental"
               ? "bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-200"
               : "bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200"

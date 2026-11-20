@@ -16,11 +16,36 @@
  */
 
 import { AlertTriangle, CalendarDays, ShieldCheck, User } from "lucide-react";
-import type { Patient } from "../../store/patientStore";
+
+/**
+ * What the banner needs in order to draw a patient.
+ *
+ * The chart's `Patient` satisfies it in full. A graded case carries only the
+ * identity and coverage it actually recorded, so every field past the name is
+ * optional and prints as "—" with the reason when the record does not hold it.
+ */
+export interface BannerPatient {
+  firstName: string;
+  lastName: string;
+  mrn?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  /** Absent when the record carries no allergy list at all (a graded case). */
+  allergies?: { allergen: string; severity: string }[];
+  insurance?: string;
+  insuranceRecord?: {
+    primary?: {
+      payerName?: string;
+      planName?: string;
+      subscriberId?: string;
+    } | null;
+  };
+  primaryCareProvider?: string;
+}
 
 interface PatientBannerProps {
   /** The patient being worked, or null when none is open. */
-  patient: Patient | null;
+  patient: BannerPatient | null;
   /** Name override for a custom (non-database) appointment patient. */
   fallbackName?: string;
   /**
@@ -90,9 +115,10 @@ export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBann
   const planName = coverage?.planName || "";
   const memberId = coverage?.subscriberId || "";
 
+  const allergies = patient?.allergies;
   const allergyText =
-    patient && patient.allergies.length > 0
-      ? patient.allergies.map((allergy) => `${allergy.allergen} (${allergy.severity})`).join(", ")
+    allergies && allergies.length > 0
+      ? allergies.map((allergy) => `${allergy.allergen} (${allergy.severity})`).join(", ")
       : null;
 
   // Eligibility: nothing in the record holds a 271 response yet, so the chip
@@ -121,12 +147,12 @@ export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBann
 
         {patient && (
           <>
-            <span className="text-[11px] text-slate-300">MRN {patient.mrn}</span>
+            {patient.mrn && <span className="text-[11px] text-slate-300">MRN {patient.mrn}</span>}
             <span className="text-[11px] text-slate-300">
               DOB {dobText ?? "—"}
               {age !== null ? ` (${age}y)` : ""}
             </span>
-            <span className="text-[11px] text-slate-300">{patient.gender}</span>
+            {patient.gender && <span className="text-[11px] text-slate-300">{patient.gender}</span>}
           </>
         )}
 
@@ -134,7 +160,18 @@ export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBann
           <span className="flex min-w-0 items-center gap-1 text-[11px] font-semibold text-red-300">
             <AlertTriangle className="h-3 w-3 shrink-0 text-red-400" aria-hidden="true" />
             <span className="min-w-0 break-words">
-              {allergyText ? `Allergies: ${allergyText}` : <span className="text-emerald-300">No Known Allergies</span>}
+              {allergyText ? (
+                `Allergies: ${allergyText}`
+              ) : allergies ? (
+                <span className="text-emerald-300">No Known Allergies</span>
+              ) : (
+                <span
+                  className="text-slate-400"
+                  title="This record carries no allergy list — nothing has been charted either way."
+                >
+                  Allergies: —
+                </span>
+              )}
             </span>
           </span>
         )}
@@ -168,7 +205,7 @@ export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBann
         <span
           title={
             balanceDue === undefined
-              ? "This encounter has no claim yet, so there is no patient balance to show."
+              ? "No patient balance is recorded on this encounter yet — one appears once the claim is adjudicated."
               : "Patient balance carried on this encounter's claim (CMS-1500 box 30)."
           }
         >
