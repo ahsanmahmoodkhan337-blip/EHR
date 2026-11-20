@@ -30,8 +30,10 @@ import {
   findCDT,
   findPracticeScenario,
   AR_CALL_GUIDANCE,
+  appealOutcomeFor,
   denialMoney,
   scorePracticeLine,
+  type DentalAppealOutcome,
   type DentalDenial,
 } from "../../data/dental";
 import { adjudicateDentalClaim, adjudicatePracticeScenario } from "./adjudication";
@@ -72,6 +74,8 @@ interface DeniedLineRow {
   committed: boolean;
   /** The committed action, so the reveal can be re-scored against the call log. */
   committedResolution?: DentalLineResolution;
+  /** How this line's appeal came back, where the appeal has two endings. */
+  appealOutcome?: DentalAppealOutcome;
   /** Practice only: the key, returned by `scorePracticeLine` after the commit. */
   score?: ReturnType<typeof scorePracticeLine>;
 }
@@ -90,12 +94,15 @@ export function DentalAR() {
     practiceLogCall,
     practiceResolveLine,
     practiceResetLine,
+    postContractualWriteOff,
   } = useDentalTrack();
 
   const [callState, setCallState] = useState<"idle" | "dialing" | "connected">("idle");
   const [callNote, setCallNote] = useState("");
   const [callTarget, setCallTarget] = useState<string | null>(null);
   const [showAppealWarning, setShowAppealWarning] = useState<string | null>(null);
+  /** What the last contractual write-off press did, shown on that line. */
+  const [writeOffNote, setWriteOffNote] = useState<{ lineId: string; text: string } | null>(null);
 
   const practiceScenario = findPracticeScenario(activePracticeId);
   const practiceRun = practiceScenario ? practice[practiceScenario.id] : undefined;
@@ -129,8 +136,9 @@ export function DentalAR() {
           resolution: run?.lineResolutions[l.lineId] ?? "not-handled",
           committed: Boolean(decision),
           committedResolution: decision?.resolution,
+          appealOutcome: decision?.appealOutcome,
           score: decision
-            ? scorePracticeLine(practiceScenario, l.lineId, decision.resolution, run?.callLog ?? [])
+            ? scorePracticeLine(practiceScenario, l.lineId, decision.resolution, run?.callLog ?? [], decision.appealOutcome)
             : undefined,
         };
       });
@@ -148,8 +156,16 @@ export function DentalAR() {
         writeOffUsd: l.result.contractualWriteOffUsd,
         resolution: state.lineResolutions[l.lineId] ?? ("not-handled" as DentalLineResolution),
         committed: Boolean(state.lineResolutions[l.lineId]),
+        appealOutcome: state.appealOutcomes[l.lineId],
       }));
-  }, [practiceScenario, practiceRun, practiceAdjudication, caseAdjudication, state.lineResolutions]);
+  }, [
+    practiceScenario,
+    practiceRun,
+    practiceAdjudication,
+    caseAdjudication,
+    state.lineResolutions,
+    state.appealOutcomes,
+  ]);
 
   const arTrapForDenial = (denial: DentalDenial) =>
     traps.find((t) => t.stage === "ar-follow-up" && t.producesDenialId === denial.id && !denial.appealable);
@@ -170,22 +186,39 @@ export function DentalAR() {
     if (callNote.trim()) {
       const guidance = objectiveFor(denial).guidance;
       if (practiceScenario) practiceLogCall(practiceScenario.id, callTarget ?? "", guidance, callNote.trim());
-      else logCall(guidance, callNote.trim());
+      else logCall(guidance, callNote.trim(), callTarget ?? undefined);
     }
     setCallState("idle");
     setCallTarget(null);
   };
 
   /**
+   * The documentation behind a line's appeal: the call notes logged against it.
+   * Where the denial's appeal has two endings this is what the payer answers.
+   */
+  const appealDocumentationFor = (lineId: string): string => {
+    const notes = practiceScenario
+      ? (practiceRun?.callLog ?? []).filter((n) => n.lineId === lineId)
+      : state.arCallLog.filter((n) => n.lineId === lineId);
+    return notes.map((n) => n.note).join(" ");
+  };
+
+  /**
    * Commit one line's action. This is the only place a decision is recorded,
    * and the only place anything about the correct answer can appear.
+   *
+   * An appeal on a two-ending denial also comes back with an outcome: an appeal
+   * lodged without the documentation the criterion asks for is denied, and the
+   * student then has to finish the line with the contractual write-off.
    */
   const commit = (lineId: string, denial: DentalDenial, resolution: DentalLineResolution) => {
+    const appealOutcome =
+      resolution === "appealed" ? (appealOutcomeFor(denial, appealDocumentationFor(lineId)) ?? undefined) : undefined;
     if (practiceScenario) {
-      practiceResolveLine(practiceScenario.id, lineId, resolution);
+      practiceResolveLine(practiceScenario.id, lineId, resolution, appealOutcome);
       return;
     }
-    resolveLine(lineId, resolution);
+    resolveLine(lineId, resolution, appealOutcome);
     // An appeal on a denial that cannot be appealed is the trap this screen
     // teaches. It is scored, and explained, now — never before the choice.
     if (resolution === "appealed" && !denial.appealable) {
@@ -195,7 +228,19 @@ export function DentalAR() {
     }
   };
 
-  const allResolved = deniedLines.length > 0 && deniedLines.every((l) => l.resolution !== "not-handled");
+  /**
+   * A two-ending denial whose appeal came back denied is not finished until the
+   * contractual write-off is posted — that posting is the thing being taught.
+   */
+  const unfinishedAppeal = (l: DeniedLineRow) =>
+    l.denial.appealResolvesTo === "pay-or-write-off" &&
+    l.appealOutcome === "denied" &&
+    l.resolution !== "write-off";
+
+  const allResolved =
+    deniedLines.length > 0 &&
+    deniedLines.every((l) => l.resolution !== "not-handled" && !unfinishedAppeal(l));
+  const awaitingWriteOff = deniedLines.some(unfinishedAppeal);
   const decidedCount = deniedLines.filter((l) => l.committed).length;
 
   return (
@@ -234,7 +279,7 @@ export function DentalAR() {
               disabled={!allResolved}
               className="min-h-[40px] rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-slate-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
             >
-              {allResolved ? "Continue to Debrief →" : "Resolve all lines to finish"}
+              {allResolved ? "Continue to Debrief →" : awaitingWriteOff ? "Post the write-off to finish" : "Resolve all lines to finish"}
             </button>
           </div>
         )}
@@ -437,6 +482,54 @@ export function DentalAR() {
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Resolved: {RESOLUTION_LABELS[resolution]}.
                       </p>
+                      {/*
+                        The two endings of a crown or buildup appeal: an upheld
+                        appeal pays the line; a denied one is not finished until
+                        the student posts the contractual write-off. Both keep
+                        the patient balance at 0 — billing the patient is wrong.
+                      */}
+                      {denial.appealResolvesTo === "pay-or-write-off" && row.appealOutcome && (
+                        <div
+                          className={`rounded-lg px-2 py-1.5 text-[10px] ring-1 ${
+                            row.appealOutcome === "upheld"
+                              ? "bg-emerald-50 text-emerald-800 ring-emerald-100"
+                              : "bg-amber-50 text-amber-900 ring-amber-100"
+                          }`}
+                        >
+                          {row.appealOutcome === "upheld" ? (
+                            <p>
+                              <b>Appeal upheld.</b> The line pays {fmtUsd(row.allowedUsd)} and the patient balance stays
+                              $0.00.
+                            </p>
+                          ) : (
+                            <>
+                              <p>
+                                <b>Appeal denied.</b> The payer upheld the decision. Finish the line with the contractual
+                                write-off — {denial.carc} is CO, so the patient balance stays $0.00.
+                              </p>
+                              {resolution === "write-off" ? (
+                                <p className="mt-1 font-semibold text-emerald-800">
+                                  Written off contractually — patient balance $0.00.
+                                </p>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const outcome = postContractualWriteOff(lineId, denial.carc);
+                                    setWriteOffNote({ lineId, text: outcome.reason });
+                                  }}
+                                  className="mt-1 inline-flex min-h-[40px] items-center rounded-lg bg-slate-800 px-3 text-[11px] font-semibold text-white hover:bg-slate-700"
+                                >
+                                  Post contractual write-off
+                                </button>
+                              )}
+                              {writeOffNote?.lineId === lineId && (
+                                <p className="mt-1 text-slate-700">{writeOffNote.text}</p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                       {/* Rule 6: the teaching text arrives after the decision, never before it. */}
                       <p className="text-[10px] text-slate-600">
                         <span className="font-semibold text-slate-700">Prevention: </span>

@@ -53,7 +53,7 @@ export {
   alternateBenefitFor,
 } from "./benefitRules";
 
-export type { DentalDenial, DenialCategory, DenialOutcome } from "./denialReasons";
+export type { DentalDenial, DenialCategory, DenialOutcome, DentalAppealOutcome } from "./denialReasons";
 export {
   DENTAL_DENIALS,
   DENTAL_DENIAL_INDEX,
@@ -62,6 +62,7 @@ export {
   denialMoney,
   denialActionLabel,
   denialEffectSummary,
+  appealOutcomeFor,
   denialsForCode,
   denialsByCategory,
 } from "./denialReasons";

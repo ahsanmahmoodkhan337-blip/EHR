@@ -28,6 +28,7 @@ import {
   findPracticeScenario,
   scorePracticeLine,
   type CaseTrap,
+  type DentalAppealOutcome,
   type DentalCaseScenario,
 } from "../../data/dental";
 import { getLoggedInPhone } from "../../store/accessStore";
@@ -217,6 +218,8 @@ export type DentalLineResolution =
 export interface DentalPracticeDecision {
   resolution: DentalLineResolution;
   at: string;
+  /** How an appeal came back, where the appeal had two possible endings. */
+  appealOutcome?: DentalAppealOutcome;
 }
 
 /**
@@ -328,6 +331,16 @@ export interface DentalTrackState {
   rubricByCriterion: Record<string, number>;
   arCallLog: DentalCallLogEntry[];
   lineResolutions: Record<string, DentalLineResolution>;
+  /**
+   * How each line's appeal came back, where the denial's appeal has two
+   * endings (`appealResolvesTo: "pay-or-write-off"`): `upheld` means the line
+   * pays, `denied` means the student still owes the contractual write-off.
+   *
+   * Additive and defaulted to empty in `freshState`, so a record saved before
+   * this field existed loads with no appeal outcomes — nothing is invented, and
+   * `lineResolutions` keeps working exactly as it did.
+   */
+  appealOutcomes: Record<string, DentalAppealOutcome>;
   /** Periodontal chart readings, keyed by Universal designation. */
   perio: Record<string, PerioToothEntry>;
   /** Treatment plan items (planning stage → seeding coding). */
@@ -373,6 +386,7 @@ function freshState(): DentalTrackState {
     rubricByCriterion: {},
     arCallLog: [],
     lineResolutions: {},
+    appealOutcomes: {},
     perio: {},
     txPlan: [],
     ledger: [],
@@ -495,6 +509,11 @@ export function readDentalTrackRecord(phone: string | null = getLoggedInPhone())
  * `furthestStage` is translated against the **old** order (`DENTAL_LEGACY_STAGE_ORDER`)
  * and never moves backwards: a record saved on `ledger` had already finished AR,
  * so AR stays unlocked instead of being re-locked behind a lower position.
+ * v7 → v7 (no version bump): the crown/buildup appeal gained its second ending
+ * (owner ruling 2026-11-20, `specs/appeal-then-write-off.md`), so a line can now
+ * carry an `appealOutcomes` entry beside its resolution. The field is additive
+ * and defaults to empty, so an older record loads with every resolution it had
+ * and no appeal outcomes — nothing is invented, and no money moves.
  */
 export function migrateDentalTrackState(raw: unknown): DentalTrackState {
   const parsed = (raw ?? {}) as DentalTrackState & { version?: number };
@@ -538,6 +557,8 @@ export function migrateDentalTrackState(raw: unknown): DentalTrackState {
     claimStatus: parsed.claimStatus ?? null,
     statusEvents: Array.isArray(parsed.statusEvents) ? parsed.statusEvents : [],
     ledger: hadLedger ? (parsed.ledger as DentalTrackState["ledger"]) : [],
+    appealOutcomes:
+      parsed.appealOutcomes && typeof parsed.appealOutcomes === "object" ? parsed.appealOutcomes : {},
     practice: parsed.practice && typeof parsed.practice === "object" ? parsed.practice : {},
     activePracticeId: parsed.activePracticeId ?? null,
     practiceBenchOpen: parsed.practiceBenchOpen === true,
@@ -623,8 +644,24 @@ interface DentalTrackApi {
   /** Persist the ADA claim form (debounced by the shell). */
   setAdaForm: (form: ADAFormData) => void;
   // ar
-  logCall: (objective: string, note: string) => void;
-  resolveLine: (lineId: string, resolution: DentalLineResolution) => void;
+  /** Log a follow-up call. `lineId` ties the note to the line it was about. */
+  logCall: (objective: string, note: string, lineId?: string) => void;
+  /**
+   * Record one line's action. Where the denial's appeal has two endings
+   * (`appealResolvesTo: "pay-or-write-off"`) the outcome goes in the same write:
+   * `upheld` means the line pays, `denied` means the student still owes the
+   * contractual write-off.
+   */
+  resolveLine: (lineId: string, resolution: DentalLineResolution, appealOutcome?: DentalAppealOutcome) => void;
+  /**
+   * Post the contractual write-off a denied appeal leaves behind: a CO
+   * adjustment for what is still outstanding on the line, never a patient
+   * balance. Returns what it did, so the screen can say it.
+   */
+  postContractualWriteOff: (
+    lineId: string,
+    reasonCode?: string,
+  ) => { posted: boolean; amountUsd: number; reason: string };
   triggerTrap: (trapId: string) => void;
   // ar practice bench (its own namespace — never a graded case's record)
   practice: Record<string, DentalPracticeRun>;
@@ -637,7 +674,12 @@ interface DentalTrackApi {
   closePractice: () => void;
   practiceLogCall: (scenarioId: string, lineId: string, objective: string, note: string) => void;
   /** Commit one line. The key is scored here and nowhere earlier. */
-  practiceResolveLine: (scenarioId: string, lineId: string, resolution: DentalLineResolution) => void;
+  practiceResolveLine: (
+    scenarioId: string,
+    lineId: string,
+    resolution: DentalLineResolution,
+    appealOutcome?: DentalAppealOutcome,
+  ) => void;
   /** Clear a committed line so the student can decide again. */
   practiceResetLine: (scenarioId: string, lineId: string) => void;
   // perio
@@ -748,7 +790,24 @@ function computeEarned(
         if (text.includes("buildup documentation")) hit = Boolean(buildup && buildup.attachments.length > 0);
       }
     } else if (c.stage === "ar-follow-up") {
-      if (activeCase.id === "DCASE-001" && text.includes("contractual")) {
+      /**
+       * DCASE-005's crown is the case's appeal-then-write-off line (owner ruling
+       * 2026-11-20): the appeal is the first action, and the line then either
+       * pays (upheld) or is written off contractually (denied). Billing the
+       * patient on it is wrong however the appeal ended.
+       */
+      const crown = activeCase.id === "DCASE-005" ? state.lines.find((l) => l.code === "D2740") : undefined;
+      const crownResolution = crown ? state.lineResolutions[crown.id] : undefined;
+      const crownAppeal = crown ? state.appealOutcomes[crown.id] : undefined;
+      if (activeCase.id === "DCASE-005" && crown && text.includes("write-off")) {
+        checkable = true;
+        hit =
+          crownResolution !== "billed-patient" &&
+          (crownResolution === "write-off" || crownAppeal === "upheld");
+      } else if (activeCase.id === "DCASE-005" && crown && text.includes("appeal")) {
+        checkable = true;
+        hit = Boolean(crownAppeal) || crownResolution === "appealed";
+      } else if (activeCase.id === "DCASE-001" && text.includes("contractual")) {
         checkable = true;
         hit = hasResolution("write-off") && !hasResolution("appealed") && !hasResolution("billed-patient");
       } else if (activeCase.id === "DCASE-002" && text.includes("did not appeal")) {
@@ -792,6 +851,75 @@ export function canPostDentalRemittance(
     return { ok: false, reason: "This 835 is already on the ledger — posting it again adds nothing." };
   }
   return { ok: true };
+}
+
+/**
+ * The contractual write-off a denied appeal leaves behind — one CO adjustment
+ * entry, or none where there is nothing left to write off.
+ *
+ * The amount is what is still outstanding on that claim line in the ledger: the
+ * charge, less anything already paid or adjusted. That cap is the whole safety
+ * rule. A CO denial is written off by the 835 the moment the remittance posts,
+ * so pressing this a second time posts nothing instead of crediting the patient
+ * twice; and before the 835 posts there is no charge to adjust, so nothing is
+ * invented. Either way the patient balance stays 0 — never a bill.
+ */
+export function dentalWriteOffEntry(
+  state: Pick<DentalTrackState, "ledger" | "lines" | "claimNumber">,
+  lineId: string,
+  ctx: { at: string; userId: string; patientId?: string | null; reasonCode?: string },
+): { entry: LedgerEntry | null; amountUsd: number; reason: string } {
+  const index = state.lines.findIndex((l) => l.id === lineId);
+  if (index < 0) return { entry: null, amountUsd: 0, reason: "That line is not on this claim." };
+  if (!state.claimNumber) {
+    return {
+      entry: null,
+      amountUsd: 0,
+      reason: "This claim has no number yet, so there is no account to write the line off against.",
+    };
+  }
+  const lineNumber = index + 1;
+  const onLine = state.ledger.filter(
+    (entry) => entry.claimNumber === state.claimNumber && entry.lineNumber === lineNumber,
+  );
+  const chargedCents = onLine
+    .filter((entry) => entry.type === "charge")
+    .reduce((sum, entry) => sum + entry.amountCents, 0);
+  if (chargedCents <= 0) {
+    return {
+      entry: null,
+      amountUsd: 0,
+      reason:
+        "The charge is not on the ledger yet, so there is nothing to adjust. The CO write-off posts with this claim's 835 in Remittance, and the patient balance stays $0.00.",
+    };
+  }
+  const outstandingCents = onLine.reduce((sum, entry) => sum + entry.amountCents, 0);
+  if (outstandingCents <= 0) {
+    return {
+      entry: null,
+      amountUsd: 0,
+      reason:
+        "Nothing left to write off — the ledger already carries the contractual adjustment for this line, and the patient balance stays $0.00.",
+    };
+  }
+  const code = (ctx.reasonCode ?? "CO-45").trim();
+  const amountUsd = Math.round(outstandingCents) / 100;
+  return {
+    amountUsd,
+    reason: `${code} adjustment posted — $${amountUsd.toFixed(2)} written off contractually. The patient balance stays $0.00.`,
+    entry: {
+      id: `LEDG-${state.claimNumber}-dental-writeoff-${lineNumber}`,
+      patientId: ctx.patientId ?? null,
+      claimNumber: state.claimNumber,
+      date: ctx.at.slice(0, 10),
+      type: "adjustment",
+      code,
+      description: `Write-off ${code} — $${amountUsd.toFixed(2)} on claim line ${lineNumber} written off contractually after the appeal was denied. Not billable to the patient.`,
+      amountCents: -outstandingCents,
+      userId: ctx.userId,
+      lineNumber,
+    },
+  };
 }
 
 export function DentalTrackProvider({ children }: { children: ReactNode }) {
@@ -970,16 +1098,56 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, adaForm: form }));
   }, []);
 
-  const logCall = useCallback((objective: string, note: string) => {
+  const logCall = useCallback((objective: string, note: string, lineId?: string) => {
     setState((s) => ({
       ...s,
-      arCallLog: [...s.arCallLog, { id: `call-${Date.now()}`, at: new Date().toISOString(), objective, note }],
+      arCallLog: [
+        ...s.arCallLog,
+        { id: `call-${Date.now()}`, at: new Date().toISOString(), objective, note, ...(lineId ? { lineId } : {}) },
+      ],
     }));
   }, []);
 
-  const resolveLine = useCallback((lineId: string, resolution: DentalLineResolution) => {
-    setState((s) => ({ ...s, lineResolutions: { ...s.lineResolutions, [lineId]: resolution } }));
-  }, []);
+  const resolveLine = useCallback(
+    (lineId: string, resolution: DentalLineResolution, appealOutcome?: DentalAppealOutcome) => {
+      setState((s) => ({
+        ...s,
+        lineResolutions: { ...s.lineResolutions, [lineId]: resolution },
+        appealOutcomes: appealOutcome
+          ? { ...s.appealOutcomes, [lineId]: appealOutcome }
+          : s.appealOutcomes,
+      }));
+    },
+    [],
+  );
+
+  /**
+   * Finish a denied appeal: record the write-off on the line and, where the
+   * charge is already on the ledger and something is still outstanding, post the
+   * CO adjustment that takes it off. Never a patient balance, and never twice.
+   */
+  const postContractualWriteOff = useCallback(
+    (lineId: string, reasonCode?: string) => {
+      const at = new Date().toISOString();
+      const userId = getLoggedInPhone() ?? "system";
+      const result = dentalWriteOffEntry(state, lineId, { at, userId, reasonCode });
+      setState((s) => {
+        const written = dentalWriteOffEntry(s, lineId, { at, userId, reasonCode });
+        return {
+          ...s,
+          lineResolutions: { ...s.lineResolutions, [lineId]: "write-off" as DentalLineResolution },
+          appealOutcomes: { ...s.appealOutcomes, [lineId]: "denied" as DentalAppealOutcome },
+          ledger: written.entry ? appendLedgerEntries(s.ledger, [written.entry]) : s.ledger,
+        };
+      });
+      return {
+        posted: Boolean(result.entry),
+        amountUsd: result.amountUsd,
+        reason: result.reason,
+      };
+    },
+    [state],
+  );
 
   const triggerTrap = useCallback((trapId: string) => {
     setState((s) => (s.trapsTriggered.includes(trapId) ? s : { ...s, trapsTriggered: [...s.trapsTriggered, trapId] }));
@@ -1122,14 +1290,19 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const practiceResolveLine = useCallback(
-    (scenarioId: string, lineId: string, resolution: DentalLineResolution) => {
+    (
+      scenarioId: string,
+      lineId: string,
+      resolution: DentalLineResolution,
+      appealOutcome?: DentalAppealOutcome,
+    ) => {
       const scenario = findPracticeScenario(scenarioId);
       if (!scenario) return;
       setState((s) => {
         const run = s.practice[scenarioId];
         if (!run) return s;
         // Scoring happens at the commit and nowhere earlier.
-        if (!scorePracticeLine(scenario, lineId, resolution, run.callLog)) return s;
+        if (!scorePracticeLine(scenario, lineId, resolution, run.callLog, appealOutcome)) return s;
         return {
           ...s,
           practice: {
@@ -1139,7 +1312,11 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
               lineResolutions: { ...run.lineResolutions, [lineId]: resolution },
               decisions: {
                 ...run.decisions,
-                [lineId]: { resolution, at: new Date().toISOString() },
+                [lineId]: {
+                  resolution,
+                  at: new Date().toISOString(),
+                  ...(appealOutcome ? { appealOutcome } : {}),
+                },
               },
             },
           },
@@ -1214,6 +1391,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setAdaForm,
     logCall,
     resolveLine,
+    postContractualWriteOff,
     triggerTrap,
     practice: state.practice,
     activePracticeId: state.activePracticeId,

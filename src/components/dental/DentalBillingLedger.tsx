@@ -20,7 +20,12 @@
  *  - a downgraded line is never resolved by billing the downgraded code;
  *  - a denial is only appealable when the payer reason says `appealable` is
  *    true — the appeal outcome is driven by `denial.expectedOutcome`, never by
- *    UI-side guesswork.
+ *    UI-side guesswork;
+ *  - the crown and buildup appeals have **two endings** (owner ruling
+ *    2026-11-20, `specs/appeal-then-write-off.md`): the appeal is still the
+ *    first action, and the answer to it is decided by the documentation the
+ *    student lodges — upheld pays the line, denied needs the contractual
+ *    write-off posted, with the patient balance at 0 either way.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -40,6 +45,8 @@ import {
   findCDT,
   findPlan,
   findTooth,
+  appealOutcomeFor,
+  type DentalAppealOutcome,
   type DentalDenial,
   type DentalPlan,
   type DentalCaseScenario,
@@ -64,7 +71,8 @@ import { toast } from "sonner";
 
 
 export function DentalBillingLedger({ embedded = false }: { embedded?: boolean } = {}) {
-  const { state, activeCase, planId, resolveLine, adaForm, setAdaForm, submitClaim } = useDentalTrack();
+  const { state, activeCase, planId, resolveLine, postContractualWriteOff, adaForm, setAdaForm, submitClaim } =
+    useDentalTrack();
   const plan = findPlan(planId);
 
   const adjudication = useMemo(
@@ -411,7 +419,9 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
                     denial={denial}
                     result={result}
                     resolution={resolution}
+                    appealOutcome={state.appealOutcomes[lineId]}
                     onResolve={resolveLine}
+                    onWriteOff={postContractualWriteOff}
                   />
                 )}
               </div>
@@ -541,34 +551,75 @@ function DenialAppeal({
   denial,
   result,
   resolution,
+  appealOutcome,
   onResolve,
+  onWriteOff,
 }: {
   lineId: string;
   denial: DentalDenial;
   result: CoverageResult;
   resolution: DentalLineResolution;
-  onResolve: (lineId: string, r: DentalLineResolution) => void;
+  /** How this line's appeal came back, where the appeal has two endings. */
+  appealOutcome?: DentalAppealOutcome;
+  onResolve: (lineId: string, r: DentalLineResolution, appealOutcome?: DentalAppealOutcome) => void;
+  onWriteOff: (lineId: string, reasonCode?: string) => { posted: boolean; amountUsd: number; reason: string };
 }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [narrative, setNarrative] = useState("");
-  const [lodged, setLodged] = useState(false);
+  const [writeOffNote, setWriteOffNote] = useState<string | null>(null);
 
   const winnable = denial.expectedOutcome === "appeal-with-documentation";
+  /**
+   * The crown and buildup appeals have two endings (owner ruling 2026-11-20,
+   * `specs/appeal-then-write-off.md`): upheld pays the line, denied needs the
+   * student to post the contractual write-off, patient balance 0.
+   */
+  const twoStep = denial.appealResolvesTo === "pay-or-write-off";
+  const denied = twoStep && appealOutcome === "denied";
+  const writeOffPosted = denied && resolution === "write-off";
+
+  const postWriteOff = () => {
+    const outcome = onWriteOff(lineId, denial.carc);
+    setWriteOffNote(outcome.reason);
+  };
 
   if (!open) {
     return (
       <div className="mt-2 border-t border-red-100 pt-2">
-        <button
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-red-500"
-        >
-          <Gavel className="h-3 w-3" />
-          Appeal this denial
-        </button>
-        {resolution === "appealed" && (
-          <span className="ml-2 text-[10px] font-medium text-slate-500">Appeal lodged — outcome recorded below.</span>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setOpen(true)}
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-red-500"
+          >
+            <Gavel className="h-3 w-3" />
+            Appeal this denial
+          </button>
+          {appealOutcome === "upheld" && (
+            <span className="text-[10px] font-medium text-emerald-700">
+              Appeal upheld — the line paid {fmtUsd(result.allowedUsd)}, patient balance $0.00.
+            </span>
+          )}
+          {denied && !writeOffPosted && (
+            <>
+              <span className="text-[10px] font-medium text-amber-800">
+                Appeal denied — the contractual write-off is still to post.
+              </span>
+              <button
+                onClick={postWriteOff}
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-slate-700"
+              >
+                Post contractual write-off
+              </button>
+            </>
+          )}
+          {writeOffPosted && (
+            <span className="text-[10px] font-medium text-slate-600">
+              Written off contractually — patient balance $0.00.
+            </span>
+          )}
+        </div>
+        {writeOffNote && <p className="mt-1 text-[10px] text-slate-600">{writeOffNote}</p>}
       </div>
     );
   }
@@ -646,8 +697,10 @@ function DenialAppeal({
             </button>
             <button
               onClick={() => {
-                onResolve(lineId, "appealed");
-                setLodged(true);
+                // The outcome is the payer's answer to what was lodged, decided
+                // here and only here — after the student has committed.
+                const outcome = appealOutcomeFor(denial, narrative);
+                onResolve(lineId, "appealed", outcome ?? undefined);
                 setStep(3);
               }}
               disabled={!narrative.trim()}
@@ -659,28 +712,67 @@ function DenialAppeal({
         </div>
       )}
 
-      {step === 3 && lodged && (
-        <div
-          className={`mt-2 rounded-lg p-2 ${
-            winnable ? "border border-emerald-200 bg-emerald-50" : "border border-amber-200 bg-amber-50"
-          }`}
-        >
-          {winnable ? (
-            <p className="flex items-start gap-1.5 text-[10px] text-emerald-800">
-              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>
-                <b>Appeal approved.</b> The plan released payment of <b>{fmtUsd(result.allowedUsd)}</b> toward this line. The
-                documentation carried the appeal.
-              </span>
-            </p>
+      {step === 3 && (
+        <div className="mt-2 space-y-2">
+          {twoStep ? (
+            appealOutcome === "denied" ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-2">
+                <p className="flex items-start gap-1.5 text-[10px] text-amber-900">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    <b>Appeal denied.</b> The payer upheld the original decision — the documentation did not show{" "}
+                    {denial.appealEvidence?.label ?? "what the criterion asks for"}. The appeal is not the end of this line:
+                    post the contractual write-off. {denial.carc} is a CO adjustment, so the patient balance stays $0.00.
+                  </span>
+                </p>
+                {writeOffPosted ? (
+                  <p className="mt-1.5 flex items-start gap-1.5 text-[10px] text-emerald-800">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      Contractual write-off posted — patient balance <b>$0.00</b>. Never billed to the patient.
+                    </span>
+                  </p>
+                ) : (
+                  <button
+                    onClick={postWriteOff}
+                    className="mt-1.5 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-slate-700"
+                  >
+                    Post contractual write-off (CO)
+                  </button>
+                )}
+                {writeOffNote && <p className="mt-1 text-[10px] text-slate-700">{writeOffNote}</p>}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2">
+                <p className="flex items-start gap-1.5 text-[10px] text-emerald-800">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    <b>Appeal upheld.</b> The plan released payment of <b>{fmtUsd(result.allowedUsd)}</b> toward this line.
+                    The documentation carried the appeal, and the patient balance stays $0.00.
+                  </span>
+                </p>
+              </div>
+            )
+          ) : winnable ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2">
+              <p className="flex items-start gap-1.5 text-[10px] text-emerald-800">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <b>Appeal approved.</b> The plan released payment of <b>{fmtUsd(result.allowedUsd)}</b> toward this line. The
+                  documentation carried the appeal.
+                </span>
+              </p>
+            </div>
           ) : (
-            <p className="flex items-start gap-1.5 text-[10px] text-amber-800">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>
-                <b>Appeal denied.</b> The payer upheld the original decision. Handle the balance per the corrective actions above
-                (outcome: <b>{denial.expectedOutcome.replace(/-/g, " ")}</b>).
-              </span>
-            </p>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-2">
+              <p className="flex items-start gap-1.5 text-[10px] text-amber-800">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <b>Appeal denied.</b> The payer upheld the original decision. Handle the balance per the corrective actions above
+                  (outcome: <b>{denial.expectedOutcome.replace(/-/g, " ")}</b>).
+                </span>
+              </p>
+            </div>
           )}
         </div>
       )}

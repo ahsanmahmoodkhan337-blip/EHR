@@ -41,6 +41,9 @@ export type DenialOutcome =
   | "write-off-contractual"
   | "no-recourse-educate-patient";
 
+/** How an appeal came back, where the appeal has two possible endings. */
+export type DentalAppealOutcome = "upheld" | "denied";
+
 export interface DentalDenial {
   id: string;
   /**
@@ -74,6 +77,21 @@ export interface DentalDenial {
   prevention: string;
   appealable: boolean;
   expectedOutcome: DenialOutcome;
+  /**
+   * Set only where the appeal is not terminal (owner ruling 2026-11-20,
+   * `specs/appeal-then-write-off.md`). The appeal stays the first action, but
+   * it now has two endings: upheld — the line pays its allowed amount; denied —
+   * the student posts the contractual write-off and the patient balance stays 0.
+   * `expectedOutcome` stays `appeal-with-documentation` so nothing that
+   * compares against it breaks.
+   */
+  appealResolvesTo?: "pay-or-write-off";
+  /**
+   * What the appeal has to say to carry, where the ending depends on the
+   * documentation the student lodges. Matched only AFTER the appeal is lodged —
+   * the label is teaching copy, never the answer to a decision not yet made.
+   */
+  appealEvidence?: { label: string; phrases: string[] };
   /** Can the balance legitimately be billed to the patient? */
   patientBillable: boolean;
   /** The one sentence a student should remember. */
@@ -242,6 +260,8 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     correctiveActions: [
       "Ask the payer for the paid date and the servicing provider on the prior crown.",
       "If the crown failed because of new decay or fracture rather than normal wear, appeal with radiographs and a narrative describing the failure.",
+      "If the appeal is upheld, the line pays its allowed amount and the patient balance stays 0.",
+      "If the appeal is denied, post a contractual write-off (group CO). The patient balance stays 0 — the patient is never billed for it.",
       "If the window simply has not elapsed, the replacement is a contractual write-off until the interval runs out.",
     ],
     preventable: true,
@@ -249,6 +269,12 @@ export const DENTAL_DENIALS: DentalDenial[] = [
       "During eligibility, ask the payer for the crown history on the specific tooth. It is a routine question and it prevents a four-figure surprise.",
     appealable: true,
     expectedOutcome: "appeal-with-documentation",
+    appealResolvesTo: "pay-or-write-off",
+    appealEvidence: {
+      label:
+        "the clinical failure — new decay or a fracture under the crown — and the radiograph that shows it",
+      phrases: ["decay", "fracture", "recurrent", "radiograph", "x-ray", "xray", "broken"],
+    },
     patientBillable: false,
     teachingPoint: "Replacement clocks follow the tooth, not the dentist. A crown from a previous office still counts.",
   },
@@ -576,6 +602,8 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     correctiveActions: [
       "Read the note: does it describe how much tooth structure was actually missing?",
       "If the tooth was genuinely too broken down to retain a crown alone, appeal with the pre-operative radiograph and a narrative that says so specifically.",
+      "If the appeal is upheld, the line pays its allowed amount and the patient balance stays 0.",
+      "If the appeal is denied, post a contractual write-off (group CO). The patient balance stays 0 — billing the patient for a bundled service is wrong.",
       "If the buildup was really just preparation shaping, accept the bundling and stop billing it on routine crowns.",
     ],
     preventable: true,
@@ -583,6 +611,12 @@ export const DENTAL_DENIALS: DentalDenial[] = [
       "Bill the buildup when the clinical record supports it, not by default. A practice with a buildup on every crown invites an audit.",
     appealable: true,
     expectedOutcome: "appeal-with-documentation",
+    appealResolvesTo: "pay-or-write-off",
+    appealEvidence: {
+      label:
+        "how little tooth structure was left to retain the crown, and the radiograph that shows it",
+      phrases: ["tooth structure", "structure", "insufficient", "fracture", "radiograph", "x-ray", "xray", "broken"],
+    },
     patientBillable: false,
     teachingPoint: "Bundling denials are contractual. If the appeal fails, the balance is a write-off, not a patient bill.",
   },
@@ -1066,6 +1100,10 @@ export function denialMoney(denial: DentalDenial): {
 
 /** The single next action a denial calls for, in student-facing words. */
 export function denialActionLabel(denial: DentalDenial): string {
+  // Two endings: the appeal is still first, but it is not the whole action.
+  if (denial.appealResolvesTo === "pay-or-write-off") {
+    return "appeal with documentation; if upheld the line pays, if denied post a contractual write-off with patient balance 0";
+  }
   switch (denial.expectedOutcome) {
     case "appeal-with-documentation":
       return "appeal with documentation";
@@ -1078,6 +1116,29 @@ export function denialActionLabel(denial: DentalDenial): string {
     case "no-recourse-educate-patient":
       return "close it and explain the exclusion to the patient";
   }
+}
+
+/**
+ * The payer's answer to an appeal, from the documentation the student lodged.
+ *
+ * An appeal is not a button that wins: it carries only when it states the thing
+ * the payer's criterion asks for (for a crown, the failure and the radiograph
+ * showing it; for a buildup, how little tooth structure was left). Documentation
+ * that says none of it comes back denied, and the student then has to finish the
+ * line the other way — a contractual write-off, patient balance 0.
+ *
+ * Returns `null` for a denial whose appeal is not one of the two-ending ones, so
+ * those keep their existing behaviour. Called only after the appeal is lodged.
+ */
+export function appealOutcomeFor(
+  denial: DentalDenial,
+  documentation: string,
+): DentalAppealOutcome | null {
+  if (denial.appealResolvesTo !== "pay-or-write-off") return null;
+  const text = documentation.toLowerCase();
+  const phrases = denial.appealEvidence?.phrases ?? [];
+  if (phrases.length === 0) return "denied";
+  return phrases.some((phrase) => text.includes(phrase.toLowerCase())) ? "upheld" : "denied";
 }
 
 /** One sentence combining the CARC, the money rule and the next action. */
