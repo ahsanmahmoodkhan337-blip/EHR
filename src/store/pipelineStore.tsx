@@ -438,16 +438,28 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     updateActive((enc) => ({ ...enc, displayName: name }));
   };
 
-  // Pre-fill coding data for the tutorial patient.
+  // Open the tutorial patient at the beginning of the encounter.
+  //
+  // Spec `tutorial-start-and-back.md` item 1 and 2: the Tutorial patient lands
+  // on the first stage as the scribe, never in the coding queue, and **no code
+  // arrives already submitted** — the student signs and locks the note, then
+  // codes the visit, then bills it. The note, vitals and orders the caller
+  // loads stay as the scribe stage's starting point; they are not coding work.
+  // The caller only calls this on a first visit (`!hasPipelineWork`), so a
+  // returning student is never dragged back to stage one.
   const prefillForTutorial = () => {
-    updateActive((enc) => ({
-      ...enc,
-      icdCodes: ["I10", "I25.10", "R07.9"],
-      cptCodes: ["99214", "93000"],
-      status: "charted",
-      stage: "coder",
-      role: "coder",
-    }));
+    setStore((prev) => {
+      const key = encounterKey(prev.activePatientId);
+      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
+      return {
+        ...prev,
+        currentRole: "scribe",
+        encounters: {
+          ...prev.encounters,
+          [key]: { ...enc, stage: "scribe", role: "scribe" },
+        },
+      };
+    });
   };
 
   // Start an encounter over. A plain patient switch must never call this.
