@@ -158,7 +158,22 @@ export function BillingLedger() {
     // typed is never overwritten.
     Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
     Object.assign(patch, reseedIdentityBoxes(claimForm, patient, state.displayName));
-    if (Object.keys(patch).length > 0) setClaimForm({ ...claimForm, ...patch });
+    // Only write values that actually differ from what the claim already holds.
+    // A helper that re-emits an identical (or undefined) value on every run
+    // would otherwise set state, re-run this effect and loop until React
+    // throws "Maximum update depth exceeded" (error #185).
+    const changed: Record<string, unknown> = {};
+    for (const [box, value] of Object.entries(patch)) {
+      if (value === undefined) continue;
+      const current = (claimForm as unknown as Record<string, unknown>)[box];
+      const same =
+        current === value ||
+        (typeof current === "object" && typeof value === "object"
+          ? JSON.stringify(current) === JSON.stringify(value)
+          : false);
+      if (!same) changed[box] = value;
+    }
+    if (Object.keys(changed).length > 0) setClaimForm({ ...claimForm, ...changed });
   }, [patientId, claimForm, patient, state, paRecords, setClaimForm, suggestion.claimType, encounterDate]);
 
   const claimValues = useMemo(() => {
