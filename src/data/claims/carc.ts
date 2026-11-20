@@ -271,7 +271,7 @@ export const CARC_CODES = [
     meaning:
       "The patient has used up the benefit this plan allows for this service, this period, or this occurrence.",
     howToFix:
-      "Move the balance to the patient, or pursue a coverage decision for more visits. A used-up benefit is not an appeal on necessity.",
+      "Write the line off as contractual — a CO line never leaves a patient balance — and pursue a coverage decision for more visits if the plan offers one. A used-up benefit is not an appeal on necessity; where the member does owe the balance, the payer reports PR-119.",
     neededBy: ["Poster", "AR"],
   },
   {

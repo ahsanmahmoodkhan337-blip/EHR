@@ -170,7 +170,7 @@ const CASE_HTN_FOLLOWUP: MedicalCaseScenario = {
     firstName: "Amir",
     lastName: "Khan",
     dateOfBirth: "1974-03-12",
-    ageAtServiceDate: 52,
+    ageAtServiceDate: 53,
     gender: "Male",
     subscriberName: "Khan, Amir",
     relationshipToSubscriber: "self",
@@ -210,7 +210,7 @@ const CASE_HTN_FOLLOWUP: MedicalCaseScenario = {
       dateOfService: "2027-04-02",
       chargedUsd: 155,
       linkedDiagnosisPointer: "A",
-      expectedNote: "Established-patient visit at moderate complexity. The level matches a stable chronic condition check.",
+      expectedNote: "Established-patient visit at low complexity. 99213 is the low-MDM established code, and the level matches a stable chronic condition check.",
     },
   ],
   traps: [
@@ -267,6 +267,11 @@ const CASE_HTN_FOLLOWUP: MedicalCaseScenario = {
       { stage: "coding", criterion: "Linked I10 as the primary diagnosis", points: 10 },
       { stage: "claim", criterion: "Submitted a clean claim with the diagnosis pointer correct", points: 15 },
       { stage: "ar-follow-up", criterion: "Posted the coinsurance and closed the claim", points: 10 },
+      // The missing 10-point row: without it the rows summed to 50 against a
+      // maxPoints of 60, so the debrief showed 50/60 while the rows read 50/50.
+      // Kept last on purpose — saved progress keys earned points on stage-index,
+      // so inserting a row above would move another criterion's points.
+      { stage: "eligibility", criterion: "Checked the 80% office-visit benefit and quoted the 28.00 coinsurance before the visit", points: 10 },
     ],
   },
   instructorKey: [
@@ -401,8 +406,10 @@ const CASE_PREVENTIVE_SCREENING: MedicalCaseScenario = {
   ],
   expectedTotals: { chargedUsd: 443, allowedUsd: 390, planPaysUsd: 390, patientOwesUsd: 0, writeOffUsd: 53 },
   gradingRubric: {
-    maxPoints: 60,
-    passingPoints: 42,
+    // These three criteria are worth 40 in total. maxPoints said 60 against a
+    // passingPoints of 42, so the case could not be passed by anyone.
+    maxPoints: 40,
+    passingPoints: 28,
     criteria: [
       { stage: "coding", criterion: "Used the preventive visit code, not a problem E/M", points: 15 },
       { stage: "coding", criterion: "Linked the mammogram to the screening Z code", points: 15 },
@@ -438,7 +445,7 @@ const CASE_DIABETES_CKD: MedicalCaseScenario = {
     memberId: "CCH-7788-1145",
   },
   briefing:
-    "A diabetic patient with early kidney disease returns for a high-complexity management visit. Three chronic conditions are being managed and the labs are reviewed. The visit genuinely supports a level-four E/M — but only if the claim carries the chronic diagnoses. Code the symptom and the payer will deny the higher level for medical necessity.",
+    "A diabetic patient with early kidney disease returns for a moderate-complexity management visit. Three chronic conditions are being managed and the labs are reviewed. The visit genuinely supports a level-four E/M (99214, moderate MDM) — but only if the claim carries the chronic diagnoses. Code the symptom and the payer will deny the higher level for medical necessity.",
   registrationNotes: [
     "Patient is the subscriber. Insurance unchanged.",
     "Labs drawn two weeks ago are in the chart and were reviewed at this visit.",
@@ -471,7 +478,7 @@ const CASE_DIABETES_CKD: MedicalCaseScenario = {
       dateOfService: "2027-04-09",
       chargedUsd: 225,
       linkedDiagnosisPointer: "A",
-      expectedNote: "Established visit at high complexity, supported by the two chronic diagnoses and the lab review.",
+      expectedNote: "Established visit at moderate complexity (99214 is the moderate-MDM established code), supported by the two chronic diagnoses and the lab review.",
     },
   ],
   traps: [
@@ -598,11 +605,14 @@ const CASE_MODIFIER_25_INJECTION: MedicalCaseScenario = {
     {
       line: 2,
       code: "20610",
+      // The note says "inject both knees", so the bilateral procedure is billed
+      // once with modifier 50 — not as one plain unit and not as a second line.
+      modifier: "50",
       units: 1,
       dateOfService: "2027-04-12",
-      chargedUsd: 120,
+      chargedUsd: 220,
       linkedDiagnosisPointer: "A",
-      expectedNote: "Therapeutic injection of a large joint. No modifier of its own — modifier 25 belongs on the E/M, not the procedure.",
+      expectedNote: "Therapeutic injection of both knees, billed once with modifier 50 (bilateral procedure) at the bilateral fee. Modifier 25 belongs on the E/M, never here.",
     },
   ],
   traps: [
@@ -614,7 +624,7 @@ const CASE_MODIFIER_25_INJECTION: MedicalCaseScenario = {
       whyItIsWrong:
         "On a same-day procedure, the payer treats the evaluation as part of the procedure unless modifier 25 says otherwise. The E/M line is denied.",
       correctAction: "Append modifier 25 to the E/M line, and only to the E/M line, with a separate diagnosis pointing to the separately identified problem.",
-      producesDenialCarc: "CO-16",
+      producesDenialCarc: "CO-4",
       exercisesModifier25: true,
       pointsAtStake: 25,
     },
@@ -624,8 +634,8 @@ const CASE_MODIFIER_25_INJECTION: MedicalCaseScenario = {
       title: "Putting the modifier on the procedure instead",
       commonMistake: "The student puts modifier 25 on the injection, reasoning that any modifier on the claim fixes it.",
       whyItIsWrong:
-        "Modifier 25 describes a separately identifiable E/M service. It does not belong on a procedure code and does nothing there.",
-      correctAction: "Keep modifier 25 on the E/M line only.",
+        "Modifier 25 describes a separately identifiable E/M service. It does not belong on a procedure code and does nothing there. The injection's own modifier is 50, for the bilateral procedure.",
+      correctAction: "Keep modifier 25 on the E/M line only; the injection carries 50 (both knees) and nothing else.",
       pointsAtStake: 15,
     },
   ],
@@ -644,15 +654,17 @@ const CASE_MODIFIER_25_INJECTION: MedicalCaseScenario = {
     {
       line: 2,
       code: "20610",
-      chargedUsd: 120,
-      allowedUsd: 100,
-      planPaysUsd: 80,
-      patientOwesUsd: 20,
+      modifier: "50",
+      chargedUsd: 220,
+      allowedUsd: 200,
+      planPaysUsd: 160,
+      patientOwesUsd: 40,
       writeOffUsd: 20,
-      explanation: "Joint injection paid at 80 percent of the allowance.",
+      explanation:
+        "Both knees injected, billed once with modifier 50 at the bilateral allowance of 200, paid at 80 percent (160); the patient owes 40.",
     },
   ],
-  expectedTotals: { chargedUsd: 275, allowedUsd: 240, planPaysUsd: 192, patientOwesUsd: 48, writeOffUsd: 35 },
+  expectedTotals: { chargedUsd: 375, allowedUsd: 340, planPaysUsd: 272, patientOwesUsd: 68, writeOffUsd: 35 },
   arFollowUp: {
     scenario: "A claim sent without modifier 25 comes back with the E/M denied. The fix is a corrected claim with the modifier, not an appeal.",
     outcome: "correct-and-resubmit",
@@ -663,8 +675,9 @@ const CASE_MODIFIER_25_INJECTION: MedicalCaseScenario = {
     ],
   },
   gradingRubric: {
-    maxPoints: 70,
-    passingPoints: 49,
+    // The four rows total 60; maxPoints said 70.
+    maxPoints: 60,
+    passingPoints: 42,
     criteria: [
       { stage: "coding", criterion: "Applied modifier 25 to the E/M line", points: 25 },
       { stage: "coding", criterion: "Left the injection without modifier 25", points: 15 },
@@ -777,7 +790,7 @@ const CASE_MRI_PRIOR_AUTH: MedicalCaseScenario = {
   ],
   expectedTotals: { chargedUsd: 460, allowedUsd: 400, planPaysUsd: 320, patientOwesUsd: 80, writeOffUsd: 60 },
   arFollowUp: {
-    scenario: "A claim submitted without the authorisation returns denied CO-119. The fix is retrospective review or an appeal with the clinical urgency, not a corrected claim alone.",
+    scenario: "A claim submitted without the authorisation returns denied CO-197 (no record of the required authorisation). The fix is retrospective review or an appeal with the clinical urgency, not a corrected claim alone.",
     outcome: "appeal-with-documentation",
     callObjectives: [
       "Confirm the authorisation requirement and whether the payer accepts retrospective review.",
@@ -817,7 +830,7 @@ const CASE_CCI_BUNDLING: MedicalCaseScenario = {
     firstName: "Kamran",
     lastName: "Ahmed",
     dateOfBirth: "1955-05-17",
-    ageAtServiceDate: 72,
+    ageAtServiceDate: 71,
     gender: "Male",
     subscriberName: "Ahmed, Kamran",
     relationshipToSubscriber: "self",
@@ -904,8 +917,9 @@ const CASE_CCI_BUNDLING: MedicalCaseScenario = {
     ],
   },
   gradingRubric: {
-    maxPoints: 60,
-    passingPoints: 42,
+    // The three rows total 55; maxPoints said 60.
+    maxPoints: 55,
+    passingPoints: 39,
     criteria: [
       { stage: "coding", criterion: "Billed only the definitive service for the single spot", points: 25 },
       { stage: "claim", criterion: "Did not append a bundled second line", points: 15 },
@@ -964,7 +978,7 @@ const CASE_THERAPY_LIMIT: MedicalCaseScenario = {
     plan: "Continue therapeutic exercise; reassess in two weeks.",
   },
   diagnoses: [
-    { code: "M54.5", priority: 1, pointer: "A", expectedNote: "Low back pain — the diagnosis supporting the therapy visit." },
+    { code: "M54.50", priority: 1, pointer: "A", expectedNote: "Low back pain, unspecified — the diagnosis supporting the therapy visit. M54.5 on its own is the category header and is not billable; it needs a 5th character." },
   ],
   procedures: [
     {
@@ -996,7 +1010,8 @@ const CASE_THERAPY_LIMIT: MedicalCaseScenario = {
       commonMistake: "The student writes an appeal arguing the therapy is medically necessary.",
       whyItIsWrong:
         "The plan is not disputing necessity. The benefit for the category is exhausted, and no clinical argument changes a visit limit.",
-      correctAction: "Move the balance to the patient, and pursue a coverage decision for additional visits only if the plan offers one.",
+      correctAction:
+        "Close the line as a contractual write-off — CO-119 is not a patient balance — and pursue a coverage decision for additional visits only if the plan offers one. Any self-pay is agreed with the patient in writing before the next visit, not billed after this one.",
       producesDenialCarc: "CO-119",
       pointsAtStake: 20,
     },
@@ -1006,32 +1021,33 @@ const CASE_THERAPY_LIMIT: MedicalCaseScenario = {
       line: 1,
       code: "97110",
       chargedUsd: 38,
-      allowedUsd: 30,
+      allowedUsd: 0,
       planPaysUsd: 0,
-      patientOwesUsd: 30,
-      writeOffUsd: 8,
+      patientOwesUsd: 0,
+      writeOffUsd: 38,
       carcCode: "CO-119",
       explanation:
-        "Covered service, but the 20-visit therapy allowance is exhausted. The plan pays nothing on this line; the patient owes the contracted amount, and the charge-above-allowance is written off.",
+        "Covered service, but the 20-visit therapy allowance is exhausted. CO is a contractual group code: the plan allows nothing on this line and the whole 38.00 charge is a provider write-off, not a patient balance. The patient is told about the limit and offered a self-pay decision before any further visit.",
     },
   ],
-  expectedTotals: { chargedUsd: 38, allowedUsd: 30, planPaysUsd: 0, patientOwesUsd: 30, writeOffUsd: 8 },
+  expectedTotals: { chargedUsd: 38, allowedUsd: 0, planPaysUsd: 0, patientOwesUsd: 0, writeOffUsd: 38 },
   arFollowUp: {
-    scenario: "The patient is surprised the visit is not covered and wants it appealed. Nothing was coded wrong — the benefit limit was reached.",
-    outcome: "bill-patient",
+    scenario: "The patient is surprised the visit is not covered and wants it appealed. Nothing was coded wrong — the benefit limit was reached, and the CO-119 line is written off rather than billed to her.",
+    outcome: "write-off-contractual",
     callObjectives: [
       "Show the patient the 20-visit limit and where her usage reached it.",
-      "Explain that a benefit-exhausted denial is not appealable on necessity grounds.",
-      "Offer the choice: self-pay the remaining visits, or pause and pursue a coverage decision for additional visits.",
+      "Explain that a benefit-exhausted denial is not appealable on necessity grounds, and that this line is a contractual write-off — she is not billed for it.",
+      "Offer the choice for future visits: self-pay at an agreed fee, or pause and pursue a coverage decision for additional visits.",
     ],
   },
   gradingRubric: {
-    maxPoints: 60,
-    passingPoints: 42,
+    // The three rows total 55; maxPoints said 60.
+    maxPoints: 55,
+    passingPoints: 39,
     criteria: [
       { stage: "eligibility", criterion: "Checked remaining therapy visits before the appointment", points: 25 },
       { stage: "claim", criterion: "Coded the visit correctly (the issue was the limit, not the code)", points: 10 },
-      { stage: "ar-follow-up", criterion: "Did not appeal a benefit-exhausted denial; explained it and moved the balance", points: 20 },
+      { stage: "ar-follow-up", criterion: "Did not appeal a benefit-exhausted denial; explained it and wrote the line off as contractual", points: 20 },
     ],
   },
   instructorKey: [
@@ -1096,7 +1112,7 @@ const CASE_DEDUCTIBLE_COINSURANCE: MedicalCaseScenario = {
       dateOfService: "2027-05-12",
       chargedUsd: 168,
       linkedDiagnosisPointer: "A",
-      expectedNote: "New-patient visit at moderate complexity; the level matches an acute, self-limited illness.",
+      expectedNote: "New-patient visit at low complexity — 99203 is the low-MDM new-patient code, and an acute uncomplicated illness meets low on both problems and risk.",
     },
   ],
   traps: [
@@ -1178,7 +1194,7 @@ const CASE_NON_COVERED_COSMETIC: MedicalCaseScenario = {
     firstName: "Aisha",
     lastName: "Rahman",
     dateOfBirth: "1982-06-20",
-    ageAtServiceDate: 45,
+    ageAtServiceDate: 44,
     gender: "F",
     subscriberName: "Aisha Rahman",
     relationshipToSubscriber: "self",
@@ -1232,7 +1248,7 @@ const CASE_NON_COVERED_COSMETIC: MedicalCaseScenario = {
         "The plan excludes cosmetic services outright. An exclusion is not reduced and not fixed by a different diagnosis; it is simply not covered.",
       correctAction:
         "Check the plan's exclusion list before the service, then quote the full fee and get a signed waiver before removing the mole.",
-      producesDenialCarc: "CO-96",
+      producesDenialCarc: "PR-96",
       pointsAtStake: 25,
     },
     {
@@ -1244,7 +1260,7 @@ const CASE_NON_COVERED_COSMETIC: MedicalCaseScenario = {
         "The plan is not disputing the clinical quality of the removal. It is saying the service is not a covered benefit, and that decision does not change through a clinical appeal.",
       correctAction:
         "Recognise the exclusion, confirm the signed waiver, and bill the patient. If the growth had been symptomatic, that should have been documented at the time.",
-      producesDenialCarc: "CO-96",
+      producesDenialCarc: "PR-96",
       pointsAtStake: 15,
     },
   ],
@@ -1257,7 +1273,7 @@ const CASE_NON_COVERED_COSMETIC: MedicalCaseScenario = {
       planPaysUsd: 0,
       patientOwesUsd: 120,
       writeOffUsd: 0,
-      carcCode: "CO-96",
+      carcCode: "PR-96",
       explanation:
         "Non-covered. The plan excludes cosmetic removal of benign growths, so it pays nothing. The patient owes the full charge against the signed waiver — there is no contracted allowance to write off.",
     },

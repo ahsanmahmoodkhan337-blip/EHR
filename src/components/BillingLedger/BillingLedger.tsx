@@ -330,7 +330,7 @@ export function BillingLedger() {
   };
 
   const simulateDenial = () => {
-    handleDenial(`${CARC_BY_CODE["CO-16"].code} — ${CARC_BY_CODE["CO-16"].description}`, {
+    handleDenial(`${CARC_BY_CODE["CO-4"].code} — ${CARC_BY_CODE["CO-4"].description}`, {
       amount: calcPayment().billed,
       patientName: state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),
     });
@@ -499,7 +499,7 @@ export function BillingLedger() {
                         transmitResult === "paid"
                           ? "Accepted — paid"
                           : transmitResult === "denied"
-                            ? "Rejected — CO-16"
+                            ? "Rejected — CO-4"
                             : "Draft"
                       }`}
                       history={(cs?.auditLogs ?? []).map((l) => ({ at: l.timestamp, message: l.message }))}
@@ -712,7 +712,7 @@ export function BillingLedger() {
                 {transmitResult === "denied" && (
                   <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
                     <p className="flex items-center gap-1 text-xs font-medium text-red-700">
-                      <XCircle className="h-3.5 w-3.5" /> Modifier 25 Missing — Claim Denied (CO-16)
+                      <XCircle className="h-3.5 w-3.5" /> Modifier 25 Missing — Claim Denied (CO-4)
                     </p>
                     <p className="mt-1 text-[10px] text-red-600">Route to AR for remediation.</p>
                   </div>
@@ -898,7 +898,7 @@ export function BillingLedger() {
               <p className="text-sm font-medium text-red-700 text-center">Claim Denied — Routed to AR Queue</p>
               <p className="mt-2 text-xs text-red-600 text-center">{state.denialInfo?.code}</p>
               <div className="mt-4 space-y-2">
-                {DENIAL_CODES.filter(d => d.code === "CO-16" || d.code === "CO-50").map((d) => (
+                {DENIAL_CODES.filter(d => d.code === "CO-4" || d.code === "CO-50").map((d) => (
                   <div key={d.code} className="rounded-lg bg-white p-3 text-xs">
                     <span className="font-mono font-bold text-red-600">{d.code}</span>
                     <p className="mt-0.5 text-slate-600">{d.description}</p>

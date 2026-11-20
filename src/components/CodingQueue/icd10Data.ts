@@ -320,13 +320,14 @@ export const ICD10_CODES: ICD10Code[] = [
 
   // ─── Musculoskeletal ────────────────────────────────────────────
   {
-    code: "M54.5",
-    description: "Low back pain",
+    code: "M54.50",
+    description: "Low back pain, unspecified",
     chapter: "Musculoskeletal",
     category: "Back pain",
     medicareRate: 42.30,
     commercialRate: 82.00,
-    notes: "Mechanical low back pain. Differentiate from radiculopathy (M54.1x).",
+    notes:
+      "Mechanical low back pain. M54.5 on its own is the category header and is not billable — it needs a 5th character (M54.50 unspecified, M54.51 vertebrogenic, M54.59 other). Differentiate from radiculopathy (M54.1x).",
     guidelines: ["Do not use with specific diagnosis (disc herniation, spinal stenosis)"],
     laterality: "none",
   },
@@ -538,7 +539,18 @@ export const ICD10_CODES: ICD10Code[] = [
     category: "General",
     medicareRate: 32.50,
     commercialRate: 62.00,
-    notes: "Generalized weakness, not specific to a limb.",
+    notes: "Generalized weakness, not specific to a limb. Fatigue is a different symptom — code R53.83.",
+    laterality: "none",
+  },
+  {
+    code: "R53.83",
+    description: "Other fatigue",
+    chapter: "Symptoms",
+    category: "General",
+    medicareRate: 32.50,
+    commercialRate: 62.00,
+    notes:
+      "Tiredness or exhaustion the provider has not tied to a diagnosis. R53.1 is weakness — a different symptom. Once the cause is found, code the cause instead.",
     laterality: "none",
   },
 

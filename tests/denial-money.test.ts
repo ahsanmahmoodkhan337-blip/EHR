@@ -9,6 +9,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { DENTAL_DENIALS, DENTAL_CASE_SCENARIOS, findDenial, denialMoney } from "../src/data/dental";
+import { MEDICAL_CASE_SCENARIOS } from "../src/data/medical";
 import { CARC_BY_CODE } from "../src/data/claims/carc";
 
 describe("denial records", () => {
@@ -48,6 +49,41 @@ describe("case data", () => {
           line.chargedUsd,
         );
       }
+    });
+  }
+});
+
+describe("medical case answer keys", () => {
+  test("every CARC a medical case teaches exists in the single table", () => {
+    for (const c of MEDICAL_CASE_SCENARIOS) {
+      for (const line of c.expectedOutcome) {
+        if (!line.carcCode) continue;
+        expect(CARC_BY_CODE[line.carcCode], `${c.id} ${line.code} uses ${line.carcCode}`).toBeDefined();
+      }
+      for (const trap of c.traps) {
+        if (!trap.producesDenialCarc) continue;
+        expect(
+          CARC_BY_CODE[trap.producesDenialCarc],
+          `${c.id} ${trap.id} uses ${trap.producesDenialCarc}`,
+        ).toBeDefined();
+      }
+    }
+  });
+
+  for (const c of MEDICAL_CASE_SCENARIOS) {
+    test(`${c.id}: a CO line carries no patient balance`, () => {
+      for (const line of c.expectedOutcome) {
+        if (!line.carcCode?.startsWith("CO-")) continue;
+        expect(line.patientOwesUsd, `${c.id} ${line.code} (${line.carcCode}) bills the patient`).toBe(0);
+        expect(line.writeOffUsd, `${c.id} ${line.code} write-off must equal the charge`).toBe(line.chargedUsd);
+      }
+    });
+
+    test(`${c.id}: the rubric adds up and can be passed`, () => {
+      const { maxPoints, passingPoints, criteria } = c.gradingRubric;
+      const sum = criteria.reduce((total, row) => total + row.points, 0);
+      expect(sum, `${c.id} criteria total ${sum} against maxPoints ${maxPoints}`).toBe(maxPoints);
+      expect(passingPoints, `${c.id} needs ${passingPoints} of ${maxPoints}`).toBeLessThanOrEqual(maxPoints);
     });
   }
 });

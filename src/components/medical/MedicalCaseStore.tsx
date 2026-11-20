@@ -210,7 +210,7 @@ function computeEarned(
       else if (t.includes("mammogram")) hit = hasDx("Z12.31") && hasProc("77067");
       else if (t.includes("e11.22")) hit = hasDx("E11.22");
       else if (t.includes("n18.3")) hit = hasDx("N18.3");
-      else if (t.includes("fatigue")) hit = !hasDx("R53.1") && hasDx("E11.22");
+      else if (t.includes("fatigue")) hit = !hasDx("R53.83") && !hasDx("R53.1") && hasDx("E11.22");
       else if (t.includes("modifier 25")) hit = procMod("99213") === "25";
       else if (t.includes("injection")) hit = hasProc("20610") && procMod("20610") !== "25";
       else if (t.includes("separately evaluated")) hit = procLink("99213") === "B";
@@ -223,7 +223,7 @@ function computeEarned(
       else if (t.includes("authorisation number"))
         hit = state.claimSubmitted && pa.choice === "obtained" && pa.authNumber.trim().length > 0;
       else if (t.includes("bundled")) hit = state.claimSubmitted && !hasProc("11102");
-      else if (t.includes("coded the visit")) hit = hasProc("97110") && hasDx("M54.5");
+      else if (t.includes("coded the visit")) hit = hasProc("97110") && hasDx("M54.50");
       else if (t.includes("coded and submitted")) hit = state.claimSubmitted && hasProc("99203") && hasDx("J06.9");
       else if (t.includes("fabricate")) hit = state.claimSubmitted && hasDx("D23.9");
     } else if (c.stage === "prior-auth") {
@@ -270,7 +270,7 @@ function detectTriggeredTraps(state: MedicalCaseState, activeCase: MedicalCaseSc
       if (hasProc("77067") && !hasDx("Z12.31")) ids.push("MTRAP-2B");
       break;
     case "MCASE-003":
-      if (hasDx("R53.1")) ids.push("MTRAP-3A");
+      if (hasDx("R53.83") || hasDx("R53.1")) ids.push("MTRAP-3A");
       if (hasDx("E11.9")) ids.push("MTRAP-3B");
       break;
     case "MCASE-004":
