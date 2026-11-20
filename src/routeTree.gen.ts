@@ -20,6 +20,7 @@ import { Route as InstructorRouteImport } from './routes/instructor'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MedicalCasesRouteImport } from './routes/medical-cases'
 import { Route as PatientsRouteImport } from './routes/patients'
+import { Route as PatientsIdRouteImport } from './routes/patients.$id'
 import { Route as PracticeArRouteImport } from './routes/practice-ar'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ReferenceRouteImport } from './routes/reference'
@@ -29,6 +30,8 @@ import { Route as DentalCaseIdStageRouteImport } from './routes/dental.$caseId.$
 import { Route as MedicalCasesCaseIdStageRouteImport } from './routes/medical-cases.$caseId.$stage'
 import { Route as CasesTrackCaseIdStageRouteImport } from './routes/cases.$track.$caseId.$stage'
 import { Route as CasesIndexRouteImport } from './routes/cases.index'
+import { Route as PatientsIdTabRouteImport } from './routes/patients.$id.$tab'
+import { Route as PatientsIdIndexRouteImport } from './routes/patients.$id.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -85,6 +88,11 @@ const PatientsRoute = PatientsRouteImport.update({
   path: '/patients',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PatientsIdRoute = PatientsIdRouteImport.update({
+  id: '/patients/$id',
+  path: '/patients/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PracticeArRoute = PracticeArRouteImport.update({
   id: '/practice-ar',
   path: '/practice-ar',
@@ -125,6 +133,16 @@ const CasesTrackCaseIdStageRoute = CasesTrackCaseIdStageRouteImport.update({
   path: '/$track/$caseId/$stage',
   getParentRoute: () => CasesRoute,
 } as any)
+const PatientsIdTabRoute = PatientsIdTabRouteImport.update({
+  id: '/$tab',
+  path: '/$tab',
+  getParentRoute: () => PatientsIdRoute,
+} as any)
+const PatientsIdIndexRoute = PatientsIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PatientsIdRoute,
+} as any)
 const CasesIndexRoute = CasesIndexRouteImport.update({
   id: '/cases/',
   path: '/',
@@ -144,6 +162,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/medical-cases': typeof MedicalCasesRouteWithChildren
   '/patients': typeof PatientsRoute
+  '/patients/$id': typeof PatientsIdRouteWithChildren
+  '/patients/$id/': typeof PatientsIdIndexRoute
   '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
   '/reference': typeof ReferenceRoute
@@ -152,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
   '/cases/$track/$caseId/$stage': typeof CasesTrackCaseIdStageRoute
+  '/patients/$id/$tab': typeof PatientsIdTabRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -166,6 +187,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/medical-cases': typeof MedicalCasesRouteWithChildren
   '/patients': typeof PatientsRoute
+  '/patients/$id': typeof PatientsIdRouteWithChildren
+  '/patients/$id/': typeof PatientsIdIndexRoute
   '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
   '/reference': typeof ReferenceRoute
@@ -174,6 +197,7 @@ export interface FileRoutesByTo {
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
   '/cases/$track/$caseId/$stage': typeof CasesTrackCaseIdStageRoute
+  '/patients/$id/$tab': typeof PatientsIdTabRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -189,6 +213,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/medical-cases': typeof MedicalCasesRouteWithChildren
   '/patients': typeof PatientsRoute
+  '/patients/$id': typeof PatientsIdRouteWithChildren
+  '/patients/$id/': typeof PatientsIdIndexRoute
   '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
   '/reference': typeof ReferenceRoute
@@ -197,6 +223,7 @@ export interface FileRoutesById {
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
   '/cases/$track/$caseId/$stage': typeof CasesTrackCaseIdStageRoute
+  '/patients/$id/$tab': typeof PatientsIdTabRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -213,6 +240,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/medical-cases'
     | '/patients'
+    | '/patients/$id'
+    | '/patients/$id/'
     | '/practice-ar'
     | '/quiz'
     | '/reference'
@@ -221,6 +250,7 @@ export interface FileRouteTypes {
     | '/dental/$caseId/$stage'
     | '/medical-cases/$caseId/$stage'
     | '/cases/$track/$caseId/$stage'
+    | '/patients/$id/$tab'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -235,6 +265,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/medical-cases'
     | '/patients'
+    | '/patients/$id'
+    | '/patients/$id/'
     | '/practice-ar'
     | '/quiz'
     | '/reference'
@@ -243,6 +275,7 @@ export interface FileRouteTypes {
     | '/dental/$caseId/$stage'
     | '/medical-cases/$caseId/$stage'
     | '/cases/$track/$caseId/$stage'
+    | '/patients/$id/$tab'
   id:
     | '__root__'
     | '/'
@@ -257,6 +290,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/medical-cases'
     | '/patients'
+    | '/patients/$id'
+    | '/patients/$id/'
     | '/practice-ar'
     | '/quiz'
     | '/reference'
@@ -265,6 +300,7 @@ export interface FileRouteTypes {
     | '/dental/$caseId/$stage'
     | '/medical-cases/$caseId/$stage'
     | '/cases/$track/$caseId/$stage'
+    | '/patients/$id/$tab'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -421,6 +457,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CasesTrackCaseIdStageRouteImport
       parentRoute: typeof CasesRoute
     }
+    '/patients/$id': {
+      id: '/patients/$id'
+      path: '/patients/$id'
+      fullPath: '/patients/$id'
+      preLoaderRoute: typeof PatientsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patients/$id/$tab': {
+      id: '/patients/$id/$tab'
+      path: '/$tab'
+      fullPath: '/patients/$id/$tab'
+      preLoaderRoute: typeof PatientsIdTabRouteImport
+      parentRoute: typeof PatientsIdRoute
+    }
+    '/patients/$id/': {
+      id: '/patients/$id/'
+      path: '/'
+      fullPath: '/patients/$id/'
+      preLoaderRoute: typeof PatientsIdIndexRouteImport
+      parentRoute: typeof PatientsIdRoute
+    }
     '/cases/': {
       id: '/cases/'
       path: '/'
@@ -430,6 +487,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface PatientsIdRouteChildren {
+  PatientsIdTabRoute: typeof PatientsIdTabRoute
+  PatientsIdIndexRoute: typeof PatientsIdIndexRoute
+}
+
+const PatientsIdRouteChildren: PatientsIdRouteChildren = {
+  PatientsIdTabRoute: PatientsIdTabRoute,
+  PatientsIdIndexRoute: PatientsIdIndexRoute,
+}
+
+const PatientsIdRouteWithChildren = PatientsIdRoute._addFileChildren(
+  PatientsIdRouteChildren,
+)
 
 interface CasesRouteChildren {
   CasesTrackCaseIdStageRoute: typeof CasesTrackCaseIdStageRoute
@@ -478,6 +549,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MedicalCasesRoute: MedicalCasesRouteWithChildren,
   PatientsRoute: PatientsRoute,
+  PatientsIdRoute: PatientsIdRouteWithChildren,
   PracticeArRoute: PracticeArRoute,
   QuizRoute: QuizRoute,
   ReferenceRoute: ReferenceRoute,

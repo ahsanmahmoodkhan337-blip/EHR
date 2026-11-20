@@ -232,3 +232,59 @@ export function appendLedgerEntries(
   const fresh = incoming.filter((e) => !known.has(e.id));
   return fresh.length === 0 ? list : [...list, ...fresh];
 }
+
+// ─── One patient's ledger, across every visit ──────────────────────
+
+/** One row of the patient ledger: the entry and the balance after it. */
+export interface PatientLedgerRow {
+  entry: LedgerEntry;
+  /**
+   * The patient's balance once this entry was posted, in signed cents. The
+   * newest row's balance is the patient's balance — it is the same sum
+   * `ledgerBalance` returns, shown step by step so a student can trace it.
+   */
+  balanceCents: number;
+}
+
+/**
+ * Every entry posted against one patient, newest first
+ * (`specs/patient-hub.md` § Ledger). An entry with no patient id belongs to no
+ * chart and is never shown under one.
+ *
+ * Entries posted the same day keep the order they were posted in, so the
+ * running balance reads down the screen the way the money moved.
+ */
+export function ledgerEntriesForPatient(
+  entries: LedgerEntry[] | null | undefined,
+  patientId: string | null | undefined,
+): LedgerEntry[] {
+  if (!patientId) return [];
+  return (entries ?? []).filter((entry) => entry.patientId === patientId).reverse();
+}
+
+/**
+ * The patient ledger with the running balance, newest first. The balance on
+ * each row is the sum of every entry posted up to and including it, in posting
+ * order — never a figure typed or stored anywhere.
+ */
+export function patientLedgerRows(
+  entries: LedgerEntry[] | null | undefined,
+  patientId: string | null | undefined,
+): PatientLedgerRow[] {
+  const mine = (entries ?? []).filter((entry) => patientId && entry.patientId === patientId);
+  const rows: PatientLedgerRow[] = [];
+  let running = 0;
+  for (const entry of mine) {
+    running += entry.amountCents;
+    rows.push({ entry, balanceCents: running });
+  }
+  return rows.reverse();
+}
+
+/** What this patient still owes, summed from their own entries. */
+export function patientBalanceCents(
+  entries: LedgerEntry[] | null | undefined,
+  patientId: string | null | undefined,
+): number {
+  return ledgerBalance(ledgerEntriesForPatient(entries, patientId)).patientBalanceCents;
+}

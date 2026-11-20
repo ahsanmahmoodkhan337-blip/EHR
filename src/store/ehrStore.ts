@@ -36,6 +36,11 @@ import { createStore as createIdbStore, del as idbDel, get as idbGet, set as idb
 import type { Patient, CaseState, PatientInsurance } from "./patientStore";
 import { deriveInsuranceRecord } from "../utils/insuranceRecord";
 import { NOT_CHECKED, type EligibilityRecord } from "../domain/eligibility";
+import {
+  makeAddedDocument,
+  type AddDocumentInput,
+  type DocumentRecord,
+} from "../domain/documents";
 import { markFailed, markSaved, markSaving } from "./autosave";
 import { deleteGroupStores, resetInMemory, type ResetGroupId } from "./resetData";
 
@@ -249,6 +254,13 @@ export interface UserData {
   legacy: Record<string, unknown> | null;
   /** Last allocated numeric MRN sequence (monotonic, never reused). */
   mrnSequence: number;
+  /**
+   * Documents the student added to a patient's chart (`specs/patient-hub.md`
+   * § Documents). Generated papers — the claim form, the EOB — are not stored
+   * here: they are read off the record that produced them, so a document can
+   * never say a paper exists when it does not. v6.
+   */
+  documents: DocumentRecord[];
 }
 
 export interface EhrEnvelope {
@@ -271,6 +283,20 @@ export interface NewPatientInput {
   track?: Track;
 }
 
+/**
+ * The demographics a student may correct on the patient hub
+ * (`specs/patient-hub.md` § Demographics). Every field is optional: the tab
+ * sends only what was typed, and a blank box leaves the chart as it was.
+ */
+export interface PatientDemographicsPatch {
+  preferredName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  primaryCareProvider?: string;
+  emergencyContact?: { name?: string; phone?: string; relation?: string };
+}
+
 export interface NewAppointmentInput {
   patientId: string | null;
   patientName: string;
@@ -288,7 +314,7 @@ export interface NewAppointmentInput {
 // ─── Constants ─────────────────────────────────────────────────────
 
 export const APP_ID = "healthcare-hustlers-ehr";
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 /** Newest activity entries kept — the log is a teaching aid, not an archive. */
 export const MAX_ACTIVITY_ENTRIES = 500;
 const DB_NAME = "healthcare-hustlers";
@@ -336,6 +362,7 @@ function emptyUser(): UserData {
     dental: null,
     legacy: null,
     mrnSequence: 0,
+    documents: [],
   };
 }
 
@@ -531,6 +558,12 @@ function normalizeUser(raw: unknown): UserData {
     legacy:
       r.legacy && typeof r.legacy === "object" ? (r.legacy as Record<string, unknown>) : null,
     mrnSequence: Number(r.mrnSequence ?? 0) || 0,
+    // v6 (patient hub). A chart saved before documents existed starts with none
+    // added; its generated papers are read off the claim and the 835s, so
+    // nothing is invented for it.
+    documents: arr<DocumentRecord>(r.documents).filter(
+      (doc) => doc && typeof doc.id === "string" && typeof doc.patientId === "string",
+    ),
   };
 }
 
@@ -604,6 +637,12 @@ export function migrateEnvelope(raw: unknown): EhrEnvelope | null {
       };
     });
   }
+
+  // ── v5 → v6 ── the patient hub adds a documents list (`specs/patient-hub.md`
+  // § Documents). `normalizeUser` above defaults it to empty, so a v5 chart
+  // keeps every patient, appointment, note and eligibility record and simply
+  // starts with no added document. Nothing is rewritten to look as if a paper
+  // had been filed: the tab reads the claim form and the 835s off the record.
 
   return {
     app: APP_ID,
@@ -771,6 +810,25 @@ interface EhrState {
     patientId: string,
     identity: { firstName?: string; lastName?: string; dateOfBirth?: string },
   ) => void;
+  /**
+   * Write the contact details the front desk corrected on the Demographics tab
+   * (`specs/patient-hub.md` § Demographics). One writer for every remaining
+   * field — preferred name, phone, email, address, emergency contact and PCP —
+   * so the hub has a single place that edits a chart, and only the fields the
+   * student actually filled are written. A blank box never erases what the
+   * chart already holds, and nothing is invented: SSN, race, ethnicity and
+   * language are not captured anywhere and so are not offered.
+   */
+  updatePatientDemographics: (
+    patientId: string,
+    patch: PatientDemographicsPatch,
+  ) => void;
+  /**
+   * File a document the student added to a patient's chart
+   * (`specs/patient-hub.md` § Documents). It is a named entry, not a file: this
+   * build has no upload. An unnamed document is refused rather than stored.
+   */
+  addDocument: (input: Omit<AddDocumentInput, "at" | "id">) => DocumentRecord | null;
   createAppointment: (input: NewAppointmentInput) => EhrAppointment;
   updateAppointment: (id: string, patch: Partial<EhrAppointment>) => void;
   setAppointmentStatus: (id: string, status: EhrAppointmentStatus) => void;
@@ -865,6 +923,7 @@ function mergeUsers(base: UserData, over: UserData): UserData {
     dental: over.dental ?? base.dental,
     legacy: over.legacy ?? base.legacy,
     mrnSequence: Math.max(base.mrnSequence, over.mrnSequence),
+    documents: byId(base.documents, over.documents),
   };
 }
 
@@ -1094,6 +1153,100 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
         user: { ...s.user, patients, activity: appendActivity(s.user.activity, entry) },
       };
     });
+  },
+
+  /**
+   * One writer for the demographics the front desk corrects on the hub. Only
+   * the fields the student filled are written, and a seed patient edited here
+   * is copied into the user namespace first, so the demo record is never
+   * mutated in place (section 2).
+   */
+  updatePatientDemographics: (patientId, patch) => {
+    const state = get();
+    const existing = mergeById(state.seedPatients, state.user.patients).find(
+      (p) => p.id === patientId,
+    );
+    if (!existing) return;
+
+    const text = (value: string | undefined) => (value ?? "").trim();
+    const next: Partial<Patient> = {};
+    if (text(patch.preferredName)) next.preferredName = text(patch.preferredName);
+    if (text(patch.phone)) next.phone = text(patch.phone);
+    if (text(patch.email)) next.email = text(patch.email);
+    if (text(patch.address)) next.address = text(patch.address);
+    if (text(patch.primaryCareProvider)) next.primaryCareProvider = text(patch.primaryCareProvider);
+
+    // The emergency contact is one record, so it is replaced field by field:
+    // what the student left blank keeps the value the chart already holds.
+    const contact = patch.emergencyContact;
+    if (contact) {
+      const before = existing.emergencyContact ?? { name: "", phone: "", relation: "" };
+      const merged = {
+        name: text(contact.name) || before.name,
+        phone: text(contact.phone) || before.phone,
+        relation: text(contact.relation) || before.relation,
+      };
+      if (
+        merged.name !== before.name ||
+        merged.phone !== before.phone ||
+        merged.relation !== before.relation
+      ) {
+        next.emergencyContact = merged;
+      }
+    }
+
+    if (Object.keys(next).length === 0) return;
+
+    const now = new Date().toISOString();
+    const entry: ActivityEntry = {
+      time: now,
+      role: "front-desk",
+      user: state.phone ?? "unknown",
+      patientId,
+      entity: "patient",
+      action: "update",
+      after: { demographics: Object.keys(next).join(", ") },
+    };
+
+    set((s) => {
+      const inUser = s.user.patients.some((p) => p.id === patientId);
+      const patients = inUser
+        ? s.user.patients.map((p) => (p.id === patientId ? { ...p, ...next } : p))
+        : [...s.user.patients, { ...existing, isSeed: false, ...next }];
+      return {
+        user: { ...s.user, patients, activity: appendActivity(s.user.activity, entry) },
+      };
+    });
+    flushEhrStore();
+  },
+
+  addDocument: (input) => {
+    const document = makeAddedDocument({
+      ...input,
+      at: new Date().toISOString(),
+      id: uid("doc"),
+    });
+    if (!document) return null;
+
+    const state = get();
+    const entry: ActivityEntry = {
+      time: document.createdAt,
+      role: "front-desk",
+      user: state.phone ?? "unknown",
+      patientId: document.patientId,
+      entity: "patient",
+      action: "update",
+      after: { document: `${document.category}: ${document.name}` },
+    };
+    set((s) => ({
+      user: {
+        ...s.user,
+        documents: [document, ...s.user.documents],
+        activity: appendActivity(s.user.activity, entry),
+      },
+    }));
+    flushEhrStore();
+    return document;
   },
 
   createAppointment: (input) => {
