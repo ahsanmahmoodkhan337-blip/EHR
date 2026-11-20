@@ -35,6 +35,12 @@ interface AppShellProps {
   track: ShellTrack;
   /** Sidebar item to mark as current, or null when none matches. */
   activeNav?: ShellNavId | null;
+  /**
+   * Called when the rail's Home entry is clicked. Home is a destination even
+   * when the page is already Home (spec `home-button-returns-home.md`), so the
+   * page gets to close whatever workspace is open in front of it.
+   */
+  onHomeClick?: () => void;
 
   selectedPatientId?: string;
   onPatientSelect?: (patientId: string) => void;
@@ -64,6 +70,7 @@ interface AppShellProps {
 export function AppShell({
   track,
   activeNav = null,
+  onHomeClick,
   selectedPatientId,
   onPatientSelect,
   roleLabel,
@@ -97,6 +104,7 @@ export function AppShell({
       <AppSidebar
         track={track}
         activeNav={activeNav}
+        onHomeClick={onHomeClick}
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
         mobileOpen={mobileOpen}

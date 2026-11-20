@@ -24,6 +24,8 @@ interface AppSidebarProps {
   track: ShellTrack;
   /** The item to show as the current page, or null when none matches. */
   activeNav: ShellNavId | null;
+  /** Home is a destination: the page closes any open workspace for it. */
+  onHomeClick?: () => void;
   collapsed: boolean;
   onToggleCollapsed: () => void;
   /** True while the off-canvas drawer is open (below `lg`). */
@@ -34,6 +36,7 @@ interface AppSidebarProps {
 export function AppSidebar({
   track,
   activeNav,
+  onHomeClick,
   collapsed,
   onToggleCollapsed,
   mobileOpen,
@@ -91,6 +94,10 @@ export function AppSidebar({
                   onClick={(event) => {
                     event.preventDefault();
                     onCloseMobile();
+                    // Home is a destination, not a no-op: when the student is
+                    // already on Home with a chart open, navigating to "/" would
+                    // change nothing, so the page closes the workspace instead.
+                    if (item.id === "home") onHomeClick?.();
                     void navigate({ to: item.to });
                   }}
                   className={`${baseClass} ${activeClass}`}

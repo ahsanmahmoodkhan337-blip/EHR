@@ -54,6 +54,7 @@ import { PatientBanner } from "../components/shell/PatientBanner";
 import { postedCopayForPatient } from "../domain/checkIn";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
+import { StageNav } from "../components/shell/StageNav";
 import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
 import { StatusTimeline } from "../components/status/StatusTimeline";
 import { statusEventsFor } from "../domain/statusEvent";
@@ -85,6 +86,32 @@ import { CommandPalette } from "../components/CommandPalette";
 
 /** Pipeline roles the working context may restore (section 4). */
 const PIPELINE_ROLES: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-voice"];
+
+/**
+ * The scribe's own stages, in the order a visit is documented (spec
+ * `tutorial-start-and-back.md` item 3). One list drives the stage header and the
+ * Back / Next controls, so the label the student reads and the stage they move
+ * to can never disagree.
+ */
+const SCRIBE_STAGES: { id: string; label: string }[] = [
+  { id: "registration", label: "Registration" },
+  { id: "intake-vitals", label: "Intake / Vitals" },
+  { id: "hpi", label: "History of Present Illness" },
+  { id: "exam-ros", label: "Review of Systems" },
+  { id: "assessment-plan", label: "Assessment & Plan" },
+  { id: "sign-lock", label: "Sign & Lock Note" },
+];
+
+/**
+ * The stage before each role's screen, for the one Back control (spec item 3).
+ * A role stage always has a previous stage; the scribe's first stage has none.
+ */
+const ROLE_BACK: Partial<Record<Role, { label: string; role: Role; stage?: string }>> = {
+  coder: { label: "Sign & Lock Note", role: "scribe", stage: "sign-lock" },
+  "prior-auth": { label: "Coding", role: "coder" },
+  biller: { label: "Prior Auth", role: "prior-auth" },
+  "ar-voice": { label: "Billing", role: "biller" },
+};
 
 /**
  * "Saved 12:04 PM" — Epic-style autosave indicator (Phase 0, section 5).
@@ -1580,7 +1607,10 @@ function Home() {
         plan: "1. Admit to telemetry unit\n2. Serial troponins q6h x3\n3. Echocardiogram in AM\n4. Cardiology consult (Dr. Williams)\n5. Continue home medications\n6. NPO after midnight for possible cardiac catheterization\n7. Stress test if enzymes negative\n8. Discharge planning: cardiac rehab referral"
       });
       setSubmittedToCoding(false);
-      setActiveStage("sign-lock");
+      // The encounter opens at its first stage (spec `tutorial-start-and-back.md`
+      // item 1). The note above is the scribe's starting point; the student walks
+      // the stages from Registration and still signs and locks before coding.
+      setActiveStage("registration");
       setSharedImmunizations([
         { id: "imm-d1", vaccine: "Influenza 2026-2027", dose: "0.5 mL", date: "2026-10-01", status: "Given" },
         { id: "imm-d2", vaccine: "Tdap", dose: "0.5 mL", date: "2023-05-10", status: "Given" },
@@ -1957,6 +1987,16 @@ function Home() {
   if (planGaps.length === 0) completedStagesDerived.add("assessment-plan");
   if (noteSigned) completedStagesDerived.add("sign-lock");
 
+  // The one step back and the one step forward for the stage on screen
+  // (spec `tutorial-start-and-back.md` item 3). The first stage has no Back.
+  const scribeStageIndex = SCRIBE_STAGES.findIndex((stage) => stage.id === activeStage);
+  const scribeBack = scribeStageIndex > 0 ? SCRIBE_STAGES[scribeStageIndex - 1] : undefined;
+  const scribeNext =
+    scribeStageIndex >= 0 && scribeStageIndex < SCRIBE_STAGES.length - 1
+      ? SCRIBE_STAGES[scribeStageIndex + 1]
+      : undefined;
+  const roleBack = ROLE_BACK[currentRole];
+
   const stageHints: Record<string, string> = {};
   if (!registrationComplete) {
     stageHints.registration = registrationGaps.length
@@ -2015,6 +2055,20 @@ function Home() {
     setActiveStage("");
   };
 
+  /**
+   * Home is a destination, not a no-op (spec `home-button-returns-home.md`).
+   * Clicking it from the workspace closes the chart so the home screen — patient
+   * list, work queues, InBasket — comes up with no patient open in front of it.
+   * Navigation only: the note is flushed first, and the encounter keeps its
+   * stage, codes, claim and postings, so reopening the patient returns to them.
+   */
+  const handleHomeClick = () => {
+    saveNoteDraftNow();
+    saveCurrentSession();
+    setSelectedPatientId("");
+    setActiveStage("");
+  };
+
   // Home is its own page now: the rail marks Home, and nothing on it pretends
   // to be Schedule or Patients any more.
   const shellActiveNav: ShellNavId = "home";
@@ -2023,6 +2077,7 @@ function Home() {
     <AppShell
       track="medical"
       activeNav={shellActiveNav}
+      onHomeClick={handleHomeClick}
       selectedPatientId={selectedPatientId}
       onPatientSelect={handlePatientSelect}
       roleLabel={getRoleLabel(currentRole)}
@@ -2112,6 +2167,21 @@ function Home() {
       {/* ─── Role-Based Workspace ─── */}
       {selectedPatient && currentRole !== "scribe" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
+          {/* One way back to the stage this work came from. It changes the stage
+              shown and nothing else — no note, code or claim is touched. */}
+          {roleBack && (
+            <div className="shrink-0 border-b border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+              <StageNav
+                back={{
+                  label: roleBack.label,
+                  onClick: () => {
+                    if (roleBack.stage) setActiveStage(roleBack.stage);
+                    setRole(roleBack.role);
+                  },
+                }}
+              />
+            </div>
+          )}
           {currentRole === "coder" && (
             <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
           )}
@@ -2184,12 +2254,7 @@ function Home() {
                   <div className="border-b border-brand-100 bg-brand-50/50 px-4 py-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-brand-700">
-                        Workflow: {activeStage === "registration" ? "Patient Registration" :
-                                                          activeStage === "intake-vitals" ? "Intake / Vitals" :
-                                    activeStage === "hpi" ? "History of Present Illness" :
-                                    activeStage === "exam-ros" ? "Review of Systems" :
-                                    activeStage === "assessment-plan" ? "Assessment & Plan" :
-                                    "Sign & Lock Note"}
+                        Workflow: {SCRIBE_STAGES.find((stage) => stage.id === activeStage)?.label ?? "Sign & Lock Note"}
                       </span>
                       <span
                         className={
@@ -2289,6 +2354,19 @@ function Home() {
                         {/* Pipeline complete shown above after all stages finish */}
                       </div>
                     )}
+                    <StageNav
+                      className="mt-6 border-t border-slate-200 pt-3"
+                      back={
+                        scribeBack
+                          ? { label: scribeBack.label, onClick: () => setActiveStage(scribeBack.id) }
+                          : undefined
+                      }
+                      next={
+                        scribeNext
+                          ? { label: scribeNext.label, onClick: () => setActiveStage(scribeNext.id) }
+                          : undefined
+                      }
+                    />
                   </div>
                 </div>
               ) : (
