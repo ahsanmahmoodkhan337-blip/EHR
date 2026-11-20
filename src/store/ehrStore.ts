@@ -33,7 +33,8 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import { createStore as createIdbStore, get as idbGet, set as idbSet } from "idb-keyval";
-import type { Patient, CaseState } from "./patientStore";
+import type { Patient, CaseState, PatientInsurance } from "./patientStore";
+import { deriveInsuranceRecord } from "../utils/insuranceRecord";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -268,7 +269,7 @@ export interface NewAppointmentInput {
 // ─── Constants ─────────────────────────────────────────────────────
 
 export const APP_ID = "healthcare-hustlers-ehr";
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 /** Newest activity entries kept — the log is a teaching aid, not an archive. */
 export const MAX_ACTIVITY_ENTRIES = 500;
 const DB_NAME = "healthcare-hustlers";
@@ -524,6 +525,18 @@ export function migrateEnvelope(raw: unknown): EhrEnvelope | null {
   // `normalizeUser` above already defaults both, so a v2 export keeps every
   // patient, appointment and case file and simply starts with no draft saved.
 
+  // ── v3 → v4 ── every patient gains an `insuranceRecord`: the payer name and
+  // plan name are taken from the old free-text `insurance` string, and every
+  // identifier (member ID, group, EDI payer ID) stays empty because no earlier
+  // build captured one. Nothing is invented — a blank identifier falls through
+  // to the claim's tagged demo value instead of printing a fake number.
+  if (version < 4) {
+    user.patients = user.patients.map((patient) => {
+      const insuranceRecord = deriveInsuranceRecord(patient);
+      return insuranceRecord ? { ...patient, insuranceRecord } : patient;
+    });
+  }
+
   return {
     app: APP_ID,
     schemaVersion: SCHEMA_VERSION,
@@ -624,6 +637,12 @@ interface EhrState {
   unload: () => void;
 
   registerPatient: (input: NewPatientInput) => Patient;
+  /**
+   * Write the insurance record Registration & eligibility captured onto the
+   * patient. A seed patient edited this way is copied into the user namespace
+   * first, so the read-only demo record is never mutated in place (section 2).
+   */
+  updatePatientInsurance: (patientId: string, insurance: PatientInsurance) => void;
   createAppointment: (input: NewAppointmentInput) => EhrAppointment;
   updateAppointment: (id: string, patch: Partial<EhrAppointment>) => void;
   setAppointmentStatus: (id: string, status: EhrAppointmentStatus) => void;
@@ -757,6 +776,44 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
       },
     }));
     return patient;
+  },
+
+  updatePatientInsurance: (patientId, insurance) => {
+    const state = get();
+    const existing = mergeById(state.seedPatients, state.user.patients).find(
+      (p) => p.id === patientId,
+    );
+    if (!existing) return;
+
+    const now = new Date().toISOString();
+    const record: PatientInsurance = { ...insurance, updatedAt: now };
+    const entry: ActivityEntry = {
+      time: now,
+      role: "front-desk",
+      user: state.phone ?? "unknown",
+      patientId,
+      entity: "patient",
+      action: "update",
+      before: existing.insuranceRecord?.primary.payerName
+        ? { insurance: existing.insuranceRecord.primary.payerName }
+        : undefined,
+      after: {
+        insurance: record.primary.payerName,
+        memberId: record.primary.subscriberId,
+        group: record.primary.groupNumber,
+        secondary: record.secondary?.payerName ?? "none",
+      },
+    };
+
+    set((s) => {
+      const inUser = s.user.patients.some((p) => p.id === patientId);
+      const patients = inUser
+        ? s.user.patients.map((p) => (p.id === patientId ? { ...p, insuranceRecord: record } : p))
+        : [...s.user.patients, { ...existing, isSeed: false, insuranceRecord: record }];
+      return {
+        user: { ...s.user, patients, activity: appendActivity(s.user.activity, entry) },
+      };
+    });
   },
 
   createAppointment: (input) => {

@@ -30,9 +30,23 @@ const COLUMNS: { key: keyof ClaimServiceLine | "modifiers"; label: string; width
   { key: "renderingNpi", label: "24J · NPI", width: "18%" },
 ];
 
-export function CMS1500Form({ values, lines, set, setLine, addLine, removeLine, issues, demoFields }: ClaimPaperApi) {
+export function CMS1500Form({
+  values,
+  lines,
+  set,
+  setLine,
+  addLine,
+  removeLine,
+  issues,
+  demoFields,
+  demoLineFields,
+}: ClaimPaperApi) {
   const rows = lines as unknown as ClaimServiceLine[];
   const maxLines = CMS1500_LAYOUT.maxLines;
+  // Box 24A when the claim holds no per-line date: the encounter supplied none,
+  // so the cell shows the tagged demo date as a placeholder. It is never the
+  // input's value, so it cannot be saved as if the student had captured it.
+  const demoDate = demoLineFields?.dateOfService;
 
   const rowError = (box: string, index: number) =>
     issues.some((i) => i.severity === "error" && i.box === box && i.message.includes(`line ${index + 1}`));
@@ -50,16 +64,32 @@ export function CMS1500Form({ values, lines, set, setLine, addLine, removeLine, 
 
       {rows.map((line, index) => (
         <div key={`line-${index}`} className="flex items-start gap-0.5 border-b border-form-red/20 py-0.5">
-          <input
-            type="date"
-            value={line.dateOfService ?? ""}
-            onChange={(e) => setLine(index, { dateOfService: e.target.value })}
-            aria-label={`Box 24A date of service, line ${index + 1}`}
-            style={{ width: "15%" }}
-            className={`shrink-0 bg-transparent text-[8.5px] text-ink outline-none ${
-              rowError("24A", index) ? "outline outline-2 outline-danger" : ""
-            }`}
-          />
+          {line.dateOfService || !demoDate ? (
+            <input
+              type="date"
+              value={line.dateOfService ?? ""}
+              onChange={(e) => setLine(index, { dateOfService: e.target.value })}
+              aria-label={`Box 24A date of service, line ${index + 1}`}
+              style={{ width: "15%" }}
+              className={`shrink-0 bg-transparent text-[8.5px] text-ink outline-none ${
+                rowError("24A", index) ? "outline outline-2 outline-danger" : ""
+              }`}
+            />
+          ) : (
+            <input
+              type="text"
+              value=""
+              placeholder={demoDate.value}
+              onChange={(e) => setLine(index, { dateOfService: e.target.value })}
+              aria-label={`Box 24A date of service, line ${index + 1} — demo date, type to replace`}
+              title={`Demo date — the per-line date of service is normally supplied by ${demoDate.stage}. Type the real date to replace it.`}
+              data-demo-box={demoDate.box}
+              style={{ width: "15%" }}
+              className={`shrink-0 bg-transparent text-[8.5px] italic text-slate-400 outline-none placeholder:text-slate-400 ${
+                rowError("24A", index) ? "outline outline-2 outline-danger" : ""
+              }`}
+            />
+          )}
           <select
             value={line.placeOfService ?? "11"}
             onChange={(e) => setLine(index, { placeOfService: e.target.value })}

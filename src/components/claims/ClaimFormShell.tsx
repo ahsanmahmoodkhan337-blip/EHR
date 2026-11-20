@@ -27,7 +27,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, FileDown, Info, Loader2, Printer, Save, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import type { ClaimIssue } from "../../utils/claimValidation";
-import { applyDemoFill, demoFillSummary, type DemoFilledBox } from "../../utils/demoClaimFill";
+import { applyDemoFill, applyLineDemoFill, demoFillSummary, type DemoFilledBox } from "../../utils/demoClaimFill";
 
 export interface ClaimPaperApi {
   values: Record<string, unknown>;
@@ -39,6 +39,8 @@ export interface ClaimPaperApi {
   issues: ClaimIssue[];
   /** Fields currently showing a demo value — the paper styles these. */
   demoFields: Record<string, DemoFilledBox>;
+  /** Line fields showing a demo value (box 24A), keyed by line field. */
+  demoLineFields: Record<string, DemoFilledBox>;
   /** The same boxes as a list, for the paper's footer / the panel. */
   demoBoxes: DemoFilledBox[];
 }
@@ -205,9 +207,19 @@ export function ClaimFormShell({
     [draft, demoFillEnabled],
   );
 
+  // The same rule for the box-24 lines (24A date of service). A blank line date
+  // shows the tagged demo date, so the paper never prints a date the record does
+  // not hold — and the draft keeps the line blank.
+  const demoLines = useMemo(
+    () => applyLineDemoFill(draftLines, { enabled: demoFillEnabled }),
+    [draftLines, demoFillEnabled],
+  );
+
+  const demoBoxCount = demo.boxes.length + demoLines.boxes.length;
+
   const issues = useMemo(
-    () => validate(demo.values, draftLines),
-    [demo.values, draftLines, validate],
+    () => validate(demo.values, demoLines.lines),
+    [demo.values, demoLines.lines, validate],
   );
   const errors = issues.filter((i) => i.severity === "error");
   const warnings = issues.filter((i) => i.severity === "warn");
@@ -236,7 +248,7 @@ export function ClaimFormShell({
     } else {
       toast.success(
         `All edit checks pass${warnings.length > 0 ? ` — ${warnings.length} advisory note${warnings.length === 1 ? "" : "s"}` : ""}${
-          demo.boxes.length > 0 ? ` · ${demoFillSummary(demo.boxes.length)}` : ""
+          demoBoxCount > 0 ? ` · ${demoFillSummary(demoBoxCount)}` : ""
         }`,
       );
     }
@@ -310,7 +322,7 @@ export function ClaimFormShell({
           <Printer className="h-3.5 w-3.5" /> Print
         </button>
         <button
-          onClick={() => onDownload(demo.values, draftLines)}
+          onClick={() => onDownload(demo.values, demoLines.lines)}
           className={btnGhost}
           title="Download the boxed form as a PDF — the paper as drawn, demo values included"
         >
@@ -324,17 +336,17 @@ export function ClaimFormShell({
       {/* ── Demo-data strip ──────────────────────────────────────────
           Counted apart from the edit checks: a demo box is not a clean box,
           so it is never folded into "0 errors". */}
-      {demo.boxes.length > 0 && (
+      {demoBoxCount > 0 && (
         <div className="border-b border-slate-200 bg-slate-50 px-3 py-1.5">
           <p className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-600">
             <Info className="h-3 w-3 text-slate-400" />
-            {demoFillSummary(demo.boxes.length)}
+            {demoFillSummary(demoBoxCount)}
             <span className="font-normal text-slate-400">
               — teaching placeholders, not captured data; nothing here is saved to the claim.
             </span>
           </p>
           <p className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-            {demo.boxes.map((d) => (
+            {[...demo.boxes, ...demoLines.boxes].map((d) => (
               <span key={d.field} className="text-[9px] italic text-slate-400" title={`${d.label} is normally supplied by ${d.stage}.`}>
                 {d.label} · {d.value}
               </span>
@@ -379,14 +391,15 @@ export function ClaimFormShell({
       <div className="bg-slate-100/70 p-3">
         {children({
           values: demo.values,
-          lines: draftLines,
+          lines: demoLines.lines,
           set,
           setLine,
           addLine,
           removeLine,
           issues,
           demoFields: demo.byField,
-          demoBoxes: demo.boxes,
+          demoLineFields: demoLines.byField,
+          demoBoxes: [...demo.boxes, ...demoLines.boxes],
         })}
       </div>
 

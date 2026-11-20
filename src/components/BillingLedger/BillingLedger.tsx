@@ -31,6 +31,7 @@ import { validateCMS1500, type ClaimIssue } from "../../utils/claimValidation";
 import {
   useEncounterPatientId,
   useEncounterPlaceOfService,
+  useEncounterDateOfService,
 } from "../../utils/encounterPatient";
 import {
   CLAIM_TYPE_OPTIONS,
@@ -95,6 +96,7 @@ export function BillingLedger() {
   // scrubber's field. The biller can override; the choice is stored on the
   // claim, so reopening it shows the same paper.
   const encounterPos = useEncounterPlaceOfService(patientId || null);
+  const encounterDate = useEncounterDateOfService(patientId || null);
   const primaryPos =
     claimForm?.serviceLines?.[0]?.placeOfService || encounterPos || posCode || "11";
   const suggestion = suggestClaimType({
@@ -137,6 +139,7 @@ export function BillingLedger() {
           pipeline: state,
           paNumber,
           claimType: suggestion.claimType,
+          encounterDate,
         }),
       );
       return;
@@ -153,7 +156,7 @@ export function BillingLedger() {
       Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
     }
     if (Object.keys(patch).length > 0) setClaimForm({ ...claimForm, ...patch });
-  }, [patientId, claimForm, patient, state, paRecords, setClaimForm, suggestion.claimType]);
+  }, [patientId, claimForm, patient, state, paRecords, setClaimForm, suggestion.claimType, encounterDate]);
 
   const claimValues = useMemo(() => {
     if (!claimForm) return {};

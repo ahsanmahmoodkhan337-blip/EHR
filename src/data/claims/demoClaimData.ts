@@ -95,6 +95,23 @@ export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {
   },
 };
 
+/**
+ * Demo values for a **service line** (box 24A–24J), applied per line by
+ * `applyLineDemoFill` rather than to the claim's own values map.
+ *
+ * Box 24A is here because the date of service used to be printed as `today()`
+ * whenever the Coder handed over no per-line dates — a date nobody captured. The
+ * claim now reads the encounter's date of service, and only when the encounter
+ * has none either does the line show this tagged demo date.
+ */
+export const DEMO_LINE_DATA: Record<string, DemoClaimValue> = {
+  dateOfService: {
+    box: "24A",
+    value: "2026-07-09",
+    stage: "Coder (per-line date of service)",
+  },
+};
+
 /** One line printed under the paper so a demo value is never mistaken for real. */
 export const DEMO_FILL_NOTE =
   "Grey italic values tagged DEMO are teaching placeholders — nothing in the claim record supplies them yet.";

@@ -75,3 +75,18 @@ export function useEncounterPlaceOfService(patientId: string | null): string | n
     return encounter?.placeOfService ?? null;
   });
 }
+
+/**
+ * The date of service the encounter was registered at. This is what box 24A
+ * reads when the Coder handed over no per-line dates — the alternative was
+ * `today()`, a date nobody captured.
+ */
+export function useEncounterDateOfService(patientId: string | null): string | null {
+  return useEhrStore((s) => {
+    if (!patientId) return null;
+    const encounter =
+      s.user.encounters.find((e) => e.patientId === patientId && !e.locked) ??
+      s.user.encounters.find((e) => e.patientId === patientId);
+    return encounter?.dateOfService || null;
+  });
+}

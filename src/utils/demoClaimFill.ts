@@ -22,7 +22,7 @@
  * a placeholder the biller can see through, never a value silently invented.
  */
 
-import { DEMO_CLAIM_DATA } from "../data/claims/demoClaimData";
+import { DEMO_CLAIM_DATA, DEMO_LINE_DATA } from "../data/claims/demoClaimData";
 
 /** A box currently showing a demo value rather than captured data. */
 export interface DemoFilledBox {
@@ -91,4 +91,44 @@ export function applyDemoFill(
 export function demoFillSummary(count: number): string {
   if (count <= 0) return "No demo data on this claim";
   return `${count} box${count === 1 ? "" : "es"} filled with demo data`;
+}
+
+/**
+ * The same real-first / demo-second rule, applied to the box-24 service lines.
+ *
+ * Only fields listed in `DEMO_LINE_DATA` are considered (today that is 24A, the
+ * date of service), and a line that already carries a value keeps it. The
+ * returned `lines` are a *rendering* copy — the claim keeps its own blank line,
+ * so a demo date is never saved as if the student had captured it.
+ */
+export function applyLineDemoFill(
+  lines: Record<string, unknown>[],
+  { enabled = true }: { enabled?: boolean } = {},
+): { lines: Record<string, unknown>[]; byField: Record<string, DemoFilledBox>; boxes: DemoFilledBox[] } {
+  const byField: Record<string, DemoFilledBox> = {};
+  const boxes: DemoFilledBox[] = [];
+  if (!enabled) return { lines, byField, boxes };
+
+  const rendered = lines.map((line) => {
+    let next: Record<string, unknown> | null = null;
+    for (const [field, demo] of Object.entries(DEMO_LINE_DATA)) {
+      if (!isMissingValue(line[field])) continue; // the real value wins
+      next = { ...(next ?? line), [field]: demo.value };
+      const filled: DemoFilledBox = {
+        field,
+        box: demo.box,
+        label: `Box ${demo.box}`,
+        value: demo.value,
+        stage: demo.stage,
+      };
+      // One entry per field: every blank line shows the same demo date.
+      if (!byField[field]) {
+        byField[field] = filled;
+        boxes.push(filled);
+      }
+    }
+    return next ?? line;
+  });
+
+  return { lines: rendered, byField, boxes };
 }

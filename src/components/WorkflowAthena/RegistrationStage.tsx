@@ -1,29 +1,82 @@
 /**
  * RegistrationStage — Patient Intake & Registration
  *
- * Inspiration: Front-desk check-in terminal UI concept.
+ * Inspiration: Front-desk check-in terminal UI concept (athenahealth-style
+ * registration, with the insurance card transcribed into the coverage record).
  * Displays mock Driver's License and Insurance Card,
  * then challenges the student to transcribe fields correctly.
  * Educational twist: Insurance card says "Jonathon" but
  * Driver's License says "Jonathan" — blind copying triggers
  * a name mismatch warning.
+ *
+ * What it saves: on Verify, the insurance fields the student transcribed —
+ * payer name and EDI payer ID, subscriber ID, group number, relationship to the
+ * subscriber and any secondary coverage — are written onto the selected patient
+ * as its `insuranceRecord` (spec 3a item 1). Until 2026-11-20 they stayed in
+ * component state and only fed the score, so the claim had nothing to read and
+ * box 1a printed an invented member ID. The record now lives in the patient
+ * store, so it survives a reload and follows the patient onto the claim.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CreditCard, IdCard, AlertTriangle, CheckCircle2, Star } from "lucide-react";
 import { scoreRegistration, updateStageScore, getStudentName } from "../../utils/scoring";
+import { usePatientStore } from "../../store/patientStore";
+import { useEhrStore } from "../../store/ehrStore";
+import {
+  SUBSCRIBER_RELATIONSHIPS,
+  buildInsuranceRecord,
+} from "../../utils/insuranceRecord";
 
-export function RegistrationStage() {
+interface RegistrationStageProps {
+  /** The patient this registration writes its insurance record to. */
+  patientId?: string | null;
+}
+
+export function RegistrationStage({ patientId }: RegistrationStageProps) {
+  const { getPatientById } = usePatientStore();
+  const updatePatientInsurance = useEhrStore((s) => s.updatePatientInsurance);
+  const patient = patientId ? getPatientById(patientId) : undefined;
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     dob: "",
+    payerName: "Anthem Blue Cross",
     subscriberId: "",
     groupNumber: "",
     payerId: "",
+    relationship: "Self",
+    secondaryPayerName: "",
+    secondaryPayerId: "",
+    secondarySubscriberId: "",
+    secondaryGroupNumber: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [savedToChart, setSavedToChart] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Re-open a patient that already has a record: show what the chart holds, so
+  // re-verifying corrects it instead of silently replacing it with blanks. The
+  // store hydrates after the first render, so this also runs when it lands.
+  const prefilledFor = useRef<string | null>(null);
+  useEffect(() => {
+    const record = patient?.insuranceRecord;
+    if (!record || prefilledFor.current === patient?.id) return;
+    prefilledFor.current = patient?.id ?? null;
+    setForm((prev) => ({
+      ...prev,
+      payerName: record.primary.payerName || prev.payerName,
+      subscriberId: record.primary.subscriberId || prev.subscriberId,
+      groupNumber: record.primary.groupNumber || prev.groupNumber,
+      payerId: record.primary.ediPayerId || prev.payerId,
+      relationship: record.primary.relationshipToSubscriber || prev.relationship,
+      secondaryPayerName: record.secondary?.payerName ?? "",
+      secondaryPayerId: record.secondary?.ediPayerId ?? "",
+      secondarySubscriberId: record.secondary?.subscriberId ?? "",
+      secondaryGroupNumber: record.secondary?.groupNumber ?? "",
+    }));
+  }, [patient?.id, patient?.insuranceRecord]);
 
   // The insurance card says "Jonathon" — blind copy reveals mismatch
   const expectsJonathon = form.firstName.toLowerCase() === "jonathon";
@@ -34,6 +87,7 @@ export function RegistrationStage() {
     if (!form.lastName.trim()) errs.lastName = "Last name is required";
     if (!form.dob.trim()) errs.dob = "Date of birth is required";
     else if (!/^\d{2}\/\d{2}\/\d{4}$/.test(form.dob.trim())) errs.dob = "Use MM/DD/YYYY format";
+    if (!form.payerName.trim()) errs.payerName = "Payer name is required";
     if (!form.subscriberId.trim()) errs.subscriberId = "Subscriber ID is required";
     if (!form.groupNumber.trim()) errs.groupNumber = "Group number is required";
     if (!form.payerId.trim()) errs.payerId = "Payer ID is required";
@@ -56,6 +110,40 @@ export function RegistrationStage() {
       setRegistrationScore(score);
       updateStageScore(getStudentName(), "registration", score);
       setSubmitted(true);
+
+      // Persist the coverage record onto the patient. No identifier is derived
+      // or invented: what the student did not type stays empty, so the claim
+      // box falls through to its tagged demo value instead.
+      if (patient?.id) {
+        const secondaryFilled =
+          form.secondaryPayerName.trim() ||
+          form.secondaryPayerId.trim() ||
+          form.secondarySubscriberId.trim() ||
+          form.secondaryGroupNumber.trim();
+        updatePatientInsurance(
+          patient.id,
+          buildInsuranceRecord({
+            primary: {
+              payerName: form.payerName,
+              ediPayerId: form.payerId,
+              subscriberId: form.subscriberId,
+              groupNumber: form.groupNumber,
+              relationshipToSubscriber: form.relationship,
+              planName: form.payerName,
+            },
+            secondary: secondaryFilled
+              ? {
+                  payerName: form.secondaryPayerName,
+                  ediPayerId: form.secondaryPayerId,
+                  subscriberId: form.secondarySubscriberId,
+                  groupNumber: form.secondaryGroupNumber,
+                  relationshipToSubscriber: form.relationship,
+                }
+              : null,
+          }),
+        );
+        setSavedToChart(true);
+      }
     }
   };
 
@@ -142,6 +230,12 @@ export function RegistrationStage() {
             {errors.dob && <p className="mt-0.5 text-[10px] text-red-500">{errors.dob}</p>}
           </div>
           <div>
+            <label className="text-[11px] font-medium text-slate-500">Payer Name</label>
+            <input type="text" value={form.payerName} onChange={e => setForm({ ...form, payerName: e.target.value })}
+              className="mt-1 input-field" placeholder="e.g. Anthem Blue Cross" />
+            {errors.payerName && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerName}</p>}
+          </div>
+          <div>
             <label className="text-[11px] font-medium text-slate-500">Subscriber ID</label>
             <input type="text" value={form.subscriberId} onChange={e => setForm({ ...form, subscriberId: e.target.value })}
               className="mt-1 input-field" placeholder="e.g. XYZ987654321" />
@@ -154,10 +248,47 @@ export function RegistrationStage() {
             {errors.groupNumber && <p className="mt-0.5 text-[10px] text-red-500">{errors.groupNumber}</p>}
           </div>
           <div>
-            <label className="text-[11px] font-medium text-slate-500">Payer ID</label>
+            <label className="text-[11px] font-medium text-slate-500">Payer ID (EDI)</label>
             <input type="text" value={form.payerId} onChange={e => setForm({ ...form, payerId: e.target.value })}
               className="mt-1 input-field" placeholder="e.g. ANTHEM01" />
             {errors.payerId && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerId}</p>}
+          </div>
+          <div>
+            <label className="text-[11px] font-medium text-slate-500">Relationship to Subscriber</label>
+            <select value={form.relationship} onChange={e => setForm({ ...form, relationship: e.target.value })}
+              className="mt-1 input-field">
+              {SUBSCRIBER_RELATIONSHIPS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <p className="mt-0.5 text-[10px] text-slate-400">Fills claim box 6 — SELF unless the patient is a dependent.</p>
+          </div>
+        </div>
+
+        {/* ─── Secondary coverage (claim box 9 / 11d) ─── */}
+        <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+          <p className="text-[11px] font-semibold text-slate-600">Secondary Coverage — leave blank if there is none</p>
+          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div>
+              <label className="text-[11px] font-medium text-slate-500">Secondary Payer Name</label>
+              <input type="text" value={form.secondaryPayerName} onChange={e => setForm({ ...form, secondaryPayerName: e.target.value })}
+                className="mt-1 input-field" placeholder="e.g. Medicare Part B" />
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-slate-500">Secondary Payer ID (EDI)</label>
+              <input type="text" value={form.secondaryPayerId} onChange={e => setForm({ ...form, secondaryPayerId: e.target.value })}
+                className="mt-1 input-field" placeholder="e.g. MCARE01" />
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-slate-500">Secondary Subscriber ID</label>
+              <input type="text" value={form.secondarySubscriberId} onChange={e => setForm({ ...form, secondarySubscriberId: e.target.value })}
+                className="mt-1 input-field" placeholder="e.g. MC123456789" />
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-slate-500">Secondary Group Number</label>
+              <input type="text" value={form.secondaryGroupNumber} onChange={e => setForm({ ...form, secondaryGroupNumber: e.target.value })}
+                className="mt-1 input-field" placeholder="e.g. MCB-4471" />
+            </div>
           </div>
         </div>
         <div className="mt-4 flex justify-end">
@@ -171,6 +302,18 @@ export function RegistrationStage() {
               <CheckCircle2 className="h-4 w-4" />
               Patient identity and insurance verified successfully.
             </div>
+            {savedToChart && (
+              <div className="text-green-700/80">
+                Insurance record saved to the chart — payer, member ID, group, relationship
+                {patient?.insuranceRecord?.secondary ? " and secondary coverage" : ""} now fill the
+                claim.
+              </div>
+            )}
+            {!patient && (
+              <div className="text-amber-700">
+                No patient is selected, so this insurance record was scored but not saved to a chart.
+              </div>
+            )}
             {registrationScore !== null && (
               <div className="flex items-center gap-1.5 text-amber-700">
                 <Star className="h-3.5 w-3.5" />

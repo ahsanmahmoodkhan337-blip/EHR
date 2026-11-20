@@ -12,6 +12,7 @@
 
 import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { getLoggedInPhone } from "./accessStore";
+import { deriveInsuranceRecord } from "../utils/insuranceRecord";
 import {
   useEhrStore,
   useAllPatients,
@@ -116,6 +117,49 @@ export interface Encounter {
   department: string;
 }
 
+/**
+ * One coverage on the patient's insurance record — the primary plan, or the
+ * secondary plan when there is other coverage.
+ *
+ * These are the fields Registration & eligibility captures and the claim forms
+ * read back: box 1a / UB-04 box 60 (member ID), box 11 / UB-04 box 61 (group),
+ * box 4 / UB-04 box 58 (subscriber name), box 6 / UB-04 box 59 (relationship),
+ * box 11c (plan name), and UB-04 boxes 50 / 51 (payer name and EDI payer ID).
+ * Every field is what the student typed — nothing is derived or invented here.
+ */
+export interface InsuranceCoverage {
+  /** Payer as it appears on the card, e.g. "Anthem Blue Cross". */
+  payerName: string;
+  /** Payer's EDI/electronic identifier, e.g. "ANTHEM01" (UB-04 box 51). */
+  ediPayerId: string;
+  /** Subscriber / member ID (CMS-1500 box 1a). */
+  subscriberId: string;
+  /** Group or policy number (CMS-1500 box 11). */
+  groupNumber: string;
+  /** Patient's relationship to the subscriber: Self | Spouse | Child | Other. */
+  relationshipToSubscriber: string;
+  /** Name of the subscriber when they are not the patient. */
+  subscriberName?: string;
+  /** Subscriber's date of birth, when it differs from the patient's. */
+  subscriberDob?: string;
+  /** Plan or program name (CMS-1500 box 11c). */
+  planName?: string;
+}
+
+/**
+ * The patient's insurance record (spec 3a item 1). Replaces reading the
+ * free-text `insurance` string, which could only ever fill a payer name.
+ */
+export interface PatientInsurance {
+  primary: InsuranceCoverage;
+  /** Other coverage on file, or null when there is none. */
+  secondary: InsuranceCoverage | null;
+  /** Where the record came from — registration, seed data, or the schema migration. */
+  source: "registration" | "seed" | "migrated";
+  /** ISO timestamp of the last registration write ("" for migrated records). */
+  updatedAt: string;
+}
+
 export interface Patient {
   id: string;
   mrn: string;
@@ -130,7 +174,15 @@ export interface Patient {
   address: string;
   emergencyContact: { name: string; phone: string; relation: string };
   primaryCareProvider: string;
+  /** Free-text payer label, kept for display. The claim reads `insuranceRecord`. */
   insurance: string;
+  /**
+   * Structured insurance record captured at registration (member ID, group,
+   * payer name and EDI payer ID, relationship, secondary coverage). Absent on
+   * patients saved before it existed — the schema migration derives one from
+   * `insurance` on load.
+   */
+  insuranceRecord?: PatientInsurance;
   chiefComplaint: string;
   vitals: VitalSigns;
   medications: Medication[];
@@ -1201,6 +1253,10 @@ export const SEED_PATIENTS: Patient[] = mockPatients.map((p) => ({
   ...p,
   isSeed: true,
   track: "medical" as Track,
+  // Seed patients carry the same shape the migration gives a saved patient: a
+  // payer name from their `insurance` label, and no member / group / EDI ID —
+  // nothing was ever captured for them, so the claim boxes fall to demo data.
+  insuranceRecord: deriveInsuranceRecord(p),
 }));
 
 useEhrStore.getState().registerSeedPatients(SEED_PATIENTS);

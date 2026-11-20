@@ -74,6 +74,15 @@ export interface ClaimFormData {
   insuredEmployer: string;      // 11b
   insuredPlanName: string;      // 11c
   otherBenefitPlan: string;     // 11d
+  /**
+   * Payer name and EDI payer ID from the patient's insurance record. The
+   * CMS-1500 has no box for either (11c carries the plan name), but the UB-04
+   * prints them in boxes 50 and 51 — carried on the claim now so the
+   * institutional paper reads the same coverage record the professional paper
+   * does.
+   */
+  payerName: string;            // UB-04 50
+  payerEdiId: string;           // UB-04 51
   patientSignature: boolean;    // 12
   insuredSignature: boolean;    // 13
   currentIllnessDate: string;   // 14

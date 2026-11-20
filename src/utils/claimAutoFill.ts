@@ -4,15 +4,22 @@
  *
  * Sources, box by box:
  *   2, 3, 5, 26  patient demographics (patientStore)
- *   1, 11, 11c   the patient's insurance string
+ *   1a, 4, 6, 7, 11, 11a, 11c  the patient's insurance record (`insuranceRecord`)
+ *   1, 9, 9a, 11d               the payer on that record, plus any secondary plan
+ *   payerName, payerEdiId       the payer name and EDI payer ID — what the UB-04
+ *                               prints in boxes 50 and 51, carried on the claim
+ *                               so the institutional paper has a real source
  *   21           the Coder stage's final ICD-10 list (in priority order)
  *   23           the Prior Authorization stage's auth number
  *   24A–24J      the Coder's per-line data (date, POS, CPT, modifiers, pointer,
- *                charge, units), falling back to the CPT fee schedule
+ *                charge, units), falling back to the CPT fee schedule and the
+ *                encounter's date of service
  *   25, 31, 32, 33  the demo provider profile
  *
- * The insured blocks (1a, 4, 7, 11, 11a–11d) default from the patient and stay
- * editable, because the insured is often someone else.
+ * The insured blocks (1a, 4, 6, 7, 11, 11a–11d) are read from the insurance
+ * record Registration & eligibility writes when the student verifies the card.
+ * When the patient is a dependent, the record carries the subscriber's own name
+ * and date of birth, so box 4 is the subscriber rather than the patient.
  *
  * Nothing here is invented. A box with no upstream source is left blank and is
  * filled at render time from the tagged demo values in
@@ -22,7 +29,7 @@
  *
  * Inspiration: the "claim pre-population" a practice-management system does
  * when the biller opens a coded encounter — Epic Resolute and DrChrono both
- * carry the encounter's codes and demographics onto the form.
+ * carry the encounter's codes, demographics and coverage onto the form.
  */
 
 import type { ClaimFormData, ClaimServiceLine, PipelineState } from "../store/pipelineStore";
@@ -67,6 +74,8 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
     insuredEmployer: "",
     insuredPlanName: "",
     otherBenefitPlan: "No",
+    payerName: "",
+    payerEdiId: "",
     patientSignature: true,
     insuredSignature: false,
     currentIllnessDate: today(),
@@ -102,10 +111,13 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
   };
 }
 
-/** Blank box-24 row. */
-export function blankServiceLine(provider: ProviderProfile = MEDICAL_PROVIDER_PROFILE): ClaimServiceLine {
+/** Blank box-24 row. The date of service is never filled in for the student. */
+export function blankServiceLine(
+  provider: ProviderProfile = MEDICAL_PROVIDER_PROFILE,
+  dateOfService = "",
+): ClaimServiceLine {
   return {
-    dateOfService: today(),
+    dateOfService,
     placeOfService: "11",
     cpt: "",
     modifiers: [],
@@ -119,8 +131,18 @@ export function blankServiceLine(provider: ProviderProfile = MEDICAL_PROVIDER_PR
 /**
  * Turn the Coder's per-line data into box-24 rows. When the Coder did not hand
  * over per-line data, fall back to the CPT list plus the fee-schedule charge.
+ *
+ * The date of service comes from the encounter. It used to be `today()`, which
+ * printed a date nobody had captured — the last of the three invented values the
+ * code audit found. With no encounter date either, the row is left blank and the
+ * line renders the tagged demo date, so nothing on the paper claims a date that
+ * is not in the record.
  */
-function buildServiceLines(pipeline: PipelineState, provider: ProviderProfile): ClaimServiceLine[] {
+function buildServiceLines(
+  pipeline: PipelineState,
+  provider: ProviderProfile,
+  encounterDate: string,
+): ClaimServiceLine[] {
   if (pipeline.codingLines && pipeline.codingLines.length > 0) {
     return pipeline.codingLines.slice(0, 6).map((l) => ({ ...l }));
   }
@@ -128,7 +150,7 @@ function buildServiceLines(pipeline: PipelineState, provider: ProviderProfile): 
   return codes.slice(0, 6).map((code, i) => {
     const cpt = CPT_CODES.find((c) => c.code === code);
     return {
-      dateOfService: today(),
+      dateOfService: encounterDate,
       placeOfService: "11",
       cpt: code,
       modifiers: OFFICE_EM.has(code) ? ["25"] : [],
@@ -149,13 +171,46 @@ export interface AutoFillArgs {
   provider?: ProviderProfile;
   /** Claim type suggested from the encounter (POS / track). */
   claimType?: ClaimType;
+  /** Date of service the encounter was registered at (box 24A fallback). */
+  encounterDate?: string | null;
 }
 
 /**
- * The identity boxes — 1, 1a, 2, 3, 4, 5, 6, 7, 11, 11a, 11c, 26 — from the
- * patient record. Split out so a claim that was opened before its patient was
- * known can have exactly these boxes filled in later, without touching the
- * codes, charges or edits the student already made.
+ * Box 1's coverage type, read from the payer name. Box 1 is a coded choice
+ * (MEDICARE / MEDICAID / …), so a payer label cannot be printed in it directly.
+ */
+function coverageTypeFor(payerName: string): string {
+  const payer = payerName.toLowerCase();
+  if (!payer.trim()) return "";
+  if (payer.includes("medicare")) return "Medicare";
+  if (payer.includes("medicaid")) return "Medicaid";
+  if (payer.includes("tricare")) return "TRICARE";
+  if (payer.includes("champva")) return "CHAMPVA";
+  if (payer.includes("feca") || payer.includes("black lung")) return "FECA Black Lung";
+  return "Group Health Plan";
+}
+
+/** The encounter's date of service, falling back to the patient's latest visit. */
+function encounterDateFor(
+  patient: Patient | null | undefined,
+  explicit?: string | null,
+): string {
+  if (explicit) return explicit;
+  const encounters = patient?.encounters ?? [];
+  if (encounters.length === 0) return "";
+  const dated = encounters
+    .map((e) => e.date)
+    .filter((d) => Boolean(d))
+    .sort();
+  return dated[dated.length - 1] ?? "";
+}
+
+/**
+ * The identity boxes — 1, 1a, 2, 3, 4, 5, 6, 7, 9, 9a, 11, 11a, 11c, 11d, 26 —
+ * from the patient record and its insurance record. Split out so a claim that
+ * was opened before its patient was known can have exactly these boxes filled
+ * in later, without touching the codes, charges or edits the student already
+ * made.
  */
 export function patientIdentityBoxes(
   patient: Patient | null | undefined,
@@ -167,25 +222,42 @@ export function patientIdentityBoxes(
     displayName || (patient ? `${patient.lastName}, ${patient.firstName}` : "") || "";
   const insurance = (patient?.insurance ?? "").trim();
 
-  // No fabricated identifiers. A build before 2026-11-20 printed `INS-<mrn>` in
-  // box 1a and `GRP-<mrn digits>` in box 11 — invented values that read as real
-  // member and group numbers, which is how a student learns to invent one.
-  // Nothing in the record holds a member ID or a group number yet (registration
-  // captures them but does not persist them), so both stay blank here and fall
-  // through to the tagged demo values in `demoClaimData.ts`.
+  // The coverage Registration & eligibility captured. A build before 2026-11-20
+  // printed `INS-<mrn>` in box 1a and `GRP-<mrn digits>` in box 11 — invented
+  // values that read as real member and group numbers, which is how a student
+  // learns to invent one. Now every identifier comes from the record, and an
+  // identifier the student never captured stays blank so the box falls through
+  // to the tagged demo value in `demoClaimData.ts`.
+  const coverage = patient?.insuranceRecord?.primary;
+  const secondary = patient?.insuranceRecord?.secondary ?? null;
+  const payerName = coverage?.payerName?.trim() || insurance;
+  const relationship = coverage?.relationshipToSubscriber?.trim() || "Self";
+  const isSelf = relationship.toLowerCase() === "self";
+
   return {
-    insuranceType: insurance || "Group Health Plan",
-    insuredId: "",
+    insuranceType: coverageTypeFor(payerName) || "Group Health Plan",
+    insuredId: coverage?.subscriberId?.trim() ?? "",
     patientName: name,
     patientDob: patient?.dateOfBirth ?? "",
     patientSex: patient?.gender ? patient.gender.charAt(0).toUpperCase() : "",
-    insuredName: name,
+    // Box 4 is the INSURED, who is only the patient when the relationship is Self.
+    insuredName: coverage?.subscriberName?.trim() || (isSelf ? name : ""),
     patientAddress: patient?.address ?? "",
-    patientRelationship: "Self",
+    patientRelationship: relationship,
     insuredAddress: patient?.address ?? "",
-    insuredPolicyGroup: "",
-    insuredDob: patient?.dateOfBirth ?? "",
-    insuredPlanName: insurance,
+    insuredPolicyGroup: coverage?.groupNumber?.trim() ?? "",
+    insuredDob: coverage?.subscriberDob?.trim() || (isSelf ? patient?.dateOfBirth ?? "" : ""),
+    insuredPlanName: coverage?.planName?.trim() || payerName,
+    // Boxes 50 / 51 on the UB-04 — carried on the claim so the institutional
+    // paper reads the payer from the same record the CMS-1500 uses.
+    payerName,
+    payerEdiId: coverage?.ediPayerId?.trim() ?? "",
+    // Boxes 9 / 9a / 11d — other coverage, when registration captured any.
+    otherInsuranceName: secondary?.payerName?.trim() ?? "",
+    otherInsurancePlan: [secondary?.planName?.trim(), secondary?.groupNumber?.trim()]
+      .filter(Boolean)
+      .join(" · "),
+    otherBenefitPlan: secondary ? "Yes" : "No",
     patientAccountNumber: patient?.mrn ?? "",
   };
 }
@@ -244,10 +316,15 @@ export function buildClaimForm({
   paNumber,
   provider = MEDICAL_PROVIDER_PROFILE,
   claimType = "professional",
+  encounterDate,
 }: AutoFillArgs): ClaimFormData {
   const base = blankClaimForm(provider);
 
-  const serviceLines = buildServiceLines(pipeline, provider);
+  const serviceLines = buildServiceLines(
+    pipeline,
+    provider,
+    encounterDateFor(patient, encounterDate),
+  );
   const totalCharge = serviceLines.reduce((sum, l) => sum + (l.charge || 0), 0);
 
   return {
