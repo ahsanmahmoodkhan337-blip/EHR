@@ -6,8 +6,9 @@
  * Displays mock Driver's License and Insurance Card,
  * then challenges the student to transcribe fields correctly.
  * Educational twist: Insurance card says "Jonathon" but
- * Driver's License says "Jonathan" — blind copying triggers
- * a name mismatch warning.
+ * Driver's License says "Jonathan" — blind copying is the trap. The student
+ * answers "do the two names agree?" before Verify, and the mismatch and its
+ * consequence at the payer are only printed after they commit (standing rule 6).
  *
  * What it saves: on Verify, the insurance fields the student transcribed —
  * payer name and EDI payer ID, subscriber ID, group number, relationship to the
@@ -25,7 +26,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { CreditCard, IdCard, AlertTriangle, CheckCircle2, Star } from "lucide-react";
+import { CreditCard, IdCard, CheckCircle2, Star } from "lucide-react";
 import { scoreRegistration, updateStageScore, getStudentName } from "../../utils/scoring";
 import { usePatientStore } from "../../store/patientStore";
 import { useEhrStore } from "../../store/ehrStore";
@@ -79,6 +80,12 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
     secondaryPayerId: "",
     secondarySubscriberId: "",
     secondaryGroupNumber: "",
+    /**
+     * The student's own identity answer, asked before Verify. "" = not answered.
+     * The two cards are both on screen, so the comparison is theirs to make; the
+     * app never prints the mismatch while they type (standing rule 6).
+     */
+    nameAgrees: "",
   });
   const [submitted, setSubmitted] = useState(false);
   const [savedToChart, setSavedToChart] = useState(false);
@@ -108,8 +115,9 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
     }));
   }, [patient?.id, patient?.insuranceRecord]);
 
-  // The insurance card says "Jonathon" — blind copy reveals mismatch
-  const expectsJonathon = form.firstName.toLowerCase() === "jonathon";
+  // The insurance card says "Jonathon" and the government ID says "Jonathan".
+  // The cards are both on screen, so the student makes that comparison and
+  // answers for it; the app prints nothing about it until they have (rule 6).
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -123,6 +131,7 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
       else if (new Date(iso).getTime() > Date.now())
         errs.dob = "A date of birth cannot be in the future";
     }
+    if (!form.nameAgrees) errs.nameAgrees = "Answer the identity question before verifying";
     if (!selfPay) {
       if (!form.payerName.trim()) errs.payerName = "Payer name is required";
       if (!form.subscriberId.trim()) errs.subscriberId = "Subscriber ID is required";
@@ -241,20 +250,6 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
         </div>
       </div>
 
-      {/* ─── Name Mismatch Warning ─── */}
-      {expectsJonathon && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-          <div>
-            <p className="text-xs font-semibold text-amber-800">⚠ Name mismatch detected</p>
-            <p className="text-[11px] text-amber-700">
-              The insurance card says "Jonathon" but the Driver's License says "Jonathan".
-              Verify subscriber name against government ID before proceeding.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* ─── Transcription Form ─── */}
       <div className="clinical-card">
         <h4 className="mb-3 text-sm font-semibold text-slate-700">Transcribe Patient Information</h4>
@@ -348,6 +343,36 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
             </div>
           </div>
         </div>
+        {/* ─── Identity question — answered before Verify (standing rule 6) ─── */}
+        <fieldset className="mt-4 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+          <legend className="px-1 text-[11px] font-semibold text-slate-600">
+            Do the name on the card and the name on the government ID agree?
+          </legend>
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+            {[
+              { v: "yes", label: "Yes" },
+              { v: "no", label: "No" },
+            ].map((o) => (
+              <label
+                key={o.v}
+                className="flex min-h-10 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-medium text-slate-700"
+              >
+                <input
+                  type="radio"
+                  name="name-agrees"
+                  value={o.v}
+                  checked={form.nameAgrees === o.v}
+                  onChange={() => setForm({ ...form, nameAgrees: o.v })}
+                  className="h-4 w-4 accent-brand-600"
+                />
+                {o.label}
+              </label>
+            ))}
+          </div>
+          {errors.nameAgrees && (
+            <p className="mt-1 text-[10px] text-red-500">{errors.nameAgrees}</p>
+          )}
+        </fieldset>
         <div className="mt-4 flex justify-end">
           <button onClick={handleSubmit} className="btn-primary">
             {isComplete ? "Re-verify" : "Verify Identity & Insurance"}
@@ -358,6 +383,18 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
               Patient identity and insurance verified successfully.
+            </div>
+            {/* Revealed only after Verify: the student answered first. */}
+            <div className="rounded bg-white/60 p-2 text-slate-700">
+              <span className="font-semibold">Identity check</span> — card: "Jonathon" · government ID:
+              "Jonathan". A subscriber name that differs from the payer's file fails eligibility at the
+              payer (name mismatch); the chart carries the ID spelling.
+              {form.nameAgrees === "yes" && (
+                <span className="mt-1 block text-amber-700">
+                  You answered that the two names agree — compare the two cards again before the next
+                  patient.
+                </span>
+              )}
             </div>
             {savedToChart && (
               <div className="text-green-700/80">

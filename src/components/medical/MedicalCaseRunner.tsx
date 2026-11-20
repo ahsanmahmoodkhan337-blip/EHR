@@ -425,7 +425,8 @@ function Briefing() {
         <Section title="Plan rules to watch">
           <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
             {plan && <li>{plan.notes}</li>}
-            <li className="text-amber-700">Read the payer's prior-auth and claim-edit rules — the trap lives in the payer policy.</li>
+            {/* Rule 6: the pointer names where to look, never what the trap is. */}
+            <li className="text-slate-500">The plan's documents are in the Documents tab.</li>
           </ul>
         </Section>
       </div>
@@ -437,13 +438,40 @@ function Briefing() {
 
 // ─── registration ────────────────────────────────────────────────────────────
 
+/**
+ * Cases whose transcription the student has already confirmed in this session.
+ * Held outside the case store on purpose: the stored state shape is unchanged,
+ * so no saved progress needs a migration, and a reload asks the student to
+ * confirm again rather than showing a comparison they never committed (rule 6).
+ */
+const transcriptionConfirmed = new Set<string>();
+
 function RegistrationStage() {
   const { activeCase, state, setRegistration } = useMedicalCase();
+  const [checked, setChecked] = useState(() =>
+    activeCase ? transcriptionConfirmed.has(activeCase.id) : false,
+  );
   if (!activeCase) return null;
   const p = activeCase.patient;
   const r = state.registration;
   const nameMatch = r.lastNameEntered.trim().toLowerCase() === p.lastName.toLowerCase();
   const idMatch = r.memberIdEntered.trim() === p.memberId;
+
+  /** Any edit to the transcription invalidates a comparison already made. */
+  const editTranscription = (patch: Parameters<typeof setRegistration>[0]) => {
+    setRegistration(patch);
+    if (checked) {
+      transcriptionConfirmed.delete(activeCase.id);
+      setChecked(false);
+    }
+  };
+
+  const confirmTranscription = () => {
+    transcriptionConfirmed.add(activeCase.id);
+    // The committed comparison is recorded on the case; nothing is graded on it.
+    setRegistration({ nameMatches: nameMatch, memberIdMatches: idMatch });
+    setChecked(true);
+  };
 
   return (
     <div className="h-full overflow-y-auto p-4">
@@ -465,29 +493,46 @@ function RegistrationStage() {
           <label className="mt-2 block text-[10px] text-slate-500">Patient last name</label>
           <input
             value={r.lastNameEntered}
-            onChange={(e) => setRegistration({ lastNameEntered: e.target.value })}
+            onChange={(e) => editTranscription({ lastNameEntered: e.target.value })}
             className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
             placeholder="Enter last name"
           />
           <label className="mt-2 block text-[10px] text-slate-500">Member ID</label>
           <input
             value={r.memberIdEntered}
-            onChange={(e) => setRegistration({ memberIdEntered: e.target.value })}
+            onChange={(e) => editTranscription({ memberIdEntered: e.target.value })}
             className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
             placeholder="Enter member ID"
           />
+
+          {/* Rule 6: nothing is compared until the student commits to a comparison. */}
+          <button
+            onClick={confirmTranscription}
+            className="mt-3 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" /> Confirm transcription
+          </button>
+
           <div className="mt-2 space-y-1">
-            <p className={`text-[10px] ${r.lastNameEntered ? (nameMatch ? "text-emerald-600" : "text-red-600") : "text-slate-400"}`}>
-              {r.lastNameEntered ? (nameMatch ? "✓ Name matches" : "✗ Name does not match") : "Name not entered"}
+            <p className={`text-[10px] ${checked ? (nameMatch ? "text-emerald-600" : "text-red-600") : "text-slate-400"}`}>
+              {checked
+                ? nameMatch
+                  ? "Name matches the chart"
+                  : "Name does not match the chart — re-read the card"
+                : "Name — not compared yet"}
             </p>
-            <p className={`text-[10px] ${r.memberIdEntered ? (idMatch ? "text-emerald-600" : "text-red-600") : "text-slate-400"}`}>
-              {r.memberIdEntered ? (idMatch ? "✓ Member ID matches" : "✗ Member ID does not match") : "Member ID not entered"}
+            <p className={`text-[10px] ${checked ? (idMatch ? "text-emerald-600" : "text-red-600") : "text-slate-400"}`}>
+              {checked
+                ? idMatch
+                  ? "Member ID matches the chart"
+                  : "Member ID does not match the chart — re-read the card"
+                : "Member ID — not compared yet"}
             </p>
           </div>
         </div>
       </div>
 
-      <StageNav nextLabel="Verify eligibility" />
+      <StageNav nextLabel="Verify eligibility" nextDisabled={!checked} />
     </div>
   );
 }
@@ -736,7 +781,6 @@ function CodingStage() {
           </div>
           <p className="mt-1 text-[9px] text-slate-400">
             Pointer letters map to your selected diagnoses ({selectedDiagnoses.map((d) => `${d.pointer}=${d.code}`).join(", ") || "none"}).
-            A same-day E/M + procedure needs modifier 25 on the E/M line.
           </p>
         </Section>
       )}
@@ -750,9 +794,14 @@ function CodingStage() {
 
 function PriorAuthStage() {
   const { activeCase, plan, state, setPriorAuth } = useMedicalCase();
+  /** Per-line answer, keyed by the coded line's id — the student's own decision. */
+  const [picked, setPicked] = useState<Record<string, boolean>>({});
+  const [committed, setCommitted] = useState(false);
   if (!activeCase) return null;
   const required = plan?.priorAuthCptCodes ?? [];
   const pa = state.priorAuth;
+  const lines = state.procedures;
+  const descriptionFor = (code: string) => CPT_CODES.find((c) => c.code === code)?.description ?? "";
 
   return (
     <div className="h-full overflow-y-auto p-4">
@@ -761,10 +810,53 @@ function PriorAuthStage() {
         This plan requires prior authorisation for the selected service. Handle it before billing.
       </p>
 
+      {/* Rule 6: the student answers per line before the payer's PA list is shown. */}
       <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
         <p className="text-xs font-medium text-amber-800">
-          Prior authorisation required for CPT: <span className="font-bold">{required.join(", ")}</span>
+          This plan requires prior authorisation for some services. Select the service(s) on your claim
+          that need authorising before billing.
         </p>
+        <div className="mt-2 space-y-1.5">
+          {lines.length === 0 && (
+            <p className="text-[11px] text-amber-700">No coded lines on this claim yet.</p>
+          )}
+          {lines.map((line) => (
+            <label
+              key={line.id}
+              className="flex min-h-10 items-center gap-2 rounded-lg border border-amber-200 bg-white px-3 py-2"
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(picked[line.id])}
+                onChange={(e) => {
+                  setPicked((prev) => ({ ...prev, [line.id]: e.target.checked }));
+                  setCommitted(false);
+                }}
+                className="h-4 w-4 accent-blue-600"
+              />
+              <span className="text-[11px] text-slate-700">
+                <span className="font-semibold">{line.code}</span>
+                {descriptionFor(line.code) ? ` — ${descriptionFor(line.code)}` : ""}
+              </span>
+            </label>
+          ))}
+        </div>
+        <button
+          onClick={() => setCommitted(true)}
+          disabled={lines.length === 0}
+          className="mt-2 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" /> Commit my selection
+        </button>
+        {committed && lines.length > 0 && (
+          <p className="mt-2 rounded-lg bg-white p-2 text-[11px] text-slate-700">
+            Your claim:{" "}
+            {lines
+              .map((line) => `${line.code} ${required.includes(line.code) ? "needs PA" : "does not"}`)
+              .join(" · ")}
+            .
+          </p>
+        )}
       </div>
 
       <div className="mt-3 space-y-2">
