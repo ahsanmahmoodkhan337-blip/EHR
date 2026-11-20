@@ -1,6 +1,11 @@
 /**
  * DentalBillingLedger.tsx — Dental Biller workspace (ADA J430D-style claim)
  *
+ * The paper is the ADA 2019 (J430) replica — all its boxes, auto-filled from
+ * the dental case, editable, validated, printable and downloadable — built on
+ * the same ClaimFormShell as the medical CMS-1500 (see claims/ClaimFormShell).
+ * Below it sits the adjudication trace the payer would walk.
+ *
  * Inspired by: dental claim screens in Dentrix / Eaglesoft — the payer header,
  * subscriber / patient / billing-provider blocks, a line-by-line service table,
  * and the adjudication trace the payer would walk. The 12-step walk is produced
@@ -18,7 +23,7 @@
  *    UI-side guesswork.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -30,9 +35,6 @@ import {
   Send,
   CheckCircle2,
   AlertTriangle,
-  Building2,
-  User,
-  Landmark,
 } from "lucide-react";
 import {
   findCDT,
@@ -46,18 +48,18 @@ import {
 import { adjudicateDentalClaim, type TraceStep } from "./adjudication";
 import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
 import { DentalClaimScrub } from "./DentalClaimScrub";
+import { ClaimFormShell } from "../claims/ClaimFormShell";
+import { ADAForm } from "./ADAForm";
+import { ADA_LAYOUT, type ADAFormData, type ADAServiceLine } from "../../data/claims/adaLayout";
+import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
+import { buildADAForm } from "../../utils/claimAutoFill";
+import { validateADA, type ClaimIssue } from "../../utils/claimValidation";
+import { exportClaimFormPDF } from "../../utils/claimFormPdf";
+import { toast } from "sonner";
 
-/** Illustrative billing-provider block for the claim form (fictional practice). */
-const BILLING_PROVIDER = {
-  name: "Healthcare Hustlers Dental",
-  npi: "NPI 1234567890",
-  tin: "TIN 98-7654321",
-  address: "Suite 210, Gulberg III, Lahore, Pakistan",
-  phone: "+92 335 0340888",
-} as const;
 
 export function DentalBillingLedger() {
-  const { state, activeCase, planId, goTo, resolveLine } = useDentalTrack();
+  const { state, activeCase, planId, goTo, resolveLine, adaForm, setAdaForm, submitClaim } = useDentalTrack();
   const plan = findPlan(planId);
 
   const adjudication = useMemo(
@@ -66,6 +68,88 @@ export function DentalBillingLedger() {
   );
 
   const [openTrace, setOpenTrace] = useState<Record<string, boolean>>({});
+
+  // ── ADA 2019 claim record ──────────────────────────────────────────
+  // Seeded once from the case and the CDT lines; after that the student owns
+  // it, and it is persisted with the dental track (localStorage v2).
+  useEffect(() => {
+    if (adaForm) return;
+    setAdaForm(
+      buildADAForm({
+        patient: activeCase?.patient ?? null,
+        plan: plan ?? null,
+        lines: state.lines.map((l) => ({
+          code: l.code,
+          tooth: l.tooth,
+          surfaces: l.surfaces,
+          quadrant: l.quadrant,
+          dateOfService: l.dateOfService,
+          feeUsd: l.feeUsd,
+          description: findCDT(l.code)?.shortName ?? "",
+        })),
+        predeterminationNumber: state.predeterminationScenarioId ?? "",
+      }),
+    );
+  }, [adaForm, activeCase, plan, state.lines, state.predeterminationScenarioId, setAdaForm]);
+
+  const adaValues = useMemo(() => {
+    if (!adaForm) return {};
+    const { lines: _lines, ...rest } = adaForm;
+    return rest as unknown as Record<string, unknown>;
+  }, [adaForm]);
+
+  const adaLines = useMemo(
+    () => (adaForm?.lines ?? []) as unknown as Record<string, unknown>[],
+    [adaForm],
+  );
+
+  const commitAda = useCallback(
+    (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
+      setAdaForm({
+        ...(values as unknown as Omit<ADAFormData, "lines">),
+        lines: lines as unknown as ADAServiceLine[],
+      });
+    },
+    [setAdaForm],
+  );
+
+  const validate = useCallback(
+    (values: Record<string, unknown>, lines: Record<string, unknown>[]): ClaimIssue[] =>
+      validateADA({
+        ...(values as unknown as Omit<ADAFormData, "lines">),
+        lines: lines as unknown as ADAServiceLine[],
+      }),
+    [],
+  );
+
+  const downloadPdf = useCallback(
+    (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
+      const name = String(values.patientName ?? "claim").replace(/[^A-Za-z0-9]+/g, "_");
+      exportClaimFormPDF({
+        layout: ADA_LAYOUT,
+        values,
+        lines,
+        columns: [
+          { key: "dateOfService", label: "31 DATE", width: 0.12, kind: "date" },
+          { key: "cdt", label: "31 CDT", width: 0.11, kind: "text" },
+          { key: "description", label: "31 DESCRIPTION", width: 0.25, kind: "text" },
+          { key: "tooth", label: "31 TOOTH", width: 0.09, kind: "text" },
+          { key: "surface", label: "31 SURF", width: 0.1, kind: "text" },
+          { key: "quadrant", label: "31 QD", width: 0.07, kind: "text" },
+          { key: "fee", label: "31 FEE", width: 0.12, kind: "money" },
+          { key: "units", label: "31 UNITS", width: 0.1, kind: "number" },
+        ],
+        fileName: `ADA_claim_${name || "dental"}.pdf`,
+        note: DEMO_PROVIDER_NOTE,
+      });
+    },
+    [],
+  );
+
+  const handleSubmitClaim = useCallback(() => {
+    submitClaim();
+    toast.success("ADA claim submitted to the payer");
+  }, [submitClaim]);
 
   // Claim-level EOB aggregates, summed from the engine's per-line output only
   // (no benefit maths re-implemented here).
@@ -81,8 +165,55 @@ export function DentalBillingLedger() {
 
   return (
     <div className="h-full overflow-y-auto p-3">
-      {/* ── ADA J430D-style claim form ─────────────────────────────────────── */}
-      <ClaimFormHeader activeCase={activeCase} plan={plan} />
+      {/* ── ADA 2019 claim form replica (shared claim shell) ───────────────── */}
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        <span className="rounded bg-accent-50 px-2 py-0.5 text-[10px] font-medium text-accent-700">
+          {plan ? `${plan.payerName} · ${plan.planName}` : "No plan selected"}
+        </span>
+        <span className="rounded bg-slate-100 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+          Fictional payer · illustrative fees
+        </span>
+        {state.claimSubmitted && (
+          <span className="rounded bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-700">
+            Claim submitted
+          </span>
+        )}
+      </div>
+
+      {adaForm ? (
+        <ClaimFormShell
+          formCode="ADA 2019 (J430)"
+          formTitle="Dental Claim Form"
+          statusLabel={state.claimSubmitted ? "Submitted" : "Draft"}
+          history={state.arCallLog.slice(-3).map((e) => ({ at: e.at, message: e.objective }))}
+          values={adaValues}
+          lines={adaLines}
+          emptyLine={{
+            dateOfService: new Date().toISOString().slice(0, 10),
+            cdt: "",
+            description: "",
+            tooth: "",
+            surface: "",
+            quadrant: "",
+            fee: 0,
+            units: 1,
+          }}
+          maxLines={ADA_LAYOUT.maxLines}
+          resetKey={activeCase?.id ?? "no-case"}
+          validate={validate}
+          onCommit={commitAda}
+          onSubmit={handleSubmitClaim}
+          onDownload={downloadPdf}
+          accent="accent"
+        >
+          {(api) => <ADAForm {...api} />}
+        </ClaimFormShell>
+      ) : (
+        <div className="empty-state">
+          <p className="empty-title">Preparing the claim form…</p>
+          <p className="empty-hint">The paper is filled from the dental case.</p>
+        </div>
+      )}
 
       {/* ── claim lines + trace ──────────────────────────────────────────── */}
       {adjudication.lines.length === 0 && (
@@ -261,122 +392,6 @@ export function DentalBillingLedger() {
       </div>
     </div>
   );
-}
-
-// ─── ADA J430D claim-form header ────────────────────────────────────────────
-
-function ClaimFormHeader({
-  activeCase,
-  plan,
-}: {
-  activeCase: DentalCaseScenario | undefined;
-  plan: DentalPlan | undefined;
-}) {
-  const patient = activeCase?.patient;
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-start justify-between gap-2 border-b border-slate-100 px-3 py-2.5">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">ADA J430D — Dental Claim</p>
-          <h3 className="text-sm font-bold text-slate-800">
-            {activeCase ? `${activeCase.patient.firstName} ${activeCase.patient.lastName}` : "Dental claim"}
-          </h3>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {plan && (
-            <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700">
-              {plan.payerName} · {plan.planName}
-            </span>
-          )}
-          <span className="rounded bg-fuchsia-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-fuchsia-600">
-            Fictional payer
-          </span>
-        </div>
-      </div>
-
-      {/* four blocks: payer / subscriber / patient / billing provider */}
-      <div className="grid grid-cols-1 gap-3 px-3 py-2.5 sm:grid-cols-2 lg:grid-cols-4">
-        <ClaimBlock
-          icon={<Landmark className="h-3.5 w-3.5 text-teal-600" />}
-          title="Insurance / Plan"
-          rows={[
-            ["Plan", plan ? `${plan.planName} (${plan.planType})` : "—"],
-            ["Payer ID", plan?.payerId ?? "—"],
-            ["Group", plan?.groupNumber ?? "—"],
-            ["Claims to", plan?.claimsAddress ?? "—"],
-          ]}
-        />
-        <ClaimBlock
-          icon={<User className="h-3.5 w-3.5 text-indigo-600" />}
-          title="Subscriber"
-          rows={[
-            ["Name", patient?.subscriberName ?? "—"],
-            ["Member ID", patient?.memberId ?? "MEM-000000"],
-            ["Relationship", patient ? relationLabel(patient.relationshipToSubscriber) : "—"],
-            ["Effective", patient?.coverageEffectiveDate ?? "—"],
-          ]}
-        />
-        <ClaimBlock
-          icon={<User className="h-3.5 w-3.5 text-emerald-600" />}
-          title="Patient"
-          rows={[
-            ["Name", patient ? `${patient.firstName} ${patient.lastName}` : "—"],
-            ["DOB", patient?.dateOfBirth ?? "—"],
-            ["Gender", patient?.gender ?? "—"],
-            ["Address", patient?.address ?? "—"],
-            ["Phone", patient?.phone ?? "—"],
-          ]}
-        />
-        <ClaimBlock
-          icon={<Building2 className="h-3.5 w-3.5 text-slate-500" />}
-          title="Billing Provider"
-          rows={[
-            ["Practice", BILLING_PROVIDER.name],
-            ["NPI / TIN", `${BILLING_PROVIDER.npi} · ${BILLING_PROVIDER.tin}`],
-            ["Address", BILLING_PROVIDER.address],
-            ["Phone", BILLING_PROVIDER.phone],
-          ]}
-        />
-      </div>
-
-      {plan && (
-        <p className="border-t border-slate-100 px-3 py-1.5 text-[9px] text-slate-400">
-          {plan.teachingSummary} Fees billed are illustrative; the allowance below is a teaching figure.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function ClaimBlock({
-  icon,
-  title,
-  rows,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  rows: [string, string][];
-}) {
-  return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-2">
-      <p className="mb-1.5 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
-        {icon}
-        {title}
-      </p>
-      <dl className="space-y-0.5">
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex items-baseline justify-between gap-2">
-            <dt className="shrink-0 text-[9px] text-slate-400">{k}</dt>
-            <dd className="truncate text-right text-[10px] font-medium text-slate-700">{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
-function relationLabel(r: "self" | "spouse" | "child"): string {
-  return r === "self" ? "Self" : r === "spouse" ? "Spouse" : "Child";
 }
 
 // ─── EOB / payment breakdown ────────────────────────────────────────────────

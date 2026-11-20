@@ -2,30 +2,51 @@
  * BillingLedger — Enhanced Medical Biller Workspace
  *
  * Full educational content for medical billing students:
- * - Interactive CMS-1500 form with all 33 blocks explained
+ * - The CMS-1500 (02/12) replica: all 33 boxes, auto-filled from the earlier
+ *   stages, editable in place, validated before submission, printable and
+ *   downloadable as a PDF (see CMS1500Form.tsx + ClaimFormShell.tsx)
  * - Claim scrubber with NCCI edits check
  * - Denial code reference (CO, PR, OA codes)
  * - ERA/EOB explanation on paid claims
- * - Revenue codes and POS codes reference
+ * - Revenue codes and POS codes reference, plus the 33-box explanations
  * - Reimbursement calculator
  *
  * Inspiration: Epic Resolute Hospital Billing / AAPC CPB curriculum
  */
 
-import { useState, useEffect } from "react";
-import { Receipt, Send, AlertTriangle, CheckCircle2, XCircle, Search, FileText, DollarSign, BookOpen, Info, Route, FileDown, Star, Shield } from "lucide-react";
-import { usePipeline } from "../../store/pipelineStore";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Receipt, AlertTriangle, CheckCircle2, XCircle, Search, DollarSign, BookOpen, Info, Route, Star, Shield, FileDown } from "lucide-react";
+import { usePipeline, type ClaimFormData, type ClaimServiceLine } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
 import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";
 import { CPT_CODES } from "../CodingQueue/cptData";
-import { exportCMS1500PDF } from "../../utils/pdfExport";
+import { exportClaimFormPDF } from "../../utils/claimFormPdf";
 import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scoring";
+import { ClaimFormShell } from "../claims/ClaimFormShell";
+import { CMS1500Form } from "./CMS1500Form";
+import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
+import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
+import { buildClaimForm, blankServiceLine } from "../../utils/claimAutoFill";
+import { validateCMS1500, type ClaimIssue } from "../../utils/claimValidation";
 import { toast } from "sonner";
 
 type BillingTab = "form" | "scrubber" | "denials" | "references";
 
+/** Column spec for the box-24 table in the downloaded PDF. */
+const CMS1500_PDF_COLUMNS = [
+  { key: "dateOfService", label: "24A DATE(S)", width: 0.15, kind: "date" as const },
+  { key: "placeOfService", label: "24B POS", width: 0.09, kind: "text" as const },
+  { key: "cpt", label: "24D CPT", width: 0.13, kind: "text" as const },
+  { key: "modifiers", label: "24D MOD", width: 0.12, kind: "text" as const },
+  { key: "diagnosisPointer", label: "24E PTR", width: 0.1, kind: "text" as const },
+  { key: "charge", label: "24F CHARGE", width: 0.13, kind: "money" as const },
+  { key: "units", label: "24G UNITS", width: 0.08, kind: "number" as const },
+  { key: "renderingNpi", label: "24J NPI", width: 0.2, kind: "text" as const },
+];
+
 export function BillingLedger() {
-  const { state, submitClaim, handleDenial, setRole, paRecords } = usePipeline();
+  const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm } = usePipeline();
+  const claimForm = state.claimForm;
   const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
   const patientId = state.patientId || "";
   const patient = getPatientById(patientId);
@@ -54,50 +75,155 @@ export function BillingLedger() {
   // Claim scrubber state
   const [scrubResults, setScrubResults] = useState<{ check: string; pass: boolean; note: string }[] | null>(null);
 
-  // ── Editable CMS-1500 form field values ──
-  const genPolicyNum = () => "POL-" + Math.random().toString(36).slice(2, 10).toUpperCase();
-  const [cms1500, setCms1500] = useState<Record<string, string>>(() => ({
-    "1": payer,
-    "2": state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : (state.patientId || "")),
-    "3": patient?.dateOfBirth || "",
-    "4": "",
-    "5": patient?.address || "",
-    "6": "Self",
-    "9": "",
-    "11": genPolicyNum(),
-    "11c": patient?.insurance || "",
-    "14": new Date().toISOString().split("T")[0],
-    "17": "",
-    "17a": "",
-    "21": state.icdCodes.join(", "),
-    "22": "",
-    "22a": "",
-    "23": "",
-    "24": state.cptCodes.join(", "),
-    "25": "XX-XXXXXXX",
-    "28": "",
-    "32": "Healthcare Hustlers Training Clinic",
-    "33": "Healthcare Hustlers EHR — Educational",
-  }));
-  const updateCmsField = (box: string, value: string) => setCms1500(prev => ({ ...prev, [box]: value }));
-
-  // Sync auto-fillable fields when patient/pipeline data changes
+  // ── Structured CMS-1500 record ───────────────────────────────────
+  // Seeded once from the encounter (demographics, codes, PA number, provider
+  // profile). After that the record is the student's: it is persisted with the
+  // pipeline, so edits survive a reload.
   useEffect(() => {
-    setCms1500(prev => ({
-      ...prev,
-      "1": payer,
-      "2": state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : prev["2"]),
-      "3": patient?.dateOfBirth || prev["3"],
-      "5": patient?.address || prev["5"],
-      "11c": patient?.insurance || prev["11c"],
-      "21": state.icdCodes.join(", "),
-      "24": state.cptCodes.join(", "),
-      "23": paRecords.filter(r => r.patientId === patientId).slice(-1)[0]?.id || prev["23"],
-    }));
-  }, [payer, patient, state.icdCodes, state.cptCodes, state.displayName, paRecords, patientId]);
+    if (!patientId || claimForm) return;
+    const paNumber = paRecords.filter((r) => r.patientId === patientId).slice(-1)[0]?.id;
+    setClaimForm(
+      buildClaimForm({
+        patient: patient ?? null,
+        displayName: state.displayName,
+        pipeline: state,
+        paNumber,
+      }),
+    );
+  }, [patientId, claimForm, patient, state, paRecords, setClaimForm]);
 
-  const cmsEditableBlocks = CMS1500_BLOCKS.filter(b => 
-    ["1","2","3","4","5","6","9","11","11c","14","17","17a","21","22","22a","23","24","25","28","32","33"].includes(b.box)
+  const claimValues = useMemo(() => {
+    if (!claimForm) return {};
+    const { serviceLines: _lines, ...rest } = claimForm;
+    return rest as unknown as Record<string, unknown>;
+  }, [claimForm]);
+
+  const claimLines = useMemo(
+    () => (claimForm?.serviceLines ?? []) as unknown as Record<string, unknown>[],
+    [claimForm],
+  );
+
+  const commitClaim = useCallback(
+    (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
+      setClaimForm({
+        ...(values as unknown as Omit<ClaimFormData, "serviceLines">),
+        serviceLines: lines as unknown as ClaimServiceLine[],
+      });
+    },
+    [setClaimForm],
+  );
+
+  const validate = useCallback(
+    (values: Record<string, unknown>, lines: Record<string, unknown>[]): ClaimIssue[] =>
+      validateCMS1500({
+        ...(values as unknown as Omit<ClaimFormData, "serviceLines">),
+        serviceLines: lines as unknown as ClaimServiceLine[],
+      }),
+    [],
+  );
+
+  /** Legacy box map, kept so anything still reading `claimData` sees the claim. */
+  const legacyBoxMap = (values: Record<string, unknown>): Record<string, string> => {
+    const s = (k: string) => String(values[k] ?? "");
+    const codes = (values.diagnosisCodes as string[]) ?? [];
+    const lines = (values.serviceLines as unknown as ClaimServiceLine[]) ?? claimForm?.serviceLines ?? [];
+    return {
+      "1": s("insuranceType"),
+      "2": s("patientName"),
+      "3": s("patientDob"),
+      "4": s("insuredName"),
+      "5": s("patientAddress"),
+      "6": s("patientRelationship"),
+      "11": s("insuredPolicyGroup"),
+      "11c": s("insuredPlanName"),
+      "14": s("currentIllnessDate"),
+      "17": s("referringProvider"),
+      "21": codes.filter(Boolean).join(", "),
+      "22": s("resubmissionCode"),
+      "22a": s("originalClaimNumber"),
+      "23": s("priorAuthNumber"),
+      "24": lines.map((l) => l.cpt).filter(Boolean).join(", "),
+      "25": s("federalTaxId"),
+      "28": s("totalCharge"),
+      "32": s("facilityName"),
+      "33": s("billingProviderName"),
+    };
+  };
+
+  const downloadPdf = useCallback(
+    (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
+      const name = String(values.patientName ?? "claim").replace(/[^A-Za-z0-9]+/g, "_");
+      exportClaimFormPDF({
+        layout: CMS1500_LAYOUT,
+        values,
+        lines,
+        columns: CMS1500_PDF_COLUMNS,
+        fileName: `CMS1500_${name || "claim"}.pdf`,
+        note: DEMO_PROVIDER_NOTE,
+      });
+    },
+    [],
+  );
+
+  /** Submit: edit checks already passed in the shell → run the 837P simulation. */
+  const handleSubmitClaim = useCallback(
+    (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
+      const patientPaRecords = paRecords.filter((r) => r.patientId === patientId);
+      if (needsPriorAuth && patientPaRecords.length === 0) {
+        toast.error("Prior authorization is required before this claim can be submitted");
+        setRole("prior-auth");
+        return;
+      }
+
+      commitClaim(values, lines);
+      const total = Number(values.totalCharge) || 0;
+      addAuditLog(patientId, {
+        timestamp: new Date().toISOString(),
+        role: "biller",
+        message: `CMS-1500 submitted to ${payer} — ${lines.length} line(s), $${total.toFixed(2)}`,
+        status: "info",
+      });
+
+      const missingMod25 = state.cptCodes.length > 1 && !cs?.modifier25Applied;
+      setIsTransmitting(true);
+      setTransmitProgress(0);
+      setTransmitResult(null);
+      const interval = setInterval(() => {
+        setTransmitProgress((p) => {
+          if (p >= 100) {
+            clearInterval(interval);
+            setTransmitResult(missingMod25 ? "denied" : "paid");
+            setIsTransmitting(false);
+            if (missingMod25) {
+              setBillingStatus(patientId, "DRAFT");
+              addAuditLog(patientId, {
+                timestamp: new Date().toISOString(),
+                role: "biller",
+                message: "837P transmitted — Modifier 25 missing, claim denied",
+                status: "error",
+              });
+            } else {
+              setBillingStatus(patientId, "CLEARED_AND_SENT");
+              addAuditLog(patientId, {
+                timestamp: new Date().toISOString(),
+                role: "biller",
+                message: "837P transmitted successfully — claim paid",
+                status: "success",
+              });
+              submitClaim({ ...legacyBoxMap(values), payer, posCode, submittedAt: new Date().toISOString() });
+              setSubmitted(true);
+              const score = scoreBiller(true, false, false);
+              setBillingScore(score);
+              updateStageScore(getStudentName(), "biller", score);
+            }
+            return 100;
+          }
+          return p + 5;
+        });
+      }, 100);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [paRecords, patientId, needsPriorAuth, payer, posCode, state.cptCodes, cs?.modifier25Applied, claimForm],
   );
 
   const runScrubber = () => {
@@ -110,20 +236,6 @@ export function BillingLedger() {
       { check: "Modifier check", pass: state.cptCodes.length <= 1, note: state.cptCodes.length > 1 ? "Multiple procedures may need modifier -25 or -59" : "Single procedure — no modifier needed" },
     ];
     setScrubResults(results);
-  };
-
-  const handleSubmit = () => {
-    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || ""));
-    // Only redirect to PA if checkbox is ticked AND no PA has been submitted yet
-    if (needsPriorAuth && patientPaRecords.length === 0) {
-      setRole("prior-auth");
-      return;
-    }
-    toast.success("Claim Submitted"); submitClaim({ payer, posCode, submittedAt: new Date().toISOString() });
-    setSubmitted(true);
-    const score = scoreBiller(true, false, false);
-    setBillingScore(score);
-    updateStageScore(getStudentName(), "biller", score);
   };
 
   const simulateDenial = () => {
@@ -179,20 +291,7 @@ export function BillingLedger() {
                 Back to Billing
               </button>
               <button
-                onClick={() => {
-                  exportCMS1500PDF({
-                    patientName: cms1500["2"] || state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),
-                    dob: cms1500["3"] || patient?.dateOfBirth || "N/A",
-                    insurance: cms1500["11c"] || patient?.insurance || payer,
-                    diagnosisCodes: state?.icdCodes || [],
-                    procedureCodes: state?.cptCodes || [],
-                    charges: parseFloat(cms1500["28"]) || calcPayment().billed,
-                    status: "Submitted — Paid",
-                    payer: cms1500["1"] || payer,
-                    posCode,
-                    cmsFields: cms1500,
-                  });
-                }}
+                onClick={() => downloadPdf(claimValues, claimLines)}
                 className="flex items-center gap-2 rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
               >
                 <FileDown className="h-4 w-4" />
@@ -233,64 +332,37 @@ export function BillingLedger() {
             {/* CMS-1500 Form */}
             {activeTab === "form" && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileText className="h-4 w-4 text-brand-600" />
-                  <span className="text-xs font-semibold text-slate-600">CMS-1500 Claim Form — Interactive Mockup</span>
-                  <span className="text-[10px] text-slate-400">(Fill each editable box below)</span>
-                </div>
-
-                {/* Editable CMS-1500 Form Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {cmsEditableBlocks.map((block) => {
-                    const value = cms1500[block.box] || "";
-                    const isAutoFilled = block.autoFilled;
-                    return (
-                      <div key={block.box} className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-2.5 hover:border-brand-300 transition-colors">
-                        <span className="font-mono text-[10px] text-brand-600 font-bold min-w-[42px] pt-1">Box {block.box}</span>
-                        <div className="flex-1 min-w-0">
-                          <label className="text-[9px] text-slate-400 block truncate">{block.label}</label>
-                          {block.box === "1" ? (
-                            <select
-                              value={value}
-                              onChange={e => updateCmsField("1", e.target.value)}
-                              className="w-full rounded border border-slate-200 px-1.5 py-0.5 text-[10px] outline-none focus:border-brand-500 bg-white"
-                            >
-                              <option>Medicare</option><option>Medicaid</option><option>Blue Cross</option>
-                              <option>United Healthcare</option><option>Aetna</option><option>Cigna</option>
-                              <option>Other</option>
-                            </select>
-                          ) : block.box === "22" ? (
-                            <select
-                              value={value}
-                              onChange={e => updateCmsField("22", e.target.value)}
-                              className="w-full rounded border border-slate-200 px-1.5 py-0.5 text-[10px] outline-none focus:border-brand-500 bg-white"
-                            >
-                              <option value="">— None —</option>
-                              <option value="7">7 — Replacement / Corrected Claim</option>
-                              <option value="8">8 — Void Prior Claim</option>
-                            </select>
-                          ) : (
-                            <input
-                              type={block.box === "3" || block.box === "14" ? "date" : "text"}
-                              value={block.box === "3" && value ? value : block.box === "14" ? value : value}
-                              onChange={e => updateCmsField(block.box, e.target.value)}
-                              readOnly={isAutoFilled}
-                              className={`w-full rounded border px-1.5 py-0.5 text-[10px] outline-none focus:border-brand-500 ${
-                                isAutoFilled ? "bg-slate-50 text-slate-500 border-slate-100 cursor-default" : "border-slate-200 bg-white"
-                              }`}
-                              placeholder={block.label}
-                            />
-                          )}
-                          {/* Tooltip */}
-                          <div className="mt-0.5 text-[8px] text-slate-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
-                            {block.description}
-                            {block.commonError && <span className="text-red-400 ml-1">⚠ {block.commonError}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                {claimForm ? (
+                  <ClaimFormShell
+                    formCode="CMS-1500 (02/12)"
+                    formTitle="Health Insurance Claim Form"
+                    statusLabel={
+                      transmitResult === "paid"
+                        ? "Accepted — paid"
+                        : transmitResult === "denied"
+                          ? "Rejected — CO-16"
+                          : "Draft"
+                    }
+                    history={(cs?.auditLogs ?? []).map((l) => ({ at: l.timestamp, message: l.message }))}
+                    values={claimValues}
+                    lines={claimLines}
+                    emptyLine={blankServiceLine() as unknown as Record<string, unknown>}
+                    maxLines={CMS1500_LAYOUT.maxLines}
+                    resetKey={patientId}
+                    validate={validate}
+                    onCommit={commitClaim}
+                    onSubmit={handleSubmitClaim}
+                    onDownload={downloadPdf}
+                    submitting={isTransmitting}
+                  >
+                    {(api) => <CMS1500Form {...api} />}
+                  </ClaimFormShell>
+                ) : (
+                  <div className="empty-state">
+                    <p className="empty-title">Preparing the claim form…</p>
+                    <p className="empty-hint">The paper is filled from the coded encounter.</p>
+                  </div>
+                )}
 
                 {/* Claim entry form */}
                 <div className="clinical-card">
@@ -383,58 +455,11 @@ export function BillingLedger() {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3">
-                  <button onClick={() => {
-                    exportCMS1500PDF({
-                      patientName: cms1500["2"] || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),
-                      dob: cms1500["3"] || patient?.dateOfBirth || "N/A",
-                      insurance: cms1500["11c"] || patient?.insurance || payer,
-                      diagnosisCodes: state?.icdCodes || [],
-                      procedureCodes: state?.cptCodes || [],
-                      charges: parseFloat(cms1500["28"]) || calcPayment().billed,
-                      status: "Draft — Pending Submission",
-                      payer: cms1500["1"] || payer,
-                      posCode,
-                      cmsFields: cms1500,
-                    });
-                  }}
-                    className="flex items-center gap-2 rounded-lg border border-brand-300 bg-brand-50 px-4 py-2.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
-                  >
-                    <FileDown className="h-3.5 w-3.5" /> Download CMS-1500 Draft
-                  </button>
-                  <button onClick={handleSubmit} className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-brand-600">
-                    <Send className="h-3.5 w-3.5" /> Submit Claim (Path A — Paid)
-                  </button>
                   <button onClick={simulateDenial} className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 hover:bg-red-100">
                     <AlertTriangle className="h-3.5 w-3.5" /> Simulate Denial (Path B)
                   </button>
                   <button onClick={runScrubber} className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-medium text-brand-700 hover:bg-brand-100">
                     <Search className="h-3.5 w-3.5" /> Run Clearinghouse Scrubber
-                  </button>
-                  {/* Phase 3: Transmit 837P */}
-                  <button onClick={() => {
-                    setIsTransmitting(true);
-                    setTransmitProgress(0);
-                    const interval = setInterval(() => {
-                      setTransmitProgress(p => {
-                        if (p >= 100) {
-                          clearInterval(interval);
-                          const missingMod25 = state.cptCodes.length > 1 && !cs?.modifier25Applied;
-                          setTransmitResult(missingMod25 ? "denied" : "paid");
-                          if (missingMod25) {
-                            setBillingStatus(patientId, "DRAFT");
-                            addAuditLog(patientId, { timestamp: new Date().toISOString(), role: "biller", message: "837P transmitted — Modifier 25 missing, claim denied", status: "error" });
-                          } else {
-                            setBillingStatus(patientId, "CLEARED_AND_SENT");
-                            addAuditLog(patientId, { timestamp: new Date().toISOString(), role: "biller", message: "837P transmitted successfully — claim paid", status: "success" });
-                          }
-                          setIsTransmitting(false);
-                          return 100;
-                        }
-                        return p + 5;
-                      });
-                    }, 100);
-                  }} className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50" disabled={isTransmitting}>
-                    <Send className="h-3.5 w-3.5" /> Transmit 837P
                   </button>
                   {/* Phase 3: Route to PA */}
                   {cs?.paStatus === "REQUIRED_MISSING" && (
@@ -545,6 +570,28 @@ export function BillingLedger() {
             {/* References */}
             {activeTab === "references" && (
               <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-2">
+                    CMS-1500 Box Guide — all 33 blocks explained
+                  </p>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {CMS1500_BLOCKS.map((block) => (
+                      <div key={block.box} className="rounded border border-slate-200 bg-white px-2 py-1.5 text-[10px]">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="min-w-[36px] font-mono font-bold text-brand-600">Box {block.box}</span>
+                          <span className="font-medium text-slate-700">{block.label}</span>
+                          {block.autoFilled && (
+                            <span className="rounded bg-brand-50 px-1 text-[8px] font-semibold uppercase text-brand-600">auto-filled</span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-slate-500">{block.description}</p>
+                        {block.commonError && (
+                          <p className="mt-0.5 text-[9px] text-red-500">⚠ Common error: {block.commonError}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-700 mb-2">Place of Service (POS) Codes</p>
                   <div className="grid grid-cols-2 gap-1.5">
