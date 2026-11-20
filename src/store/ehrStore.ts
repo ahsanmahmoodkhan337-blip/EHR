@@ -643,6 +643,17 @@ interface EhrState {
    * first, so the read-only demo record is never mutated in place (section 2).
    */
   updatePatientInsurance: (patientId: string, insurance: PatientInsurance) => void;
+  /**
+   * Write the identity Registration transcribed (name, date of birth) onto the
+   * patient, so the banner, the right-hand summary and the claim all read it.
+   * Only a field the chart is missing is written — a seeded patient's real DOB
+   * is never replaced by the practice licence's date, and a mistyped name never
+   * renames an existing chart. `dateOfBirth` is an ISO `YYYY-MM-DD` string.
+   */
+  updatePatientIdentity: (
+    patientId: string,
+    identity: { firstName?: string; lastName?: string; dateOfBirth?: string },
+  ) => void;
   createAppointment: (input: NewAppointmentInput) => EhrAppointment;
   updateAppointment: (id: string, patch: Partial<EhrAppointment>) => void;
   setAppointmentStatus: (id: string, status: EhrAppointmentStatus) => void;
@@ -810,6 +821,58 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
       const patients = inUser
         ? s.user.patients.map((p) => (p.id === patientId ? { ...p, insuranceRecord: record } : p))
         : [...s.user.patients, { ...existing, isSeed: false, insuranceRecord: record }];
+      return {
+        user: { ...s.user, patients, activity: appendActivity(s.user.activity, entry) },
+      };
+    });
+  },
+
+  updatePatientIdentity: (patientId, identity) => {
+    const state = get();
+    const existing = mergeById(state.seedPatients, state.user.patients).find(
+      (p) => p.id === patientId,
+    );
+    if (!existing) return;
+
+    // Fill only what the chart lacks. A recorded DOB always wins over the
+    // practice licence's date, and a name already on the chart is never
+    // replaced by a transcription the student may have mistyped.
+    const patch: Partial<Patient> = {};
+    const hasDob =
+      Boolean(existing.dateOfBirth) &&
+      !Number.isNaN(new Date(existing.dateOfBirth).getTime());
+    const typedDob = identity.dateOfBirth?.trim();
+    if (!hasDob && typedDob) {
+      patch.dateOfBirth = typedDob;
+      patch.age = ageFromDob(typedDob);
+    }
+    if (!existing.firstName?.trim() && identity.firstName?.trim()) {
+      patch.firstName = identity.firstName.trim();
+    }
+    if (!existing.lastName?.trim() && identity.lastName?.trim()) {
+      patch.lastName = identity.lastName.trim();
+    }
+    if (Object.keys(patch).length === 0) return;
+
+    const now = new Date().toISOString();
+    const entry: ActivityEntry = {
+      time: now,
+      role: "front-desk",
+      user: state.phone ?? "unknown",
+      patientId,
+      entity: "patient",
+      action: "update",
+      after: {
+        name: `${patch.firstName ?? existing.firstName} ${patch.lastName ?? existing.lastName}`.trim(),
+        dateOfBirth: patch.dateOfBirth ?? existing.dateOfBirth ?? "none",
+      },
+    };
+
+    set((s) => {
+      const inUser = s.user.patients.some((p) => p.id === patientId);
+      const patients = inUser
+        ? s.user.patients.map((p) => (p.id === patientId ? { ...p, ...patch } : p))
+        : [...s.user.patients, { ...existing, isSeed: false, ...patch }];
       return {
         user: { ...s.user, patients, activity: appendActivity(s.user.activity, entry) },
       };

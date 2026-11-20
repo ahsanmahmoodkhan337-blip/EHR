@@ -16,6 +16,12 @@
  * component state and only fed the score, so the claim had nothing to read and
  * box 1a printed an invented member ID. The record now lives in the patient
  * store, so it survives a reload and follows the patient onto the claim.
+ *
+ * The transcribed identity — first and last name, and the date of birth turned
+ * into the chart's `YYYY-MM-DD` — is written onto the patient in the same step,
+ * filling only what the chart is missing. Before 2026-11-20 the DOB stayed in
+ * component state, so a patient registered from the schedule kept showing
+ * "DOB Invalid Date (0y)" in the banner and an empty box 3 on the claim.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -28,6 +34,27 @@ import {
   buildInsuranceRecord,
 } from "../../utils/insuranceRecord";
 
+/**
+ * Turn the form's MM/DD/YYYY date of birth into the ISO `YYYY-MM-DD` the chart
+ * stores. Returns null when the typed date is not a real date, so a bad entry
+ * never reaches the patient record.
+ */
+function toIsoDate(dob: string): string | null {
+  const trimmed = dob.trim();
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+  if (!match) return null;
+  const [, month, day, year] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getMonth() !== Number(month) - 1 ||
+    parsed.getDate() !== Number(day)
+  ) {
+    return null;
+  }
+  return `${year}-${month}-${day}`;
+}
+
 interface RegistrationStageProps {
   /** The patient this registration writes its insurance record to. */
   patientId?: string | null;
@@ -36,6 +63,7 @@ interface RegistrationStageProps {
 export function RegistrationStage({ patientId }: RegistrationStageProps) {
   const { getPatientById } = usePatientStore();
   const updatePatientInsurance = useEhrStore((s) => s.updatePatientInsurance);
+  const updatePatientIdentity = useEhrStore((s) => s.updatePatientIdentity);
   const patient = patientId ? getPatientById(patientId) : undefined;
 
   const [form, setForm] = useState({
@@ -115,6 +143,16 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
       // or invented: what the student did not type stays empty, so the claim
       // box falls through to its tagged demo value instead.
       if (patient?.id) {
+        // The identity the student transcribed goes onto the chart too, so the
+        // banner, the summary and the claim stop showing a patient with no date
+        // of birth after Registration has been worked.
+        const isoDob = toIsoDate(form.dob);
+        updatePatientIdentity(patient.id, {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          ...(isoDob ? { dateOfBirth: isoDob } : {}),
+        });
+
         const secondaryFilled =
           form.secondaryPayerName.trim() ||
           form.secondaryPayerId.trim() ||
