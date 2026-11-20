@@ -6,141 +6,43 @@
  *
  * Roles: Scribe, Coder, Biller, Prior Auth, AR Voice Specialist
  *
- * Submission functions auto-advance stages. The AR Voice Specialist
- * role handles denied claims with aging buckets and call resolution.
+ * Inspiration: Epic's encounter list — one encounter per patient, with the
+ * active encounter explicit. Every stage and every document (note, codes,
+ * claim, prior auth, denial) is stored with the patient it belongs to, so
+ * picking a patient loads their work and picking another never wipes it.
+ *
+ * Submission functions auto-advance the active patient's stage. The AR Voice
+ * Specialist role handles denied claims with aging buckets and call resolution;
+ * its ledger and worklists are legitimately multi-patient, so they stay global.
  */
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from "react";
 import { getLoggedInPhone } from "./accessStore";
 import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persistence";
-import type { ClaimType } from "../data/claims/claimType";
+import {
+  createEncounter,
+  encounterKey,
+  EMPTY_ENCOUNTER,
+  normalizePipelineStore,
+  type ClaimFormData,
+  type ClaimServiceLine,
+  type PipelineEncounter,
+  type PipelineState,
+  type PipelineStoreState,
+  type Role,
+} from "./pipelineEncounter";
 
-// ─── Types ────────────────────────────────────────────────────────
-
-export type Role = "scribe" | "coder" | "biller" | "prior-auth" | "ar-voice";
-
-/**
- * One row of box 24 on the CMS-1500 (02/12).
- * The spec's field names are kept as-is; the printed box each one feeds is in
- * the comment, because that is how the form and its validation talk.
- */
-export interface ClaimServiceLine {
-  dateOfService: string;   // 24A
-  placeOfService: string;  // 24B
-  cpt: string;             // 24D
-  modifiers: string[];     // 24D
-  diagnosisPointer: string;// 24E  e.g. "A" or "AB"
-  charge: number;          // 24F
-  units: number;           // 24G
-  renderingNpi: string;    // 24J
-}
-
-/**
- * The structured CMS-1500 claim record — every printed box, keyed by the box
- * number in the comment. Sits alongside the legacy `claimData` string map so
- * nothing that reads that map breaks.
- */
-export interface ClaimFormData {
-  /**
-   * Which paper this claim is submitted on — professional (CMS-1500),
-   * institutional (UB-04) or dental (ADA). Suggested from the encounter's place
-   * of service and persisted with the claim, so reopening it shows the same
-   * paper. See `src/data/claims/claimType.ts`.
-   */
-  claimType: ClaimType;
-  /**
-   * True once the identity boxes (1a, 2, 3, 4, 5, 6, 7, 26) have been seeded
-   * from the encounter's patient. Claims persisted by an earlier build carry
-   * `undefined`, so they get seeded once on the next open — and a box the
-   * student clears afterwards stays cleared instead of being refilled.
-   */
-  identitySeeded?: boolean;
-  insuranceType: string;        // 1
-  insuredId: string;            // 1a
-  patientName: string;          // 2
-  patientDob: string;           // 3
-  patientSex: string;           // 3
-  insuredName: string;          // 4
-  patientAddress: string;       // 5
-  patientRelationship: string;  // 6
-  insuredAddress: string;       // 7
-  otherInsuranceName: string;   // 9
-  otherInsurancePlan: string;   // 9a
-  conditionEmployment: boolean; // 10a
-  conditionAuto: boolean;       // 10b
-  conditionOther: boolean;      // 10c
-  insuredPolicyGroup: string;   // 11
-  insuredDob: string;           // 11a
-  insuredEmployer: string;      // 11b
-  insuredPlanName: string;      // 11c
-  otherBenefitPlan: string;     // 11d
-  /**
-   * Payer name and EDI payer ID from the patient's insurance record. The
-   * CMS-1500 has no box for either (11c carries the plan name), but the UB-04
-   * prints them in boxes 50 and 51 — carried on the claim now so the
-   * institutional paper reads the same coverage record the professional paper
-   * does.
-   */
-  payerName: string;            // UB-04 50
-  payerEdiId: string;           // UB-04 51
-  patientSignature: boolean;    // 12
-  insuredSignature: boolean;    // 13
-  currentIllnessDate: string;   // 14
-  similarIllnessDate: string;   // 15
-  unableToWorkFrom: string;     // 16
-  unableToWorkTo: string;       // 16
-  referringProvider: string;    // 17
-  referringNpi: string;         // 17b
-  hospitalizationFrom: string;  // 18
-  hospitalizationTo: string;    // 18
-  additionalInfo: string;       // 19
-  outsideLab: string;           // 20
-  diagnosisCodes: string[];     // 21, A–L (12 slots)
-  resubmissionCode: string;     // 22
-  originalClaimNumber: string;  // 22a
-  priorAuthNumber: string;      // 23
-  serviceLines: ClaimServiceLine[]; // 24A–24J, max 6
-  federalTaxId: string;         // 25
-  patientAccountNumber: string; // 26
-  acceptAssignment: string;     // 27
-  totalCharge: number;          // 28
-  amountPaid: number;           // 29
-  balanceDue: number;           // 30
-  providerSignature: string;    // 31
-  providerSignatureDate: string;// 31
-  facilityName: string;         // 32
-  facilityAddress: string;      // 32
-  facilityNpi: string;          // 32
-  billingProviderName: string;  // 33
-  billingProviderAddress: string; // 33
-  billingProviderNpi: string;   // 33
-  billingProviderTaxId: string; // 33
-}
-
-export interface PipelineState {
-  patientId: string | null;
-  displayName: string | null;  // override for custom/new patients from calendar
-  stage: Role | "complete";
-  status: "charted" | "coded" | "billed" | "paid" | "denied" | "reprocessed" | "pending";
-  scribeNote: string;
-  icdCodes: string[];
-  cptCodes: string[];
-  claimData: Record<string, string>;
-  /** Structured CMS-1500 record (box-by-box). Null until the claim is opened. */
-  claimForm: ClaimFormData | null;
-  /** Per-line coding data handed over by the Coder stage (seeds box 24). */
-  codingLines: ClaimServiceLine[];
-  denialInfo: { code: string; reason: string; amount: number } | null;
-  paData: Record<string, string>;
-  /**
-   * `demoFillMissingBoxes` — owner decision 2026-11-20. When on (the default) a
-   * claim box with no captured value renders the teaching demo value from
-   * `src/data/claims/demoClaimData.ts`, grey italic and tagged. An instructor or
-   * exam mode switches it off so assessment claims show only what the student
-   * captured. Never written back onto the claim.
-   */
-  demoFillMissingBoxes: boolean;
-}
+// Re-exported so every existing import path keeps working.
+export type {
+  ClaimFormData,
+  ClaimServiceLine,
+  PipelineEncounter,
+  PipelineState,
+  PipelineStatus,
+  PipelineStoreState,
+  Role,
+} from "./pipelineEncounter";
+export { encounterHasWork, encounterKey, UNASSIGNED_ENCOUNTER_KEY } from "./pipelineEncounter";
 
 export interface DeniedClaim {
   id: string;
@@ -187,7 +89,14 @@ export interface PARecordStore {
 // ─── Context ───────────────────────────────────────────────────────
 
 interface PipelineContextValue {
+  /** The active patient's encounter (+ the global demo-fill switch). */
   state: PipelineState;
+  /** The patient every stage reads and writes. */
+  activePatientId: string | null;
+  /** Load a patient's own encounter (creating an empty one on first visit). */
+  selectPatient: (patientId: string | null) => void;
+  /** This patient's stored encounter, or undefined when never visited. */
+  getEncounter: (patientId: string | null) => PipelineEncounter | undefined;
   currentRole: Role;
   setRole: (role: Role) => void;
   submitToCoding: (note: string) => void;
@@ -213,7 +122,12 @@ interface PipelineContextValue {
   paRecords: PARecordStore[];
   addPARecord: (record: PARecordStore) => void;
   updatePAStatus: (id: string, status: string) => void;
-  resetEncounter: (newPatientId?: string) => void;
+  /**
+   * Start a patient's encounter over from blank. Pass an id to target that
+   * patient, `null` for the unassigned bucket, or nothing for the active one.
+   * Never called on a plain patient switch — switching only loads.
+   */
+  resetEncounter: (patientId?: string | null) => void;
   setPatientDisplayName: (name: string | null) => void;
   prefillForTutorial: () => void;
 }
@@ -240,27 +154,18 @@ const ROLE_LABELS: Record<Role, string> = {
   "ar-voice": "AR Voice Specialist",
 };
 
+/** Initial store — read straight from localStorage so the first render has it. */
+function initialState(): PipelineStoreState {
+  const phone = getLoggedInPhone();
+  const local = phone ? loadUserData(phone) : null;
+  return normalizePipelineStore(local?.pipeline, local?.currentRole ?? "scribe");
+}
 
 // ─── Provider ──────────────────────────────────────────────────────
 
 export function PipelineProvider({ children }: { children: ReactNode }) {
-  const [pipeline, setPipeline] = useState<PipelineState>({
-    patientId: null,
-    displayName: null,
-    stage: "scribe",
-    status: "pending",
-    scribeNote: "",
-    icdCodes: [],
-    cptCodes: [],
-    claimData: {},
-    claimForm: null,
-    codingLines: [],
-    denialInfo: null,
-    paData: {},
-    demoFillMissingBoxes: true,
-  });
+  const [store, setStore] = useState<PipelineStoreState>(initialState);
 
-  const [currentRole, setCurrentRole] = useState<Role>("scribe");
   const [deniedClaims, setDeniedClaims] = useState<DeniedClaim[]>([]);
   const [arCalls, setArCalls] = useState<ARCallRecord[]>([]);
   const [paRecords, setPaRecords] = useState<PARecordStore[]>([]);
@@ -271,21 +176,17 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   // to the phone at mount gives correct per-user isolation.
   useEffect(() => {
     const phone = getLoggedInPhone();
-    if (!phone) {
-      setCurrentRole("scribe");
-      return;
-    }
+    if (!phone) return;
     const local = loadUserData(phone);
-    if (local?.pipeline) setPipeline(local.pipeline);
-    if (local?.currentRole) setCurrentRole(local.currentRole);
     if (local?.deniedClaims) setDeniedClaims(local.deniedClaims);
     if (local?.arCalls) setArCalls(local.arCalls);
     if (local?.paRecords) setPaRecords(local.paRecords);
     // Layer 2 — optional cross-device refresh from Supabase.
     void syncUserDataFromSupabase(phone).then((remote) => {
       if (!remote) return;
-      if (remote.pipeline && (remote.updatedAt || "") > (local?.updatedAt || "")) setPipeline(remote.pipeline);
-      if (remote.currentRole) setCurrentRole(remote.currentRole);
+      if (remote.pipeline && (remote.updatedAt || "") > (local?.updatedAt || "")) {
+        setStore(normalizePipelineStore(remote.pipeline, remote.currentRole ?? "scribe"));
+      }
       if (remote.deniedClaims) setDeniedClaims(remote.deniedClaims);
       if (remote.arCalls) setArCalls(remote.arCalls);
       if (remote.paRecords) setPaRecords(remote.paRecords);
@@ -297,25 +198,71 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     const phone = getLoggedInPhone();
     if (!phone) return;
     const t = setTimeout(
-      () => saveUserData(phone, { pipeline, currentRole, deniedClaims, arCalls, paRecords }),
+      () => saveUserData(phone, { pipeline: store, currentRole: store.currentRole, deniedClaims, arCalls, paRecords }),
       400
     );
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pipeline, currentRole, deniedClaims, arCalls, paRecords]);
+  }, [store, deniedClaims, arCalls, paRecords]);
+
+  // ── Active encounter ─────────────────────────────────────────────
+  const activeKey = encounterKey(store.activePatientId);
+  const activeEncounter = store.encounters[activeKey] ?? EMPTY_ENCOUNTER;
+
+  const state = useMemo<PipelineState>(
+    () => ({ ...activeEncounter, demoFillMissingBoxes: store.demoFillMissingBoxes }),
+    [activeEncounter, store.demoFillMissingBoxes],
+  );
+
+  const currentRole: Role = store.currentRole;
+
+  /** Every mutation goes through here, so it always lands on the active patient. */
+  const updateActive = (fn: (enc: PipelineEncounter) => PipelineEncounter) => {
+    setStore((prev) => {
+      const key = encounterKey(prev.activePatientId);
+      const current = prev.encounters[key] ?? createEncounter(prev.activePatientId);
+      return { ...prev, encounters: { ...prev.encounters, [key]: fn(current) } };
+    });
+  };
+
+  const getEncounter = (patientId: string | null) => store.encounters[encounterKey(patientId)];
+
+  /** Load a patient's encounter. Creates a blank one the first time only. */
+  const selectPatient = (patientId: string | null) => {
+    setStore((prev) => {
+      const key = encounterKey(patientId);
+      const existing = prev.encounters[key];
+      const encounter = existing ?? createEncounter(patientId);
+      if (prev.activePatientId === patientId && existing) return prev;
+      return {
+        ...prev,
+        activePatientId: patientId,
+        encounters: existing ? prev.encounters : { ...prev.encounters, [key]: encounter },
+        currentRole: encounter.role ?? "scribe",
+      };
+    });
+  };
 
   const setRole = (role: Role) => {
-    setCurrentRole(role);
+    setStore((prev) => {
+      const key = encounterKey(prev.activePatientId);
+      const enc = prev.encounters[key];
+      return {
+        ...prev,
+        currentRole: role,
+        encounters: enc ? { ...prev.encounters, [key]: { ...enc, role } } : prev.encounters,
+      };
+    });
   };
 
   const setPatientDisplayName = (name: string | null) => {
-    setPipeline((prev) => ({ ...prev, displayName: name }));
+    updateActive((enc) => ({ ...enc, displayName: name }));
   };
 
-  // Pre-fill coding data for tutorial patient
+  // Pre-fill coding data for the tutorial patient.
   const prefillForTutorial = () => {
-    setPipeline((prev) => ({
-      ...prev,
+    updateActive((enc) => ({
+      ...enc,
       icdCodes: ["I10", "I25.10", "R07.9"],
       cptCodes: ["99214", "93000"],
       status: "charted",
@@ -323,29 +270,24 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  // Reset per-encounter data when switching patients. Accepts new patientId.
-  const resetEncounter = (newPatientId?: string) => {
-    setPipeline((prev) => ({
-      ...prev,
-      patientId: newPatientId || prev.patientId,
-      displayName: null,
-      scribeNote: "",
-      icdCodes: [],
-      cptCodes: [],
-      claimData: {},
-      claimForm: null,
-      codingLines: [],
-      denialInfo: null,
-      paData: {},
-      status: "pending",
-      stage: "scribe",
-    }));
+  // Start an encounter over. A plain patient switch must never call this.
+  const resetEncounter = (patientId?: string | null) => {
+    setStore((prev) => {
+      const target = patientId === undefined ? prev.activePatientId : patientId;
+      const key = encounterKey(target);
+      return {
+        ...prev,
+        activePatientId: target,
+        encounters: { ...prev.encounters, [key]: createEncounter(target) },
+        currentRole: "scribe",
+      };
+    });
   };
 
   // Auto-advance: Scribe → Coder
   const submitToCoding = (note: string) => {
-    setPipeline((prev) => ({
-      ...prev,
+    updateActive((enc) => ({
+      ...enc,
       scribeNote: note,
       stage: "coder",
       status: "charted",
@@ -354,11 +296,11 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // Auto-advance: Coder → Prior Auth (PA first)
   const submitToBilling = (icdCodes: string[], cptCodes: string[], lines?: ClaimServiceLine[]) => {
-    setPipeline((prev) => ({
-      ...prev,
+    updateActive((enc) => ({
+      ...enc,
       icdCodes,
       cptCodes,
-      codingLines: lines ?? prev.codingLines,
+      codingLines: lines ?? enc.codingLines,
       stage: "prior-auth",
       status: "coded",
     }));
@@ -366,26 +308,26 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // ── Structured CMS-1500 record ──────────────────────────────────
   const setClaimForm = (form: ClaimFormData | null) => {
-    setPipeline((prev) => ({ ...prev, claimForm: form }));
+    updateActive((enc) => ({ ...enc, claimForm: form }));
   };
 
   const patchClaimForm = (patch: Partial<ClaimFormData>) => {
-    setPipeline((prev) => ({
-      ...prev,
-      claimForm: prev.claimForm ? { ...prev.claimForm, ...patch } : prev.claimForm,
+    updateActive((enc) => ({
+      ...enc,
+      claimForm: enc.claimForm ? { ...enc.claimForm, ...patch } : enc.claimForm,
     }));
   };
 
-  // Instructor / exam-mode switch. Persisted with the rest of the pipeline, so
-  // an assessment session keeps the paper free of demo values.
+  // Instructor / exam-mode switch. Persisted with the rest of the store, so an
+  // assessment session keeps the paper free of demo values.
   const setDemoFillMissingBoxes = (enabled: boolean) => {
-    setPipeline((prev) => ({ ...prev, demoFillMissingBoxes: enabled }));
+    setStore((prev) => ({ ...prev, demoFillMissingBoxes: enabled }));
   };
 
   // PA submission — don't change status; claim isn't submitted yet
   const submitPA = (paData: Record<string, string>) => {
-    setPipeline((prev) => ({
-      ...prev,
+    updateActive((enc) => ({
+      ...enc,
       paData,
       stage: "biller",
       // Keep existing status (typically "coded") — status = "paid" only after actual claim settlement
@@ -395,46 +337,45 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // Auto-advance: Biller submits claim → AR Voice
   const submitClaim = (claimData: Record<string, string>) => {
-    setPipeline((prev) => ({
-      ...prev,
+    updateActive((enc) => ({
+      ...enc,
       claimData,
       stage: "ar-voice",
       status: "billed",
     }));
   };
 
-  // Denial from Biller stage — routes to AR queue
+  // Denial from Biller stage — routes to the active patient's AR row
   const handleDenial = (denialCode: string, meta?: { amount?: number; patientName?: string }) => {
-    setPipeline((prev) => {
-      const denial: DeniedClaim = {
-        id: `denial-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        encounterId: prev.patientId ?? "unknown",
-        patientName: meta?.patientName ?? "",
-        reason: denialCode,
-        amount: meta?.amount ?? 0,
-        deniedAt: new Date().toISOString(),
-        agingBucket: "0-30",
-        resolutionStatus: "unresolved",
-      };
-      setDeniedClaims((d) => [...d, denial]);
-      return {
-        ...prev,
-        status: "denied",
-        denialInfo: { code: denialCode, reason: "Claim denied", amount: meta?.amount ?? 0 },
-      };
-    });
+    const patientId = store.activePatientId;
+    const denial: DeniedClaim = {
+      id: `denial-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      encounterId: patientId ?? "unknown",
+      patientName: meta?.patientName ?? activeEncounter.displayName ?? "",
+      reason: denialCode,
+      amount: meta?.amount ?? 0,
+      deniedAt: new Date().toISOString(),
+      agingBucket: "0-30",
+      resolutionStatus: "unresolved",
+    };
+    setDeniedClaims((d) => [...d, denial]);
+    updateActive((enc) => ({
+      ...enc,
+      status: "denied",
+      denialInfo: { code: denialCode, reason: "Claim denied", amount: meta?.amount ?? 0 },
+    }));
   };
 
   // Complete pipeline — called when all stages are done
   const completePipeline = () => {
-    setPipeline((prev) => ({
-      ...prev,
+    updateActive((enc) => ({
+      ...enc,
       stage: "complete",
       status: "paid",
     }));
   };
 
-  // AR functions
+  // AR functions — the ledger spans patients, so these stay global.
   const resolveDenial = (claimId: string, status: DeniedClaim["resolutionStatus"]) => {
     setDeniedClaims((prev) =>
       prev.map((c) =>
@@ -494,7 +435,10 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   return (
     <PipelineContext.Provider
       value={{
-        state: pipeline,
+        state,
+        activePatientId: store.activePatientId,
+        selectPatient,
+        getEncounter,
         currentRole,
         setRole,
         submitToCoding,

@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 
 import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
-import { PipelineProvider, usePipeline, type Role } from "../store/pipelineStore";
+import { PipelineProvider, usePipeline, encounterHasWork, type Role } from "../store/pipelineStore";
 import { isLoggedIn, getLoggedInPhone } from "../store/accessStore";
 import { useAllAppointments, useEhrStore, flushEhrStore } from "../store/ehrStore";
 import { checkSessionExpired, clearSession, setSessionStart } from "../store/accessStore";
@@ -1349,7 +1349,7 @@ function Home() {
   const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, setRole, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, state: pipelineState } = usePipeline();
 
   // ── Right-panel financial KPIs — derived from REAL pipeline data ──
   // (was hardcoded 12500/8700/2400/32 demo figures)
@@ -1520,8 +1520,10 @@ function Home() {
    * Falls back to mock patient data or defaults if no saved session.
    */
   function loadPatientSession(patientId: string) {
-  // DEMO patient — load pre-filled tutorial data
-    if (patientId === "DEMO") {
+    const savedForPatient = patientDataStore.current[patientId];
+    const hasPipelineWork = !!savedForPatient || encounterHasWork(getEncounter(patientId));
+  // DEMO patient — load pre-filled tutorial data (first visit only)
+    if (patientId === "DEMO" && !hasPipelineWork) {
       setSoapNote({
         subjective: "Patient reports intermittent chest pain over the past 2 weeks, described as pressure-like, radiating to left arm. Worse with exertion, relieved by rest. Associated shortness of breath when climbing stairs. Denies nausea or diaphoresis. Has history of hypertension, currently on Lisinopril.",
         objective: "Vitals: BP 145/92, HR 92, Temp 99.1°F, RR 20, O2 Sat 94% on room air. General: Alert, mild distress. CV: Regular rate, no murmurs. Lungs: Clear bilaterally. ECG shows ST-segment depression in leads V4-V6. Labs: Troponin mildly elevated at 0.12 ng/mL.",
@@ -1642,8 +1644,12 @@ function Home() {
       setSubmittedToCoding(false);
       return;
     }
+    // The summary panel and the workflow must be the same patient: reattach the
+    // pipeline to whoever the chart is showing (a refresh restores the pick).
+    if (activePatientId !== selectedPatientId) selectPatient(selectedPatientId);
     // If we have saved data for this patient, restore it; otherwise initialize from mock
     loadPatientSession(selectedPatientId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPatientId]);
 
   // Note autosave: every 5 s, on blur (focusout anywhere) and on page hide.
@@ -1871,12 +1877,13 @@ function Home() {
     const p = patients.find(p => p.id === id);
     if (!p) return;
     setSelectedPatientId(p.id);
-    resetEncounter(p.id);
+    // Load this patient's own encounter — note, codes, claim and stage. Nothing
+    // is reset: a patient already worked reopens exactly where they were left,
+    // and a patient never visited starts blank at Registration.
+    selectPatient(p.id);
     setPatientDisplayName(null);
     setDisplayName(undefined);
-    setRole("scribe");
     setActiveWorkspace("chart");
-    setActiveStage("registration");
     toast(p.firstName + " " + p.lastName + " loaded");
   };
 
@@ -1950,7 +1957,7 @@ function Home() {
 
       {/* ─── Role-Based Workspace ─── */}
       {selectedPatient && currentRole !== "scribe" ? (
-        <FadeTransition id={currentRole} className="flex flex-1 flex-col overflow-hidden">
+        <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
           {currentRole === "coder" && (
             <StagePinGate role="coder" roleLabel="Medical Coder">
               <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
@@ -2037,9 +2044,8 @@ function Home() {
 
                   if (match) {
                     setSelectedPatientId(match.id);
-                    resetEncounter(match.id);
+                    selectPatient(match.id);
                     setPatientDisplayName(null);
-                    setRole("scribe");
                     setActiveWorkspace("chart");
                     setActiveStage("intake-vitals");
                     setDisplayName(undefined);
@@ -2048,9 +2054,11 @@ function Home() {
                       chiefComplaint: match.chiefComplaint,
                     }));
                   } else {
-                    // Custom patient not in mock database — keep current selection, just set display name
+                    // Custom patient not in the patient database — a blank
+                    // encounter of its own, named from the appointment. Never
+                    // the previous patient's codes or claim.
+                    resetEncounter(null);
                     setPatientDisplayName(name);
-                    setRole("scribe");
                     setActiveWorkspace("chart");
                     setActiveStage("intake-vitals");
                     setDisplayName(name);
