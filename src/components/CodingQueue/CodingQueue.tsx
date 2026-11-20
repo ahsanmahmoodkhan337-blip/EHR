@@ -54,14 +54,6 @@ interface CPTCodeData {
   charges: number;
 }
 
-// Office/outpatient E/M codes — these prefill modifier 25
-const OFFICE_EM_CODES = new Set([
-  "99202", "99203", "99204", "99205",
-  "99211", "99212", "99213", "99214", "99215",
-]);
-
-const isOfficeEM = (code: string) => OFFICE_EM_CODES.has(code);
-
 const DEFAULT_POS = "11"; // Owner instruction: every new CPT line starts at POS 11 (Office)
 
 // Split a free-text modifiers box ("25, 59") into the stored array
@@ -71,11 +63,15 @@ const parseModifiers = (text: string): string[] =>
     .map(m => m.trim().toUpperCase())
     .filter(Boolean);
 
-// Fresh per-line data for a newly added CPT code
+// Fresh per-line data for a newly added CPT code.
+// Modifiers start empty on every line, office E/M included: whether a modifier
+// belongs on a line is the student's decision (STANDING-RULES 6). It used to
+// prefill "25" on every office E/M, which answered the modifier-25 trap before
+// the student read the note.
 const initialCptData = (cpt: CPTCode): CPTCodeData => ({
   cpt,
   linkedICDs: [],
-  modifiers: isOfficeEM(cpt.code) ? ["25"] : [],
+  modifiers: [],
   pos: DEFAULT_POS,
   units: 1,
   charges: 0,
@@ -162,6 +158,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
   const [codingScore, setCodingScore] = useState<number | null>(null);
   // PA auto-route interstitial
   const [showPAInterstitial, setShowPAInterstitial] = useState(false);
+  // Rule 6 — the student answers the PA question before the interstitial shows
+  // what triggered it. `null` = not answered yet.
+  const [paAnswer, setPaAnswer] = useState<"yes" | "no" | null>(null);
   const [, setHasPACodes] = useState(false);
   const [paTriggerReasons, setPaTriggerReasons] = useState<string[]>([]);
   // Pending codes stored before PA interstitial decision
@@ -287,7 +286,11 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
           cpt: c.code,
           modifiers: d.modifiers,
           diagnosisPointer: pointer || "A",
-          charge: d.charges > 0 ? d.charges : (c.medicareRate ?? 0),
+          // Box 24F is the charge the coder decided, never the fee schedule
+          // filled in for them (STANDING-RULES 6). Left empty when the student
+          // typed nothing: the biller's edit checks then name box 24F/28 as
+          // theirs to complete instead of paying a number nobody chose.
+          charge: d.charges,
           units: d.units > 0 ? d.units : 1,
           renderingNpi: MEDICAL_PROVIDER_PROFILE.npi,
         };
@@ -342,7 +345,8 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
       setPendingLines(claimLines);
 
       if (detectedPA) {
-        // Show interstitial with reasons — don't submit yet
+        // Ask the student first — the trigger list is revealed after they answer
+        setPaAnswer(null);
         setShowPAInterstitial(true);
       } else {
         // No PA needed — submit and go to Biller directly
@@ -666,7 +670,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                               <div className="col-span-2">
                                 <div className="flex items-center gap-1 mb-1">
                                   <label htmlFor={`mods-${cpt.code}`} className="text-[9px] font-medium text-slate-500">Modifiers</label>
-                                  <span className="text-[8px] text-slate-400">(comma-separated, e.g. 25, 59)</span>
+                                  <span className="text-[8px] text-slate-400">(comma-separated)</span>
                                 </div>
                                 <input
                                   id={`mods-${cpt.code}`}
@@ -697,11 +701,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                                 />
                               </div>
                             </div>
-                            {isOfficeEM(cpt.code) && data.modifiers.includes("25") && (
-                              <p className="mb-1 text-[8px] text-brand-500">
-                                Modifier 25 prefilled — needed when a procedure is billed the same day.
-                              </p>
-                            )}
+                            {/* The "Modifier 25 prefilled" note is gone: nothing is
+                                prefilled now, so there is nothing to explain. The
+                                post-submit denial (CO-4) teaches it instead. */}
 
                             {/* Units & Charges */}
                             <div className="flex items-center gap-3 mt-2">
@@ -837,42 +839,76 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                       <div className="bg-amber-50 px-4 py-3 border-b border-amber-200 rounded-t-xl">
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="h-5 w-5 text-amber-600" />
-                          <span className="text-sm font-bold text-amber-700">Prior Authorization Required</span>
+                          <span className="text-sm font-bold text-amber-700">
+                            {paAnswer === null ? "Prior Authorisation Check" : "Prior Authorization Required"}
+                          </span>
                         </div>
                       </div>
                       <div className="p-4 space-y-3">
-                        <p className="text-xs text-slate-600">
-                          One or more items require <strong>Prior Authorization</strong> before billing.
-                        </p>
-                        {paTriggerReasons.length > 0 && (
-                          <div className="space-y-1">
-                            <p className="text-[10px] font-medium text-slate-500">Triggered by:</p>
-                            {paTriggerReasons.map((reason, i) => (
-                              <div key={i} className="flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1.5 text-[10px] text-amber-700">
-                                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
-                                <span>{reason}</span>
+                        {/* Rule 6 — the student answers before the app shows what
+                            triggered the check. The old modal printed the trigger
+                            list ("Triggered by: CPT codes …") and then asked. */}
+                        {paAnswer === null ? (
+                          <>
+                            <p className="text-xs text-slate-600">
+                              Does anything in this encounter need prior authorisation?{" "}
+                              <span className="text-slate-500">Check the plan's PA list — Yes / No</span>
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setPaAnswer("yes")}
+                                className="min-h-[40px] flex-1 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                onClick={() => setPaAnswer("no")}
+                                className="min-h-[40px] flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                              >
+                                No
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs text-slate-600">
+                              {paAnswer === "yes"
+                                ? "One or more items require "
+                                : "You answered No. The payer's PA list still flags this encounter — a claim sent without the authorisation is at risk of "}
+                              <strong>{paAnswer === "yes" ? "Prior Authorization" : "CO-197 (prior authorisation)"}</strong>
+                              {paAnswer === "yes" ? " before billing." : "."}
+                            </p>
+                            {paTriggerReasons.length > 0 && (
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-medium text-slate-500">Triggered by:</p>
+                                {paTriggerReasons.map((reason, i) => (
+                                  <div key={i} className="flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1.5 text-[10px] text-amber-700">
+                                    <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
+                                    <span>{reason}</span>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                            )}
+                            <p className="text-[10px] text-slate-500">
+                              Would you like to proceed to Prior Authorization or skip to Billing?
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleConfirmPA}
+                                className="min-h-[40px] flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors"
+                              >
+                                <ArrowRight className="h-3.5 w-3.5" />
+                                Go to Prior Auth
+                              </button>
+                              <button
+                                onClick={handleSkipPA}
+                                className="min-h-[40px] flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                              >
+                                Skip to Billing
+                              </button>
+                            </div>
+                          </>
                         )}
-                        <p className="text-[10px] text-slate-500">
-                          Would you like to proceed to Prior Authorization or skip to Billing?
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={handleConfirmPA}
-                            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors"
-                          >
-                            <ArrowRight className="h-3.5 w-3.5" />
-                            Go to Prior Auth
-                          </button>
-                          <button
-                            onClick={handleSkipPA}
-                            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-                          >
-                            Skip to Billing
-                          </button>
-                        </div>
                       </div>
                     </div>
                   </div>

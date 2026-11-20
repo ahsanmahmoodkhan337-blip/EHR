@@ -21,6 +21,7 @@ import { usePatientStore } from "../../store/patientStore";
 import { CMS1500_BLOCKS, REVENUE_CODES, POS_CODES } from "./claimData";
 import { CARC_BY_CODE, CARC_CODES as DENIAL_CODES } from "../../data/claims/carc";
 import { CPT_CODES } from "../CodingQueue/cptData";
+import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
 import { exportClaimFormPDF } from "../../utils/claimFormPdf";
 import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scoring";
 import { ClaimFormShell } from "../claims/ClaimFormShell";
@@ -75,15 +76,11 @@ export function BillingLedger() {
   const [submitted, setSubmitted] = useState(false);
   const [billingScore, setBillingScore] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<BillingTab>("form");
-  const [needsPriorAuth, setNeedsPriorAuth] = useState(false);
-
-  // Auto-check the PA checkbox when PA records exist for this patient
-  useEffect(() => {
-    const patientPaRecords = paRecords.filter((r) => r.patientId === patientId);
-    if (patientPaRecords.length > 0) {
-      setNeedsPriorAuth(true);
-    }
-  }, [paRecords, patientId]);
+  // Prior authorisation — the student's answer, not the app's (STANDING-RULES 6).
+  // Tri-state so an unanswered question is visibly unanswered: `null` means the
+  // student has not decided yet. This used to be a boolean auto-ticked from
+  // `paRecords`, which answered the question before the student read the claim.
+  const [needsPriorAuth, setNeedsPriorAuth] = useState<boolean | null>(null);
   const [showRoutingModal, setShowRoutingModal] = useState(false);
   const [routingMemo, setRoutingMemo] = useState("");
   const [isTransmitting, setIsTransmitting] = useState(false);
@@ -194,6 +191,21 @@ export function BillingLedger() {
     [claimForm],
   );
 
+  // The payer's prior-authorisation list — the only source for which CPT codes
+  // need authorising. Nothing is hardcoded per claim (rule 6/7): the screens
+  // below derive the codes from this claim and this list.
+  const paCptList = useMemo(
+    () => new Set(Object.values(PA_PROCEDURES).flatMap((p) => p.cptCodes)),
+    [],
+  );
+  /** The CPT codes on THIS claim that the payer's PA list names. */
+  const claimPaCodes = useMemo(() => {
+    const codes = (claimForm?.serviceLines ?? [])
+      .map((l) => l.cpt)
+      .filter(Boolean) as string[];
+    return Array.from(new Set(codes.filter((c) => paCptList.has(c))));
+  }, [claimForm, paCptList]);
+
   const commitClaim = useCallback(
     (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
       setClaimForm({
@@ -260,7 +272,24 @@ export function BillingLedger() {
   const handleSubmitClaim = useCallback(
     (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
       const patientPaRecords = paRecords.filter((r) => r.patientId === patientId);
-      if (needsPriorAuth && patientPaRecords.length === 0) {
+
+      // Rule 6 — the PA question belongs to the student. If a line on this claim
+      // is on the payer's PA list and the question is unanswered or answered No,
+      // the claim cannot go out: the block names the code and what to do.
+      const paOnClaim = Array.from(
+        new Set(
+          lines
+            .map((l) => String(l.cpt ?? ""))
+            .filter((code) => code && paCptList.has(code)),
+        ),
+      );
+      if (paOnClaim.length > 0 && needsPriorAuth !== true) {
+        toast.error(
+          `The payer's prior-authorisation list includes CPT ${paOnClaim.join(", ")}, which is on this claim. Answer the PA question before submitting.`,
+        );
+        return;
+      }
+      if (needsPriorAuth === true && patientPaRecords.length === 0) {
         toast.error("Prior authorization is required before this claim can be submitted");
         setRole("prior-auth");
         return;
@@ -275,7 +304,18 @@ export function BillingLedger() {
         status: "info",
       });
 
-      const missingMod25 = state.cptCodes.length > 1 && !cs?.modifier25Applied;
+      // Rule 6 — modifier 25 is the student's to apply. The biller's edit check
+      // reads the modifiers actually on the claim lines (typed in the Coder
+      // stage), never a value the app filled in for them.
+      const modifier25Applied =
+        lines.some((l) => {
+          const raw = l.modifiers;
+          const text = Array.isArray(raw) ? raw.join(",") : String(raw ?? "");
+          return text
+            .split(/[,\s]+/)
+            .some((m) => m.replace(/^-/, "").trim() === "25");
+        }) || Boolean(cs?.modifier25Applied);
+      const missingMod25 = state.cptCodes.length > 1 && !modifier25Applied;
       setIsTransmitting(true);
       setTransmitProgress(0);
       setTransmitResult(null);
@@ -314,17 +354,42 @@ export function BillingLedger() {
       }, 100);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [paRecords, patientId, needsPriorAuth, payer, posCode, state.cptCodes, cs?.modifier25Applied, claimForm],
+    [paRecords, patientId, needsPriorAuth, payer, posCode, state.cptCodes, cs?.modifier25Applied, claimForm, paCptList],
   );
 
   const runScrubber = () => {
+    // Rule 6 — the same-day edit states the rule and the consequence and names
+    // no modifier: which modifier belongs on which line is the student's call.
+    const dosCounts = new Map<string, number>();
+    for (const l of claimLines) {
+      const dos = String(l.dateOfService ?? "").trim();
+      if (!dos) continue;
+      dosCounts.set(dos, (dosCounts.get(dos) ?? 0) + 1);
+    }
+    const sameDayLines = Math.max(0, ...Array.from(dosCounts.values()));
+    const anyModifier = claimLines.some((l) => {
+      const raw = l.modifiers;
+      return Array.isArray(raw) ? raw.length > 0 : String(raw ?? "").trim() !== "";
+    });
+    const co97 = CARC_BY_CODE["CO-97"];
     const results = [
       { check: "ICD-10 code present", pass: state.icdCodes.length > 0, note: state.icdCodes.length > 0 ? `${state.icdCodes.length} code(s) found` : "No diagnosis codes entered" },
       { check: "CPT code present", pass: state.cptCodes.length > 0, note: state.cptCodes.length > 0 ? `${state.cptCodes.length} code(s) found` : "No procedure codes entered" },
       { check: "Diagnosis supports procedure", pass: state.icdCodes.length > 0 && state.cptCodes.length > 0, note: "Educational: Verify ICD-10 supports medical necessity for the CPT code" },
       { check: "Payer selected", pass: true, note: `Payer: ${payer}` },
       { check: "Place of service selected", pass: true, note: `POS: ${posCode}` },
-      { check: "Modifier check", pass: state.cptCodes.length <= 1, note: state.cptCodes.length > 1 ? "Multiple procedures may need modifier -25 or -59" : "Single procedure — no modifier needed" },
+      {
+        check: "Same-day edit (payer claim edit)",
+        pass: sameDayLines <= 1,
+        note:
+          sameDayLines > 1
+            ? `${sameDayLines} lines share a date of service. The payer's edit may include one service in another; the remittance would carry ${co97.code} — ${co97.description} — and the line would pay $0. ${
+                anyModifier
+                  ? "The modifiers on this claim are the ones you typed; the payer decides whether they apply."
+                  : "No modifier has been applied to any line."
+              }`
+            : "One line on each date of service — no same-day edit applies.",
+      },
     ];
     setScrubResults(results);
   };
@@ -619,10 +684,44 @@ export function BillingLedger() {
                   <div className="mt-3 text-[10px] text-slate-400">
                     ICD-10: {state.icdCodes.join(", ") || "—"} &nbsp;|&nbsp; CPT: {state.cptCodes.join(", ") || "—"}
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <input type="checkbox" id="needsPA" checked={needsPriorAuth} onChange={e => setNeedsPriorAuth(e.target.checked)} className="accent-brand-600" />
-                    <label htmlFor="needsPA" className="text-[10px] text-slate-600">This encounter requires <strong>Prior Authorization</strong></label>
-                  </div>
+                  {/* Rule 6 — the PA question is the student's to answer. It used
+                      to auto-tick from `paRecords`, which answered it for them. */}
+                  <fieldset className="mt-2">
+                    <legend className="text-[10px] text-slate-600">
+                      Does this encounter require <strong>Prior Authorization</strong>?{" "}
+                      <span className="text-slate-400">
+                        Check the payer's PA list — this answer is yours.
+                      </span>
+                    </legend>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {(
+                        [
+                          { value: null, label: "Not answered" },
+                          { value: true, label: "Yes" },
+                          { value: false, label: "No" },
+                        ] as { value: boolean | null; label: string }[]
+                      ).map((opt) => (
+                        <label
+                          key={opt.label}
+                          className={`flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-[10px] font-medium transition-colors ${
+                            needsPriorAuth === opt.value
+                              ? "border-brand-300 bg-brand-50 text-brand-700"
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="needsPA"
+                            value={opt.label}
+                            checked={needsPriorAuth === opt.value}
+                            onChange={() => setNeedsPriorAuth(opt.value)}
+                            className="accent-brand-600"
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                   {/* PA Status indicator */}
                   {(() => {
                     const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || ""));
@@ -653,7 +752,7 @@ export function BillingLedger() {
                         </div>
                       );
                     }
-                    if (needsPriorAuth) {
+                    if (needsPriorAuth === true) {
                       return (
                         <div className="mt-2 rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
                           <p className="text-[11px] font-semibold text-amber-800 flex items-center gap-1.5">
@@ -723,7 +822,14 @@ export function BillingLedger() {
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                     <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
                       <h3 className="text-sm font-bold text-slate-800">Clearinghouse Exception</h3>
-                      <p className="mt-1 text-xs text-slate-500">Prior Authorization is required for CPT 78452. Route to PA specialist before submitting.</p>
+                      {/* Rule 6/7 — never print a code that is not on this claim.
+                          The codes come from the claim's own lines, checked
+                          against the payer's PA list. */}
+                      <p className="mt-1 text-xs text-slate-500">
+                        {claimPaCodes.length > 0
+                          ? `The payer's prior-authorisation list includes CPT ${claimPaCodes.join(", ")} on this claim. Route to the PA specialist before submitting.`
+                          : "This claim is flagged as needing prior authorisation. Route to the PA specialist before submitting."}
+                      </p>
                       <div className="mt-4">
                         <label className="text-[11px] font-medium text-slate-500">Internal Routing Instructions / Memo to PA Team</label>
                         <textarea value={routingMemo} onChange={e => setRoutingMemo(e.target.value)}
