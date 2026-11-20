@@ -303,6 +303,7 @@ function SettingsPage() {
               ref={fileInput}
               type="file"
               accept="application/json,.json"
+              aria-label="Choose a JSON export file to import"
               className="hidden"
               onChange={(e) => {
                 void handleImport(e.target.files?.[0]);

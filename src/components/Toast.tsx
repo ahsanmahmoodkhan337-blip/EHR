@@ -94,9 +94,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             </div>
             <button
               onClick={() => removeToast(toast.id)}
+              aria-label="Dismiss this message"
+              title="Dismiss this message"
               className="shrink-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
         ))}
