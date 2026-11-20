@@ -31,6 +31,9 @@ import {
 import { getLoggedInPhone } from "../../store/accessStore";
 import { writeAutosaved } from "../../store/autosave";
 import type { ADAFormData } from "../../data/claims/adaLayout";
+import { mintClaimNumber, nextClaimNumber, type ClaimStatus } from "../../domain/claimStatus";
+import { buildSubmissionEvents, type ClaimTrack } from "../../domain/clearinghouse";
+import { appendStatusEvent, makeStatusEvent, type StatusEvent } from "../../domain/statusEvent";
 
 export type DentalStageName =
   | "case-select"
@@ -154,8 +157,11 @@ export interface DentalAdjustment {
 }
 
 export interface DentalTrackState {
-  /** v2 added the structured ADA claim form (`adaForm`); v3 added `furthestStage`. */
-  version: 3;
+  /**
+   * v2 added the structured ADA claim form (`adaForm`); v3 added `furthestStage`;
+   * v4 added the claim number and the append-only status timeline.
+   */
+  version: 4;
   /** null = no case loaded (case-select screen). */
   caseId: string | null;
   stage: DentalStageName;
@@ -168,6 +174,16 @@ export interface DentalTrackState {
   completedAt: string | null;
   lines: DentalClaimLine[];
   claimSubmitted: boolean;
+  /**
+   * The claim number minted for this case's claim (`domain/claimStatus.ts`).
+   * Minted once, when the claim is first transmitted — never invented for a
+   * migrated record beyond what `status-engine.md` §8 allows.
+   */
+  claimNumber: string | null;
+  /** Where the claim stands. Null while no claim has been transmitted. */
+  claimStatus: ClaimStatus | null;
+  /** Append-only timeline: every status change, with who and why. */
+  statusEvents: StatusEvent[];
   /** Predetermination scenario (id) the student last requested, if any. */
   predeterminationScenarioId: string | null;
   /** Timestamp when the student requested a predetermination for the current plan. */
@@ -194,7 +210,7 @@ const STORAGE_PREFIX = "hh_dental_track_";
 
 function freshState(): DentalTrackState {
   return {
-    version: 3,
+    version: 4,
     caseId: null,
     stage: "case-select",
     furthestStage: "case-select",
@@ -202,6 +218,9 @@ function freshState(): DentalTrackState {
     completedAt: null,
     lines: [],
     claimSubmitted: false,
+    claimNumber: null,
+    claimStatus: null,
+    statusEvents: [],
     predeterminationScenarioId: null,
     predeterminationRequestedAt: null,
     trapsTriggered: [],
@@ -231,17 +250,64 @@ function loadState(phone: string | null): DentalTrackState {
     // v2 → v3: the stepper now remembers how far the student got. A v2 record
     // only knows the stage it stopped on, so that stage is carried forward as
     // the furthest reached — nothing is invented, and no work is dropped.
+    // v3 → v4: the claim gets a number and a timeline. A record whose claim was
+    // already submitted has no 277CA behind it, so it is carried forward as
+    // `submitted` — never as accepted — and says so in its own MIGRATED entry.
     const version = (parsed as { version?: number }).version;
-    if (version !== 1 && version !== 2 && version !== 3) return freshState();
-    return {
+    if (version !== 1 && version !== 2 && version !== 3 && version !== 4) return freshState();
+    const migrated: DentalTrackState = {
       ...freshState(),
       ...parsed,
-      version: 3,
+      version: 4,
       furthestStage: parsed.furthestStage ?? parsed.stage ?? "case-select",
+      claimNumber: parsed.claimNumber ?? null,
+      claimStatus: parsed.claimStatus ?? null,
+      statusEvents: Array.isArray(parsed.statusEvents) ? parsed.statusEvents : [],
     };
+    if (version < 4 && migrated.claimSubmitted && !migrated.claimNumber) {
+      const claimNumber = mintClaimNumber(1);
+      const patientId = migrated.caseId ? findCase(migrated.caseId)?.patient?.id ?? null : null;
+      const event = makeStatusEvent(
+        {
+          entityType: "claim",
+          entityId: claimNumber,
+          patientId,
+          claimNumber,
+          from: null,
+          to: "submitted",
+          by: "system",
+          jobRole: "system",
+          reasonCode: "MIGRATED",
+          reason:
+            "Carried forward from an earlier saved dental record. The claim had been submitted, but no 277CA was ever recorded, so it is not marked accepted. Its claim number was minted at migration so the claim can be named.",
+          ...(migrated.startedAt ? { at: migrated.startedAt } : {}),
+        },
+        [],
+      );
+      return {
+        ...migrated,
+        claimNumber,
+        claimStatus: "submitted",
+        statusEvents: appendStatusEvent([], event),
+      };
+    }
+    return migrated;
   } catch {
     return freshState();
   }
+}
+
+/**
+ * What the dental clearinghouse checks, read from the ADA claim as the student
+ * submitted it: box 9 against the coverage record, box 15 against the chart.
+ */
+export interface DentalSubmissionFacts {
+  subscriberId: string;
+  subscriberIdOnFile: string;
+  patientDob: string;
+  patientDobOnFile: string;
+  lineCount: number;
+  payerName?: string;
 }
 
 interface DentalTrackApi {
@@ -263,7 +329,12 @@ interface DentalTrackApi {
   addLine: (line: DentalClaimLine) => void;
   updateLine: (id: string, patch: Partial<DentalClaimLine>) => void;
   removeLine: (id: string) => void;
-  submitClaim: () => void;
+  /**
+   * Transmit the ADA claim to the clearinghouse: the 837D, then the 277CA.
+   * Ready, Submitted and the outcome land in one write. A rejection returns the
+   * claim to this stage for correction and never becomes a denial.
+   */
+  submitClaim: (facts: DentalSubmissionFacts) => void;
   /** Persist the ADA claim form (debounced by the shell). */
   setAdaForm: (form: ADAFormData) => void;
   // ar
@@ -473,6 +544,9 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
       furthestStage: furthestOf(s.furthestStage, "planning"),
       lines: [],
       claimSubmitted: false,
+      claimNumber: null,
+      claimStatus: null,
+      statusEvents: [],
       predeterminationScenarioId: null,
       predeterminationRequestedAt: null,
       trapsTriggered: [],
@@ -502,8 +576,36 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, lines: s.lines.filter((l) => l.id !== id) }));
   }, []);
 
-  const submitClaim = useCallback(() => {
-    setState((s) => ({ ...s, claimSubmitted: true, stage: "claim" }));
+  const submitClaim = useCallback((facts: DentalSubmissionFacts) => {
+    setState((s) => {
+      const claimNumber = s.claimNumber ?? nextClaimNumber([s.claimNumber]);
+      const patientId = s.caseId ? findCase(s.caseId)?.patient?.id ?? null : null;
+      const { events, ack } = buildSubmissionEvents({
+        facts: {
+          track: "dental" as ClaimTrack,
+          claimNumber,
+          subscriberId: facts.subscriberId,
+          subscriberIdOnFile: facts.subscriberIdOnFile,
+          patientDob: facts.patientDob,
+          patientDobOnFile: facts.patientDobOnFile,
+        },
+        from: s.claimStatus,
+        patientId,
+        by: getLoggedInPhone() ?? "system",
+        jobRole: "biller",
+        lineCount: facts.lineCount,
+        payerName: facts.payerName,
+        existing: s.statusEvents,
+      });
+      return {
+        ...s,
+        claimNumber,
+        claimSubmitted: true,
+        claimStatus: (ack.category === "A1" ? "accepted" : "rejected") as ClaimStatus,
+        statusEvents: events,
+        stage: "claim",
+      };
+    });
   }, []);
 
   const setAdaForm = useCallback((form: ADAFormData) => {
