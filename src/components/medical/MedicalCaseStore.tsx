@@ -34,6 +34,7 @@ import {
   type MedicalPlan,
 } from "../../data/medical";
 import { getLoggedInPhone } from "../../store/accessStore";
+import { writeAutosaved } from "../../store/autosave";
 
 /** Stage spine for the case runner. "case-select"/"briefing"/"debrief" frame the seven RCM stages. */
 export type MedicalCaseStageName =
@@ -410,11 +411,10 @@ export function MedicalCaseProvider({ children }: { children: ReactNode }) {
     if (!key) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      try {
-        localStorage.setItem(key, JSON.stringify(state));
-      } catch {
-        /* storage full / private mode — state stays in memory */
-      }
+      // Reports into the one autosave indicator: "Saving…", then "Saved 14:32"
+      // or "Not saved" with the reason. A swallowed write is what the plan's
+      // Known Risks call worse than a crash, so it is never swallowed here.
+      writeAutosaved(key, JSON.stringify(state), "Medical case");
     }, 400);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -430,11 +430,7 @@ export function MedicalCaseProvider({ children }: { children: ReactNode }) {
     return () => {
       const key = keyFor(phoneRef.current);
       if (!key) return;
-      try {
-        localStorage.setItem(key, JSON.stringify(latestState.current));
-      } catch {
-        /* storage full / private mode — nothing more can be done here */
-      }
+      writeAutosaved(key, JSON.stringify(latestState.current), "Medical case");
     };
   }, []);
 

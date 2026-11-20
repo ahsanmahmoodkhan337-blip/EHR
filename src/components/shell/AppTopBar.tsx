@@ -21,6 +21,7 @@ import { logout } from "../../store/accessStore";
 import { DarkModeToggle } from "../DarkModeToggle";
 import { TrackSwitcher } from "../dental/TrackSwitcher";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
+import { AutosaveIndicator } from "./AutosaveIndicator";
 import type { ShellTrack } from "./navItems";
 
 interface AppTopBarProps {
@@ -147,6 +148,11 @@ export function AppTopBar({
           {track === "dental" ? "Dental RCM" : "Medical RCM"}
         </span>
       </div>
+
+      {/* Autosave — one indicator, on every screen (spec item 9, T0-12). It sits
+          beside the track marker at every width, because "is my work saved?"
+          must never be behind a menu. */}
+      <AutosaveIndicator />
 
       {/* Global patient search — its own row until there is room for it */}
       {onPatientSelect && (

@@ -52,6 +52,13 @@ interface AppShellProps {
   leftPanel?: ReactNode;
   rightPanel?: ReactNode;
   showRightPanel?: boolean;
+  /**
+   * The split-pane reference drawer (spec item 6). Rendered as a sibling of the
+   * work area so it can be a real split pane on a wide screen and a slide-over
+   * on a narrow one — the drawer decides which, and the shell does not wrap it
+   * in a `hidden lg:block` that would take its mobile button away with it.
+   */
+  reference?: ReactNode;
   footer?: ReactNode;
   children: ReactNode;
 }
@@ -71,6 +78,7 @@ export function AppShell({
   leftPanel,
   rightPanel,
   showRightPanel = true,
+  reference,
   footer,
   children,
 }: AppShellProps) {
@@ -131,6 +139,11 @@ export function AppShell({
               {rightPanel}
             </aside>
           )}
+
+          {/* Reference drawer — the split pane beside the work area. It renders
+              itself (inline pane, collapsed rail, or slide-over) so it works at
+              360 px as well as 1920 px. */}
+          {reference}
         </div>
 
         {footer}

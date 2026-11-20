@@ -14,7 +14,7 @@
  * are handed to the shared URL ⇄ store sync.
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Stethoscope } from "lucide-react";
 import { isLoggedIn } from "../store/accessStore";
@@ -28,6 +28,8 @@ import {
 import { MedicalCaseRunner, MEDICAL_STAGE_LABEL } from "../components/medical/MedicalCaseRunner";
 import { AppShell } from "../components/AppShell";
 import { PatientBanner, type BannerPatient } from "../components/shell/PatientBanner";
+import { ReferenceDrawer } from "../components/shell/ReferenceDrawer";
+import { medicalReferenceTabs } from "../components/shell/referenceTabs";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { LockedStageNotice, useStageUrlSync } from "../components/shell/useStageUrlSync";
 
@@ -122,11 +124,24 @@ function MedicalCasesShell({ urlCaseId, urlStage }: { urlCaseId?: string; urlSta
       }
     : null;
 
+  // The drawer's four panels (chart note, insurance card, payer policy, code
+  // reference) are rebuilt only when the open case changes, so switching tabs
+  // never re-renders the work area.
+  const referenceTabs = useMemo(
+    () => (activeCase ? medicalReferenceTabs(activeCase, plan) : []),
+    [activeCase, plan],
+  );
+
   return (
     <AppShell
       track="medical"
       activeNav="practice-cases"
       banner={<PatientBanner patient={casePatient} />}
+      reference={
+        referenceTabs.length > 0 ? (
+          <ReferenceDrawer tabs={referenceTabs} accent="blue" label="Case reference" />
+        ) : undefined
+      }
       onPatientSelect={(patientId) => {
         // Graded cases run inside this runner; a patient picked from the
         // shell's search opens in the free-form medical workspace instead.
