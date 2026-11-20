@@ -13,7 +13,7 @@
  *   23           the Prior Authorization stage's auth number
  *   24A–24J      the Coder's per-line data (date, POS, CPT, modifiers, pointer,
  *                charge, units), falling back to the CPT fee schedule and the
- *                encounter's date of service
+ *                encounter's date of service — but never to a modifier
  *   25, 31, 32, 33  the demo provider profile
  *
  * The insured blocks (1a, 4, 6, 7, 11, 11a–11d) are read from the insurance
@@ -26,6 +26,18 @@
  * `data/claims/demoClaimData.ts`, via the rule in `utils/demoClaimFill.ts` — a
  * demo value that is grey italic, tagged, counted separately and never written
  * back onto the claim.
+ *
+ * Modifiers (box 24D) are one of those boxes, and the reason is teaching rather
+ * than tidiness. The fallback path used to stamp `25` on every office E/M line,
+ * so a claim the Coder left incomplete reached the Biller already carrying
+ * modifier 25 — the decision the student is here to make, made for them. The
+ * modifier is not a property of the code: it asserts that a significant,
+ * separately identifiable E/M was paid alongside a procedure on the same day,
+ * and it is defensible only if the note supports it. So modifiers are copied
+ * from the Coder's per-line data and from nowhere else; a line the Coder did not
+ * modify arrives with 24D empty and the student decides. The fee-schedule charge
+ * and the POS 11 on that same fallback line stay, because they are the
+ * practice's own reference values rather than a judgement about the encounter.
  *
  * Inspiration: the "claim pre-population" a practice-management system does
  * when the biller opens a coded encounter — Epic Resolute and DrChrono both
@@ -44,11 +56,6 @@ import { emptyADAForm, type ADAFormData, type ADAServiceLine } from "../data/cla
 import type { ClaimType } from "../data/claims/claimType";
 
 const today = (): string => new Date().toISOString().slice(0, 10);
-
-const OFFICE_EM = new Set([
-  "99202", "99203", "99204", "99205",
-  "99211", "99212", "99213", "99214", "99215",
-]);
 
 /** A completely blank paper — the starting point before anything is known. */
 export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROFILE): ClaimFormData {
@@ -153,7 +160,7 @@ function buildServiceLines(
       dateOfService: encounterDate,
       placeOfService: "11",
       cpt: code,
-      modifiers: OFFICE_EM.has(code) ? ["25"] : [],
+      modifiers: [],
       diagnosisPointer: String.fromCharCode(65 + Math.min(i, 11)),
       charge: cpt?.medicareRate ?? 0,
       units: 1,
