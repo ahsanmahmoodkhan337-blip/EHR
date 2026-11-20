@@ -782,15 +782,24 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
   }
 
   // ── Who carries the unpaid amount? ──────────────────────────────────
-  // The blocking denial's group code answers this, and only that. A CO
-  // (contractual) or OA (other payer) denial never leaves a patient balance:
-  // the amount becomes part of the provider write-off instead. This is the
-  // single place the money rule is applied, so the scrub, the AR screen and
-  // the ledger cannot disagree about the same denial.
+  // The blocking denial's group code answers this, and only that. This is the
+  // single place the money rule is applied, so the scrub, the AR screen, the
+  // AR practice bench and the ledger cannot disagree about the same denial:
+  //
+  //   PR — the patient owes the unpaid allowance.
+  //   CO — the practice writes the whole charge off; the patient owes 0.
+  //        (Owner ruling 2026-11-20: frequency-limit and age-limit denials are
+  //        CO write-offs with a patient balance of 0.)
+  //   OA — another payer's share under coordination of benefits: the claim is
+  //        re-routed, so nothing is written off and nothing moves to the
+  //        patient. Before this branch existed an OA return printed as a
+  //        provider write-off of the full charge.
   const blockingDenial = blocked && denialId ? findDenial(denialId) : undefined;
-  const patientLiable = blockingDenial ? blockingDenial.groupCode === "PR" : true;
+  const groupCode = blockingDenial?.groupCode;
+  const patientLiable = blockingDenial ? groupCode === "PR" : true;
+  const reRoutedToOtherPayer = groupCode === "OA";
   const patientOwes = patientLiable ? round2(allowed - planPays) : 0;
-  const writeOffUsd = patientLiable ? writeOff : charged;
+  const writeOffUsd = reRoutedToOtherPayer ? 0 : patientLiable ? writeOff : charged;
 
   return {
     code: cdt.code,

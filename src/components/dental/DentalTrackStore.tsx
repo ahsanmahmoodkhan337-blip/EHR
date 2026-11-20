@@ -25,6 +25,8 @@ import {
   DENTAL_CASE_SCENARIOS,
   findCase,
   findDenial,
+  findPracticeScenario,
+  scorePracticeLine,
   type CaseTrap,
   type DentalCaseScenario,
 } from "../../data/dental";
@@ -94,6 +96,8 @@ export interface DentalCallLogEntry {
   at: string;
   objective: string;
   note: string;
+  /** The AR line the call was made about — set by the practice bench only. */
+  lineId?: string;
 }
 
 export type DentalLineResolution =
@@ -103,6 +107,26 @@ export type DentalLineResolution =
   | "billed-patient"
   | "write-off"
   | "closed";
+
+/** One line the student has committed in a practice scenario. */
+export interface DentalPracticeDecision {
+  resolution: DentalLineResolution;
+  at: string;
+}
+
+/**
+ * One practice scenario's own record. Keyed by scenario id in `state.practice`
+ * and never written into a graded case's `lines`, `lineResolutions`,
+ * `arCallLog` or rubric — the two namespaces cannot see each other.
+ */
+export interface DentalPracticeRun {
+  scenarioId: string;
+  openedAt: string;
+  callLog: DentalCallLogEntry[];
+  lineResolutions: Record<string, DentalLineResolution>;
+  /** Committed lines. A line in here has had its answer key revealed. */
+  decisions: Record<string, DentalPracticeDecision>;
+}
 
 /** The six standard probing sites charted per tooth (buccal and lingual thirds). */
 export type PerioSite = "mb" | "b" | "db" | "ml" | "l" | "dl";
@@ -159,9 +183,10 @@ export interface DentalAdjustment {
 export interface DentalTrackState {
   /**
    * v2 added the structured ADA claim form (`adaForm`); v3 added `furthestStage`;
-   * v4 added the claim number and the append-only status timeline.
+   * v4 added the claim number and the append-only status timeline; v5 added the
+   * AR practice bench slice (`practice`, `activePracticeId`).
    */
-  version: 4;
+  version: 5;
   /** null = no case loaded (case-select screen). */
   caseId: string | null;
   stage: DentalStageName;
@@ -204,13 +229,23 @@ export interface DentalTrackState {
   adjustments: DentalAdjustment[];
   /** Structured ADA 2019 claim record (box by box). Null until the claim opens. */
   adaForm: ADAFormData | null;
+  /**
+   * AR practice runs, keyed by practice scenario id (`DAR-01`…). Separate from
+   * everything above: a practice run can never appear in a graded case, its
+   * debrief or its rubric.
+   */
+  practice: Record<string, DentalPracticeRun>;
+  /** The practice scenario currently open, or null when the picker is showing. */
+  activePracticeId: string | null;
+  /** True while the student is on the AR practice bench (picker or a scenario). */
+  practiceBenchOpen: boolean;
 }
 
 const STORAGE_PREFIX = "hh_dental_track_";
 
 function freshState(): DentalTrackState {
   return {
-    version: 4,
+    version: 5,
     caseId: null,
     stage: "case-select",
     furthestStage: "case-select",
@@ -232,7 +267,19 @@ function freshState(): DentalTrackState {
     payments: [],
     adjustments: [],
     adaForm: null,
+    practice: {},
+    activePracticeId: null,
+    practiceBenchOpen: false,
   };
+}
+
+/**
+ * A fresh case record that keeps the AR practice runs. Starting, resetting or
+ * switching a graded case must not delete practice work, and practice work must
+ * never touch a graded case.
+ */
+function freshCase(state: DentalTrackState): DentalTrackState {
+  return { ...freshState(), practice: state.practice };
 }
 
 function keyFor(phone: string | null): string | null {
@@ -254,15 +301,21 @@ function loadState(phone: string | null): DentalTrackState {
     // already submitted has no 277CA behind it, so it is carried forward as
     // `submitted` — never as accepted — and says so in its own MIGRATED entry.
     const version = (parsed as { version?: number }).version;
-    if (version !== 1 && version !== 2 && version !== 3 && version !== 4) return freshState();
+    if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5) return freshState();
+    // v4 → v5: the AR practice bench was added. An older record simply has no
+    // practice runs, so it starts with none — nothing is invented and no case
+    // work is touched.
     const migrated: DentalTrackState = {
       ...freshState(),
       ...parsed,
-      version: 4,
+      version: 5,
       furthestStage: parsed.furthestStage ?? parsed.stage ?? "case-select",
       claimNumber: parsed.claimNumber ?? null,
       claimStatus: parsed.claimStatus ?? null,
       statusEvents: Array.isArray(parsed.statusEvents) ? parsed.statusEvents : [],
+      practice: parsed.practice && typeof parsed.practice === "object" ? parsed.practice : {},
+      activePracticeId: parsed.activePracticeId ?? null,
+      practiceBenchOpen: parsed.practiceBenchOpen === true,
     };
     if (version < 4 && migrated.claimSubmitted && !migrated.claimNumber) {
       const claimNumber = mintClaimNumber(1);
@@ -341,6 +394,20 @@ interface DentalTrackApi {
   logCall: (objective: string, note: string) => void;
   resolveLine: (lineId: string, resolution: DentalLineResolution) => void;
   triggerTrap: (trapId: string) => void;
+  // ar practice bench (its own namespace — never a graded case's record)
+  practice: Record<string, DentalPracticeRun>;
+  activePracticeId: string | null;
+  /** True while the bench is on screen (picker or a scenario). */
+  practiceBenchOpen: boolean;
+  /** Open the bench on a scenario, or on the picker with `null`. */
+  openPractice: (scenarioId: string | null) => void;
+  /** Leave the bench and go back to the case picker. */
+  closePractice: () => void;
+  practiceLogCall: (scenarioId: string, lineId: string, objective: string, note: string) => void;
+  /** Commit one line. The key is scored here and nowhere earlier. */
+  practiceResolveLine: (scenarioId: string, lineId: string, resolution: DentalLineResolution) => void;
+  /** Clear a committed line so the student can decide again. */
+  practiceResetLine: (scenarioId: string, lineId: string) => void;
   // perio
   setPerioTooth: (tooth: string, patch: Partial<PerioToothEntry>) => void;
   // treatment planning
@@ -528,17 +595,19 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     const found = caseId ? findCase(caseId) : undefined;
     if (caseId && !found) return;
     const openingStage: DentalStageName = found ? "briefing" : "case-select";
-    setState({
-      ...freshState(),
+    setState((s) => ({
+      ...freshCase(s),
       stage: openingStage,
       furthestStage: openingStage,
       caseId,
-    });
+    }));
   }, []);
 
   const beginCase = useCallback(() => {
     setState((s) => ({
       ...s,
+      activePracticeId: null,
+      practiceBenchOpen: false,
       startedAt: new Date().toISOString(),
       stage: "planning",
       furthestStage: furthestOf(s.furthestStage, "planning"),
@@ -561,7 +630,9 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetTrack = useCallback(() => {
-    setState(freshState());
+    // A case reset clears the case, not the practice bench: practice runs are
+    // the student's own drills and are kept.
+    setState((s) => freshCase(s));
   }, []);
 
   const addLine = useCallback((line: DentalClaimLine) => {
@@ -689,6 +760,96 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, adjustments: s.adjustments.filter((a) => a.id !== id) }));
   }, []);
 
+  // ── AR practice bench ────────────────────────────────────────────────
+  const openPractice = useCallback((scenarioId: string | null) => {
+    if (scenarioId && !findPracticeScenario(scenarioId)) return;
+    setState((s) => {
+      if (!scenarioId) return { ...s, practiceBenchOpen: true, activePracticeId: null };
+      const existing = s.practice[scenarioId];
+      return {
+        ...s,
+        practiceBenchOpen: true,
+        activePracticeId: scenarioId,
+        practice: existing
+          ? s.practice
+          : {
+              ...s.practice,
+              [scenarioId]: {
+                scenarioId,
+                openedAt: new Date().toISOString(),
+                callLog: [],
+                lineResolutions: {},
+                decisions: {},
+              },
+            },
+      };
+    });
+  }, []);
+
+  const closePractice = useCallback(() => {
+    setState((s) => ({ ...s, practiceBenchOpen: false, activePracticeId: null }));
+  }, []);
+
+  const practiceLogCall = useCallback((scenarioId: string, lineId: string, objective: string, note: string) => {
+    setState((s) => {
+      const run = s.practice[scenarioId];
+      if (!run) return s;
+      return {
+        ...s,
+        practice: {
+          ...s.practice,
+          [scenarioId]: {
+            ...run,
+            callLog: [
+              ...run.callLog,
+              { id: `prac-call-${Date.now()}`, at: new Date().toISOString(), objective, note, lineId },
+            ],
+          },
+        },
+      };
+    });
+  }, []);
+
+  const practiceResolveLine = useCallback(
+    (scenarioId: string, lineId: string, resolution: DentalLineResolution) => {
+      const scenario = findPracticeScenario(scenarioId);
+      if (!scenario) return;
+      setState((s) => {
+        const run = s.practice[scenarioId];
+        if (!run) return s;
+        // Scoring happens at the commit and nowhere earlier.
+        if (!scorePracticeLine(scenario, lineId, resolution, run.callLog)) return s;
+        return {
+          ...s,
+          practice: {
+            ...s.practice,
+            [scenarioId]: {
+              ...run,
+              lineResolutions: { ...run.lineResolutions, [lineId]: resolution },
+              decisions: {
+                ...run.decisions,
+                [lineId]: { resolution, at: new Date().toISOString() },
+              },
+            },
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const practiceResetLine = useCallback((scenarioId: string, lineId: string) => {
+    setState((s) => {
+      const run = s.practice[scenarioId];
+      if (!run) return s;
+      const lineResolutions = { ...run.lineResolutions };
+      delete lineResolutions[lineId];
+      const decisions = { ...run.decisions };
+      delete decisions[lineId];
+      return { ...s, practice: { ...s.practice, [scenarioId]: { ...run, lineResolutions, decisions } } };
+    });
+  }, []);
+
   const traps = useMemo(() => activeCase?.traps ?? [], [activeCase]);
 
   const scoreTally = useMemo(() => {
@@ -743,6 +904,14 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     logCall,
     resolveLine,
     triggerTrap,
+    practice: state.practice,
+    activePracticeId: state.activePracticeId,
+    practiceBenchOpen: state.practiceBenchOpen,
+    openPractice,
+    closePractice,
+    practiceLogCall,
+    practiceResolveLine,
+    practiceResetLine,
     setPerioTooth,
     addPlanItem,
     updatePlanItem,

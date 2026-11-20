@@ -67,6 +67,7 @@ export {
 } from "./denialReasons";
 
 export type {
+  DentalAdjudicationContext,
   DentalCaseScenario,
   CaseDifficulty,
   CasePatient,
@@ -83,6 +84,26 @@ export {
   casesByDifficulty,
   trapsForStage,
 } from "./caseScenarios";
+
+export type {
+  DentalARPracticeScenario,
+  DentalPracticeLine,
+  PracticeAdjudicationContext,
+  PracticeClaimLine,
+  PracticeLineKey,
+  PracticeLineResolution,
+  PracticeLineScore,
+} from "./arPracticeScenarios";
+export {
+  DENTAL_AR_PRACTICE_SCENARIOS,
+  DENTAL_AR_PRACTICE_INDEX,
+  findPracticeScenario,
+  practiceClaimLines,
+  practiceMoneyForGroup,
+  practiceMoneyForLine,
+  practiceSeedDenial,
+  scorePracticeLine,
+} from "./arPracticeScenarios";
 
 export type { ToothRef, ToothSurface, SurfaceCode, QuadrantRef, Arch, Side, ToothType, Dentition } from "./toothNotation";
 export {
