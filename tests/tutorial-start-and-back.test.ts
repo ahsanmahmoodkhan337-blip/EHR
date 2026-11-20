@@ -48,8 +48,11 @@ describe("the Tutorial patient opens at the beginning", () => {
     expect(prefill).not.toContain('role: "coder"');
   });
 
-  test("the tutorial opens on Registration, not on Sign & Lock", () => {
-    expect(INDEX).toContain('setActiveStage("registration");');
+  test("the tutorial opens on the scribing step, not Registration and not Sign & Lock", () => {
+    // Revised by spec `start-at-scribing.md`: every patient opens at Intake /
+    // Vitals, with Registration one Back away.
+    expect(INDEX).toContain("setActiveStage(CHART_OPENING_STEP);");
+    expect(INDEX).not.toContain('setActiveStage("registration");');
     expect(INDEX).not.toContain('setActiveStage("sign-lock");');
   });
 
@@ -84,8 +87,10 @@ describe("every stage after the first has one way back", () => {
   test("going back changes the stage and nothing else", () => {
     // The Back handler only moves the stage: no reset, no submit, no delete.
     const handler = INDEX.slice(INDEX.indexOf("const handleHomeClick"));
-    expect(INDEX).toContain("onClick: () => setActiveStage(scribeBack.id)");
-    expect(INDEX).toContain("if (roleBack.stage) setActiveStage(roleBack.stage);");
+    // Both Back controls go through the one handler that moves the step and
+    // remembers the furthest one reached (spec `start-at-scribing.md` item 5).
+    expect(INDEX).toContain("onClick: () => goToChartStage(scribeBack.id)");
+    expect(INDEX).toContain("if (roleBack.stage) goToChartStage(roleBack.stage);");
     expect(handler).not.toContain("resetEncounter(");
   });
 });

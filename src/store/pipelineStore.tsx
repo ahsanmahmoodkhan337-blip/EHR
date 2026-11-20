@@ -25,6 +25,7 @@ import {
   encounterEventId,
   encounterKey,
   EMPTY_ENCOUNTER,
+  furthestChartStep,
   jobRoleFor,
   normalizePipelineStore,
   restoredRoleFor,
@@ -142,6 +143,12 @@ interface PipelineContextValue {
   allEncounters: Record<string, PipelineEncounter>;
   currentRole: Role;
   setRole: (role: Role) => void;
+  /**
+   * Remember how far into the scribe's chart the student has got on the active
+   * patient (spec `start-at-scribing.md` item 5). Forward only, and it writes
+   * nothing but the step id: no note, code, claim or ledger entry.
+   */
+  rememberChartStage: (stage: string) => void;
   submitToCoding: (note: string) => void;
   submitToBilling: (icdCodes: string[], cptCodes: string[], lines?: ClaimServiceLine[]) => void;
   submitClaim: (claimData: Record<string, string>) => void;
@@ -473,6 +480,18 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         encounters: { ...prev.encounters, [key]: createEncounter(target) },
         currentRole: "scribe",
       };
+    });
+  };
+
+  // Remember the furthest chart step reached on the active patient. Forward
+  // only: going Back to Registration never rewinds it, so reopening the chart
+  // returns to the furthest step the student reached. Writes the step id and
+  // nothing else — no note, no code, no claim, no ledger entry.
+  const rememberChartStage = (stage: string) => {
+    if (!stage) return;
+    updateActive((enc) => {
+      const next = furthestChartStep(enc.chartStage, stage);
+      return next === enc.chartStage ? enc : { ...enc, chartStage: next };
     });
   };
 
@@ -1120,6 +1139,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         allEncounters: store.encounters,
         currentRole,
         setRole,
+        rememberChartStage,
         submitToCoding,
         submitToBilling,
         submitClaim,

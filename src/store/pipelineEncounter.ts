@@ -22,6 +22,62 @@ import type { ArItemState } from "../domain/arWorkQueue";
 
 export type Role = "scribe" | "coder" | "biller" | "prior-auth" | "ar-voice";
 
+// ─── The scribe's chart steps ──────────────────────────────────────
+
+/**
+ * The chart's own steps, in the order a visit is documented. One list drives
+ * the stage header, the Back / Next controls and the saved position, so the
+ * label the student reads and the step they move to can never disagree.
+ *
+ * Spec `start-at-scribing.md`: a patient opens at the first **scribing** step
+ * (Intake / Vitals), Registration stays step 1 exactly one Back away, and a
+ * student who already worked the chart resumes at the furthest step reached.
+ *
+ * The ids are what a saved encounter's `chartStage` carries, so a step is added
+ * or reworded — never renumbered or renamed.
+ */
+export const CHART_STEPS: { id: string; label: string }[] = [
+  { id: "registration", label: "Registration" },
+  { id: "intake-vitals", label: "Intake / Vitals" },
+  { id: "hpi", label: "History of Present Illness" },
+  { id: "exam-ros", label: "Review of Systems" },
+  { id: "assessment-plan", label: "Assessment & Plan" },
+  { id: "sign-lock", label: "Sign & Lock Note" },
+];
+
+/**
+ * The step every patient opens on: the first one where the student charts.
+ * Registration is not skipped — it is one Back away — but it is not where a
+ * student lands when they open a chart to scribe.
+ */
+export const CHART_OPENING_STEP = "intake-vitals";
+
+/** How far into the chart a step is; -1 for an id this build does not know. */
+export function chartStepRank(id: string | null | undefined): number {
+  if (!id) return -1;
+  return CHART_STEPS.findIndex((step) => step.id === id);
+}
+
+/**
+ * The later of two chart steps — how "furthest reached" advances. Never
+ * backwards, so going Back to Registration does not forget the note work the
+ * student had already done.
+ */
+export function furthestChartStep(a: string | null | undefined, b: string): string {
+  if (!a || chartStepRank(a) < 0) return b;
+  return chartStepRank(b) > chartStepRank(a) ? b : a;
+}
+
+/**
+ * The step to open a chart on. A patient with saved progress resumes at the
+ * furthest step reached; a fresh one opens at the first scribing step. An id
+ * this build no longer knows opens at the first scribing step rather than
+ * rendering nothing.
+ */
+export function resumeChartStep(saved: string | null | undefined): string {
+  return chartStepRank(saved) >= 0 ? (saved as string) : CHART_OPENING_STEP;
+}
+
 export type PipelineStatus =
   | "charted"
   | "coded"
@@ -293,6 +349,14 @@ export interface PipelineEncounter {
   patientId: string | null;
   displayName: string | null;  // override for custom/new patients from calendar
   stage: Role | "complete";
+  /**
+   * The furthest step of the scribe's chart (`CHART_STEPS`) this student has
+   * reached on this patient, or null while they have not moved off the opening
+   * step. Navigation memory only — it is never read as chart content, and a
+   * record saved before it existed keeps null rather than inventing a step
+   * (`specs/start-at-scribing.md` item 5).
+   */
+  chartStage: string | null;
   status: PipelineStatus;
   scribeNote: string;
   icdCodes: string[];
@@ -412,6 +476,7 @@ export function createEncounter(patientId: string | null): PipelineEncounter {
     patientId,
     displayName: null,
     stage: "scribe",
+    chartStage: null,
     status: "pending",
     scribeNote: "",
     icdCodes: [],
@@ -454,6 +519,11 @@ export function normalizeEncounter(
     paData: raw.paData && typeof raw.paData === "object" ? raw.paData : {},
     role: raw.role ?? roleForStage(raw.stage ?? base.stage),
     stage: raw.stage ?? base.stage,
+    // The chart's remembered step (spec `start-at-scribing.md`). A record saved
+    // before the encounter kept it keeps null: the chart then opens at the first
+    // scribing step, and no step is invented for work the student may not have
+    // done.
+    chartStage: typeof raw.chartStage === "string" ? raw.chartStage : null,
     status: raw.status ?? base.status,
     claimNumber: raw.claimNumber ?? base.claimNumber,
     claimStatus: raw.claimStatus ?? base.claimStatus,
