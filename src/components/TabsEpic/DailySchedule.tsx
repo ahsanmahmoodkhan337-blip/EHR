@@ -112,6 +112,7 @@ const TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${String(i + 8).padStar
 
 const STATUS_META: Record<Appointment["status"], { label: string; badge: string; card: string; dot: string }> = {
   "scheduled":   { label: "Scheduled",   badge: "bg-brand-50 text-brand-700 ring-brand-200",         card: "border-brand-200 bg-brand-50/40",     dot: "bg-brand-500" },
+  "arrived":     { label: "Arrived",     badge: "bg-emerald-50 text-emerald-700 ring-emerald-200", card: "border-emerald-200 bg-emerald-50/40", dot: "bg-emerald-500" },
   "in-progress": { label: "In Progress", badge: "bg-amber-50 text-amber-700 ring-amber-200",     card: "border-amber-200 bg-amber-50/40",   dot: "bg-amber-500" },
   "completed":   { label: "Completed",   badge: "bg-green-50 text-green-700 ring-green-200", card: "border-green-200 bg-green-50/40", dot: "bg-green-500" },
   "cancelled":   { label: "Cancelled",   badge: "bg-red-50 text-red-700 ring-red-200",        card: "border-red-200 bg-red-50/40",     dot: "bg-red-500" },
@@ -780,7 +781,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                           <CheckCircle2 className="h-3 w-3" /> Complete
                         </button>
                       )}
-                      {(apt.status === "scheduled" || apt.status === "in-progress") && (
+                      {(apt.status === "scheduled" || apt.status === "arrived" || apt.status === "in-progress") && (
                         <>
                           <button
                             onClick={() => changeStatus(apt.id, "no-show")}
@@ -1027,7 +1028,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                     onChange={(e) => setModalStatus(e.target.value as Appointment["status"])}
                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none transition-colors focus:border-brand-400"
                   >
-                    {(["scheduled", "in-progress", "completed", "cancelled", "no-show"] as Appointment["status"][]).map((s) => (
+                    {(["scheduled", "arrived", "in-progress", "completed", "cancelled", "no-show"] as Appointment["status"][]).map((s) => (
                       <option key={s} value={s}>{STATUS_META[s].label}</option>
                     ))}
                   </select>

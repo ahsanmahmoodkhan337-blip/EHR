@@ -43,7 +43,7 @@ import {
   remittanceForClaim,
   type Remittance835,
 } from "../domain/adjudication";
-import { appendLedgerEntries, postRemittanceToLedger } from "../domain/ledger";
+import { appendLedgerEntries, postRemittanceToLedger, type LedgerEntry } from "../domain/ledger";
 import {
   arResolutionEntries,
   arResolutionOutcome,
@@ -190,6 +190,14 @@ interface PipelineContextValue {
    * Idempotent: posting the same 835 twice adds no money.
    */
   postRemittance: () => void;
+  /**
+   * Post one already-built entry to a patient's visit ledger — the copay the
+   * front desk collected at check-in (`domain/checkIn.ts`). The entry id is
+   * derived from the appointment, so posting the same copay twice adds no money.
+   * It targets the patient named on the entry, because the desk checks a patient
+   * in before their chart is the active one.
+   */
+  postPatientPayment: (patientId: string | null, entry: LedgerEntry) => void;
   submitPA: (paData: Record<string, string>) => void;
   completePipeline: () => void;
   getRoleLabel: (role: Role) => string;
@@ -887,6 +895,22 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * ledger in the same store write that marks the item resolved, so a cleared
    * item and a ledger that still shows the money can never disagree.
    */
+
+  /**
+   * Post one hand-built ledger entry (the check-in copay) to a patient's
+   * encounter. Idempotent through the entry id; creates the patient's blank
+   * encounter the first time so the money has somewhere honest to land.
+   */
+  const postPatientPayment: PipelineContextValue["postPatientPayment"] = (patientId, entry) => {
+    setStore((prev) => {
+      const key = encounterKey(patientId);
+      const current = prev.encounters[key] ?? createEncounter(patientId);
+      const ledger = appendLedgerEntries(current.ledger, [{ ...entry, patientId }]);
+      if (ledger === current.ledger) return prev; // already posted — no second payment
+      return { ...prev, encounters: { ...prev.encounters, [key]: { ...current, ledger } } };
+    });
+  };
+
   const resolveArItem: PipelineContextValue["resolveArItem"] = (input) => {
     const at = new Date().toISOString();
     const by = getLoggedInPhone() ?? "system";
@@ -1094,6 +1118,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         transmitClaim,
         adjudicateClaim,
         postRemittance,
+        postPatientPayment,
         handleDenial,
         submitPA,
         completePipeline,

@@ -35,6 +35,7 @@ import { create } from "zustand";
 import { createStore as createIdbStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import type { Patient, CaseState, PatientInsurance } from "./patientStore";
 import { deriveInsuranceRecord } from "../utils/insuranceRecord";
+import { NOT_CHECKED, type EligibilityRecord } from "../domain/eligibility";
 import { markFailed, markSaved, markSaving } from "./autosave";
 import { deleteGroupStores, resetInMemory, type ResetGroupId } from "./resetData";
 
@@ -44,6 +45,8 @@ export type Track = "medical" | "dental";
 
 export type EhrAppointmentStatus =
   | "scheduled"
+  /** The patient reached the desk and was checked in (`specs/patient-hub.md`). */
+  | "arrived"
   | "in-progress"
   | "completed"
   | "cancelled"
@@ -67,6 +70,20 @@ export interface EhrAppointment {
   isSeed?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  /**
+   * ISO timestamp the front desk checked the patient in. Absent on an
+   * appointment nobody has checked in — it reads as "not checked in", and no
+   * visit is invented for it.
+   */
+  checkedInAt?: string | null;
+  /** The copay collected at check-in, in dollars. */
+  copayUsd?: number | null;
+  /**
+   * The id of the ledger entry the copay was posted as. The money lives on the
+   * visit's ledger (`domain/checkIn.ts`); this is only the pointer back to it, so
+   * an amount with no entry behind it is never shown as money collected.
+   */
+  copayPostedLedgerEntryId?: string | null;
 }
 
 export interface EhrEncounter {
@@ -271,7 +288,7 @@ export interface NewAppointmentInput {
 // ─── Constants ─────────────────────────────────────────────────────
 
 export const APP_ID = "healthcare-hustlers-ehr";
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 /** Newest activity entries kept — the log is a teaching aid, not an archive. */
 export const MAX_ACTIVITY_ENTRIES = 500;
 const DB_NAME = "healthcare-hustlers";
@@ -350,6 +367,9 @@ function appointmentDigest(a: EhrAppointment): Record<string, string> {
     time: a.time,
     type: a.type,
     status: a.status,
+    // v5 — the check-in and the copay it collected are part of the row's story.
+    checkedInAt: a.checkedInAt ?? "",
+    copay: typeof a.copayUsd === "number" ? a.copayUsd.toFixed(2) : "",
   };
 }
 
@@ -436,6 +456,7 @@ function normalizeAppointment(raw: unknown): EhrAppointment | null {
   const status = String(r.status ?? "scheduled");
   const allowed: EhrAppointmentStatus[] = [
     "scheduled",
+    "arrived",
     "in-progress",
     "completed",
     "cancelled",
@@ -457,7 +478,29 @@ function normalizeAppointment(raw: unknown): EhrAppointment | null {
     isSeed: false,
     createdAt: r.createdAt ? String(r.createdAt) : undefined,
     updatedAt: r.updatedAt ? String(r.updatedAt) : undefined,
+    // v5 — check-in and its copay. A row saved before check-in existed carries
+    // none of the three, and reads as "not checked in, nothing collected".
+    checkedInAt: typeof r.checkedInAt === "string" && r.checkedInAt ? r.checkedInAt : null,
+    copayUsd:
+      typeof r.copayUsd === "number" && Number.isFinite(r.copayUsd) && r.copayUsd > 0
+        ? r.copayUsd
+        : null,
+    copayPostedLedgerEntryId:
+      typeof r.copayPostedLedgerEntryId === "string" && r.copayPostedLedgerEntryId
+        ? r.copayPostedLedgerEntryId
+        : null,
   };
+}
+
+/**
+ * Give one coverage its eligibility record, keeping whatever 271 is already
+ * stored. A coverage nobody checked reads `not-checked` with no date and no
+ * payer words — nothing is written that looks as if a check happened.
+ */
+function withEligibility(coverage: PatientInsurance["primary"] | null): PatientInsurance["primary"] | null {
+  if (!coverage) return null;
+  if (coverage.eligibility) return coverage;
+  return { ...coverage, eligibility: { ...NOT_CHECKED } };
 }
 
 function normalizeUser(raw: unknown): UserData {
@@ -536,6 +579,29 @@ export function migrateEnvelope(raw: unknown): EhrEnvelope | null {
     user.patients = user.patients.map((patient) => {
       const insuranceRecord = deriveInsuranceRecord(patient);
       return insuranceRecord ? { ...patient, insuranceRecord } : patient;
+    });
+  }
+
+  // ── v4 → v5 ── every coverage gains an eligibility record and every
+  // appointment gains its check-in fields (`specs/patient-hub.md` § Insurance and
+  // § Appointments). A coverage no one checked reads `not-checked` with no date
+  // and no payer words; an appointment no one checked in carries no check-in
+  // time and no copay. `normalizeAppointment` already defaults the three
+  // appointment fields, so only the coverages are rewritten here — and a stored
+  // 271 is carried forward exactly as it was saved.
+  if (version < 5) {
+    user.patients = user.patients.map((patient) => {
+      if (!patient.insuranceRecord) return patient;
+      const primary = withEligibility(patient.insuranceRecord.primary);
+      if (!primary) return patient;
+      return {
+        ...patient,
+        insuranceRecord: {
+          ...patient.insuranceRecord,
+          primary,
+          secondary: withEligibility(patient.insuranceRecord.secondary),
+        },
+      };
     });
   }
 
@@ -708,6 +774,25 @@ interface EhrState {
   createAppointment: (input: NewAppointmentInput) => EhrAppointment;
   updateAppointment: (id: string, patch: Partial<EhrAppointment>) => void;
   setAppointmentStatus: (id: string, status: EhrAppointmentStatus) => void;
+  /**
+   * Check a patient in from their appointment row (`specs/patient-hub.md`
+   * § Appointments): records `checkedInAt` and moves the status to `arrived`.
+   * Nothing else is written — the 271 and the copay are the next two steps the
+   * student takes, and neither happens on its own. Checking in twice keeps the
+   * first timestamp.
+   */
+  checkInAppointment: (id: string, at?: string) => void;
+  /**
+   * Store the 271 for one of a patient's coverages. Only what the payer
+   * answered is written: the status, the date it was received and the payer's
+   * own short words. A patient with no card on that coverage is left alone —
+   * nothing is invented for them.
+   */
+  recordEligibility: (
+    patientId: string,
+    coverage: "primary" | "secondary",
+    record: EligibilityRecord,
+  ) => void;
   deleteAppointment: (id: string) => void;
   updateCase: (patientId: string, updater: (current: CaseState) => CaseState) => void;
 
@@ -1090,6 +1175,58 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
 
   setAppointmentStatus: (id, status) => {
     get().updateAppointment(id, { status });
+  },
+
+  checkInAppointment: (id, at) => {
+    const existing = mergeById(get().seedAppointments, get().user.appointments).find(
+      (a) => a.id === id,
+    );
+    // Already checked in — the desk's first timestamp is the true one, and a
+    // second press must not move it.
+    if (!existing || existing.checkedInAt) return;
+    get().updateAppointment(id, {
+      checkedInAt: at ?? new Date().toISOString(),
+      status: "arrived",
+    });
+  },
+
+  recordEligibility: (patientId, coverage, record) => {
+    const state = get();
+    const existing = mergeById(state.seedPatients, state.user.patients).find(
+      (p) => p.id === patientId,
+    );
+    const record0 = existing?.insuranceRecord;
+    const coverageRecord = record0 ? record0[coverage] : null;
+    // No card on that coverage — there is nothing the payer could answer.
+    if (!existing || !record0 || !coverageRecord) return;
+
+    const nextRecord: PatientInsurance = {
+      ...record0,
+      [coverage]: { ...coverageRecord, eligibility: record },
+    };
+    const entry: ActivityEntry = {
+      time: record.checkedAt || new Date().toISOString(),
+      role: "front-desk",
+      user: state.phone ?? "unknown",
+      patientId,
+      entity: "patient",
+      action: "update",
+      after: {
+        eligibility: `${coverage} ${record.status}${record.checkedAt ? ` on ${record.checkedAt.slice(0, 10)}` : ""}`,
+      },
+    };
+
+    set((s) => {
+      const inUser = s.user.patients.some((p) => p.id === patientId);
+      const patients = inUser
+        ? s.user.patients.map((p) =>
+            p.id === patientId ? { ...p, insuranceRecord: nextRecord } : p,
+          )
+        : [...s.user.patients, { ...existing, isSeed: false, insuranceRecord: nextRecord }];
+      return {
+        user: { ...s.user, patients, activity: appendActivity(s.user.activity, entry) },
+      };
+    });
   },
 
   deleteAppointment: (id) => {

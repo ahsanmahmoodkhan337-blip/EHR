@@ -28,6 +28,9 @@ import { Activity, ArrowRight, Beaker, ClipboardList, FileText, Pill, Stethoscop
 import { AppShell } from "../components/AppShell";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
 import { PatientBanner, type BannerPatient } from "../components/shell/PatientBanner";
+import { PatientHubSections } from "../components/patients/PatientHubSections";
+import { postedCopayForPatient } from "../domain/checkIn";
+import { useAllAppointments } from "../store/ehrStore";
 import { PatientProvider, usePatientStore, type Patient } from "../store/patientStore";
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
 import { useEhrStore } from "../store/ehrStore";
@@ -61,8 +64,13 @@ const footer = (
 
 function ChartsPage() {
   const { activePatientId } = usePipeline();
+  const appointments = useAllAppointments();
   const { getPatientById } = usePatientStore();
   const patient = activePatientId ? getPatientById(activePatientId) : undefined;
+
+  // The copay the desk collected at check-in is read back off the appointment
+  // that posted it, so the banner shows the money the ledger actually holds.
+  const copayUsd = postedCopayForPatient(appointments, patient?.id)?.copayUsd;
 
   const banner: BannerPatient | null = patient
     ? {
@@ -82,7 +90,7 @@ function ChartsPage() {
     <AppShell
       track={patient?.track === "dental" ? "dental" : "medical"}
       activeNav="charts"
-      banner={<PatientBanner patient={banner} />}
+      banner={<PatientBanner patient={banner} copayUsd={copayUsd} />}
       footer={footer}
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
@@ -96,7 +104,14 @@ function ChartsPage() {
           )}
         </div>
 
-        {!patient ? <NoPatientOpen /> : <PatientChart patient={patient} />}
+        {!patient ? (
+          <NoPatientOpen />
+        ) : (
+          <>
+            <PatientChart patient={patient} />
+            <PatientHubSections patient={patient} />
+          </>
+        )}
       </div>
     </AppShell>
   );
