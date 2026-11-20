@@ -114,6 +114,23 @@ export interface CaseGradingCriterion {
   points: number;
 }
 
+/**
+ * The parts of a case the adjudicator actually reads.
+ *
+ * A graded case satisfies this in full. The AR practice bench supplies the same
+ * fields without carrying a case's answer key: its allowances arrive in
+ * `allowedByCode`, and `expectedOutcome` is left empty because a practice
+ * scenario authors no per-line expected result.
+ */
+export interface DentalAdjudicationContext {
+  planId: string;
+  patient: CasePatient;
+  eligibilitySnapshot: DentalCaseScenario["eligibilitySnapshot"];
+  expectedOutcome: ExpectedLineOutcome[];
+  /** Contracted allowance by CDT code, where `expectedOutcome` holds no key. */
+  allowedByCode?: Record<string, number>;
+}
+
 export interface DentalCaseScenario {
   id: string;
   title: string;

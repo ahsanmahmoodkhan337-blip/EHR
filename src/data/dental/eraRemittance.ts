@@ -383,12 +383,15 @@ const DENIAL_SCEN_COB: DentalDenialScenario = {
       paidUsd: 0,
       patientOwesUsd: 0,
       writeOffUsd: 0,
-      providerAdjustmentUsd: 62,
+      // A coordination-of-benefits return moves no money: the claim is
+      // re-routed to the other payer. Recording it as a provider adjustment
+      // made an OA-22 line look like a CO write-off.
+      providerAdjustmentUsd: 0,
       adjustments: [
         {
-          groupCode: "CO",
+          groupCode: "OA",
           reasonCode: "22",
-          amountUsd: 62,
+          amountUsd: 0,
           denialId: "DEN-COB-PRIMARY",
           note: "Another plan may be primary. This claim must go to the primary payer first.",
         },
