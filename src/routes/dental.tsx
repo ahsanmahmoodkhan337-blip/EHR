@@ -7,34 +7,71 @@
  * and case runner inside the one application shell (spec
  * `task-1-app-shell.md` item 1) — the same sidebar, top bar and patient search
  * every other page uses, instead of a header of its own.
+ *
+ * Every stage has its own address (item 4), the same way the medical track does:
+ *   /dental                              the case picker
+ *   /dental/DCASE-001/coding             one case, one stage
  */
 
+import { useCallback } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Smile } from "lucide-react";
 import { isLoggedIn } from "../store/accessStore";
 import { PatientProvider } from "../store/patientStore";
-import { DentalTrackProvider } from "../components/dental/DentalTrackStore";
-import { DentalCaseRunner } from "../components/dental/DentalCaseRunner";
+import {
+  DentalTrackProvider,
+  DENTAL_STAGE_ORDER,
+  useDentalTrack,
+  type DentalStageName,
+} from "../components/dental/DentalTrackStore";
+import { DentalCaseRunner, DENTAL_STAGE_LABEL } from "../components/dental/DentalCaseRunner";
 import { AppShell } from "../components/AppShell";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
+import { LockedStageNotice, useStageUrlSync } from "../components/shell/useStageUrlSync";
+import type { CaseStageParams } from "./medical-cases";
 
 export const Route = createFileRoute("/dental")({
-  component: DentalTrackPage,
+  component: () => <DentalTrackPage />,
 });
 
-function DentalTrackPage() {
+export function DentalTrackPage({ caseId, stage }: CaseStageParams = {}) {
   return (
     <PatientProvider>
       <DentalTrackProvider>
-        <DentalTrackShell />
+        <DentalTrackShell urlCaseId={caseId} urlStage={stage} />
       </DentalTrackProvider>
     </PatientProvider>
   );
 }
 
-function DentalTrackShell() {
+function DentalTrackShell({ urlCaseId, urlStage }: { urlCaseId?: string; urlStage?: string }) {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
+  const { state, selectCase, goTo } = useDentalTrack();
+
+  const goToStage = useCallback(
+    (caseId: string, stage: string, replace = false) => {
+      void navigate({ to: "/dental/$caseId/$stage", params: { caseId, stage }, replace });
+    },
+    [navigate],
+  );
+  const goToBase = useCallback(() => {
+    void navigate({ to: "/dental", replace: true });
+  }, [navigate]);
+
+  const { blockedStage, dismissBlocked } = useStageUrlSync({
+    urlCaseId,
+    urlStage,
+    caseId: state.caseId,
+    stage: state.stage,
+    furthestStage: state.furthestStage,
+    stageIds: DENTAL_STAGE_ORDER,
+    freshCaseStage: "briefing",
+    selectCase,
+    goTo: (next) => goTo(next as DentalStageName),
+    goToStage,
+    goToBase,
+  });
 
   if (!loggedIn) {
     return (
@@ -65,6 +102,12 @@ function DentalTrackShell() {
         void navigate({ to: "/" });
       }}
     >
+      {blockedStage && (
+        <LockedStageNotice
+          stageLabel={DENTAL_STAGE_LABEL[blockedStage as keyof typeof DENTAL_STAGE_LABEL] ?? blockedStage}
+          onDismiss={dismissBlocked}
+        />
+      )}
       <div className="min-h-0 flex-1 overflow-hidden">
         <DentalCaseRunner />
       </div>

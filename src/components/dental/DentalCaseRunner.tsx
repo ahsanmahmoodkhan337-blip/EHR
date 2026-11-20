@@ -27,6 +27,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { DENTAL_CASE_SCENARIOS, findPlan, type DentalCaseScenario } from "../../data/dental";
+import { EncounterStepper } from "../shell/EncounterStepper";
 import { useDentalTrack, type DentalStageName } from "./DentalTrackStore";
 import { DentalCodingQueue } from "./DentalCodingQueue";
 import { DentalBillingLedger } from "./DentalBillingLedger";
@@ -50,38 +51,32 @@ const STAGES: { id: DentalStageName; label: string; icon: ReactNode }[] = [
   { id: "debrief", label: "Debrief", icon: <Trophy className="h-3.5 w-3.5" /> },
 ];
 
+/** Stage label by id, for the URL and the locked-stage notice. */
+export const DENTAL_STAGE_LABEL: Record<DentalStageName, string> = Object.fromEntries(
+  STAGES.map((s) => [s.id, s.label]),
+) as Record<DentalStageName, string>;
+
 export function DentalCaseRunner() {
   const { state, activeCase, goTo } = useDentalTrack();
 
-  const stageIdx = STAGES.findIndex((s) => s.id === state.stage);
-
   return (
     <div className="flex h-full flex-col">
-      {/* ── stage stepper ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1 border-b border-slate-200 bg-white px-3 py-2">
-        {STAGES.map((s, i) => {
-          const active = s.id === state.stage;
-          const reached = i <= stageIdx;
-          return (
-            <button
-              key={s.id}
-              onClick={() => reached && goTo(s.id)}
-              disabled={!reached}
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                active ? "bg-teal-600 text-white" : reached ? "text-slate-600 hover:bg-slate-100" : "text-slate-300"
-              }`}
-            >
-              {s.icon}
-              {s.label}
-            </button>
-          );
-        })}
-        {activeCase && (
-          <span className="ml-auto rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-            {activeCase.id} · {activeCase.difficulty}
-          </span>
-        )}
-      </div>
+      {/* ── stage stepper (the one shared encounter stepper) ──────────────── */}
+      <EncounterStepper
+        steps={STAGES}
+        currentId={state.stage}
+        furthestId={state.furthestStage}
+        onSelect={(id) => goTo(id as DentalStageName)}
+        accent="teal"
+        label="Dental case stages"
+        meta={
+          activeCase ? (
+            <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+              {activeCase.id} · {activeCase.difficulty}
+            </span>
+          ) : undefined
+        }
+      />
 
       {/* ── stage body ────────────────────────────────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-hidden">

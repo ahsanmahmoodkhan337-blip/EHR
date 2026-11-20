@@ -48,6 +48,34 @@ export type MedicalCaseStageName =
   | "ar-follow-up"
   | "debrief";
 
+/**
+ * Every stage a medical case URL may name, in order. The conditional prior-auth
+ * stage keeps its place here even when the case does not trigger it, so a URL
+ * can still be ranked against it.
+ */
+export const MEDICAL_STAGE_ORDER: MedicalCaseStageName[] = [
+  "case-select",
+  "briefing",
+  "registration",
+  "eligibility",
+  "clinical",
+  "coding",
+  "prior-auth",
+  "claim",
+  "ar-follow-up",
+  "debrief",
+];
+
+function stageRank(stage: MedicalCaseStageName): number {
+  const i = MEDICAL_STAGE_ORDER.indexOf(stage);
+  return i < 0 ? 0 : i;
+}
+
+/** The later of two stages — how "furthest reached" is advanced, never reset backwards. */
+function furthestOf(a: MedicalCaseStageName, b: MedicalCaseStageName): MedicalCaseStageName {
+  return stageRank(b) > stageRank(a) ? b : a;
+}
+
 /** A single CPT line the student is building in the coding stage. */
 export interface MedicalProcedureLine {
   id: string;
@@ -79,10 +107,16 @@ export interface MedicalARCallEntry {
 export type MedicalPriorAuthChoice = "obtained" | "skipped" | "wrong-study";
 
 export interface MedicalCaseState {
-  version: 1;
+  /** v2 added `furthestStage` (the stepper's done / locked memory). */
+  version: 2;
   /** null = no case loaded (case-select screen). */
   caseId: string | null;
   stage: MedicalCaseStageName;
+  /**
+   * The furthest stage this student has reached for this case. The stepper reads
+   * "done" and "locked" from it, so both survive a reload and a step backwards.
+   */
+  furthestStage: MedicalCaseStageName;
   startedAt: string | null;
   completedAt: string | null;
   // registration (informational transcription; not rubric-graded)
@@ -124,9 +158,10 @@ const STORAGE_PREFIX = "hh_medical_case_";
 
 function freshState(): MedicalCaseState {
   return {
-    version: 1,
+    version: 2,
     caseId: null,
     stage: "case-select",
+    furthestStage: "case-select",
     startedAt: null,
     completedAt: null,
     registration: {
@@ -157,9 +192,18 @@ function loadState(phone: string | null): MedicalCaseState {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return freshState();
-    const parsed = JSON.parse(raw) as MedicalCaseState;
-    if (parsed.version !== 1) return freshState();
-    return { ...freshState(), ...parsed };
+    const parsed = JSON.parse(raw) as MedicalCaseState & { version?: number };
+    // v1 → v2: the stepper now remembers how far the student got. A v1 record
+    // only knows the stage it stopped on, so that stage is carried forward as
+    // the furthest reached — nothing is invented, and no work is dropped.
+    const version = (parsed as { version?: number }).version;
+    if (version !== 1 && version !== 2) return freshState();
+    return {
+      ...freshState(),
+      ...parsed,
+      version: 2,
+      furthestStage: parsed.furthestStage ?? parsed.stage ?? "case-select",
+    };
   } catch {
     return freshState();
   }
@@ -377,6 +421,23 @@ export function MedicalCaseProvider({ children }: { children: ReactNode }) {
     };
   }, [state, phone]);
 
+  // The provider unmounts when the student moves between the case-picker route
+  // and a stage route, and the save above is debounced. Flush the latest state
+  // on unmount so a route change can never reload an older copy of the record.
+  const latestState = useRef(state);
+  latestState.current = state;
+  useEffect(() => {
+    return () => {
+      const key = keyFor(phoneRef.current);
+      if (!key) return;
+      try {
+        localStorage.setItem(key, JSON.stringify(latestState.current));
+      } catch {
+        /* storage full / private mode — nothing more can be done here */
+      }
+    };
+  }, []);
+
   const activeCase = useMemo(
     () => (state.caseId ? findCase(state.caseId) : undefined),
     [state.caseId],
@@ -391,15 +452,17 @@ export function MedicalCaseProvider({ children }: { children: ReactNode }) {
   );
 
   const goTo = useCallback((stage: MedicalCaseStageName) => {
-    setState((s) => ({ ...s, stage }));
+    setState((s) => ({ ...s, stage, furthestStage: furthestOf(s.furthestStage, stage) }));
   }, []);
 
   const selectCase = useCallback((caseId: string | null) => {
     const found = caseId ? findCase(caseId) : undefined;
     if (caseId && !found) return;
+    const openingStage: MedicalCaseStageName = found ? "briefing" : "case-select";
     setState({
       ...freshState(),
-      stage: found ? "briefing" : "case-select",
+      stage: openingStage,
+      furthestStage: openingStage,
       caseId,
     });
   }, []);
@@ -409,6 +472,7 @@ export function MedicalCaseProvider({ children }: { children: ReactNode }) {
       ...s,
       startedAt: new Date().toISOString(),
       stage: "registration",
+      furthestStage: furthestOf(s.furthestStage, "registration"),
       diagnoses: [],
       procedures: [],
       claimSubmitted: false,

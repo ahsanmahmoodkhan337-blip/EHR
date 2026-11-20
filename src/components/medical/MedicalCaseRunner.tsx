@@ -13,6 +13,7 @@
  */
 
 import { useMemo, useState, type ReactNode } from "react";
+import { EncounterStepper } from "../shell/EncounterStepper";
 import {
   ArrowLeft,
   ArrowRight,
@@ -112,6 +113,11 @@ const DEBRIEF_STAGE: { id: MedicalCaseStageName; label: string; icon: ReactNode 
   icon: <Trophy className="h-3.5 w-3.5" />,
 };
 
+/** Stage label by id, for the URL and the locked-stage notice. */
+export const MEDICAL_STAGE_LABEL: Record<MedicalCaseStageName, string> = Object.fromEntries(
+  [...FRAME_STAGES, ...RCM_STAGES, DEBRIEF_STAGE].map((s) => [s.id, s.label]),
+) as Record<MedicalCaseStageName, string>;
+
 function nextStageFrom(current: MedicalCaseStageName, paTriggered: boolean): MedicalCaseStageName {
   switch (current) {
     case "case-select":
@@ -170,35 +176,24 @@ export function MedicalCaseRunner() {
     return [...FRAME_STAGES, ...rcm, DEBRIEF_STAGE];
   }, [paTriggered]);
 
-  const stageIdx = stages.findIndex((s) => s.id === state.stage);
-
   return (
     <div className="flex h-full flex-col">
-      {/* ── stage stepper ───────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-2">
-        {stages.map((s, i) => {
-          const active = s.id === state.stage;
-          const reached = i <= stageIdx;
-          return (
-            <button
-              key={s.id}
-              onClick={() => reached && goTo(s.id)}
-              disabled={!reached}
-              className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                active ? "bg-blue-600 text-white" : reached ? "text-slate-600 hover:bg-slate-100" : "text-slate-300"
-              }`}
-            >
-              {s.icon}
-              {s.label}
-            </button>
-          );
-        })}
-        {activeCase && (
-          <span className="ml-auto shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-            {activeCase.id} · {activeCase.difficulty}
-          </span>
-        )}
-      </div>
+      {/* ── stage stepper (the one shared encounter stepper) ─────────────── */}
+      <EncounterStepper
+        steps={stages}
+        currentId={state.stage}
+        furthestId={state.furthestStage}
+        onSelect={(id) => goTo(id as MedicalCaseStageName)}
+        accent="blue"
+        label="Medical case stages"
+        meta={
+          activeCase ? (
+            <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+              {activeCase.id} · {activeCase.difficulty}
+            </span>
+          ) : undefined
+        }
+      />
 
       {/* ── stage body ─────────────────────────────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-hidden">

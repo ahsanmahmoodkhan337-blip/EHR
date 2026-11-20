@@ -19,6 +19,8 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DentalRouteImport } from './routes/dental'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as MedicalCasesCaseIdStageRouteImport } from './routes/medical-cases.$caseId.$stage'
+import { Route as DentalCaseIdStageRouteImport } from './routes/dental.$caseId.$stage'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -70,6 +72,16 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MedicalCasesCaseIdStageRoute = MedicalCasesCaseIdStageRouteImport.update({
+  id: '/medical-cases/$caseId/$stage',
+  path: '/medical-cases/$caseId/$stage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DentalCaseIdStageRoute = DentalCaseIdStageRouteImport.update({
+  id: '/dental/$caseId/$stage',
+  path: '/dental/$caseId/$stage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +94,8 @@ export interface FileRoutesByFullPath {
   '/medical-cases': typeof MedicalCasesRoute
   '/quiz': typeof QuizRoute
   '/settings': typeof SettingsRoute
+  '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
+  '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +108,8 @@ export interface FileRoutesByTo {
   '/medical-cases': typeof MedicalCasesRoute
   '/quiz': typeof QuizRoute
   '/settings': typeof SettingsRoute
+  '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
+  '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,13 +123,15 @@ export interface FileRoutesById {
   '/medical-cases': typeof MedicalCasesRoute
   '/quiz': typeof QuizRoute
   '/settings': typeof SettingsRoute
+  '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
+  '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings'
+  fullPaths: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings'
-  id: '__root__' | '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings'
+  to: '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
+  id: '__root__' | '/' | '/access' | '/admin' | '/dashboard' | '/dental' | '/instructor' | '/login' | '/medical-cases' | '/quiz' | '/settings' | '/dental/$caseId/$stage' | '/medical-cases/$caseId/$stage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -127,6 +145,8 @@ export interface RootRouteChildren {
   MedicalCasesRoute: typeof MedicalCasesRoute
   QuizRoute: typeof QuizRoute
   SettingsRoute: typeof SettingsRoute
+  DentalCaseIdStageRoute: typeof DentalCaseIdStageRoute
+  MedicalCasesCaseIdStageRoute: typeof MedicalCasesCaseIdStageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -201,6 +221,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/medical-cases/$caseId/$stage': {
+      id: '/medical-cases/$caseId/$stage'
+      path: '/medical-cases/$caseId/$stage'
+      fullPath: '/medical-cases/$caseId/$stage'
+      preLoaderRoute: typeof MedicalCasesCaseIdStageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dental/$caseId/$stage': {
+      id: '/dental/$caseId/$stage'
+      path: '/dental/$caseId/$stage'
+      fullPath: '/dental/$caseId/$stage'
+      preLoaderRoute: typeof DentalCaseIdStageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -215,6 +249,8 @@ const rootRouteChildren: RootRouteChildren = {
   MedicalCasesRoute: MedicalCasesRoute,
   QuizRoute: QuizRoute,
   SettingsRoute: SettingsRoute,
+  DentalCaseIdStageRoute: DentalCaseIdStageRoute,
+  MedicalCasesCaseIdStageRoute: MedicalCasesCaseIdStageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
