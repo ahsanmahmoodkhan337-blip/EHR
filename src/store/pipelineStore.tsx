@@ -43,7 +43,7 @@ import {
   remittanceForClaim,
   type Remittance835,
 } from "../domain/adjudication";
-import { appendLedgerEntries, postRemittanceToLedger } from "../domain/ledger";
+import { appendLedgerEntries, postRemittanceToLedger, type LedgerEntry } from "../domain/ledger";
 import {
   arResolutionEntries,
   arResolutionOutcome,

@@ -53,7 +53,6 @@ function dateOf(day: string): string {
 
 /** One coverage card: what the card holds, then the 271 filed against it. */
 function CoverageCard({
-  patientId,
   coverage,
   which,
   label,
