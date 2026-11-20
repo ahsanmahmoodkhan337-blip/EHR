@@ -279,21 +279,29 @@ function Debrief() {
   if (!activeCase) return null;
   const adjudication = useMemo(() => adjudicateDentalClaim(state.lines, activeCase), [state.lines, activeCase]);
   const triggered = new Set(state.trapsTriggered);
-  const passed = scoreTally.earned >= scoreTally.passingPoints;
+  // TASK 0 item 9: the pass mark is judged on the points the app can actually
+  // score. Instructor-reviewed rows are reported, not counted against the
+  // student, so doing everything available can pass.
+  const passed = scoreTally.autoMaxPoints > 0 && scoreTally.autoEarned >= scoreTally.autoPassingPoints;
 
   return (
     <div className="h-full overflow-y-auto p-4">
       {/* score header */}
       <div className="flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-lg font-bold text-teal-700">
-          {scoreTally.earned}/{scoreTally.maxPoints}
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-center text-sm font-bold leading-tight text-teal-700">
+          {scoreTally.autoEarned}/{scoreTally.autoMaxPoints}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-bold text-slate-800">
             {passed ? "Case passed" : "Below passing"} — {activeCase.title}
           </h3>
           <p className="text-[11px] text-slate-500">
-            {scoreTally.earned} of {scoreTally.maxPoints} points · passing is {scoreTally.passingPoints}.
+            Auto-scored {scoreTally.autoEarned} of {scoreTally.autoMaxPoints} points · passing is{" "}
+            {scoreTally.autoPassingPoints} · {scoreTally.pendingReviewPoints} points pending instructor review.
+          </p>
+          <p className="text-[10px] text-slate-400">
+            Rubric total {scoreTally.maxPoints} points ({scoreTally.earned} earned so far), of which{" "}
+            {scoreTally.pendingReviewPoints} sit on criteria only an instructor can mark.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -316,16 +324,28 @@ function Debrief() {
       <Section title="Grading rubric">
         <div className="space-y-1">
           {scoreTally.criteria.map((c) => (
-            <div key={c.key} className="flex items-center justify-between rounded-lg border border-slate-100 bg-white px-2 py-1.5">
-              <span className="text-[11px] text-slate-700">{c.criterion}</span>
-              <span className={`text-[11px] font-semibold ${c.earned > 0 ? "text-emerald-600" : "text-slate-300"}`}>
-                {c.earned}/{c.points}
+            <div key={c.key} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-white px-2 py-1.5">
+              <span className="text-[11px] text-slate-700">
+                {c.criterion}
+                {!c.autoScored && (
+                  <span className="ml-1.5 rounded bg-amber-50 px-1 py-0.5 text-[9px] font-semibold text-amber-700">
+                    instructor review
+                  </span>
+                )}
+              </span>
+              <span
+                className={`shrink-0 text-[11px] font-semibold ${
+                  !c.autoScored ? "text-amber-600" : c.earned > 0 ? "text-emerald-600" : "text-slate-300"
+                }`}
+              >
+                {c.autoScored ? `${c.earned}/${c.points}` : `pending/${c.points}`}
               </span>
             </div>
           ))}
         </div>
         <p className="mt-1 text-[9px] text-slate-400">
-          Judgment criteria left at 0/… are instructor-reviewed — they are not auto-scored.
+          Rows marked "instructor review" are steps this screen gives you no scored action for yet. They are not
+          counted against the pass mark; the score above is what the app can actually check.
         </p>
       </Section>
 

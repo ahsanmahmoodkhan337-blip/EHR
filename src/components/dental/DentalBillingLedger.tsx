@@ -671,7 +671,7 @@ function DenialDetail({ denial }: { denial: DentalDenial }) {
       <p className="text-[11px] font-semibold text-red-800">
         {denial.title}
         <span className="ml-2 rounded bg-white px-1.5 py-0.5 text-[9px] font-bold ring-1 ring-red-100">
-          CARC {denial.carc} · Group {denial.groupCode}
+          {denial.carc} · group {denial.groupCode}
         </span>
       </p>
       <p className="text-[10px] text-red-700">{denial.plainLanguage}</p>

@@ -59,6 +59,9 @@ export {
   DENTAL_DENIAL_INDEX,
   AR_CALL_GUIDANCE,
   findDenial,
+  denialMoney,
+  denialActionLabel,
+  denialEffectSummary,
   denialsForCode,
   denialsByCategory,
 } from "./denialReasons";

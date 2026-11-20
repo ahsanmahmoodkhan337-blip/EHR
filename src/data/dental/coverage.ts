@@ -43,7 +43,7 @@ import {
   findPlan,
   frequencyRulesFor,
 } from "./benefitRules";
-import { denialsForCode } from "./denialReasons";
+import { denialsForCode, findDenial } from "./denialReasons";
 import { findTooth } from "./toothNotation";
 
 export type StepVerdict = "pass" | "reduced" | "blocked" | "n/a";
@@ -147,6 +147,15 @@ export interface CoverageResult {
   allowedUsd: number;
   /** Charged minus allowed. In network this is not billable to the patient. */
   contractualWriteOffUsd: number;
+  /**
+   * True when the patient owes the unpaid part of this line.
+   *
+   * False when a CO (contractual) or OA (other payer) denial blocked it: the
+   * amount is a provider write-off and appears in `contractualWriteOffUsd`,
+   * never in `patientOwesUsd`. A denial record decides this, not the screen —
+   * see `denialMoney()` in denialReasons.ts.
+   */
+  patientLiable: boolean;
   deductibleAppliedUsd: number;
   /** Patient's share arising from the coinsurance split alone. */
   coinsurancePatientUsd: number;
@@ -327,6 +336,7 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
       chargedUsd: charged,
       allowedUsd: 0,
       contractualWriteOffUsd: 0,
+      patientLiable: true,
       deductibleAppliedUsd: 0,
       coinsurancePatientUsd: 0,
       annualMaxReductionUsd: 0,
@@ -643,6 +653,7 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
       chargedUsd: charged,
       allowedUsd: allowed,
       contractualWriteOffUsd: writeOff,
+      patientLiable: true,
       deductibleAppliedUsd: 0,
       coinsurancePatientUsd: round2(copay.patientCopayUsd),
       annualMaxReductionUsd: 0,
@@ -769,7 +780,17 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
     planPays = 0;
     coinsurancePatient = 0;
   }
-  const patientOwes = round2(allowed - planPays);
+
+  // ── Who carries the unpaid amount? ──────────────────────────────────
+  // The blocking denial's group code answers this, and only that. A CO
+  // (contractual) or OA (other payer) denial never leaves a patient balance:
+  // the amount becomes part of the provider write-off instead. This is the
+  // single place the money rule is applied, so the scrub, the AR screen and
+  // the ledger cannot disagree about the same denial.
+  const blockingDenial = blocked && denialId ? findDenial(denialId) : undefined;
+  const patientLiable = blockingDenial ? blockingDenial.groupCode === "PR" : true;
+  const patientOwes = patientLiable ? round2(allowed - planPays) : 0;
+  const writeOffUsd = patientLiable ? writeOff : charged;
 
   return {
     code: cdt.code,
@@ -778,7 +799,8 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
     payable: planPays > 0,
     chargedUsd: charged,
     allowedUsd: allowed,
-    contractualWriteOffUsd: writeOff,
+    contractualWriteOffUsd: writeOffUsd,
+    patientLiable,
     deductibleAppliedUsd: deductibleApplied,
     coinsurancePatientUsd: coinsurancePatient,
     annualMaxReductionUsd: annualMaxReduction,
@@ -789,7 +811,9 @@ export function evaluateCoverage(input: CoverageInput): CoverageResult {
     denialId,
     alternateBenefit,
     summary: blocked
-      ? `Not payable: ${nameOf(blockedAtStep ?? 1).toLowerCase()}. Patient owes ${money(patientOwes)}.`
+      ? patientLiable
+        ? `Not payable: ${nameOf(blockedAtStep ?? 1).toLowerCase()}. Patient owes ${money(patientOwes)}.`
+        : `Not payable: ${nameOf(blockedAtStep ?? 1).toLowerCase()}. ${blockingDenial?.carc ?? "Contractual"} — written off, patient owes ${money(0)}.`
       : `Plan pays ${money(planPays)}, patient owes ${money(patientOwes)}.`,
   };
 }

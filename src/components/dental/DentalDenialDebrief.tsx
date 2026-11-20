@@ -108,8 +108,10 @@ function DenialTag({ denialId }: { denialId: string }) {
         pr ? "bg-purple-50 text-purple-700" : "bg-red-50 text-red-700"
       }`}
     >
-      {denialId}
-      {d ? ` · ${d.groupCode}${pr ? " (patient responsibility)" : " (not billable)"}` : ""}
+      {/* CARC first (group code + number); the internal teaching tag is secondary. */}
+      {d ? d.carc : denialId}
+      {d ? ` · ${pr ? "patient responsibility" : d.groupCode === "OA" ? "other payer" : "provider write-off, not billable"}` : ""}
+      <span className="font-normal opacity-60">{denialId}</span>
     </span>
   );
 }
