@@ -2,13 +2,24 @@
  * Central Zustand Store — App-wide state engine
  *
  * Slices: patient, pipeline, access, ui
- * Persisted to localStorage under key "ehr-store" via zustand/middleware persist.
- * Existing Context providers (PatientProvider, PipelineProvider) remain
- * functional; this store augments them for new features.
+ * Persisted to localStorage under `ehr-store_<phone>` — the signed-in
+ * student's own key (owner decision 2026-11-20, `specs/scores-per-student.md`).
+ * On a shared classroom machine the next student must not inherit the previous
+ * one's role or note draft, so the key follows the phone.
+ *
+ * The `pipeline` slice is no longer persisted: nothing reads it back from
+ * storage (only `CommandPalette` and `ScenarioInjector` touch this store, and
+ * they write the role; the role is never restored from disk). Leaving it in
+ * storage was a write-only copy of one student's draft sitting under the next
+ * student's key.
+ *
+ * Inspiration: Epic's per-user workstation state — the session follows the
+ * user, not the machine.
  */
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { scopedKey } from "../store/studentScope";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -66,6 +77,62 @@ interface AppState {
 
 // ─── Store ─────────────────────────────────────────────────────────
 
+/**
+ * localStorage adapter for zustand's persist, keyed by the signed-in phone.
+ * `name` is the store's base name ("ehr-store"); the real key is
+ * `ehr-store_<phone>`, the same phone string the rest of the app keys on.
+ */
+const studentScopedStorage = {
+  getItem: (name: string): string | null => {
+    const key = scopedKey(name);
+    if (!key) return null;
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name: string, value: string): void => {
+    const key = scopedKey(name);
+    if (!key) return;
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn("appStore: could not persist", name, e);
+    }
+  },
+  removeItem: (name: string): void => {
+    const key = scopedKey(name);
+    if (!key) return;
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.warn("appStore: could not remove", name, e);
+    }
+  },
+};
+
+/** A fresh pipeline slice — no role, stage, codes or note draft from anyone. */
+function createInitialPipeline(): PipelineState {
+  return {
+    currentRole: "scribe",
+    stage: "registration",
+    status: "draft",
+    icdCodes: [],
+    cptCodes: [],
+    soapNote: { subjective: "", objective: "", assessment: "", plan: "" },
+  };
+}
+
+/** The saved dark-mode preference, safe to read where there is no storage. */
+function readDarkMode(): boolean {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem("hh_dark_mode") === "true";
+  } catch {
+    return false;
+  }
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
@@ -77,14 +144,7 @@ export const useAppStore = create<AppState>()(
         set((s) => ({ patient: { ...s.patient, displayName: name } })),
 
       // Pipeline defaults
-      pipeline: {
-        currentRole: "scribe",
-        stage: "registration",
-        status: "draft",
-        icdCodes: [],
-        cptCodes: [],
-        soapNote: { subjective: "", objective: "", assessment: "", plan: "" },
-      },
+      pipeline: createInitialPipeline(),
       setRole: (role) =>
         set((s) => ({ pipeline: { ...s.pipeline, currentRole: role } })),
       setStage: (stage) =>
@@ -100,7 +160,7 @@ export const useAppStore = create<AppState>()(
         activeTab: "summary",
         sidebarOpen: true,
         commandPaletteOpen: false,
-        darkMode: localStorage.getItem("hh_dark_mode") === "true",
+        darkMode: readDarkMode(),
       },
       setActiveWorkspace: (ws) =>
         set((s) => ({ ui: { ...s.ui, activeWorkspace: ws } })),
@@ -121,14 +181,39 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "ehr-store",
-      // Only persist UI preferences and pipeline state, not patient identity
+      // The key is resolved at every read and write: `ehr-store_<phone>`. With
+      // nobody signed in the storage is inert, so nothing is written to a
+      // device-wide key and nothing is read from one.
+      storage: createJSONStorage(() => studentScopedStorage),
+      // Only UI preferences. The pipeline slice is in memory only — see the
+      // header comment: nothing reads it back, so persisting it would leave one
+      // student's role and note draft on disk for the next student.
       partialize: (state) => ({
-        pipeline: state.pipeline,
         ui: state.ui,
       }),
     }
   )
 );
+
+/**
+ * Load the signed-in student's palette state. Called right after sign-in,
+ * because the store is created before a phone exists.
+ */
+export function rehydratePaletteStore(): void {
+  void useAppStore.persist.rehydrate();
+}
+
+/**
+ * Drop the in-memory role, stage and note draft. Called on sign-out so the next
+ * student on the same machine starts from the defaults, not from the previous
+ * student's draft (the persisted slice is already keyed per phone).
+ */
+export function resetPaletteStore(): void {
+  useAppStore.setState({
+    patient: { selectedPatientId: null, displayName: null, encounterId: null },
+    pipeline: createInitialPipeline(),
+  });
+}
 
 // ─── Cross-component reactivity subscriber ─────────────────────────
 

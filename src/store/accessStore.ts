@@ -17,6 +17,7 @@ import {
   flushEhrStore,
   registerLoggedInPhoneResolver,
 } from "./ehrStore";
+import { rehydratePaletteStore, resetPaletteStore } from "../stores/appStore";
 
 const ACCESS_REQUESTS_KEY = "hh_access_requests";
 const APPROVED_PHONES_KEY = "hh_approved_phones";
@@ -435,12 +436,18 @@ export function setLoggedInPhone(phone: string): void {
   // screen to bootstrap left the store without a phone, and a store without a
   // phone silently drops every save.
   bootstrapEhrStore(phone);
+  // The command-palette store is keyed by the phone too, and it was created
+  // before anyone signed in — read this student's slice now.
+  rehydratePaletteStore();
 }
 
 export function logout(): void {
   // Flush while the phone is still known: a store that never hydrated can only
   // write under the signed-in phone, and that key is removed on the next line.
   flushEhrStore();
+  // The palette store's role and note draft are in memory only, so they have to
+  // be blanked here — otherwise the next student inherits them on this tab.
+  resetPaletteStore();
   localStorage.removeItem(LOGGED_IN_PHONE_KEY);
   // Phase 0: flush the record set to disk, then drop it from memory so the next
   // student on this device cannot see the previous one's patients.

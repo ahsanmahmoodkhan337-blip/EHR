@@ -5,12 +5,18 @@
  * action counter, expandable achievement badges, and
  * 3 rotating daily challenges.
  *
- * Challenges stored in localStorage with date-based rotation.
+ * Challenges and streak are stored under the signed-in student's own phone
+ * key (`hh_challenges_<phone>`, `hh_streak_<phone>`) — a shared classroom
+ * machine must not hand one student another's streak.
+ *
+ * Inspiration: Epic's "Personalization" dashboard — progress that follows the
+ * user, not the workstation.
  */
 
 import { useState, useEffect } from "react";
 import { Zap, Star, Award, Medal, Trophy, ChevronDown, ChevronUp, Sparkles, CheckCircle2, Target, Flame } from "lucide-react";
 import { LeaderboardPanel } from "./LeaderboardPanel";
+import { loadChallengeState, loadStreak, saveChallengeState, saveStreak } from "../utils/scoring";
 
 const BADGES = [
   { id: "modifier-master", label: "Modifier Master", icon: <Award className="h-3.5 w-3.5" />, unlocked: false },
@@ -25,41 +31,6 @@ const DAILY_CHALLENGES = [
   { id: "no-modifier-errors", label: "No modifier mistakes today", icon: "🏷️" },
   { id: "perfect-pa", label: "Perfect Prior Auth submission", icon: "📄" },
 ];
-
-function getTodayKey(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-function loadChallengeState(): Record<string, boolean> {
-  try {
-    const raw = localStorage.getItem("hh_challenges");
-    if (!raw) return {};
-    const data = JSON.parse(raw);
-    const today = getTodayKey();
-    // Reset if not today
-    if (data.date !== today) return {};
-    return data.completed || {};
-  } catch {
-    return {};
-  }
-}
-
-function saveChallengeState(completed: Record<string, boolean>) {
-  localStorage.setItem("hh_challenges", JSON.stringify({
-    date: getTodayKey(),
-    completed,
-  }));
-}
-
-function loadStreak(): number {
-  try {
-    return parseInt(localStorage.getItem("hh_streak") || "0", 10);
-  } catch { return 0; }
-}
-
-function saveStreak(n: number) {
-  localStorage.setItem("hh_streak", String(n));
-}
 
 // ─── Component ─────────────────────────────────────────────────────
 

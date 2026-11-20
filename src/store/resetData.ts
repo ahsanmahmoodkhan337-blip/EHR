@@ -54,10 +54,12 @@ export const RESET_GROUPS: readonly ResetGroup[] = [
     id: "scores",
     label: "Scores and streak",
     holds: "Leaderboard entries, streak and challenges.",
-    stores: () => [
-      { key: "hh_scores", backend: "local" },
-      { key: "hh_streak", backend: "local" },
-      { key: "hh_challenges", backend: "local" },
+    // Keyed by phone since the scores-per-student fix: a reset removes this
+    // student's scores only, never another student's on the same machine.
+    stores: (phone) => [
+      { key: `hh_scores_${phone}`, backend: "local" },
+      { key: `hh_streak_${phone}`, backend: "local" },
+      { key: `hh_challenges_${phone}`, backend: "local" },
     ],
   },
   {
@@ -91,6 +93,11 @@ export const UNTOUCHED_STORES = [
   "hh_scenario_patient",
   "hh_stage_pins",
   "hh_unlocked_stages",
+  // One-time "this student already adopted the old device-wide scores" marker.
+  // A reset must never touch it: if it did, the next page load would adopt the
+  // old `hh_scores` value straight back and the scores the student just deleted
+  // would reappear.
+  "hh_scores_adopted",
 ] as const;
 
 export function groupById(id: ResetGroupId): ResetGroup | undefined {
