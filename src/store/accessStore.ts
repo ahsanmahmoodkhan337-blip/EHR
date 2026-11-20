@@ -11,13 +11,22 @@
  */
 
 import { supabase } from "./supabase";
-import { useEhrStore } from "./ehrStore";
+import {
+  useEhrStore,
+  bootstrapEhrStore,
+  flushEhrStore,
+  registerLoggedInPhoneResolver,
+} from "./ehrStore";
 
 const ACCESS_REQUESTS_KEY = "hh_access_requests";
 const APPROVED_PHONES_KEY = "hh_approved_phones";
 const LOGGED_IN_PHONE_KEY = "hh_logged_in_phone";
 const SESSION_TIMEOUT_KEY = "hh_session_timeout";
 const SESSION_START_KEY = "hh_session_start";
+
+// The ehr store persists under whichever phone is signed in, even if it was
+// never hydrated for that phone (a store with `phone: null` used to drop saves).
+registerLoggedInPhoneResolver(getLoggedInPhone);
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -422,9 +431,16 @@ export function getLoggedInPhone(): string | null {
 
 export function setLoggedInPhone(phone: string): void {
   localStorage.setItem(LOGGED_IN_PHONE_KEY, phone);
+  // Load this student's records the moment they sign in. Waiting for the next
+  // screen to bootstrap left the store without a phone, and a store without a
+  // phone silently drops every save.
+  bootstrapEhrStore(phone);
 }
 
 export function logout(): void {
+  // Flush while the phone is still known: a store that never hydrated can only
+  // write under the signed-in phone, and that key is removed on the next line.
+  flushEhrStore();
   localStorage.removeItem(LOGGED_IN_PHONE_KEY);
   // Phase 0: flush the record set to disk, then drop it from memory so the next
   // student on this device cannot see the previous one's patients.
@@ -476,6 +492,8 @@ export function checkSessionExpired(): boolean {
 }
 
 export function clearSession(): void {
+  // Same order as logout: persist first, while the phone key still resolves.
+  flushEhrStore();
   localStorage.removeItem(LOGGED_IN_PHONE_KEY);
   localStorage.removeItem(SESSION_START_KEY);
   useEhrStore.getState().unload();
