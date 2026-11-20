@@ -7,17 +7,9 @@
 
 import { useState } from "react";
 import { FileText, Printer, Copy, CheckCircle2, X } from "lucide-react";
+import { CARC_CODES } from "../../data/claims/carc";
 
 // ─── Templates ──────────────────────────────────────────────────────
-
-const CARC_CODES = [
-  { code: "CO-16", desc: "Claim/service lacks information needed for adjudication" },
-  { code: "CO-11", desc: "Diagnosis is inconsistent with the procedure" },
-  { code: "CO-50", desc: "Non-covered service — not deemed medical necessity" },
-  { code: "PR-27", desc: "Expired prior authorization" },
-  { code: "CO-97", desc: "Payment included in allowance for another service" },
-  { code: "CO-119", desc: "Benefit maximum has been reached" },
-];
 
 const TEMPLATES: Record<string, { subject: string; body: string }> = {
   "CO-16": {
@@ -32,9 +24,9 @@ const TEMPLATES: Record<string, { subject: string; body: string }> = {
     subject: "Appeal of Claim Denial — Medical Necessity",
     body: "This letter serves as a formal first-level appeal for the denied service. The procedure was medically necessary for the patient's condition as documented in the medical record. We have included supporting clinical documentation, evidence-based guidelines, and peer-reviewed literature supporting the medical necessity of the service.",
   },
-  "PR-27": {
+  "CO-197": {
     subject: "Appeal of Claim Denial — Prior Authorization",
-    body: "We are appealing the denial for expired prior authorization. The authorization was requested and obtained prior to the service date. The service was performed within the authorization validity period. We have attached the authorization confirmation and supporting clinical records for your review.",
+    body: "We are appealing the denial stating that no authorization was on record. The authorization was requested and obtained before the service date, and the service was performed within its validity period. We have attached the authorization confirmation and the supporting clinical records for your review.",
   },
 };
 
@@ -63,7 +55,7 @@ Re: ${template.subject}
 Claim ID: CLAIM-${Date.now().toString(36).toUpperCase()}
 Patient: ${patientName}
 MRN: ${patientMRN}
-Denial Code: ${carcCode} — ${carc?.desc || ""}
+Denial Code: ${carcCode} — ${carc?.description || ""}
 ICD-10 Codes: ${icdCodes.join(", ")}
 CPT Codes: ${cptCodes.join(", ")}
 
@@ -103,7 +95,7 @@ Phone: (555) 123-4567`;
                 <div className="mb-3">
                   <label className="text-[10px] font-medium text-slate-500">CARC Denial Code</label>
                   <select value={carcCode} onChange={e => setCarcCode(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none mt-1">
-                    {CARC_CODES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.desc}</option>)}
+                    {CARC_CODES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.description}</option>)}
                   </select>
                 </div>
                 <div className="mb-3">

@@ -41,6 +41,7 @@ import {
   AGING_LEDGER_DATA,
 } from "./arData";
 import { AccentPractice } from "./AccentPractice";
+import { CARC_CODES } from "../../data/claims/carc";
 
 type TabView = "ledger" | "calls" | "scripts" | "appeals" | "scenarios" | "carriers";
 
@@ -974,17 +975,6 @@ export default function ARVoiceSimulator() {
 // (exported above)
 
 // ─── Claim Appeal Letter Generator ───────────────────────────────
-
-const CARC_CODES = [
-  { code: "CO-16", description: "Claim lacks information needed for adjudication" },
-  { code: "CO-50", description: "Non-covered service because this is not deemed a medical necessity" },
-  { code: "CO-119", description: "Benefit maximum has been reached" },
-  { code: "CO-97", description: "The benefit for this service is included in the payment for another service" },
-  { code: "PR-1", description: "Deductible amount has not been met" },
-  { code: "PR-2", description: "Co-insurance amount" },
-  { code: "OA-23", description: "Procedure code is inconsistent with the diagnosis code" },
-  { code: "OA-100", description: "Missing prior authorization" },
-];
 
 const APPEAL_REASONS = [
   { id: "med-necessary", label: "Service was medically necessary", text: "The denied service was medically necessary for the patient's condition. The clinical documentation supports the medical necessity, and the procedure was appropriate given the patient's diagnosis and clinical presentation." },

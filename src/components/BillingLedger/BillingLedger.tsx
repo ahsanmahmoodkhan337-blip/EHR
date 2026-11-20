@@ -18,7 +18,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Receipt, AlertTriangle, CheckCircle2, XCircle, Search, DollarSign, BookOpen, Info, Route, Star, Shield, FileDown } from "lucide-react";
 import { usePipeline, type ClaimFormData, type ClaimServiceLine } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
-import { CMS1500_BLOCKS, DENIAL_CODES, REVENUE_CODES, POS_CODES } from "./claimData";
+import { CMS1500_BLOCKS, REVENUE_CODES, POS_CODES } from "./claimData";
+import { CARC_BY_CODE, CARC_CODES as DENIAL_CODES } from "../../data/claims/carc";
 import { CPT_CODES } from "../CodingQueue/cptData";
 import { exportClaimFormPDF } from "../../utils/claimFormPdf";
 import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scoring";
@@ -323,7 +324,7 @@ export function BillingLedger() {
   };
 
   const simulateDenial = () => {
-    handleDenial("CO-16 — Claim lacks information", {
+    handleDenial(`${CARC_BY_CODE["CO-16"].code} — ${CARC_BY_CODE["CO-16"].description}`, {
       amount: calcPayment().billed,
       patientName: state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),
     });

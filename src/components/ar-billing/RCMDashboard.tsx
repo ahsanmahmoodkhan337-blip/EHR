@@ -30,7 +30,7 @@ const REVENUE_DATA = [
 const DENIAL_DATA = [
   { name: "CO-16 Missing Info", value: 35 },
   { name: "CO-11 Diagnosis Mismatch", value: 25 },
-  { name: "PR-27 Expired Auth", value: 20 },
+  { name: "CO-197 No Auth on File", value: 20 },
   { name: "CO-50 Not Med Necessary", value: 15 },
   { name: "Other", value: 5 },
 ];
