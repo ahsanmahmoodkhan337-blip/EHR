@@ -24,6 +24,8 @@ import { CPT_CODES } from "../CodingQueue/cptData";
 import { exportClaimFormPDF } from "../../utils/claimFormPdf";
 import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scoring";
 import { ClaimFormShell } from "../claims/ClaimFormShell";
+import { StatusTimeline } from "../status/StatusTimeline";
+import { statusEventsFor } from "../../domain/statusEvent";
 import { CMS1500Form } from "./CMS1500Form";
 import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
@@ -106,6 +108,10 @@ export function BillingLedger() {
     track: patient?.track,
   });
   const claimType: ClaimType = claimForm?.claimType ?? suggestion.claimType;
+
+  // The claim's own timeline — every recorded change to this claim, in order.
+  // Read-only, and identified by the claim number the engine minted for it.
+  const claimEvents = statusEventsFor(state.statusEvents, "claim", state.claimNumber);
 
   // `demoFillMissingBoxes` (owner decision 2026-11-20) — a claim box with no
   // captured value shows a tagged demo value. Default on; an instructor switches
@@ -489,13 +495,13 @@ export function BillingLedger() {
                     <ClaimFormShell
                       formCode="CMS-1500 (02/12)"
                       formTitle="Health Insurance Claim Form"
-                      statusLabel={
+                      statusLabel={`${state.claimNumber ? `${state.claimNumber} · ` : ""}${
                         transmitResult === "paid"
                           ? "Accepted — paid"
                           : transmitResult === "denied"
                             ? "Rejected — CO-16"
                             : "Draft"
-                      }
+                      }`}
                       history={(cs?.auditLogs ?? []).map((l) => ({ at: l.timestamp, message: l.message }))}
                       values={claimValues}
                       lines={claimLines}
@@ -517,6 +523,14 @@ export function BillingLedger() {
                       <p className="empty-hint">The paper is filled from the coded encounter.</p>
                     </div>
                   ))}
+
+                {/* ─── Claim timeline — append-only, never edited ─── */}
+                <StatusTimeline
+                  events={claimEvents}
+                  title="Claim timeline"
+                  subject={state.claimNumber}
+                  emptyHint="Nothing has happened to this claim yet."
+                />
 
                 {/* ─── Institutional → UB-04 (paper still to come) ─── */}
                 {claimType === "institutional" && (

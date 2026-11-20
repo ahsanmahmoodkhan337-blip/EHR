@@ -21,8 +21,10 @@ import { getLoggedInPhone } from "./accessStore";
 import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persistence";
 import {
   createEncounter,
+  encounterEventId,
   encounterKey,
   EMPTY_ENCOUNTER,
+  jobRoleFor,
   normalizePipelineStore,
   restoredRoleFor,
   type ClaimFormData,
@@ -32,6 +34,12 @@ import {
   type PipelineStoreState,
   type Role,
 } from "./pipelineEncounter";
+import { nextClaimNumber, type ClaimStatus } from "../domain/claimStatus";
+import {
+  appendStatusEvent as appendEvent,
+  makeStatusEvent,
+  type StatusEventInput,
+} from "../domain/statusEvent";
 
 // Re-exported so every existing import path keeps working.
 export type {
@@ -47,6 +55,7 @@ export { encounterHasWork, encounterKey, UNASSIGNED_ENCOUNTER_KEY } from "./pipe
 
 export interface DeniedClaim {
   id: string;
+  /** Holds the patient id in records written before v4; kept for old callers. */
   encounterId: string;
   patientName: string;
   reason: string;
@@ -56,6 +65,14 @@ export interface DeniedClaim {
   resolutionStatus: "unresolved" | "in-progress" | "resolved" | "escalated";
   assignedTo?: string;
   notes?: string;
+  /**
+   * The patient this denial belongs to. Null means unassigned — the row still
+   * shows, as "no patient attached" (status-engine.md §8).
+   */
+  patientId?: string | null;
+  /** The claim the denial belongs to. In this build a claim's id is its number. */
+  claimId?: string;
+  claimNumber?: string;
 }
 
 export interface ARCallRecord {
@@ -108,6 +125,12 @@ interface PipelineContextValue {
   patchClaimForm: (patch: Partial<ClaimFormData>) => void;
   /** Instructor / exam-mode switch for the demo fill of missing claim boxes. */
   setDemoFillMissingBoxes: (enabled: boolean) => void;
+  /**
+   * Append one entry to the active patient's timeline. Append-only and
+   * idempotent: appending a transition that is already recorded changes
+   * nothing, and there is no way to edit or delete an entry.
+   */
+  appendStatusEvent: (input: StatusEventInput) => void;
   handleDenial: (denialCode: string, meta?: { amount?: number; patientName?: string }) => void;
   submitPA: (paData: Record<string, string>) => void;
   completePipeline: () => void;
@@ -295,12 +318,31 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // Auto-advance: Scribe → Coder
   const submitToCoding = (note: string) => {
-    updateActive((enc) => ({
-      ...enc,
-      scribeNote: note,
-      stage: "coder",
-      status: "charted",
-    }));
+    updateActive((enc) => {
+      // The timeline entry is written in the same store write as the status it
+      // records — a status change never exists without its event.
+      const event = makeStatusEvent(
+        {
+          entityType: "encounter",
+          entityId: encounterEventId(enc.patientId),
+          patientId: enc.patientId,
+          from: "open",
+          to: "signed",
+          by: getLoggedInPhone() ?? "system",
+          jobRole: "scribe",
+          reasonCode: "NOTE_SIGNED",
+          reason: "The progress note was signed and locked, so the encounter is ready for coding.",
+        },
+        enc.statusEvents,
+      );
+      return {
+        ...enc,
+        scribeNote: note,
+        stage: "coder",
+        status: "charted",
+        statusEvents: appendEvent(enc.statusEvents, event),
+      };
+    });
   };
 
   // Auto-advance: Coder → Prior Auth (PA first)
@@ -317,7 +359,79 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // ── Structured CMS-1500 record ──────────────────────────────────
   const setClaimForm = (form: ClaimFormData | null) => {
-    updateActive((enc) => ({ ...enc, claimForm: form }));
+    setStore((prev) => {
+      const key = encounterKey(prev.activePatientId);
+      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
+      if (!form) {
+        return { ...prev, encounters: { ...prev.encounters, [key]: { ...enc, claimForm: null } } };
+      }
+      // The claim exists from the first time its paper is opened. Its number is
+      // minted once and recorded with its creation event in the same write — a
+      // second open never mints a second number or a second event.
+      if (enc.claimNumber) {
+        return { ...prev, encounters: { ...prev.encounters, [key]: { ...enc, claimForm: form } } };
+      }
+      const claimNumber = nextClaimNumber(Object.values(prev.encounters).map((e) => e.claimNumber));
+      const event = makeStatusEvent(
+        {
+          entityType: "claim",
+          entityId: claimNumber,
+          patientId: enc.patientId,
+          claimNumber,
+          from: null,
+          to: "draft",
+          by: getLoggedInPhone() ?? "system",
+          jobRole: jobRoleFor(restoredRoleFor(enc)),
+          reasonCode: "CLAIM_CREATED",
+          reason: `Claim ${claimNumber} created from this encounter. Nothing has been scrubbed or submitted yet.`,
+        },
+        enc.statusEvents,
+      );
+      return {
+        ...prev,
+        encounters: {
+          ...prev.encounters,
+          [key]: {
+            ...enc,
+            claimForm: form,
+            claimNumber,
+            claimStatus: "draft" as ClaimStatus,
+            claimStatusMigrated: false,
+            statusEvents: appendEvent(enc.statusEvents, event),
+          },
+        },
+      };
+    });
+  };
+
+  /**
+   * The one way to add a timeline entry. There is deliberately no update and no
+   * delete: the engine's audit log has to be append-only to be worth anything.
+   * A claim transition moves the claim's status in the same write.
+   */
+  const appendStatusEvent = (input: StatusEventInput) => {
+    setStore((prev) => {
+      const patientId = input.patientId ?? prev.activePatientId;
+      const key = encounterKey(patientId);
+      const enc = prev.encounters[key] ?? createEncounter(patientId);
+      const event = makeStatusEvent({ ...input, patientId }, enc.statusEvents);
+      const events = appendEvent(enc.statusEvents, event);
+      if (events === enc.statusEvents) return prev; // already recorded — nothing changes
+      return {
+        ...prev,
+        encounters: {
+          ...prev.encounters,
+          [key]: {
+            ...enc,
+            statusEvents: events,
+            claimStatus:
+              event.entityType === "claim" && event.claimNumber === enc.claimNumber
+                ? (event.to as ClaimStatus)
+                : enc.claimStatus,
+          },
+        },
+      };
+    });
   };
 
   const patchClaimForm = (patch: Partial<ClaimFormData>) => {
@@ -360,6 +474,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     const denial: DeniedClaim = {
       id: `denial-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       encounterId: patientId ?? "unknown",
+      patientId,
+      claimId: activeEncounter.claimNumber ?? undefined,
+      claimNumber: activeEncounter.claimNumber ?? undefined,
       patientName: meta?.patientName ?? activeEncounter.displayName ?? "",
       reason: denialCode,
       amount: meta?.amount ?? 0,
@@ -456,6 +573,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         setClaimForm,
         patchClaimForm,
         setDemoFillMissingBoxes,
+        appendStatusEvent,
         handleDenial,
         submitPA,
         completePipeline,

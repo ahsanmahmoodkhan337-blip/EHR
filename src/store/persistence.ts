@@ -18,6 +18,7 @@ import { supabase } from "./supabase";
 import type { CaseState } from "./patientStore";
 import type { DeniedClaim, ARCallRecord, PARecordStore, Role } from "./pipelineStore";
 import {
+  encounterKey,
   normalizePipelineStore,
   type PipelineEncounter,
   type PipelineStoreState,
@@ -25,14 +26,19 @@ import {
 import type { Appointment } from "../components/TabsEpic/DailySchedule";
 import type { AccountSecurityState } from "./accountSecurity";
 import { migrateClaimData } from "../utils/claimAutoFill";
+import { claimNumberSequence, claimStatusFromLegacy, mintClaimNumber } from "../domain/claimStatus";
+import { appendStatusEvent, makeStatusEvent } from "../domain/statusEvent";
 
 const STORAGE_PREFIX = "hh_userdata_";
 /**
  * v2 added the structured CMS-1500 record (`pipeline.claimForm`).
  * v3 made the pipeline one encounter per patient (`activePatientId` +
  * `encounters`), so picking a patient loads their work instead of wiping it.
+ * v4 is the status engine (`specs/status-engine.md` §8): every claim gets a
+ * claim number, a claim status, and a MIGRATED timeline entry. Nothing is
+ * invented — no `accepted`, no money, no CARC.
  */
-const BLOB_VERSION = 3;
+const BLOB_VERSION = 4;
 
 export interface PersistedUserData {
   v: number;
@@ -59,6 +65,22 @@ export function userDataKey(phone: string): string {
  * the CMS-1500 replica shipped keeps their data.
  * v2 → v3 turns the single stored encounter into that patient's encounter in
  * the per-patient map, so a student mid-workflow keeps their place.
+ * v3 → v4 (status engine, `specs/status-engine.md` §8) gives every claim a claim
+ * number, a claim status read from the old `PipelineStatus`, and one MIGRATED
+ * timeline entry saying exactly what was migrated. The rules, in order:
+ *   - `pending` / `charted` / `coded` → no claim (null number, null status);
+ *   - `billed` → `submitted` — **never `accepted`**, because no 277CA happened;
+ *   - `denied` → `denied`, and the old denial code string is carried **verbatim**
+ *     in the entry's text — never translated into a CARC;
+ *   - `paid` → `paid` with no `amountCents` (invent no money) and `migrated`;
+ *   - `reprocessed` → `reprocessed`;
+ *   - an encounter with an open claim form but no recorded claim status starts as
+ *     a `draft` claim: it exists, nothing was submitted, and nothing is claimed;
+ *   - `deniedClaims` rows keep every field, gain `patientId` / `claimId` /
+ *     `claimNumber`, and a row whose old `encounterId` was `"unknown"` keeps its
+ *     place in the unassigned bucket instead of being dropped.
+ * `caseStates.*` are not migrated: they were never persisted, so they are
+ * projections now, not a source of truth.
  */
 function migrateBlob(parsed: PersistedUserData): PersistedUserData {
   if ((parsed.v ?? 1) >= BLOB_VERSION) return parsed;
@@ -69,11 +91,145 @@ function migrateBlob(parsed: PersistedUserData): PersistedUserData {
     if (!pipeline.claimForm) pipeline.claimForm = migrateClaimData(pipeline.claimData ?? {});
     if (!Array.isArray(pipeline.codingLines)) pipeline.codingLines = [];
   }
+  const normalized = pipeline
+    ? normalizePipelineStore(pipeline, parsed.currentRole ?? "scribe")
+    : parsed.pipeline;
+  // The blob's own timestamp, so a reload does not keep re-dating the migration.
+  const at = parsed.updatedAt || new Date().toISOString();
+  const migrated = normalized ? migratePipelineToV4(normalized, at) : normalized;
   return {
     ...parsed,
-    pipeline: pipeline ? normalizePipelineStore(pipeline, parsed.currentRole ?? "scribe") : parsed.pipeline,
+    pipeline: migrated,
+    deniedClaims:
+      parsed.deniedClaims && migrated
+        ? migrateDeniedClaimsToV4(parsed.deniedClaims, migrated.encounters)
+        : parsed.deniedClaims,
     v: BLOB_VERSION,
   };
+}
+
+/**
+ * Give every claim in a v3 store a number, a status and its MIGRATED entry.
+ * Numbers continue past the highest one already present, so a number is never
+ * reused and a re-run cannot mint a second one for the same claim.
+ */
+function migratePipelineToV4(store: PipelineStoreState, at: string): PipelineStoreState {
+  let sequence = Object.values(store.encounters).reduce(
+    (max, enc) => Math.max(max, claimNumberSequence(enc.claimNumber)),
+    0,
+  );
+  const nextNumber = () => mintClaimNumber((sequence += 1));
+
+  const encounters: Record<string, PipelineEncounter> = {};
+  for (const [key, encounter] of Object.entries(store.encounters)) {
+    encounters[key] = migrateEncounterToV4(encounter, at, nextNumber);
+  }
+  return { ...store, encounters };
+}
+
+function migrateEncounterToV4(
+  encounter: PipelineEncounter,
+  at: string,
+  nextNumber: () => string,
+): PipelineEncounter {
+  // Already migrated (or written by this build): leave it exactly as it is.
+  if (encounter.claimNumber) return encounter;
+
+  const legacyStatus = encounter.status;
+  const recorded = claimStatusFromLegacy(legacyStatus);
+  const claimExists = recorded !== null || !!encounter.claimForm;
+  if (!claimExists) {
+    return {
+      ...encounter,
+      claimNumber: null,
+      claimStatus: null,
+      claimStatusMigrated: false,
+      holds: [],
+      statusEvents: encounter.statusEvents ?? [],
+    };
+  }
+
+  const claimNumber = nextNumber();
+  const claimStatus = recorded ?? "draft";
+  const event = makeStatusEvent(
+    {
+      entityType: "claim",
+      entityId: claimNumber,
+      patientId: encounter.patientId,
+      claimNumber,
+      at,
+      from: null,
+      to: claimStatus,
+      by: "system",
+      jobRole: "system",
+      reasonCode: "MIGRATED",
+      reason: migrationReason(legacyStatus, recorded, encounter.denialInfo?.code),
+    },
+    encounter.statusEvents,
+  );
+
+  return {
+    ...encounter,
+    claimNumber,
+    claimStatus,
+    claimStatusMigrated: true,
+    holds: [],
+    statusEvents: appendStatusEvent(encounter.statusEvents ?? [], event),
+  };
+}
+
+/**
+ * One plain-English sentence saying what the old record held. The old denial
+ * code is quoted exactly as saved — this migration assigns no CARC, because
+ * translating an unrecognised string into one would teach the wrong code.
+ */
+function migrationReason(
+  legacyStatus: PipelineEncounter["status"],
+  recorded: ReturnType<typeof claimStatusFromLegacy>,
+  denialCode: string | undefined,
+): string {
+  if (!recorded) {
+    return `Migrated from an earlier saved record: a claim was open on this encounter but its status was never recorded, so it starts as a draft. Nothing has been submitted.`;
+  }
+  switch (recorded) {
+    case "submitted":
+      return `Migrated from an earlier saved record: status "${legacyStatus}" → submitted. No 277CA was ever recorded, so this claim is not shown as accepted.`;
+    case "denied":
+      return denialCode
+        ? `Migrated from an earlier saved record: status "${legacyStatus}". The denial code as saved was "${denialCode}" — carried over exactly as recorded, with no CARC assigned.`
+        : `Migrated from an earlier saved record: status "${legacyStatus}". No denial code was recorded.`;
+    case "paid":
+      return `Migrated from an earlier saved record: status "${legacyStatus}". No payment amount was recorded, so none is shown.`;
+    case "reprocessed":
+      return `Migrated from an earlier saved record: status "${legacyStatus}".`;
+    default:
+      return `Migrated from an earlier saved record: status "${legacyStatus}".`;
+  }
+}
+
+/**
+ * `deniedClaims` rows carry their patient and their claim number after v4.
+ * A row whose old `encounterId` was `"unknown"` lands in the unassigned bucket
+ * (patientId null) and is kept, never dropped — the AR screen shows it as a
+ * claim with no patient attached.
+ */
+function migrateDeniedClaimsToV4(
+  rows: DeniedClaim[],
+  encounters: Record<string, PipelineEncounter>,
+): DeniedClaim[] {
+  return rows.map((row) => {
+    const rawId = row.encounterId;
+    const patientId = row.patientId ?? (rawId && rawId !== "unknown" ? rawId : null);
+    const encounter = patientId ? encounters[encounterKey(patientId)] : undefined;
+    const claimNumber = row.claimNumber ?? encounter?.claimNumber ?? undefined;
+    return {
+      ...row,
+      patientId,
+      // The claim number is this build's claim identity, so the id mirrors it.
+      claimId: row.claimId ?? claimNumber,
+      claimNumber,
+    };
+  });
 }
 
 
