@@ -185,16 +185,29 @@
     @apply text-slate-400;
   }
 
-  /* AppShell — one frame: sidebar rail + top bar + work area.
-     The rail sits beside the content column, so the page never scrolls
-     sideways at any width (spec task-1-app-shell.md). */
+  /* AppShell — one frame: full-width navy bar, then the rail beside the work.
+     The bar spans the whole window above the rail (the 19 November build), and
+     the page never scrolls sideways at any width (spec task-1-app-shell.md). */
   .app-shell {
     display: flex;
+    flex-direction: column;
     align-items: stretch;
     width: 100%;
     max-width: 100vw;
     min-height: 100dvh;
     overflow-x: hidden;
+  }
+  /* The navy bar + patient banner block: full width, stuck to the top. */
+  .app-shell-header {
+    width: 100%;
+    flex-shrink: 0;
+  }
+  /* The rail and the content column, side by side, under the bar. */
+  .app-shell-row {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: stretch;
+    min-height: 0;
   }
   /* The 19 Nov frame (owner's reference build `f8fd8681`): the page is as tall
      as its content and scrolls normally; the rail stays put beside it. The
@@ -205,7 +218,6 @@
     flex-direction: column;
     flex: 1 1 auto;
     min-width: 0;
-    min-height: 100dvh;
   }
   .app-shell-body {
     /* A flex row, not a grid: the reference drawer (spec item 6) is a fourth

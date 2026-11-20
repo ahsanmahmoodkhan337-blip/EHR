@@ -91,7 +91,11 @@ export function HomeWorkQueues({ onOpenMedicalStage }: HomeWorkQueuesProps) {
   const dentalRows = useMemo<QueueRow[]>(() => buildDentalQueueRows(dental), [dental]);
 
   const total = [...medicalRows, ...dentalRows].reduce((sum, row) => sum + row.entries.length, 0);
-  const expanded = openState ?? total > 0;
+  // Collapsed by default (owner's audit, 2026-11-20, item 1): the queues used to
+  // open themselves whenever they held anything, which pushed the encounter's
+  // workflow down the page. They now start as one summary line, and the student
+  // opens them when they want them.
+  const expanded = openState ?? false;
 
   return (
     <section

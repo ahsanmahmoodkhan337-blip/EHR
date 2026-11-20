@@ -70,7 +70,16 @@ const CMS1500_PDF_COLUMNS = CMS1500_LINE_COLUMNS.map((col) => ({
   x12: col.x12,
 }));
 
-export function BillingLedger() {
+/**
+ * `openTab` — which of the biller's screens to open on. The encounter's flow has
+ * two stages on this desk (owner's audit, 2026-11-20, item 1): **Billing / Claim**
+ * opens the claim paper, **Payments (835)** opens the remittance and ledger tab.
+ */
+export interface BillingLedgerProps {
+  openTab?: BillingTab;
+}
+
+export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm, setDemoFillMissingBoxes, transmitClaim, adjudicateClaim, postRemittance } = usePipeline();
   const claimForm = state.claimForm;
   const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
@@ -85,7 +94,11 @@ export function BillingLedger() {
   const [payer, setPayer] = useState("Medicare");
   const [submitted, setSubmitted] = useState(false);
   const [billingScore, setBillingScore] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<BillingTab>("form");
+  const [activeTab, setActiveTab] = useState<BillingTab>(openTab ?? "form");
+  // The stepper's stage decides which desk screen is in front of the student.
+  useEffect(() => {
+    if (openTab) setActiveTab(openTab);
+  }, [openTab]);
   // Prior authorisation — the student's answer, not the app's (STANDING-RULES 6).
   // Tri-state so an unanswered question is visibly unanswered: `null` means the
   // student has not decided yet. This used to be a boolean auto-ticked from
@@ -570,7 +583,7 @@ export function BillingLedger() {
         <div className="flex items-center gap-2">
           <Receipt className="h-5 w-5 text-brand-600" />
           <h2 className="text-sm font-bold text-slate-800">Medical Billing — Enhanced Billing Ledger</h2>
-          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 3</span>
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 5</span>
           <ClaimAckChip ack={ack} />
           {state.claimStatus && state.claimStatus !== "draft" && (
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
