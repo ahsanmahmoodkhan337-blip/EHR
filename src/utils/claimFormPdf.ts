@@ -168,25 +168,49 @@ export function exportClaimFormPDF({
             });
           });
         });
-      } else if (cell.checks) {
+      } else if (cell.checks || cell.fields) {
         drawBox(x, y, w, rowH, cell.label, (bx, by, bw) => {
-          doc.setFontSize(5.2);
-          cell.checks!.forEach((check, i) => {
-            const marked = values[check.field] ? "X" : " ";
-            doc.text(`[${marked}] ${check.label}`, bx, by + i * 3.1);
-          });
-          void bw;
-        });
-      } else if (cell.fields) {
-        drawBox(x, y, w, rowH, cell.label, (bx, by, bw) => {
-          const flexTotal = cell.fields!.reduce((s, f) => s + (f.flex ?? 1), 0);
-          let fx = bx;
-          cell.fields!.forEach((field) => {
-            const fw = (bw * (field.flex ?? 1)) / flexTotal;
-            const text = formatValue(values[field.field], field.kind === "money" ? "money" : field.kind === "date" ? "date" : undefined);
-            drawValues(fx, by, fw - 1, text);
-            fx += fw;
-          });
+          // Two independent branches, not else-if: box 10 prints its three
+          // checks AND 10d's claim codes in the one cell, so the codes have to
+          // reach the PDF under the checkboxes.
+          let bodyY = by;
+          if (cell.checks) {
+            doc.setFontSize(5.2);
+            cell.checks.forEach((check, i) => {
+              const marked = values[check.field] ? "X" : " ";
+              doc.text(`[${marked}] ${check.label}`, bx, by + i * 3.1);
+            });
+            bodyY = by + cell.checks.length * 3.1 + 1;
+          }
+          if (cell.fields) {
+            if (cell.stack) {
+              // A stacked box prints its values one above the other — box 22's
+              // resubmission code with ORIGINAL REF. NO. beneath it.
+              let fy = bodyY;
+              cell.fields.forEach((field) => {
+                if (field.label) {
+                  doc.setFontSize(3.6);
+                  doc.text(field.label, bx, fy);
+                  fy += 2.1;
+                }
+                const text = formatValue(
+                  values[field.field],
+                  field.kind === "money" ? "money" : field.kind === "date" ? "date" : undefined,
+                );
+                drawValues(bx, fy, bw - 1, text);
+                fy += 3.2;
+              });
+              return;
+            }
+            const flexTotal = cell.fields.reduce((s, f) => s + (f.flex ?? 1), 0);
+            let fx = bx;
+            cell.fields.forEach((field) => {
+              const fw = (bw * (field.flex ?? 1)) / flexTotal;
+              const text = formatValue(values[field.field], field.kind === "money" ? "money" : field.kind === "date" ? "date" : undefined);
+              drawValues(fx, bodyY, fw - 1, text);
+              fx += fw;
+            });
+          }
         });
       } else if (cell.reserved) {
         // A box the 02/12 prints shaded and reserved: caption, no value.

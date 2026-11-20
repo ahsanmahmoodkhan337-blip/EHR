@@ -20,9 +20,11 @@ import type { DeniedClaim, ARCallRecord, PARecordStore, Role } from "./pipelineS
 import {
   encounterKey,
   normalizePipelineStore,
+  type ClaimFormData,
   type PipelineEncounter,
   type PipelineStoreState,
 } from "./pipelineEncounter";
+import { MEDICAL_PROVIDER_PROFILE } from "../data/claims/providerProfile";
 import type { Appointment } from "../components/TabsEpic/DailySchedule";
 import type { AccountSecurityState } from "./accountSecurity";
 import { migrateClaimData } from "../utils/claimAutoFill";
@@ -49,8 +51,15 @@ const STORAGE_PREFIX = "hh_userdata_";
  * marked worked, and no money moves on a migrated record. A claim saved with a
  * posted 835 gets its queue items the moment the record loads, because they were
  * always in the money — they were only never shown.
+ * v7 is the CMS-1500 field-table corrections: box 9's other-coverage block now
+ * prints 9a / 9b / 9d as their own boxes, so a claim saved before this — whose
+ * `otherInsurancePlan` held `planName · groupNumber` — is split, first part to
+ * 9d and second to 9a, with nothing dropped. Every claim also gains box 25's
+ * SSN/EIN indicator (from the provider profile the claim was built from), 24I
+ * `XX` on every service line (24J is an NPI on every path), and the new boxes
+ * blank. Nothing is invented: a value the old record never held stays empty.
  */
-const BLOB_VERSION = 6;
+const BLOB_VERSION = 7;
 
 export interface PersistedUserData {
   v: number;
@@ -113,15 +122,64 @@ function migrateBlob(parsed: PersistedUserData): PersistedUserData {
   // The blob's own timestamp, so a reload does not keep re-dating the migration.
   const at = parsed.updatedAt || new Date().toISOString();
   const migrated = normalized ? migratePipelineToV4(normalized, at) : normalized;
+  const withClaims = migrated ? migrateClaimFormsToV7(migrated) : migrated;
   return {
     ...parsed,
-    pipeline: migrated,
+    pipeline: withClaims,
     deniedClaims:
-      parsed.deniedClaims && migrated
-        ? migrateDeniedClaimsToV4(parsed.deniedClaims, migrated.encounters)
+      parsed.deniedClaims && withClaims
+        ? migrateDeniedClaimsToV4(parsed.deniedClaims, withClaims.encounters)
         : parsed.deniedClaims,
     v: BLOB_VERSION,
   };
+}
+
+/**
+ * v6 → v7 — the CMS-1500 field-table corrections, applied to every saved claim.
+ *
+ * A claim saved before this build holds `otherInsurancePlan` =
+ * `"planName · groupNumber"`, because the two were joined for what was then
+ * labelled 9a. The paper now prints the group number in 9a and the plan name in
+ * 9d, so the value is split on that separator: the first part becomes 9d, the
+ * rest becomes 9a, and nothing is dropped. 24I is `XX` on every line because
+ * 24J is an NPI on every path, and box 25's SSN/EIN indicator comes from the
+ * provider profile the claim was built from — both profiles are EIN. The new
+ * boxes (9b, 10d, 11a SEX, 15 QUAL.) start blank: the old record never held
+ * them, and inventing them would teach a value the student never captured.
+ */
+export function migrateClaimFormToV7(form: ClaimFormData): ClaimFormData {
+  const next: ClaimFormData = { ...form };
+
+  const joined = String(next.otherInsurancePlan ?? "");
+  if (!next.otherInsuredPolicyGroup && joined.includes(" · ")) {
+    const at = joined.indexOf(" · ");
+    next.otherInsurancePlan = joined.slice(0, at).trim();
+    next.otherInsuredPolicyGroup = joined.slice(at + 3).trim();
+  }
+
+  next.otherInsuredPolicyGroup = next.otherInsuredPolicyGroup ?? "";
+  next.otherInsuredDob = next.otherInsuredDob ?? "";
+  next.otherInsuredSex = next.otherInsuredSex ?? "";
+  next.claimCodes = next.claimCodes ?? "";
+  next.insuredSex = next.insuredSex ?? "";
+  next.similarIllnessQualifier = next.similarIllnessQualifier ?? "";
+  next.federalTaxIdType = next.federalTaxIdType || MEDICAL_PROVIDER_PROFILE.taxIdType;
+  next.serviceLines = (next.serviceLines ?? []).map((line) => ({
+    ...line,
+    idQualifier: line.idQualifier || "XX",
+  }));
+  return next;
+}
+
+/** Apply the v7 claim corrections to every encounter that has a claim open. */
+function migrateClaimFormsToV7(store: PipelineStoreState): PipelineStoreState {
+  const encounters: Record<string, PipelineEncounter> = {};
+  for (const [key, encounter] of Object.entries(store.encounters)) {
+    encounters[key] = encounter.claimForm
+      ? { ...encounter, claimForm: migrateClaimFormToV7(encounter.claimForm) }
+      : encounter;
+  }
+  return { ...store, encounters };
 }
 
 /**

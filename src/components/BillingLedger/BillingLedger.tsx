@@ -56,14 +56,17 @@ type BillingTab = "form" | "scrubber" | "remittance" | "denials" | "references";
 
 /** Column spec for the box-24 table in the downloaded PDF. */
 const CMS1500_PDF_COLUMNS = [
-  { key: "dateOfService", label: "24A DATE(S)", width: 0.15, kind: "date" as const },
-  { key: "placeOfService", label: "24B POS", width: 0.09, kind: "text" as const },
-  { key: "cpt", label: "24D CPT", width: 0.13, kind: "text" as const },
-  { key: "modifiers", label: "24D MOD", width: 0.12, kind: "text" as const },
-  { key: "diagnosisPointer", label: "24E PTR", width: 0.1, kind: "text" as const },
-  { key: "charge", label: "24F CHARGE", width: 0.13, kind: "money" as const },
-  { key: "units", label: "24G UNITS", width: 0.08, kind: "number" as const },
-  { key: "renderingNpi", label: "24J NPI", width: 0.2, kind: "text" as const },
+  { key: "dateOfService", label: "24A DATE(S)", width: 0.12, kind: "date" as const },
+  { key: "placeOfService", label: "24B POS", width: 0.06, kind: "text" as const },
+  { key: "emg", label: "24C EMG", width: 0.05, kind: "text" as const },
+  { key: "cpt", label: "24D CPT", width: 0.12, kind: "text" as const },
+  { key: "modifiers", label: "24D MOD", width: 0.09, kind: "text" as const },
+  { key: "diagnosisPointer", label: "24E PTR", width: 0.07, kind: "text" as const },
+  { key: "charge", label: "24F CHARGE", width: 0.11, kind: "money" as const },
+  { key: "units", label: "24G UNITS", width: 0.06, kind: "number" as const },
+  { key: "epsdt", label: "24H EPSDT", width: 0.07, kind: "text" as const },
+  { key: "idQualifier", label: "24I QUAL", width: 0.08, kind: "text" as const },
+  { key: "renderingNpi", label: "24J ID #", width: 0.17, kind: "text" as const },
 ];
 
 export function BillingLedger() {

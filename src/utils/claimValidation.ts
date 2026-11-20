@@ -22,6 +22,7 @@ export interface ClaimIssue {
 const ICD10_RE = /^[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/;
 const CPT_RE = /^(\d{5}|[A-Z]\d{4})$/;
 const TAX_ID_RE = /^\d{2}-\d{7}$/;
+const SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const blank = (v: unknown): boolean => String(v ?? "").trim() === "";
@@ -81,6 +82,7 @@ export function validateCMS1500(form: ClaimFormData): ClaimIssue[] {
   if (blank(form.patientRelationship)) err("6", "Box 6: patient relationship to insured is required.");
   if (blank(form.insuredAddress)) err("7", "Box 7: insured's address is required.");
   if (blank(form.insuredPolicyGroup)) err("11", "Box 11: insured's policy / group number is required.");
+  if (blank(form.insuredSex)) warn("11a", "Box 11a: insured's sex is blank.");
   if (!form.patientSignature && !form.insuredSignature) {
     err("12", "Box 12 or 13: the claim needs a patient or insured signature on file.");
   }
@@ -110,6 +112,17 @@ export function validateCMS1500(form: ClaimFormData): ClaimIssue[] {
     else if (!CPT_RE.test(line.cpt.trim())) err("24D", `Box 24D (${row}): "${line.cpt}" is not a CPT/HCPCS code.`);
     if (money(line.charge) <= 0) err("24F", `Box 24F (${row}): charge must be greater than zero.`);
     if (!Number.isFinite(line.units) || line.units < 1) err("24G", `Box 24G (${row}): units must be 1 or more.`);
+    // 24I qualifies 24J. 24J is an NPI on every line this app builds, so a
+    // 10-digit 24J under any other qualifier is the mismatch a payer returns.
+    if (!blank(line.idQualifier) && blank(line.renderingNpi)) {
+      err("24J", `Box 24J (${row}): the ID qualifier (24I) is set, so the provider ID is required.`);
+    } else if (
+      !blank(line.idQualifier) &&
+      line.idQualifier !== "XX" &&
+      /^\d{10}$/.test(String(line.renderingNpi ?? "").trim())
+    ) {
+      warn("24I", `Box 24I (${row}): 24J is a 10-digit NPI, so the qualifier is XX.`);
+    }
 
     const pointer = String(line.diagnosisPointer ?? "").trim().toUpperCase();
     if (blank(pointer)) {
@@ -129,10 +142,20 @@ export function validateCMS1500(form: ClaimFormData): ClaimIssue[] {
     });
   });
 
-  if (!blank(form.federalTaxId) && !TAX_ID_RE.test(form.federalTaxId.trim())) {
-    err("25", "Box 25: federal tax I.D. must be in XX-XXXXXXX form.");
+  // Box 25 — the type of tax I.D. decides the shape of the number. A payer
+  // rejects the box with no indicator, so a blank type is an error, and the
+  // message names the type the student chose.
+  if (blank(form.federalTaxIdType)) {
+    err("25", "Box 25: say whether the federal tax I.D. is an SSN or an EIN — a payer rejects box 25 with no indicator.");
+  } else if (blank(form.federalTaxId)) {
+    err("25", "Box 25: federal tax I.D. number is required.");
+  } else if (form.federalTaxIdType === "SSN") {
+    if (!SSN_RE.test(form.federalTaxId.trim())) {
+      err("25", "Box 25: an SSN must be in XXX-XX-XXXX form.");
+    }
+  } else if (!TAX_ID_RE.test(form.federalTaxId.trim())) {
+    err("25", "Box 25: an EIN must be in XX-XXXXXXX form.");
   }
-  if (blank(form.federalTaxId)) err("25", "Box 25: federal tax I.D. number is required.");
 
   const lineTotal = lines.reduce((sum, l) => sum + money(l.charge), 0);
   if (money(form.totalCharge) <= 0) {
@@ -161,8 +184,12 @@ export function validateCMS1500(form: ClaimFormData): ClaimIssue[] {
   if (blank(form.priorAuthNumber)) {
     warn("23", "Box 23: no prior authorization number — leave blank only if the payer does not require one.");
   }
+  // Box 15 — a date with no QUAL. qualifier is invalid on a real claim.
+  if (!blank(form.similarIllnessDate) && blank(form.similarIllnessQualifier)) {
+    warn("15", "Box 15: a date needs its QUAL. qualifier.");
+  }
   if (!blank(form.resubmissionCode) && blank(form.originalClaimNumber)) {
-    err("22a", "Box 22a: a corrected or voided claim must quote the original reference number.");
+    err("22", "Box 22: a corrected or voided claim must quote the ORIGINAL REF. NO.");
   }
 
   return issues;

@@ -5,7 +5,7 @@
  * Sources, box by box:
  *   2, 3, 5, 26  patient demographics (patientStore)
  *   1a, 4, 6, 7, 11, 11a, 11c  the patient's insurance record (`insuranceRecord`)
- *   1, 9, 9a, 11d               the payer on that record, plus any secondary plan
+ *   1, 9, 9a–9d                the payer on that record, plus any secondary plan
  *   payerName, payerEdiId       the payer name and EDI payer ID — what the UB-04
  *                               prints in boxes 50 and 51, carried on the claim
  *                               so the institutional paper has a real source
@@ -73,11 +73,16 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
     insuredAddress: "",
     otherInsuranceName: "",
     otherInsurancePlan: "",
+    otherInsuredPolicyGroup: "",
+    otherInsuredDob: "",
+    otherInsuredSex: "",
     conditionEmployment: false,
     conditionAuto: false,
     conditionOther: false,
+    claimCodes: "",
     insuredPolicyGroup: "",
     insuredDob: "",
+    insuredSex: "",
     insuredEmployer: "",
     otherClaimId: "",
     insuredPlanName: "",
@@ -92,6 +97,7 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
     patientSignature: true,
     insuredSignature: false,
     currentIllnessDate: today(),
+    similarIllnessQualifier: "",
     similarIllnessDate: "",
     unableToWorkFrom: "",
     unableToWorkTo: "",
@@ -108,6 +114,7 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
     priorAuthNumber: "",
     serviceLines: [],
     federalTaxId: provider.taxId,
+    federalTaxIdType: provider.taxIdType,
     patientAccountNumber: "",
     acceptAssignment: "Yes",
     totalCharge: 0,
@@ -138,6 +145,8 @@ export function blankServiceLine(
     diagnosisPointer: "A",
     charge: 0,
     units: 1,
+    // 24J is an NPI on every path this app builds, so 24I is XX by default.
+    idQualifier: "XX",
     renderingNpi: provider.npi,
   };
 }
@@ -158,7 +167,11 @@ function buildServiceLines(
   encounterDate: string,
 ): ClaimServiceLine[] {
   if (pipeline.codingLines && pipeline.codingLines.length > 0) {
-    return pipeline.codingLines.slice(0, 6).map((l) => ({ ...l }));
+    // A Coder line arrives without 24I, because the qualifier is not the
+    // Coder's decision: 24J is an NPI on every path, so 24I is XX.
+    return pipeline.codingLines
+      .slice(0, 6)
+      .map((l) => ({ ...l, idQualifier: l.idQualifier || "XX" }));
   }
   const codes = pipeline.cptCodes ?? [];
   return codes.slice(0, 6).map((code, i) => {
@@ -171,6 +184,7 @@ function buildServiceLines(
       diagnosisPointer: String.fromCharCode(65 + Math.min(i, 11)),
       charge: cpt?.medicareRate ?? 0,
       units: 1,
+      idQualifier: "XX",
       renderingNpi: provider.npi,
     };
   });
@@ -260,16 +274,27 @@ export function patientIdentityBoxes(
     insuredAddress: patient?.address ?? "",
     insuredPolicyGroup: coverage?.groupNumber?.trim() ?? "",
     insuredDob: coverage?.subscriberDob?.trim() || (isSelf ? patient?.dateOfBirth ?? "" : ""),
+    // Box 11a's SEX sits beside the insured's date of birth. For Self it is the
+    // patient's own sex; for a dependant it stays blank until the subscriber's
+    // sex is captured on the coverage record — registration captures the
+    // patient's, not the subscriber's, so nothing is invented here.
+    insuredSex: isSelf
+      ? patient?.gender
+        ? patient.gender.charAt(0).toUpperCase()
+        : ""
+      : coverage?.subscriberSex?.trim().charAt(0).toUpperCase() ?? "",
     insuredPlanName: coverage?.planName?.trim() || payerName,
     // Boxes 50 / 51 on the UB-04 — carried on the claim so the institutional
     // paper reads the payer from the same record the CMS-1500 uses.
     payerName,
     payerEdiId: coverage?.ediPayerId?.trim() ?? "",
-    // Boxes 9 / 9a / 11d — other coverage, when registration captured any.
+    // Boxes 9 / 9a / 9b / 9d — other coverage, when registration captured any.
+    // 9d is the plan name only; the group number has its own box (9a) now.
     otherInsuranceName: secondary?.payerName?.trim() ?? "",
-    otherInsurancePlan: [secondary?.planName?.trim(), secondary?.groupNumber?.trim()]
-      .filter(Boolean)
-      .join(" · "),
+    otherInsurancePlan: secondary?.planName?.trim() ?? "",
+    otherInsuredPolicyGroup: secondary?.groupNumber?.trim() ?? "",
+    otherInsuredDob: secondary?.subscriberDob?.trim() ?? "",
+    otherInsuredSex: secondary?.subscriberSex?.trim().charAt(0).toUpperCase() ?? "",
     otherBenefitPlan: secondary ? "Yes" : "No",
     patientAccountNumber: patient?.mrn ?? "",
   };

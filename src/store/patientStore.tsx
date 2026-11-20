@@ -142,6 +142,13 @@ export interface InsuranceCoverage {
   subscriberName?: string;
   /** Subscriber's date of birth, when it differs from the patient's. */
   subscriberDob?: string;
+  /**
+   * Subscriber's sex (M / F), for CMS-1500 box 9b / 11a on a dependant's claim.
+   * Registration captures the patient's sex, not the subscriber's, so this
+   * stays empty unless it was captured — and then the box stays blank rather
+   * than showing the patient's.
+   */
+  subscriberSex?: string;
   /** Plan or program name (CMS-1500 box 11c). */
   planName?: string;
 }

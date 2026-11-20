@@ -38,6 +38,7 @@ export function emptyCoverage(): InsuranceCoverage {
     relationshipToSubscriber: "Self",
     subscriberName: "",
     subscriberDob: "",
+    subscriberSex: "",
     planName: "",
   };
 }
@@ -68,6 +69,7 @@ function normaliseCoverage(coverage: Partial<InsuranceCoverage> | null | undefin
       : base.relationshipToSubscriber,
     subscriberName: (coverage.subscriberName ?? "").trim(),
     subscriberDob: (coverage.subscriberDob ?? "").trim(),
+    subscriberSex: (coverage.subscriberSex ?? "").trim().toUpperCase(),
     planName: (coverage.planName ?? "").trim(),
   };
 }

@@ -57,6 +57,12 @@ export interface ClaimBox {
    * Due" was the 12/90 form and never came back.
    */
   reserved?: boolean;
+  /**
+   * A box whose values print one above the other instead of side by side.
+   * Box 22 is the one: the resubmission code with `ORIGINAL REF. NO.` printed
+   * beneath it, in a single cell — there is no separate 22a box on the 02/12.
+   */
+  stack?: boolean;
   /** Structural boxes: the A–L diagnosis grid, the service table, a band. */
   structural?: "pointerGrid" | "table" | "band";
   /** Columns out of 12. */
@@ -115,6 +121,42 @@ export const SEX_OPTIONS: ClaimBoxOption[] = [
   { value: "", label: "—" },
   { value: "M", label: "M" },
   { value: "F", label: "F" },
+];
+
+/** Box 24C — emergency indicator. Blank is the normal state. */
+export const EMG_OPTIONS: ClaimBoxOption[] = [
+  { value: "", label: "—" },
+  { value: "Y", label: "Y" },
+];
+
+/**
+ * Box 15's `QUAL.` — a teaching subset of the NUCC "other date" qualifiers.
+ * The paper prints only `QUAL.`; the codes come from the form's instructions.
+ * Illustrative, not the full list: extend only after checking the printed
+ * instructions.
+ */
+export const OTHER_DATE_QUALIFIERS: ClaimBoxOption[] = [
+  { value: "431", label: "431 — ONSET OF CURRENT SYMPTOMS OR ILLNESS" },
+  { value: "484", label: "484 — LAST MENSTRUAL PERIOD" },
+  { value: "454", label: "454 — INITIAL TREATMENT" },
+  { value: "304", label: "304 — LATEST VISIT OR CONSULTATION" },
+];
+
+/**
+ * Box 24I's ID qualifier — a teaching subset of the NUCC list. `XX` (NPI) is
+ * the only one this app fills, because 24J is an NPI on every path.
+ */
+export const ID_QUALIFIER_OPTIONS: ClaimBoxOption[] = [
+  { value: "XX", label: "XX — NPI" },
+  { value: "1D", label: "1D — MEDICAID ID" },
+  { value: "0B", label: "0B — STATE LICENSE" },
+  { value: "G2", label: "G2 — PROVIDER COMMERCIAL NUMBER" },
+];
+
+/** Box 25 — which kind of federal tax I.D. the number is. */
+export const TAX_ID_TYPE_OPTIONS: ClaimBoxOption[] = [
+  { value: "EIN", label: "EIN" },
+  { value: "SSN", label: "SSN" },
 ];
 
 /** Box 24B — the place-of-service codes the paper offers. */
@@ -232,7 +274,7 @@ export const CMS1500_LAYOUT: ClaimLayout = {
       cells: [
         {
           id: "9",
-          label: "9. OTHER INSURED'S NAME",
+          label: "9. OTHER INSURED'S NAME (Last Name, First Name, Middle Initial)",
           colSpan: 4,
           fields: [{ field: "otherInsuranceName", kind: "text" }],
         },
@@ -251,6 +293,39 @@ export const CMS1500_LAYOUT: ClaimLayout = {
             { field: "conditionAuto", label: "b. AUTO ACCIDENT?" },
             { field: "conditionOther", label: "c. OTHER ACCIDENT?" },
           ],
+          // 10d has no upstream source and no demo value: a fabricated claim
+          // code declares an attachment that does not exist.
+          fields: [
+            { field: "claimCodes", kind: "text", label: "10d. CLAIM CODES (Designated by NUCC)" },
+          ],
+        },
+      ],
+    },
+    {
+      // The 9 block prints on two rows here: the row model is horizontal, so
+      // 9a / 9b / 9d sit beneath 9 / 9c / 10 instead of inside one tall cell.
+      heightMm: 11,
+      cells: [
+        {
+          id: "9a",
+          label: "9a. OTHER INSURED'S POLICY OR GROUP NUMBER",
+          colSpan: 4,
+          fields: [{ field: "otherInsuredPolicyGroup", kind: "text" }],
+        },
+        {
+          id: "9b",
+          label: "9b. OTHER INSURED'S DATE OF BIRTH  SEX",
+          colSpan: 4,
+          fields: [
+            { field: "otherInsuredDob", kind: "date", flex: 2 },
+            { field: "otherInsuredSex", kind: "select", options: SEX_OPTIONS, flex: 1, label: "SEX" },
+          ],
+        },
+        {
+          id: "9d",
+          label: "9d. INSURANCE PLAN NAME OR PROGRAM NAME",
+          colSpan: 4,
+          fields: [{ field: "otherInsurancePlan", kind: "text" }],
         },
       ],
     },
@@ -265,9 +340,12 @@ export const CMS1500_LAYOUT: ClaimLayout = {
         },
         {
           id: "11a",
-          label: "11a. INSURED'S DATE OF BIRTH",
+          label: "11a. INSURED'S DATE OF BIRTH  SEX",
           colSpan: 5,
-          fields: [{ field: "insuredDob", kind: "date" }],
+          fields: [
+            { field: "insuredDob", kind: "date", flex: 2 },
+            { field: "insuredSex", kind: "select", options: SEX_OPTIONS, flex: 1, label: "SEX" },
+          ],
         },
       ],
     },
@@ -322,9 +400,12 @@ export const CMS1500_LAYOUT: ClaimLayout = {
         },
         {
           id: "15",
-          label: "15. OTHER DATE",
+          label: "15. OTHER DATE  QUAL.",
           colSpan: 4,
-          fields: [{ field: "similarIllnessDate", kind: "date" }],
+          fields: [
+            { field: "similarIllnessQualifier", kind: "select", options: OTHER_DATE_QUALIFIERS, flex: 1, label: "QUAL." },
+            { field: "similarIllnessDate", kind: "date", flex: 2 },
+          ],
         },
         {
           id: "16",
@@ -387,29 +468,6 @@ export const CMS1500_LAYOUT: ClaimLayout = {
       ],
     },
     {
-      heightMm: 11,
-      cells: [
-        {
-          id: "22",
-          label: "22. RESUBMISSION CODE",
-          colSpan: 3,
-          fields: [{ field: "resubmissionCode", kind: "select", options: RESUBMISSION_OPTIONS }],
-        },
-        {
-          id: "22a",
-          label: "22a. ORIGINAL REF. NO.",
-          colSpan: 4,
-          fields: [{ field: "originalClaimNumber", kind: "text" }],
-        },
-        {
-          id: "23",
-          label: "23. PRIOR AUTHORIZATION NUMBER",
-          colSpan: 5,
-          fields: [{ field: "priorAuthNumber", kind: "text" }],
-        },
-      ],
-    },
-    {
       heightMm: 22,
       cells: [
         {
@@ -422,11 +480,35 @@ export const CMS1500_LAYOUT: ClaimLayout = {
       ],
     },
     {
+      // Box 22 prints below 21, as it does on the 02/12. One cell, two stacked
+      // values: the resubmission code with ORIGINAL REF. NO. beneath it. There
+      // is no separate 22a box — the field key is kept so saved values survive.
+      heightMm: 14,
+      cells: [
+        {
+          id: "22",
+          label: "22. MEDICAID RESUBMISSION CODE",
+          colSpan: 7,
+          stack: true,
+          fields: [
+            { field: "resubmissionCode", kind: "select", options: RESUBMISSION_OPTIONS, label: "MEDICAID RESUBMISSION CODE" },
+            { field: "originalClaimNumber", kind: "text", label: "ORIGINAL REF. NO." },
+          ],
+        },
+        {
+          id: "23",
+          label: "23. PRIOR AUTHORIZATION NUMBER",
+          colSpan: 5,
+          fields: [{ field: "priorAuthNumber", kind: "text" }],
+        },
+      ],
+    },
+    {
       heightMm: 52,
       cells: [
         {
           id: "24",
-          label: "24. SERVICE LINES — A. DATE(S) OF SERVICE  B. PLACE OF SERVICE  D. CPT/HCPCS + MODIFIER  E. DIAGNOSIS POINTER  F. $ CHARGES  G. UNITS  J. RENDERING NPI",
+          label: "24. SERVICE LINES — A. DATE(S) OF SERVICE (From–To)  B. PLACE OF SERVICE  C. EMG  D. PROCEDURES, SERVICES, OR SUPPLIES (Explain Unusual Circumstances) CPT/HCPCS + MODIFIER  E. DIAGNOSIS POINTER  F. $ CHARGES  G. DAYS OR UNITS  H. EPSDT FAMILY PLAN  I. ID. QUAL.  J. RENDERING PROVIDER ID. #",
           colSpan: 12,
           structural: "table",
         },
@@ -437,9 +519,12 @@ export const CMS1500_LAYOUT: ClaimLayout = {
       cells: [
         {
           id: "25",
-          label: "25. FEDERAL TAX I.D. NUMBER",
+          label: "25. FEDERAL TAX I.D. NUMBER  SSN / EIN",
           colSpan: 4,
-          fields: [{ field: "federalTaxId", kind: "text" }],
+          fields: [
+            { field: "federalTaxIdType", kind: "select", options: TAX_ID_TYPE_OPTIONS, flex: 1 },
+            { field: "federalTaxId", kind: "text", flex: 3 },
+          ],
         },
         {
           id: "26",

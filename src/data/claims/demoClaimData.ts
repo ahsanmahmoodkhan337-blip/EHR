@@ -58,6 +58,13 @@ export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {
     value: "MEDICARE PART B",
     stage: "Registration & eligibility (plan name)",
   },
+  similarIllnessQualifier: {
+    box: "15",
+    // A date with no qualifier is invalid on a real claim, so the demo shows
+    // the pair as it must be sent — the qualifier is not optional in practice.
+    value: "431",
+    stage: "Scribe / provider — qualifier for the other date",
+  },
   similarIllnessDate: {
     box: "15",
     value: "2026-07-08",
