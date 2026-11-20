@@ -31,9 +31,11 @@ import {
   SCHEMA_VERSION,
   bootstrapEhrStore,
   flushEhrStore,
+  readChartFromIdb,
   useEhrStore,
   type ActivityEntry,
 } from "../store/ehrStore";
+import { RESET_GROUPS, buildResetExport, type ResetGroupId } from "../store/resetData";
 
 export const Route = createFileRoute("/settings")({
   // Same shell as every other page; the top bar's search needs the patient list.
@@ -61,28 +63,58 @@ function SettingsPage() {
   const exportUserData = useEhrStore((s) => s.exportUserData);
   const importUserData = useEhrStore((s) => s.importUserData);
 
-  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [chosen, setChosen] = useState<ResetGroupId[]>([]);
+  const [typed, setTyped] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [status, setStatus] = useState<Status>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
+  const cancelRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     bootstrapEhrStore(getLoggedInPhone());
   }, []);
 
-  const handleExport = () => {
-    const json = exportUserData();
-    const blob = new Blob([json], { type: "application/json" });
+  // The confirm button is never the default focus (spec: not the default).
+  useEffect(() => {
+    if (resetOpen) cancelRef.current?.focus();
+  }, [resetOpen]);
+
+  const download = (text: string, filename: string) => {
+    const blob = new Blob([text], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `hh-practice-data-${(phone ?? "local").replace(/\D/g, "") || "local"}-${new Date()
-      .toISOString()
-      .slice(0, 10)}.json`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  };
+
+  const phoneTag = (phone ?? "local").replace(/\D/g, "") || "local";
+
+  const handleExport = () => {
+    const json = exportUserData();
+    download(json, `hh-practice-data-${phoneTag}-${new Date().toISOString().slice(0, 10)}.json`);
     setStatus({ tone: "ok", message: "Exported. Keep that file to move your work to another computer." });
+  };
+
+  /** The copy the student keeps: every store the dialog lists, plus the chart. */
+  const handleResetExport = async () => {
+    setExporting(true);
+    setStatus(null);
+    try {
+      const json = await buildResetExport(
+        phone ?? "",
+        RESET_GROUPS.map((group) => group.id),
+        () => readChartFromIdb(phone ?? ""),
+      );
+      download(json, `hh-data-before-reset-${phoneTag}-${new Date().toISOString().slice(0, 10)}.json`);
+      setStatus({ tone: "ok", message: "Export saved. Check your downloads before you delete." });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleImport = async (file: File | undefined) => {
@@ -102,13 +134,37 @@ function SettingsPage() {
     });
   };
 
+  const chosenLabels = RESET_GROUPS.filter((group) => chosen.includes(group.id)).map(
+    (group) => group.label,
+  );
+  /** Why the delete button is off, in words the button itself carries. */
+  const blockedReason = exporting
+    ? "Wait for the export to finish."
+    : chosen.length === 0
+      ? "Choose at least one group to delete."
+      : typed.trim() !== "RESET"
+        ? "Type RESET to confirm."
+        : null;
+
   const handleReset = async () => {
-    await resetUserData();
-    setConfirmReset(false);
+    if (blockedReason) return;
+    const groups = [...chosen];
+    await resetUserData(groups);
+    // Reload what is left, so the screen shows the truth straight away.
+    bootstrapEhrStore(phone);
+    setResetOpen(false);
+    setChosen([]);
+    setTyped("");
     setStatus({
       tone: "ok",
-      message: "Practice data cleared. The built-in demo patients are still here.",
+      message: `Deleted: ${chosenLabels.join(", ")}. Nothing else was touched.`,
     });
+  };
+
+  const closeReset = () => {
+    setResetOpen(false);
+    setChosen([]);
+    setTyped("");
   };
 
   if (!loggedIn || !phone) {
@@ -127,6 +183,7 @@ function SettingsPage() {
   }
 
   return (
+    <>
     <AppShell
       track="medical"
       activeNav="settings"
@@ -260,43 +317,15 @@ function SettingsPage() {
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
             <RotateCcw className="h-4 w-4 text-red-600" /> Reset my practice data
           </h2>
-          {!confirmReset ? (
-            <>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Clears every patient you registered, every appointment you booked and all workflow
-                state on this device. The built-in demo patients stay.
-              </p>
-              <button
-                onClick={() => setConfirmReset(true)}
-                className="mt-3 flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
-              >
-                <RotateCcw className="h-3.5 w-3.5" /> Reset my practice data
-              </button>
-            </>
-          ) : (
-            <div className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3">
-              <p className="text-xs font-semibold text-red-800">
-                Delete all of your practice data on this device?
-              </p>
-              <p className="mt-1 text-[11px] text-red-700">
-                This cannot be undone. Export a copy first if you want to keep your work.
-              </p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => void handleReset()}
-                  className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
-                >
-                  Yes, reset my data
-                </button>
-                <button
-                  onClick={() => setConfirmReset(false)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+          <p className="mt-1 text-[11px] text-slate-500">
+            You choose what to delete. Nothing you did not tick is touched.
+          </p>
+          <button
+            onClick={() => setResetOpen(true)}
+            className="mt-3 flex min-h-[40px] items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Reset my practice data
+          </button>
         </section>
 
         <p className="pb-4 text-center text-[10px] text-slate-400">
@@ -305,6 +334,113 @@ function SettingsPage() {
         </div>
       </div>
     </AppShell>
+
+      {resetOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") closeReset();
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-title"
+            className="max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-4 shadow-xl sm:max-w-lg sm:rounded-2xl"
+          >
+            <h2 id="reset-title" className="text-sm font-semibold text-slate-800">
+              Delete saved data
+            </h2>
+            <p className="mt-1 text-[11px] text-slate-500">
+              This cannot be undone. Export a copy first if you want to keep your work.
+            </p>
+
+            <fieldset className="mt-3">
+              <legend className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                What to delete
+              </legend>
+              <ul className="mt-1 divide-y divide-slate-100">
+                {RESET_GROUPS.map((group) => {
+                  const checked = chosen.includes(group.id);
+                  return (
+                    <li key={group.id}>
+                      <label className="flex min-h-[44px] cursor-pointer items-start gap-2 py-2">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setChosen((prev) =>
+                              prev.includes(group.id)
+                                ? prev.filter((id) => id !== group.id)
+                                : [...prev, group.id],
+                            )
+                          }
+                          className="mt-0.5 h-4 w-4 shrink-0 accent-red-600"
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-xs font-semibold text-slate-700">
+                            {group.label}
+                          </span>
+                          <span className="block text-[11px] leading-snug text-slate-500">
+                            {group.holds}
+                          </span>
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </fieldset>
+
+            <button
+              onClick={() => void handleResetExport()}
+              disabled={exporting}
+              className="mt-3 flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {exporting ? "Preparing export…" : "Download my data (JSON)"}
+            </button>
+
+            <label className="mt-3 block">
+              <span className="text-[11px] font-semibold text-slate-600">
+                Type RESET to confirm
+              </span>
+              <input
+                type="text"
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="RESET"
+                className="mt-1 min-h-[40px] w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+              />
+            </label>
+
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <button
+                onClick={() => void handleReset()}
+                disabled={blockedReason !== null}
+                title={blockedReason ?? undefined}
+                aria-describedby="reset-blocked"
+                className="min-h-[40px] flex-1 rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+              >
+                Delete {chosenLabels.length > 0 ? `${chosenLabels.length} selected` : "selected data"}
+              </button>
+              <button
+                ref={cancelRef}
+                onClick={closeReset}
+                className="min-h-[40px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+              >
+                Cancel
+              </button>
+            </div>
+            <p id="reset-blocked" className="mt-2 text-[10px] text-slate-500" aria-live="polite">
+              {blockedReason ?? `Deletes: ${chosenLabels.join(", ")}.`}
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

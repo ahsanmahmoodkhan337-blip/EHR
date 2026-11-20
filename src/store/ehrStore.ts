@@ -32,10 +32,11 @@
 
 import { useMemo } from "react";
 import { create } from "zustand";
-import { createStore as createIdbStore, get as idbGet, set as idbSet } from "idb-keyval";
+import { createStore as createIdbStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import type { Patient, CaseState, PatientInsurance } from "./patientStore";
 import { deriveInsuranceRecord } from "../utils/insuranceRecord";
 import { markFailed, markSaved, markSaving } from "./autosave";
+import { deleteGroupStores, resetInMemory, type ResetGroupId } from "./resetData";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -617,6 +618,20 @@ async function readEnvelope(phone: string): Promise<unknown | null> {
   return newestOf(fromIdb, fromLs);
 }
 
+/**
+ * The chart record as IndexedDB holds it — used by the reset dialog's JSON
+ * export, which must hold the chart as it is before anything is deleted.
+ */
+export async function readChartFromIdb(phone: string): Promise<unknown> {
+  if (!hasIndexedDb()) return null;
+  try {
+    return (await idbGet(`${IDB_KEY_PREFIX}${phone}`, idbStore)) ?? null;
+  } catch (e) {
+    console.warn("ehrStore: could not read the chart from IndexedDB for export", e);
+    return null;
+  }
+}
+
 /** Set false the first time the mirror is rejected (quota), so a full
  * localStorage does not throw on every save for the rest of the session. */
 let mirrorEnabled = true;
@@ -712,7 +727,11 @@ interface EhrState {
     entry: Omit<ActivityEntry, "time" | "role" | "user"> & { role?: string },
   ) => void;
 
-  resetUserData: () => Promise<void>;
+  /**
+   * Delete exactly the reset groups the student checked (specs/reset-data-safety.md).
+   * The dialog's list is the delete list: anything it did not show stays.
+   */
+  resetUserData: (groups: readonly ResetGroupId[]) => Promise<void>;
   exportUserData: () => string;
   importUserData: (json: string) => { ok: boolean; error?: string; counts?: Record<string, number> };
 }
@@ -774,6 +793,12 @@ function envelopeFor(phone: string, user: UserData): EhrEnvelope {
   };
 }
 
+/**
+ * Phones whose chart the student just deleted. The next load must start empty
+ * rather than absorb the legacy keys back into a chart that was cleared.
+ */
+const clearedCharts = new Set<string>();
+
 export const useEhrStore = create<EhrState>()((set, get) => ({
   hydrated: false,
   phone: null,
@@ -807,6 +832,10 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
     if (stored) {
       const migrated = migrateEnvelope(stored);
       user = migrated ? migrated.user : emptyUser();
+    } else if (clearedCharts.has(phone)) {
+      // The student deleted the chart: do not pull the legacy keys back in.
+      clearedCharts.delete(phone);
+      user = emptyUser();
     } else {
       // First load for this student — absorb the legacy keys rather than orphan them.
       user = absorbLegacyKeys(phone);
@@ -1154,20 +1183,50 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
     }));
   },
 
-  resetUserData: async () => {
+  resetUserData: async (groups) => {
     const { phone } = get();
-    set({ user: emptyUser() });
-    if (phone) {
-      // Remove the legacy keys too, so a reset cannot resurrect old work on the
-      // next load (the store now owns this phone's data).
-      try {
-        localStorage.removeItem(`${LEGACY_MEDICAL_PREFIX}${phone}`);
-        localStorage.removeItem(`${LEGACY_DENTAL_PREFIX}${phone}`);
-      } catch (e) {
-        console.warn("ehrStore: could not clear legacy keys", e);
-      }
-      await writeEnvelope(phone, envelopeFor(phone, emptyUser()));
+    if (!phone) return;
+    const wanted = new Set(groups);
+
+    // A pending debounced save would write the deleted work straight back, so
+    // cancel it first, then blank the in-memory slices the groups cover.
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
     }
+    resetInMemory(groups);
+
+    if (wanted.has("chart")) {
+      // Blank the chart in memory and stop the autosave from recreating the key:
+      // an unhydrated store with no records is exactly what a new student has.
+      clearedCharts.add(phone);
+      set({ phone: null, hydrated: false, user: emptyUser() });
+    } else {
+      set((s) => ({
+        user: {
+          ...s.user,
+          // The absorbed copies of the deleted keys must not survive inside the
+          // chart envelope — that is how deleted work came back on the next load.
+          legacy: wanted.has("encounters") ? null : s.user.legacy,
+          dental: wanted.has("dental") ? null : s.user.dental,
+        },
+      }));
+    }
+
+    // Delete exactly the listed stores. localStorage here; IndexedDB for the
+    // chart, which is this module's to reach.
+    deleteGroupStores(phone, groups);
+    if (wanted.has("chart") && hasIndexedDb()) {
+      try {
+        await idbDel(`${IDB_KEY_PREFIX}${phone}`, idbStore);
+      } catch (e) {
+        console.warn("ehrStore: could not delete the chart from IndexedDB", e);
+      }
+    }
+
+    // Keep the chart that was not deleted current: it must not reload the
+    // absorbed copies of the keys just removed.
+    if (!wanted.has("chart")) await writeEnvelope(phone, envelopeFor(phone, get().user));
   },
 
   exportUserData: () => {

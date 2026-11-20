@@ -35,6 +35,7 @@ import {
 } from "../../data/medical";
 import { getLoggedInPhone } from "../../store/accessStore";
 import { writeAutosaved } from "../../store/autosave";
+import { registerResetHandler } from "../../store/resetData";
 
 /** Stage spine for the case runner. "case-select"/"briefing"/"debrief" frame the seven RCM stages. */
 export type MedicalCaseStageName =
@@ -405,8 +406,27 @@ export function MedicalCaseProvider({ children }: { children: ReactNode }) {
     }
   }, [phone]);
 
+  // A reset deletes the graded case record. Blank it in memory in the same step
+  // and keep that blank state out of the debounced save and the unmount flush,
+  // so the deleted answers cannot be written back.
+  const resetState = useRef<MedicalCaseState | null>(null);
+  useEffect(
+    () =>
+      registerResetHandler("graded", () => {
+        if (saveTimer.current) {
+          clearTimeout(saveTimer.current);
+          saveTimer.current = null;
+        }
+        const fresh = freshState();
+        resetState.current = fresh;
+        setState(fresh);
+      }),
+    [],
+  );
+
   // Debounced persisted save keyed by phone.
   useEffect(() => {
+    if (resetState.current && state === resetState.current) return;
     const key = keyFor(phone);
     if (!key) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -428,6 +448,7 @@ export function MedicalCaseProvider({ children }: { children: ReactNode }) {
   latestState.current = state;
   useEffect(() => {
     return () => {
+      if (resetState.current && latestState.current === resetState.current) return;
       const key = keyFor(phoneRef.current);
       if (!key) return;
       writeAutosaved(key, JSON.stringify(latestState.current), "Medical case");

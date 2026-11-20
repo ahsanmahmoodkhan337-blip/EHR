@@ -32,6 +32,7 @@ import {
 } from "../../data/dental";
 import { getLoggedInPhone } from "../../store/accessStore";
 import { writeAutosaved } from "../../store/autosave";
+import { registerResetHandler } from "../../store/resetData";
 import type { ADAFormData } from "../../data/claims/adaLayout";
 import { mintClaimNumber, nextClaimNumber, type ClaimStatus } from "../../domain/claimStatus";
 import { buildSubmissionEvents, type ClaimTrack } from "../../domain/clearinghouse";
@@ -676,8 +677,27 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     }
   }, [phone]);
 
+  // A reset deletes the stored track. Blank it in memory in the same step, and
+  // keep that blank state out of both the debounced save and the unmount flush,
+  // so a deleted record cannot be written straight back.
+  const resetState = useRef<DentalTrackState | null>(null);
+  useEffect(
+    () =>
+      registerResetHandler("dental", () => {
+        if (saveTimer.current) {
+          clearTimeout(saveTimer.current);
+          saveTimer.current = null;
+        }
+        const fresh = freshState();
+        resetState.current = fresh;
+        setState(fresh);
+      }),
+    [],
+  );
+
   // Debounced persisted save keyed by phone.
   useEffect(() => {
+    if (resetState.current && state === resetState.current) return;
     const key = keyFor(phone);
     if (!key) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -698,6 +718,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
   latestState.current = state;
   useEffect(() => {
     return () => {
+      if (resetState.current && latestState.current === resetState.current) return;
       const key = keyFor(phoneRef.current);
       if (!key) return;
       writeAutosaved(key, JSON.stringify(latestState.current), "Dental case");

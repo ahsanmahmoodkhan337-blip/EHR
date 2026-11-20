@@ -16,9 +16,10 @@
  * its ledger and worklists are legitimately multi-patient, so they stay global.
  */
 
-import { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { getLoggedInPhone } from "./accessStore";
 import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persistence";
+import { registerResetHandler } from "./resetData";
 import {
   createEncounter,
   encounterEventId,
@@ -338,8 +339,26 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // A reset blanks this state in memory. The blank state must not be saved on
+  // the next tick either — the debounce below would recreate the deleted key.
+  const skipNextSave = useRef(false);
+  useEffect(
+    () =>
+      registerResetHandler("encounters", () => {
+        skipNextSave.current = true;
+        setStore(normalizePipelineStore(undefined, "scribe"));
+        setDeniedClaims([]);
+        setArCalls([]);
+        setPaRecords([]);
+      }),
+    [],
+  );
   // Debounced save whenever encounter/AR/PA state changes.
   useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
     const phone = getLoggedInPhone();
     if (!phone) return;
     const t = setTimeout(
