@@ -30,6 +30,7 @@ import {
   LayoutGrid,
   ListChecks,
   Mic,
+  PanelRightClose,
   Receipt,
   RefreshCw,
   Scale,
@@ -49,8 +50,9 @@ import { isSessionSuperseded } from "../store/accountSecurity";
 import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
 import { WorkflowTracker } from "../components/WorkflowTracker";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
-import { Header } from "../components/TabsEpic/Header";
-import { PatientBanner } from "../components/TabsEpic/PatientBanner";
+import { PatientBanner } from "../components/shell/PatientBanner";
+import { consumeRequestedPatient } from "../components/shell/pendingPatient";
+import type { ShellNavId } from "../components/shell/navItems";
 import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
 import { WorkflowAthena } from "../components/WorkflowAthena/WorkflowAthena";
 import { StatusTimeline } from "../components/status/StatusTimeline";
@@ -1346,14 +1348,13 @@ function PublicLandingPage() {
 // ─── Main Layout ───────────────────────────────────────────────────
 
 function Home() {
-  const businessName = "Healthcare Hustlers";
   const { patients, caseStates } = usePatientStore();
   const { activeTab, setActiveTab } = useTabsEpic("summary");
   const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("schedule");
   const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, setRole, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, state: pipelineState } = usePipeline();
 
   // ── Right-panel financial KPIs — derived from REAL pipeline data ──
   // (was hardcoded 12500/8700/2400/32 demo figures)
@@ -1365,6 +1366,21 @@ function Home() {
   const hasFinancialActivity = billedTotal > 0 || deniedTotal > 0 || pipelineState.status !== "pending";
   const { addToast } = useToast();
   const [activeStage, setActiveStage] = useState("registration");
+
+  // A patient picked from the shell's search while another page was open lands
+  // here: open that chart once, then drop the request. Declared with the other
+  // hooks, above every early return, so the hook order never changes.
+  useEffect(() => {
+    const requested = consumeRequestedPatient();
+    if (!requested) return;
+    const match = patients.find((p) => p.id === requested);
+    if (!match) return;
+    setSelectedPatientId(match.id);
+    selectPatient(match.id);
+    setActiveWorkspace("chart");
+    // Mount only — the handoff is consumed exactly once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [examMode, setExamMode] = useState(false);
   const [isLoadingPatient] = useState(false);
@@ -1949,28 +1965,51 @@ function Home() {
     toast(p.firstName + " " + p.lastName + " loaded");
   };
 
+  // Which sidebar item matches the workspace on screen.
+  const shellActiveNav: ShellNavId | null =
+    activeWorkspace === "schedule"
+      ? "schedule"
+      : activeWorkspace === "chart"
+        ? "patients"
+        : activeWorkspace === "note"
+          ? "charts"
+          : null;
+
   return (
     <AppShell
-      header={
-        <>
-          <Header
-            businessName={businessName}
-            selectedPatientId={selectedPatientId}
-            onPatientSelect={handlePatientSelect}
-            showRightPanel={showRightPanel}
-            onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
-            selectedPatientName={
-              selectedPatient
-                ? `${displayName || `${selectedPatient.lastName}, ${selectedPatient.firstName}`}`
-                : undefined
-            }
-            examMode={examMode}
-            examTimeRemaining={examTimeRemaining}
-            onToggleExamMode={toggleExamMode}
-          />
-        </>
+      track="medical"
+      activeNav={shellActiveNav}
+      onWorkspaceSelect={(workspace) => setActiveWorkspace(workspace)}
+      selectedPatientId={selectedPatientId}
+      onPatientSelect={handlePatientSelect}
+      roleLabel={getRoleLabel(currentRole)}
+      examMode={examMode}
+      examTimeRemaining={examTimeRemaining}
+      onToggleExamMode={toggleExamMode}
+      topBarExtras={
+        <button
+          type="button"
+          onClick={() => setShowRightPanel(!showRightPanel)}
+          aria-label={showRightPanel ? "Hide patient summary panel" : "Show patient summary panel"}
+          title={showRightPanel ? "Hide patient summary panel" : "Show patient summary panel"}
+          aria-pressed={showRightPanel}
+          className={`flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 ${
+            showRightPanel
+              ? "bg-brand-600 text-white hover:bg-brand-500"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+          }`}
+        >
+          <PanelRightClose className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden xl:inline">Summary</span>
+        </button>
       }
-      banner={<PatientBanner patient={selectedPatient ?? null} fallbackName={displayName} />}
+      banner={
+        <PatientBanner
+          patient={selectedPatient ?? null}
+          fallbackName={displayName}
+          balanceDue={pipelineState.claimForm?.balanceDue}
+        />
+      }
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">

@@ -4,16 +4,19 @@
  * Inspired by: the owner-required separation between the medical and dental RCM
  * tracks. The dental track is independently accessible at /dental and never
  * imports from the medical stage components. It wraps the dental track store
- * and case runner, and exposes a Medical | Dental track switcher in its header.
+ * and case runner inside the one application shell (spec
+ * `task-1-app-shell.md` item 1) — the same sidebar, top bar and patient search
+ * every other page uses, instead of a header of its own.
  */
 
-import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Home, LogOut, Smile } from "lucide-react";
-import { isLoggedIn, logout } from "../store/accessStore";
+import { Smile } from "lucide-react";
+import { isLoggedIn } from "../store/accessStore";
+import { PatientProvider } from "../store/patientStore";
 import { DentalTrackProvider } from "../components/dental/DentalTrackStore";
 import { DentalCaseRunner } from "../components/dental/DentalCaseRunner";
-import { TrackSwitcher, type RcmTrack } from "../components/dental/TrackSwitcher";
+import { AppShell } from "../components/AppShell";
+import { requestPatientOpen } from "../components/shell/pendingPatient";
 
 export const Route = createFileRoute("/dental")({
   component: DentalTrackPage,
@@ -21,23 +24,17 @@ export const Route = createFileRoute("/dental")({
 
 function DentalTrackPage() {
   return (
-    <DentalTrackProvider>
-      <DentalTrackShell />
-    </DentalTrackProvider>
+    <PatientProvider>
+      <DentalTrackProvider>
+        <DentalTrackShell />
+      </DentalTrackProvider>
+    </PatientProvider>
   );
 }
 
 function DentalTrackShell() {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
-  const [track, setTrack] = useState<RcmTrack>("dental");
-
-  const handleTrackChange = (t: RcmTrack) => {
-    setTrack(t);
-    if (t === "medical") {
-      navigate({ to: "/" });
-    }
-  };
 
   if (!loggedIn) {
     return (
@@ -58,40 +55,19 @@ function DentalTrackShell() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-slate-100">
-      <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2 shadow-sm">
-        <div className="flex shrink-0 items-center gap-3">
-          <Link
-            to="/"
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-            title="Medical home"
-          >
-            <Home className="h-4 w-4" />
-          </Link>
-          <img src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers" className="h-7 w-auto" style={{ maxWidth: "120px" }} />
-          <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
-            Dental RCM
-          </span>
-        </div>
-
-        <TrackSwitcher track={track} onTrackChange={handleTrackChange} compact />
-
-        <button
-          onClick={() => {
-            logout();
-            navigate({ to: "/login" });
-          }}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
-          title="Logout"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Log out
-        </button>
-      </header>
-
-      <main className="min-h-0 flex-1 overflow-hidden">
+    <AppShell
+      track="dental"
+      activeNav="practice-cases"
+      onPatientSelect={(patientId) => {
+        // The dental track has no patient workspace of its own: open the chart
+        // in the medical workspace, where the patient record lives.
+        requestPatientOpen(patientId);
+        void navigate({ to: "/" });
+      }}
+    >
+      <div className="min-h-0 flex-1 overflow-hidden">
         <DentalCaseRunner />
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

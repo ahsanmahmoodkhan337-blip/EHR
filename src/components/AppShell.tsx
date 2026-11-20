@@ -1,36 +1,53 @@
 /**
- * AppShell — 3-Zone Layout Shell
+ * AppShell — the one application frame, used by every working page.
  *
- * Inspiration: Blended from Epic (top nav + chart area + right summary),
- * eCW (compact right-side patient summary), and Athenahealth (persistent
- * left workflow sidebar). Provides a consistent layout wrapper for the
- * entire EHR simulation.
+ * Inspiration: athenaOne's frame (one left navigation rail, one top bar, a
+ * work area that scrolls inside itself) with Epic Hyperspace's persistent
+ * patient banner and eClinicalWorks' right-hand patient summary.
  *
- * Layout Zones:
- * ┌─────────────────────────────────────────┐
- * │  Header (slot) — sticky top             │
- * ├──────────┬──────────────────┬───────────┤
- * │  Left    │  Main Content    │  Right    │
- * │  Panel   │  (flex-1)        │  Panel    │
- * │ (always) │                  │ (coll.)   │
- * ├──────────┴──────────────────┴───────────┤
- * │  Footer                                 │
- * └─────────────────────────────────────────┘
+ * Replaces the three separate headers the app used to carry (the medical
+ * workspace header, the dental track header and the medical-cases header):
  *
- * Props:
- * - header: Header component
- * - leftPanel: Persistent left sidebar (e.g. workflow) — always visible on desktop
- * - rightPanel: Collapsible right sidebar (e.g. patient summary)
- * - showRightPanel: Whether to show the right panel
- * - children: Main content area
+ * ┌────────┬──────────────────────────────────────────┐
+ * │        │  Top bar (search, track, role, timer…)   │  ← sticky
+ * │  Side  ├──────────────────────────────────────────┤
+ * │  bar   │  Patient banner (sticky under the bar)   │
+ * │        ├──────────┬────────────────────┬──────────┤
+ * │        │  Left    │  Work area         │  Right   │
+ * │        │  panel   │  (min-w-0, flex-1) │  panel   │
+ * └────────┴──────────┴────────────────────┴──────────┘
+ *
+ * The shell owns only the frame: navigation state, the collapsible rail, the
+ * top bar and where the banner sticks. Page content is passed in as children
+ * and is never restructured here.
  */
 
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { AppSidebar } from "./shell/AppSidebar";
+import { AppTopBar } from "./shell/AppTopBar";
+import type { ShellNavId, ShellTrack } from "./shell/navItems";
 import { WhatsAppFloat } from "./WhatsAppFloat";
 
+const COLLAPSE_KEY = "hh_shell_sidebar_collapsed";
+
 interface AppShellProps {
-  header: ReactNode;
-  /** Full-width strip rendered directly below the header (e.g. patient banner). */
+  /** Which revenue cycle the frame is serving. */
+  track: ShellTrack;
+  /** Sidebar item to mark as current, or null when none matches. */
+  activeNav?: ShellNavId | null;
+  /** Switches an in-page medical workspace (Schedule / Patients / Charts). */
+  onWorkspaceSelect?: (workspace: string) => void;
+
+  selectedPatientId?: string;
+  onPatientSelect?: (patientId: string) => void;
+  roleLabel?: string;
+  examMode?: boolean;
+  examTimeRemaining?: number;
+  onToggleExamMode?: () => void;
+  /** Route-specific top-bar controls (for example the summary toggle). */
+  topBarExtras?: ReactNode;
+
+  /** Full-width strip rendered directly below the top bar (patient banner). */
   banner?: ReactNode;
   leftPanel?: ReactNode;
   rightPanel?: ReactNode;
@@ -40,7 +57,16 @@ interface AppShellProps {
 }
 
 export function AppShell({
-  header,
+  track,
+  activeNav = null,
+  onWorkspaceSelect,
+  selectedPatientId,
+  onPatientSelect,
+  roleLabel,
+  examMode,
+  examTimeRemaining,
+  onToggleExamMode,
+  topBarExtras,
   banner,
   leftPanel,
   rightPanel,
@@ -48,40 +74,68 @@ export function AppShell({
   footer,
   children,
 }: AppShellProps) {
+  // The rail's collapsed state is a preference, so it survives a reload.
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(COLLAPSE_KEY) === "true";
+  });
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    window.localStorage.setItem(COLLAPSE_KEY, String(collapsed));
+  }, [collapsed]);
+
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
   return (
     <div className="app-shell">
-      {/* Top: Header */}
-      {header}
+      <AppSidebar
+        track={track}
+        activeNav={activeNav}
+        onWorkspaceSelect={onWorkspaceSelect}
+        collapsed={collapsed}
+        onToggleCollapsed={() => setCollapsed((value) => !value)}
+        mobileOpen={mobileOpen}
+        onCloseMobile={closeMobile}
+      />
 
-      {/* Below-header banner (persistent patient context) */}
-      {banner}
+      <div className="app-shell-main">
+        {/* Top bar + patient banner stay put while the work area scrolls */}
+        <div className="sticky top-0 z-40 shrink-0">
+          <AppTopBar
+            track={track}
+            selectedPatientId={selectedPatientId}
+            onPatientSelect={onPatientSelect}
+            roleLabel={roleLabel}
+            examMode={examMode}
+            examTimeRemaining={examTimeRemaining}
+            onToggleExamMode={onToggleExamMode}
+            onOpenSidebar={() => setMobileOpen(true)}
+            extras={topBarExtras}
+          />
+          {banner}
+        </div>
 
-      {/* Middle: 3-zone body */}
-      <div className="app-shell-body flex-1">
-        {/* Left panel — always visible on desktop when patient selected */}
-        {leftPanel && (
-          <aside className="hidden w-72 shrink-0 border-r border-slate-200 bg-white overflow-y-auto lg:block">
-            {leftPanel}
-          </aside>
-        )}
+        {/* Middle: 3-zone body */}
+        <div className="app-shell-body min-h-0 flex-1">
+          {leftPanel && (
+            <aside className="hidden w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-white lg:block dark:border-slate-800 dark:bg-slate-900">
+              {leftPanel}
+            </aside>
+          )}
 
-        {/* Center: Main content */}
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          {children}
-        </main>
+          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">{children}</main>
 
-        {/* Right panel — collapsible */}
-        {rightPanel && showRightPanel && (
-          <aside className="hidden w-72 shrink-0 border-l border-slate-200 overflow-y-auto xl:block">
-            {rightPanel}
-          </aside>
-        )}
+          {rightPanel && showRightPanel && (
+            <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-slate-200 xl:block dark:border-slate-800">
+              {rightPanel}
+            </aside>
+          )}
+        </div>
+
+        {footer}
       </div>
 
-      {/* Bottom: Footer */}
-      {footer}
-
-      {/* Floating WhatsApp Button */}
       <WhatsAppFloat />
     </div>
   );
