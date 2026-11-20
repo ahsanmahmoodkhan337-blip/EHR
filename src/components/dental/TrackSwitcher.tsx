@@ -66,11 +66,13 @@ export function TrackSwitcher({ track, onTrackChange, compact }: TrackSwitcherPr
             aria-pressed={active}
             aria-label={`${opt.label} track — ${opt.hint}`}
             onClick={() => onTrackChange(opt.id)}
-            className={`flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 sm:px-4 sm:text-sm ${
-              active ? opt.activeClass : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            }`}
+            className={`flex min-h-10 flex-1 items-center justify-center rounded-lg py-1.5 font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 ${
+              compact
+                ? "gap-1 px-2 text-[11px] sm:gap-1.5 sm:px-4 sm:text-sm"
+                : "gap-1.5 px-3 text-xs sm:px-4 sm:text-sm"
+            } ${active ? opt.activeClass : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"}`}
           >
-            <span aria-hidden="true" className="shrink-0">
+            <span aria-hidden="true" className={compact ? "hidden shrink-0 sm:inline" : "shrink-0"}>
               {opt.icon}
             </span>
             {opt.label}

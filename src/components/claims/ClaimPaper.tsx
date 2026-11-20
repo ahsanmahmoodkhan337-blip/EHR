@@ -47,8 +47,10 @@ export interface ClaimPaperProps {
 export function ClaimPaper({ layout, values, issues, table, set, note, demoFields }: ClaimPaperProps) {
   const bad = errorBoxes(issues);
 
+  // Full workspace width — the paper no longer shares its row with a side
+  // panel (spec phase-2-layout.md §4).
   return (
-    <div className="claim-paper mx-auto w-full max-w-[900px] bg-white" data-claim-paper>
+    <div className="claim-paper w-full bg-white" data-claim-paper>
       <div className="flex items-baseline justify-between border-b-2 border-form-red px-1 pb-1">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-form-red">{layout.title}</p>

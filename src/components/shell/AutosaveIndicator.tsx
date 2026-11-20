@@ -55,19 +55,35 @@ export function AutosaveIndicator() {
         title={`Not saved: ${snapshot.error ?? "the browser refused the write"}. Your work is still on this screen — it is not stored yet.`}
       >
         <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span className="whitespace-nowrap">Not saved</span>
+        <span className="hidden whitespace-nowrap sm:inline">Not saved</span>
         <span className="hidden max-w-[16rem] truncate font-normal opacity-90 sm:inline">
           — {snapshot.error ?? "the browser refused the write"}
         </span>
+        {/* A phone-width bar has no room for the words, so the warning becomes
+            the retry button itself: the triangle is the alert and pressing it
+            tries the write again. */}
         {canRetry() && (
           <button
             type="button"
             onClick={retryLastSave}
-            className="ml-0.5 flex min-h-10 items-center rounded-md bg-red-600 px-2 text-[11px] font-bold text-white hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            className="ml-0.5 hidden min-h-10 items-center rounded-md bg-red-600 px-2 text-[11px] font-bold text-white hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 sm:flex"
             aria-label="Try saving again"
           >
             Retry
           </button>
+        )}
+        {canRetry() ? (
+          <button
+            type="button"
+            onClick={retryLastSave}
+            className="flex h-10 w-10 items-center justify-center rounded bg-red-600 text-white hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 sm:hidden"
+            aria-label="Not saved — try saving again"
+            title="Not saved — try saving again"
+          >
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        ) : (
+          <span className="sr-only">Not saved</span>
         )}
       </div>
     );
@@ -82,7 +98,8 @@ export function AutosaveIndicator() {
         title={where(snapshot)}
       >
         <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
-        <span className="whitespace-nowrap">Saving…</span>
+        <span className="hidden whitespace-nowrap sm:inline">Saving…</span>
+        <span className="sr-only">Saving…</span>
       </span>
     );
   }
@@ -97,9 +114,10 @@ export function AutosaveIndicator() {
         title={`${where(snapshot)} Last save ${new Date(snapshot.savedAt).toLocaleString()}.`}
       >
         <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span className="whitespace-nowrap">
+        <span className="hidden whitespace-nowrap sm:inline">
           Saved <span className="tabular-nums">{time}</span>
         </span>
+        <span className="sr-only">Saved {time}</span>
       </span>
     );
   }
@@ -111,7 +129,8 @@ export function AutosaveIndicator() {
       title={`${where(snapshot)} Nothing has been saved yet in this session.`}
     >
       <Save className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      <span className="whitespace-nowrap">Autosave on</span>
+      <span className="hidden whitespace-nowrap sm:inline">Autosave on</span>
+      <span className="sr-only">Autosave on</span>
     </span>
   );
 }

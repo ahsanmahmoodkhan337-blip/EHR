@@ -98,6 +98,8 @@ export function BillingLedger() {
   const [transmitProgress, setTransmitProgress] = useState(0);
   /** The modifier-25 edit check, reported after acceptance as an edit, not an outcome. */
   const [modifierWarning, setModifierWarning] = useState(false);
+  /** The supporting calculator drawer — pulled open over the full-width paper. */
+  const [calcOpen, setCalcOpen] = useState(false);
   /** The top of the claim paper — where a rejected claim sends the student back to. */
   const formTopRef = useRef<HTMLDivElement | null>(null);
 
@@ -598,7 +600,7 @@ export function BillingLedger() {
             className="flex flex-1 flex-col overflow-y-auto p-4 outline-none"
           >
             {/* Tab navigation */}
-            <div className="flex gap-1 border-b border-slate-200 pb-2 mb-4">
+            <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 pb-2 mb-4">
               {[
                 { key: "form" as BillingTab, label: "Claim Form" },
                 { key: "scrubber" as BillingTab, label: "Claim Scrubber" },
@@ -618,6 +620,19 @@ export function BillingLedger() {
                   {tab.label}
                 </button>
               ))}
+              {/* Supporting material opens in a drawer, so the paper keeps the
+                  whole width (spec phase-2-layout.md §4). */}
+              <button
+                type="button"
+                onClick={() => setCalcOpen((open) => !open)}
+                aria-expanded={calcOpen}
+                aria-controls="reimbursement-calculator"
+                aria-label="Reimbursement calculator"
+                title="Reimbursement calculator"
+                className="ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              >
+                <DollarSign className="h-3.5 w-3.5" aria-hidden="true" /> Calculator
+              </button>
             </div>
 
             {/* Claim type + the paper it picks */}
@@ -1112,11 +1127,40 @@ export function BillingLedger() {
             )}
           </div>
 
-          {/* ─── Right: Reimbursement Calculator ─── */}
-          <div className="hidden w-64 border-l border-slate-200 bg-slate-50 p-4 lg:block overflow-y-auto">
+          {/* Supporting material — the reimbursement calculator — sits in a
+              drawer the student pulls open and closes, so the paper keeps the
+              full workspace width (spec phase-2-layout.md §4). */}
+          {calcOpen && (
+            <button
+              type="button"
+              aria-label="Close reimbursement calculator"
+              title="Close reimbursement calculator"
+              onClick={() => setCalcOpen(false)}
+              className="fixed inset-0 z-40 bg-slate-900/30"
+            />
+          )}
+          <div
+            id="reimbursement-calculator"
+            aria-label="Reimbursement calculator"
+            aria-hidden={!calcOpen}
+            className={
+              calcOpen
+                ? "fixed inset-y-0 right-0 z-50 flex w-72 max-w-[90vw] flex-col overflow-y-auto border-l border-slate-200 bg-slate-50 p-4 shadow-xl"
+                : "hidden"
+            }
+          >
             <div className="flex items-center gap-1.5 mb-3">
               <DollarSign className="h-3.5 w-3.5 text-green-500" />
               <span className="text-[10px] font-semibold text-slate-500">Reimbursement Calculator</span>
+              <button
+                type="button"
+                onClick={() => setCalcOpen(false)}
+                aria-label="Close reimbursement calculator"
+                title="Close reimbursement calculator"
+                className="ml-auto flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              >
+                ✕
+              </button>
             </div>
             <div className="space-y-3">
               <div className="rounded-lg bg-white p-3 shadow-sm">

@@ -548,14 +548,21 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                   {/* Selected ICD-10 codes with priority indicators + reorder arrows */}
                   <div className="space-y-1.5">
                     {selectedICDs.map((c, idx) => (
-                      <div key={c.code} className="flex items-center gap-2 rounded-lg border border-brand-100 bg-brand-50/50 px-2 py-1.5 text-[10px]">
-                        <div className="flex flex-col gap-0.5">
+                      <div key={c.code} className="flex items-center gap-2 rounded-lg border border-brand-100 bg-brand-50/50 px-2 py-0 text-[10px]">
+                        {/* The two reorder arrows sit side by side, each a 40 px
+                            target, so neither target overlaps the other and the
+                            dense row is no taller than before (spec
+                            phase-2-layout.md §6, standing rule 5). The arrow
+                            glyph itself stays 12 px. */}
+                        <div className="flex shrink-0 items-center">
                           <button
                             onClick={() => moveICD(idx, "up")}
                             disabled={idx === 0}
                             aria-label={`Move ${c.code} up in the diagnosis order`}
                             title={idx === 0 ? "Already first — the principal diagnosis is listed first" : `Move ${c.code} up`}
-                            className={`h-3 w-3 ${idx === 0 ? "text-slate-300" : "text-brand-600 hover:text-brand-700"}`}
+                            className={`flex h-10 w-10 items-center justify-center rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-not-allowed ${
+                              idx === 0 ? "text-slate-300" : "text-brand-600 hover:bg-brand-100 hover:text-brand-700"
+                            }`}
                           >
                             <ArrowUp className="h-3 w-3" aria-hidden="true" />
                           </button>
@@ -564,7 +571,9 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                             disabled={idx === selectedICDs.length - 1}
                             aria-label={`Move ${c.code} down in the diagnosis order`}
                             title={idx === selectedICDs.length - 1 ? "Already last — there is no code below it" : `Move ${c.code} down`}
-                            className={`h-3 w-3 ${idx === selectedICDs.length - 1 ? "text-slate-300" : "text-brand-600 hover:text-brand-700"}`}
+                            className={`flex h-10 w-10 items-center justify-center rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-not-allowed ${
+                              idx === selectedICDs.length - 1 ? "text-slate-300" : "text-brand-600 hover:bg-brand-100 hover:text-brand-700"
+                            }`}
                           >
                             <ArrowDown className="h-3 w-3" aria-hidden="true" />
                           </button>
