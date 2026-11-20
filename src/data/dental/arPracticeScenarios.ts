@@ -181,6 +181,13 @@ export interface PracticeLineScore {
   why: string;
   lesson: string;
   disputedUsd?: number;
+  /**
+   * True where the line was appealed, the payer refused on its own criterion,
+   * and the student then posted the contractual write-off. The two-step path the
+   * owner ruled correct for a crown or buildup — the debrief says so in those
+   * words rather than calling the appeal a wrong action.
+   */
+  appealWriteOff?: boolean;
 }
 
 /**
@@ -212,13 +219,24 @@ export function scorePracticeLine(
       ? key.noteMustMention.some((phrase) => noteText.includes(phrase.toLowerCase()))
       : noteText.trim().length > 0;
   /**
+   * A crown or buildup denial the payer answers one of two ways
+   * (`specs/appeal-then-write-off.md`): the appeal is the first action either
+   * way, so a refused appeal followed by the contractual write-off is the path
+   * the owner ruled correct, not a wrong action.
+   */
+  const twoEndings = line.seedDenialId ? findDenial(line.seedDenialId)?.appealResolvesTo === "pay-or-write-off" : false;
+  /**
    * The two endings of an appeal, scored as the outcome they produced: an upheld
    * appeal is the line paying, and a denied appeal followed by the write-off is
    * the write-off. Both are compared against the key's own action.
    */
   const appealConfirms =
     (appealOutcome === "upheld" && resolution === "appealed" && key.resolution === "appealed") ||
-    (appealOutcome === "denied" && resolution === "write-off" && key.resolution === "write-off");
+    (appealOutcome === "denied" &&
+      resolution === "write-off" &&
+      (key.resolution === "write-off" || twoEndings));
+  /** The student appealed, the payer refused on its criterion, and the line was written off. */
+  const appealWriteOff = appealConfirms && appealOutcome === "denied";
   return {
     correct: (resolution === key.resolution || appealConfirms) && noteSatisfied,
     expected: key.resolution,
@@ -228,6 +246,7 @@ export function scorePracticeLine(
     why: key.why,
     lesson: key.lesson,
     disputedUsd: key.disputedUsd,
+    appealWriteOff,
   };
 }
 
@@ -829,7 +848,7 @@ const DAR_08: DentalARPracticeScenario = (() => {
       seedDenialId: "DEN-FREQ-CROWN",
       key: {
         resolution: "appealed",
-        why: "CO-119 is a frequency denial, not a coverage exclusion: the plan bought a crown on tooth 14 inside its replacement interval. The record shows the old crown fractured, and the pre-operative radiograph that shows the fracture is in the chart. That is the plan's criterion, so the appeal carries and the 1,040.00 allowed amount is released — the patient balance stays at 0.00.",
+        why: "CO-119 is a frequency denial, not a coverage exclusion: the plan bought a crown on tooth 14 inside its replacement interval. The record shows the old crown fractured, and the pre-operative radiograph that shows the fracture is in the chart. That is the plan's criterion, so the appeal carries and the 1,040.00 allowed amount is released — the patient balance stays at 0.00. A reason outside that criterion — the patient's dislike of the shade, say — is refused on the same criterion, and the line then ends as a contractual write-off with the patient balance still at 0.00.",
         lesson:
           "A frequency denial is appealed with the clinical failure, not with the patient's opinion of the crown. The payer decides on the film and the stated reason, so the appeal has to carry both before it is lodged — and if the criterion is not met, the same line ends in a contractual write-off instead.",
       },

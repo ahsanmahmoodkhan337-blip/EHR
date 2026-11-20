@@ -164,6 +164,34 @@ describe("scoring accepts appeal-then-write-off", () => {
     expect(scorePracticeLine(dar05, dar05.lines[0]!.id, "closed", [])?.correct).toBe(false);
     expect(scorePracticeLine(dar05, dar05.lines[0]!.id, "closed", [], "upheld")?.correct).toBe(false);
   });
+
+  /**
+   * The owner's ruling applies to the crown and the buildup by name: a student
+   * who appeals with a reason outside the plan's criterion is refused, posts the
+   * contractual write-off, and that two-step path scores correct — the patient
+   * is never billed either way.
+   */
+  test("DAR-09's buildup: refused appeal, then the write-off, scores correct", () => {
+    const dar09 = findPracticeScenario("DAR-09")!;
+    const buildup = dar09.lines.find((l) => l.key)!;
+    const score = scorePracticeLine(dar09, buildup.id, "write-off", [], "denied");
+    expect(score?.correct).toBe(true);
+    expect(score?.appealWriteOff).toBe(true);
+    expect(scorePracticeLine(dar09, buildup.id, "billed-patient", [], "denied")?.correct).toBe(false);
+    expect(scorePracticeLine(dar09, buildup.id, "appealed", [], "denied")?.correct).toBe(false);
+  });
+
+  test("DAR-08's crown: a refused appeal written off is not a wrong action", () => {
+    const dar08 = findPracticeScenario("DAR-08")!;
+    const crown = dar08.lines.find((l) => l.key)!;
+    expect(crown.seedDenialId).toBe("DEN-FREQ-CROWN");
+    const score = scorePracticeLine(dar08, crown.id, "write-off", [], "denied");
+    expect(score?.correct).toBe(true);
+    expect(score?.appealWriteOff).toBe(true);
+    expect(scorePracticeLine(dar08, crown.id, "billed-patient", [], "denied")?.correct).toBe(false);
+    // The upheld ending still scores as the appeal it was.
+    expect(scorePracticeLine(dar08, crown.id, "appealed", [], "upheld")?.correct).toBe(true);
+  });
 });
 
 describe("DCASE-005 carries the crown that teaches it", () => {

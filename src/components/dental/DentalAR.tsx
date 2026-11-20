@@ -544,39 +544,69 @@ export function DentalAR() {
                 </div>
               ) : (
                 <div className="border-t border-slate-100 bg-slate-50 px-3 py-2">
-                  {isPractice && score ? (
+                  {isPractice ? (
                     <div className="space-y-1.5">
-                      <div
-                        className={`flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] font-semibold ${
-                          score.correct
-                            ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100"
-                            : "bg-amber-50 text-amber-900 ring-1 ring-amber-100"
-                        }`}
-                      >
-                        {score.correct ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <XCircle className="h-4 w-4 shrink-0" />}
-                        <span>
-                          {score.correct ? "Correct" : "Not the action the payer was asking for"} — you chose{" "}
-                          {RESOLUTION_LABELS[row.committedResolution ?? "not-handled"]}.
-                        </span>
-                        <span className="w-full text-[10px] font-medium sm:w-auto">
-                          Correct action: {RESOLUTION_LABELS[score.expected]}.
-                        </span>
-                      </div>
-                      {score.noteRequired && (
-                        <p className={`text-[10px] ${score.noteSatisfied ? "text-emerald-700" : "text-amber-800"}`}>
-                          {score.noteSatisfied
-                            ? "Your call note covers what the payer needed."
-                            : `The payer would not decide this without a call note. ${score.noteHint}`}
-                        </p>
-                      )}
-                      <p className="text-[10px] text-slate-700">{score.why}</p>
-                      <p className="rounded bg-blue-50 px-2 py-1 text-[10px] italic text-blue-800">{score.lesson}</p>
-                      {typeof score.disputedUsd === "number" && score.disputedUsd > 0 && (
-                        <p className="text-[10px] font-semibold text-amber-800">
-                          {fmtUsd(score.disputedUsd)} is held in dispute while the appeal is open — it is not a
-                          write-off and it is not the patient's balance.
-                        </p>
-                      )}
+                      {/*
+                        A crown or buildup appeal has two endings
+                        (`specs/appeal-then-write-off.md`): the payer either
+                        releases the line or refuses it on its own criterion. A
+                        refusal is not the end — the student posts the
+                        contractual write-off, and only then is the line scored.
+                        The verdict never calls this path a wrong action.
+                      */}
+                      {unfinishedAppeal(row) ? (
+                        <div className="rounded-lg bg-amber-50 px-2 py-1.5 text-[10px] text-amber-900 ring-1 ring-amber-100">
+                          <p>
+                            <b>Appeal denied.</b> The payer refused it on its own criterion for {denial.carc}. The
+                            line is not finished — post the contractual write-off, group {denial.groupCode}, and the
+                            patient balance stays $0.00.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => practiceResolveLine(practiceScenario!.id, lineId, "write-off", "denied")}
+                            className="mt-1 inline-flex min-h-[40px] items-center rounded-lg bg-slate-800 px-3 text-[11px] font-semibold text-white hover:bg-slate-700"
+                          >
+                            Post contractual write-off (CO)
+                          </button>
+                        </div>
+                      ) : score ? (
+                        <>
+                          <div
+                            className={`flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] font-semibold ${
+                              score.correct
+                                ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100"
+                                : "bg-amber-50 text-amber-900 ring-1 ring-amber-100"
+                            }`}
+                          >
+                            {score.correct ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <XCircle className="h-4 w-4 shrink-0" />}
+                            <span>
+                              {score.appealWriteOff
+                                ? "Correct — the payer refused the appeal on its own criterion, so the line ends as a contractual write-off with patient balance $0.00."
+                                : `${score.correct ? "Correct" : "Not the action the payer was asking for"} — you chose ${RESOLUTION_LABELS[row.committedResolution ?? "not-handled"]}.`}
+                            </span>
+                            {!score.appealWriteOff && (
+                              <span className="w-full text-[10px] font-medium sm:w-auto">
+                                Correct action: {RESOLUTION_LABELS[score.expected]}.
+                              </span>
+                            )}
+                          </div>
+                          {score.noteRequired && (
+                            <p className={`text-[10px] ${score.noteSatisfied ? "text-emerald-700" : "text-amber-800"}`}>
+                              {score.noteSatisfied
+                                ? "Your call note covers what the payer needed."
+                                : `The payer would not decide this without a call note. ${score.noteHint}`}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-slate-700">{score.why}</p>
+                          <p className="rounded bg-blue-50 px-2 py-1 text-[10px] italic text-blue-800">{score.lesson}</p>
+                          {typeof score.disputedUsd === "number" && score.disputedUsd > 0 && (
+                            <p className="text-[10px] font-semibold text-amber-800">
+                              {fmtUsd(score.disputedUsd)} is held in dispute while the appeal is open — it is not a
+                              write-off and it is not the patient's balance.
+                            </p>
+                          )}
+                        </>
+                      ) : null}
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => practiceResetLine(practiceScenario!.id, lineId)}
@@ -614,8 +644,9 @@ export function DentalAR() {
                           ) : (
                             <>
                               <p>
-                                <b>Appeal denied.</b> The payer upheld the decision. Finish the line with the contractual
-                                write-off — {denial.carc} is CO, so the patient balance stays $0.00.
+                                <b>Appeal denied.</b> The payer refused it on its own criterion for {denial.carc}.
+                                Finish the line with the contractual write-off — {denial.carc} is group{" "}
+                                {denial.groupCode}, so the patient balance stays $0.00.
                               </p>
                               {resolution === "write-off" ? (
                                 <p className="mt-1 font-semibold text-emerald-800">

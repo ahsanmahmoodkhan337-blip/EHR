@@ -1301,8 +1301,15 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
       setState((s) => {
         const run = s.practice[scenarioId];
         if (!run) return s;
+        /**
+         * A two-ending denial keeps the payer's answer when the student then
+         * posts the contractual write-off: the line's record is
+         * `appealed → denied → write-off`, not a fresh clean write-off, so the
+         * debrief can say why the appeal did not carry.
+         */
+        const outcome = appealOutcome ?? run.decisions[lineId]?.appealOutcome;
         // Scoring happens at the commit and nowhere earlier.
-        if (!scorePracticeLine(scenario, lineId, resolution, run.callLog, appealOutcome)) return s;
+        if (!scorePracticeLine(scenario, lineId, resolution, run.callLog, outcome)) return s;
         return {
           ...s,
           practice: {
@@ -1315,7 +1322,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
                 [lineId]: {
                   resolution,
                   at: new Date().toISOString(),
-                  ...(appealOutcome ? { appealOutcome } : {}),
+                  ...(outcome ? { appealOutcome: outcome } : {}),
                 },
               },
             },
