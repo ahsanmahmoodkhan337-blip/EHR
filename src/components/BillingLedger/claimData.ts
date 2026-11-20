@@ -57,35 +57,6 @@ export const CMS1500_BLOCKS: FormBlock[] = [
   { box: "33", label: "Billing Provider Info", description: "Billing provider's name, address, NPI, and Tax ID.", commonError: "Billing NPI missing or incorrect." },
 ];
 
-// ─── Denial Codes ──────────────────────────────────────────────────────
-
-export interface DenialCode {
-  code: string;
-  category: "CO" | "PR" | "OA";
-  description: string;
-  meaning: string;
-  howToFix: string;
-}
-
-export const DENIAL_CODES: DenialCode[] = [
-  { code: "CO-16", category: "CO", description: "Claim lacks information", meaning: "The claim was submitted with missing or incomplete data elements.", howToFix: "Review the claim for missing fields — ICD-10, CPT, modifiers, NPI, or policy number." },
-  { code: "CO-50", category: "CO", description: "Not medically necessary", meaning: "The service rendered is not supported by the diagnosis codes for medical necessity.", howToFix: "Verify the ICD-10 codes support the CPT procedure. Consider adding a more specific diagnosis or adding supporting documentation." },
-  { code: "CO-97", category: "CO", description: "Benefit exhausted", meaning: "The patient has used up their insurance benefits for this service type.", howToFix: "Verify patient benefits. This may require a waiver or alternative coverage." },
-  { code: "CO-119", category: "CO", description: "Prior authorization required", meaning: "The service requires prior authorization but none was obtained.", howToFix: "Obtain retroactive authorization or submit an appeal with clinical justification." },
-  { code: "CO-180", category: "CO", description: "Procedure code not valid", meaning: "The CPT/HCPCS code submitted is not recognized or is not valid for the date of service.", howToFix: "Verify the CPT code is correct, active, and appropriate for the date of service." },
-  { code: "PR-1", category: "PR", description: "Deductible not met", meaning: "The patient has not met their annual deductible, so payment is reduced or denied.", howToFix: "The amount is the patient's responsibility. Bill the patient for the deductible amount." },
-  { code: "PR-2", category: "PR", description: "Coinsurance/co-pay not met", meaning: "Patient owes coinsurance or co-pay as per their plan.", howToFix: "Patient responsibility amount — bill the patient for the remaining balance." },
-  { code: "OA-23", category: "OA", description: "Payment adjusted due to discount", meaning: "The payer applied a contractual discount or fee schedule adjustment.", howToFix: "Write off the difference — this is a contractual adjustment per the payer agreement." },
-  { code: "CO-22", category: "CO", description: "Payment adjusted — deductible applies", meaning: "The insurance applied the payment towards the patient's deductible.", howToFix: "Verify the deductible amount and bill the patient for the balance." },
-  { code: "CO-151", category: "CO", description: "Informational — service denied per policy", meaning: "The service is not covered under the patient's benefit plan.", howToFix: "Check benefit plan exclusions. May require a signed waiver or appeal." },
-  { code: "CO-236", category: "CO", description: "Procedure not separately payable (bundled)", meaning: "The payer's claim edit treats this procedure as part of another service performed on the same day, so it is not paid separately.", howToFix: "Review the operative note: if it describes only one service on the same site, bill only that service. If a truly separate site or service was performed, report it with modifier 59 and a note identifying the distinction." },
-  { code: "CO-4", category: "CO", description: "Procedure code inconsistent with modifier (or modifier missing)", meaning: "A required modifier is missing, or the modifier used does not fit the procedure code.", howToFix: "Check which modifier the service requires (for example modifier 25 on a same-day E/M) and append it to the correct line only, then resubmit." },
-  { code: "CO-15", category: "CO", description: "Authorization number missing or invalid", meaning: "The claim references a missing, expired, or mismatched prior-authorization number.", howToFix: "Obtain the correct authorization, confirm it matches the CPT code and diagnosis, and resubmit with the valid number in box 23." },
-  { code: "CO-18", category: "CO", description: "Duplicate claim or service", meaning: "The payer already received this exact service for this patient and date.", howToFix: "Look up the original claim before rebilling. If this is a distinct second service, resubmit with distinguishing detail; if a true duplicate, stop the rebill." },
-  { code: "CO-29", category: "CO", description: "Timely filing limit expired", meaning: "The claim arrived after the payer's deadline for submitting it.", howToFix: "Attach proof of the original timely submission (clearinghouse report or payer acknowledgement) and appeal. If it was never sent in time, it is a practice write-off." },
-  { code: "CO-96", category: "CO", description: "Non-covered charge", meaning: "The service is not a covered benefit under the plan.", howToFix: "Confirm against the plan's benefit list. A true exclusion is patient responsibility with a signed waiver; do not appeal a plan exclusion on clinical grounds." },
-];
-
 // ─── Revenue Codes ──────────────────────────────────────────────────────
 
 export const REVENUE_CODES = [

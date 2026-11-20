@@ -112,7 +112,7 @@ export const APPEAL_TEMPLATES: AppealTemplate[] = [
   {
     id: "coding-error",
     title: "Coding / Billing Error Appeal",
-    reason: "CO-16 / CO-97 — Claim denied due to incorrect or missing code",
+    reason: "CO-16 / CO-11 — Claim denied for missing information or a code the note does not support",
     body: `[Date]
 
 [Payer Name]
@@ -151,7 +151,7 @@ Sincerely,
   {
     id: "medical-necessity",
     title: "Medical Necessity Appeal",
-    reason: "CO-50 / CO-180 — Service deemed not medically necessary",
+    reason: "CO-50 — Payer says the service was not medically necessary",
     body: `[Date]
 
 [Payer Name]
@@ -311,10 +311,10 @@ export const AR_SCENARIOS: ARScenario[] = [
   {
     id: "denied-coding",
     type: "denied",
-    title: "Denied — Procedure Code Not Covered",
-    description: "Claim denied with CO-119: Procedure code is not covered under the patient's plan.",
-    script: "Hello, this is [Name] from [Practice]. I'm calling about denial code CO-119 on claim #[ClaimID]. The procedure [CPT] was denied as 'not covered.' Can you tell me if there is an alternative covered code for this service? Or can you provide the specific plan exclusion language?",
-    resolution: "Check the patient's summary of benefits for exclusions. If the procedure IS covered, request reprocessing. If not covered, determine if a different CPT code (e.g., -59 modifier or different category) should be used."
+    title: "Denied — Code Not Valid on the Date of Service (CO-181)",
+    description: "Claim denied with CO-181: the procedure code billed was not a valid code on the date the service was performed.",
+    script: "Hello, this is [Name] from [Practice]. I'm calling about denial code CO-181 on claim #[ClaimID]. The procedure [CPT] was denied as not valid on the date of service. Can you confirm which code was in effect for that date, and whether a corrected claim with the right code will reprocess?",
+    resolution: "Ask the representative which code was valid on that date of service. Correct the line, resubmit as a corrected claim, and check the code set before the next similar encounter."
   },
   {
     id: "underpaid",
@@ -359,17 +359,17 @@ export const AR_SCENARIOS: ARScenario[] = [
   {
     id: "denied-benefit-exhausted",
     type: "denied",
-    title: "Denied — Benefit Exhausted (CO-97)",
+    title: "Denied — Benefit Exhausted (CO-119)",
     description: "The service was covered but the plan's allowance for that category has been used up.",
-    script: "Good morning, I'm calling about denial code CO-97 on claim #[ClaimID] for [PatientName]. We show this as a covered service, but the denial says the benefit is exhausted. Can you confirm how many visits or dollars remain in this category, and when it resets?",
+    script: "Good morning, I'm calling about denial code CO-119 on claim #[ClaimID] for [PatientName]. We show this as a covered service, but the denial says the benefit is exhausted. Can you confirm how many visits or dollars remain in this category, and when it resets?",
     resolution: "Confirm the benefit limit and the reset date. A true benefit-exhausted denial is not appealable on necessity grounds — move the balance to the patient and check whether the plan allows a coverage decision for additional visits."
   },
   {
     id: "denied-prior-auth",
     type: "denied",
-    title: "Denied — Missing Prior Authorization (CO-119)",
+    title: "Denied — Missing Prior Authorization (CO-197)",
     description: "The service requires prior authorization and none was on file when the claim processed.",
-    script: "Hi, I'm calling about denial code CO-119 on claim #[ClaimID] for [PatientName]. The service required prior authorization. Can you tell me whether you accept a retrospective review, and what documentation you need to consider one?",
+    script: "Hi, I'm calling about denial code CO-197 on claim #[ClaimID] for [PatientName]. The denial says you have no record of the authorization this service required. Can you tell me whether you accept a retrospective review, and what documentation you need to consider one?",
     resolution: "Ask whether retrospective review is available and what clinical documentation is required. Submit the clinical package showing the medical necessity, and once approved reference the authorization number on the corrected claim."
   },
   {

@@ -17,6 +17,8 @@
  *   payer's own policy, not as a statement of any national edit or real plan.
  */
 
+import type { CarcCodeString } from "../claims/carc";
+
 export type MedicalPlanType = "Commercial PPO" | "Medicare Advantage HMO" | "Medicaid MCO";
 
 /** A same-day pair the payer's claim edits treat as one service. */
@@ -26,7 +28,7 @@ export interface MedicalCciEdit {
   /** The CPT the component is considered part of. */
   comprehensiveCode: string;
   /** CARC shown on the remittance when the pair is billed together. */
-  carc: string;
+  carc: CarcCodeString;
   /** Plain-language explanation of what the edit is doing. */
   explanation: string;
   /** The single right move when the edit fires. */
@@ -39,7 +41,7 @@ export interface MedicalPlanBenefitLimit {
   /** Illustrative visit / unit allowance per calendar year. */
   limitPerYear: number;
   /** CARC shown once the limit is exhausted. */
-  carc: string;
+  carc: CarcCodeString;
   note: string;
 }
 
@@ -114,7 +116,7 @@ export const MEDICAL_PLANS: MedicalPlan[] = [
       {
         serviceCategory: "Physical / occupational therapy",
         limitPerYear: 20,
-        carc: "CO-97",
+        carc: "CO-119",
         note: "Therapy visits beyond the annual allowance stop paying; the visit was covered, the money for that category is gone.",
       },
     ],
@@ -181,7 +183,7 @@ export interface MedicalBenefitScenario {
   description: string;
   exampleCodes: { icd: string; cpt: string };
   /** CARC the remittance carries, or null when the claim pays. */
-  resultingCarc: string | null;
+  resultingCarc: CarcCodeString | null;
   teachingPoint: string;
 }
 
@@ -218,7 +220,7 @@ export const MEDICAL_BENEFIT_SCENARIOS: MedicalBenefitScenario[] = [
     description:
       "An advanced imaging study hits the plan's prior-authorisation requirement. The coder's queue flags the CPT code, routes the encounter to the prior-authorisation stage, and a missing authorisation denies the claim.",
     exampleCodes: { icd: "M51.16", cpt: "72141" },
-    resultingCarc: "CO-119",
+    resultingCarc: "CO-197",
     teachingPoint:
       "The prior-authorisation requirement lives on the procedure, not the patient. A perfectly documented MRI still denies if the authorisation was never obtained.",
   },
@@ -242,7 +244,7 @@ export const MEDICAL_BENEFIT_SCENARIOS: MedicalBenefitScenario[] = [
     description:
       "A therapy visit is correctly coded and covered, but the patient has already used the plan's annual therapy allowance, so the visit stops paying. The claim is not wrong; the benefit is simply gone.",
     exampleCodes: { icd: "M54.5", cpt: "97110" },
-    resultingCarc: "CO-97",
+    resultingCarc: "CO-119",
     teachingPoint:
       "Benefit-exhausted is not a coding error and not appealable on necessity grounds. The plan paid what it owed; the remaining visits are the patient's or a coverage decision.",
   },

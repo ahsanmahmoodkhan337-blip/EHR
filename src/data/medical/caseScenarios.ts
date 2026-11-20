@@ -25,6 +25,8 @@
  *   surrounding text is original wording written for this simulator.
  */
 
+import type { CarcCodeString } from "../claims/carc";
+
 export type MedicalCaseDifficulty = "beginner" | "intermediate" | "advanced";
 
 export type MedicalRcmStage =
@@ -78,7 +80,7 @@ export interface MedicalCaseTrap {
   whyItIsWrong: string;
   correctAction: string;
   /** CARC the mistake produces on the remittance. */
-  producesDenialCarc?: string;
+  producesDenialCarc?: CarcCodeString;
   /** True when this trap is the existing Modifier 25 mechanic. */
   exercisesModifier25?: boolean;
   /** True when this trap is the existing conditional prior-auth mechanic. */
@@ -98,7 +100,7 @@ export interface MedicalExpectedLineOutcome {
   /** Charge minus allowance; not billable to the patient in network. */
   writeOffUsd: number;
   /** CARC the line carries, or absent when the line pays. */
-  carcCode?: string;
+  carcCode?: CarcCodeString;
   explanation: string;
 }
 
@@ -744,7 +746,7 @@ const CASE_MRI_PRIOR_AUTH: MedicalCaseScenario = {
       whyItIsWrong:
         "The plan requires prior authorisation for this study. Without one, the claim denies regardless of how well documented the order is.",
       correctAction: "Obtain the prior authorisation first, match its CPT and diagnosis to the claim, and reference the authorisation number.",
-      producesDenialCarc: "CO-119",
+      producesDenialCarc: "CO-197",
       exercisesConditionalPa: true,
       pointsAtStake: 25,
     },
@@ -756,7 +758,7 @@ const CASE_MRI_PRIOR_AUTH: MedicalCaseScenario = {
       whyItIsWrong:
         "An authorisation is specific to the service. A mismatched authorisation number does not satisfy the requirement.",
       correctAction: "Match the authorisation to the exact CPT code and diagnosis being billed.",
-      producesDenialCarc: "CO-119",
+      producesDenialCarc: "CO-15",
       pointsAtStake: 15,
     },
   ],
@@ -984,7 +986,7 @@ const CASE_THERAPY_LIMIT: MedicalCaseScenario = {
       whyItIsWrong:
         "The plan capped therapy at 20 visits a year. The 21st is covered in name only — the money for that category is gone, and the patient should have been told before the visit.",
       correctAction: "Check the remaining benefit at the eligibility step, tell the patient the visit will be self-pay, and offer the choice before the service.",
-      producesDenialCarc: "CO-97",
+      producesDenialCarc: "CO-119",
       pointsAtStake: 25,
     },
     {
@@ -995,7 +997,7 @@ const CASE_THERAPY_LIMIT: MedicalCaseScenario = {
       whyItIsWrong:
         "The plan is not disputing necessity. The benefit for the category is exhausted, and no clinical argument changes a visit limit.",
       correctAction: "Move the balance to the patient, and pursue a coverage decision for additional visits only if the plan offers one.",
-      producesDenialCarc: "CO-97",
+      producesDenialCarc: "CO-119",
       pointsAtStake: 20,
     },
   ],
@@ -1008,7 +1010,7 @@ const CASE_THERAPY_LIMIT: MedicalCaseScenario = {
       planPaysUsd: 0,
       patientOwesUsd: 30,
       writeOffUsd: 8,
-      carcCode: "CO-97",
+      carcCode: "CO-119",
       explanation:
         "Covered service, but the 20-visit therapy allowance is exhausted. The plan pays nothing on this line; the patient owes the contracted amount, and the charge-above-allowance is written off.",
     },

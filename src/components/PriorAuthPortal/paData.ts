@@ -232,7 +232,7 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
     documentBundle: PA_DOCUMENT_BUNDLES["mri"],
     typicalTimeline: "5–10 business days",
     autoAuthThreshold: 1500,
-    commonDenialReasons: ["CO-50: No prior conservative treatment documented", "CO-180: Pain scale not documented", "CO-119: Non-formulary imaging (prefer CT first)"],
+    commonDenialReasons: ["No prior conservative treatment documented", "Pain level not documented across visits", "Payer prefers CT before MRI for this indication"],
     letterTemplateSections: ["Patient demographics and insurance information", "Diagnosis and ICD-10 code", "Clinical history: onset, duration, prior treatments tried", "Physical exam findings relevant to the study", "Why this imaging modality is necessary (vs alternatives)", "Risk of not performing the study (delayed diagnosis, progression)"]
   },
   "ct": {
@@ -249,7 +249,7 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
     requiredDocs: requiredDocsFor("ct"),
     documentBundle: PA_DOCUMENT_BUNDLES["ct"],
     typicalTimeline: "3–7 business days",
-    commonDenialReasons: ["CO-16: Lack of prior imaging to justify CT", "CO-97: Routine screening without specific indication", "CO-119: Prefer lower-dose imaging (X-ray/US first)"],
+    commonDenialReasons: ["No prior imaging to justify the CT", "Routine screening with no specific indication", "Payer prefers lower-dose imaging (X-ray or ultrasound) first"],
     letterTemplateSections: ["Patient demographics and insurance information", "Specific clinical indication for the study", "Prior imaging results and why they are inconclusive", "Signs/symptoms documented (hemoptysis, weight loss, etc.)", "Relevant lab values supporting the need", "Differential diagnosis being investigated"]
   },
   "knee-replacement": {
@@ -273,7 +273,7 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
     documentBundle: PA_DOCUMENT_BUNDLES["knee-replacement"],
     typicalTimeline: "2–6 weeks (often requires step therapy completion)",
     autoAuthThreshold: 50000,
-    commonDenialReasons: ["CO-50: Conservative therapy not documented", "CO-180: BMI criteria not met", "PR-2: Smoking cessation not documented (nicotine-positive)"],
+    commonDenialReasons: ["Conservative therapy not documented", "BMI criteria not met", "Smoking-cessation counselling not documented for a nicotine-positive patient"],
     letterTemplateSections: ["Patient demographics, insurance, and surgeon details", "Diagnosis and severity (OA grade, functional limitation)", "Documentation of failed conservative management (PT, injections)", "Comorbidities and surgical risk assessment", "BMI, smoking status, and optimization steps taken", "Expected outcome: pain relief, functional improvement, QoL gain"]
   },
   "cardiac-cath": {
@@ -292,7 +292,7 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
     documentBundle: PA_DOCUMENT_BUNDLES["cardiac-cath"],
     typicalTimeline: "3–10 business days (urgent cases expedited)",
     autoAuthThreshold: 30000,
-    commonDenialReasons: ["CO-16: Abnormal cardiac imaging not documented", "CO-50: Medical management not attempted first", "CO-119: Prefer CT coronary angiography (non-invasive first)"],
+    commonDenialReasons: ["Abnormal cardiac imaging not documented", "Medical management not attempted first", "Payer prefers non-invasive CT coronary angiography first"],
     letterTemplateSections: ["Patient demographics and insurance information", "Cardiac diagnosis and symptoms (CCS class, angina type)", "Non-invasive test results (stress test, echo, ECG) with details", "Risk calculation (ASCVD, TIMI, GRACE scores)", "Medications tried and response", "Justification for invasive vs. non-invasive approach"]
   },
   "infusion-therapy": {
@@ -315,7 +315,7 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
     requiredDocs: requiredDocsFor("infusion-therapy"),
     documentBundle: PA_DOCUMENT_BUNDLES["infusion-therapy"],
     typicalTimeline: "7–14 business days (first dose); 3–5 days (reauthorization)",
-    commonDenialReasons: ["CO-50: Conventional DMARDs not tried first", "CO-180: Disease activity not documented", "PR-1: TB/HepB screening missing"],
+    commonDenialReasons: ["Conventional DMARDs not tried first", "Disease activity not documented", "TB / HepB screening missing"],
     letterTemplateSections: ["Patient demographics, insurance, and prescribing specialist", "Diagnosis and disease duration", "Previous therapies tried (conventional DMARDs, steroids) and why they failed", "Disease activity scores with dates", "Screening results (TB, HepB, HepC) — negative status confirmed", "Why this specific biologic is indicated (vs. alternatives on formulary)", "Infusion schedule and monitoring plan"]
   },
   "sleep-study": {
@@ -333,7 +333,7 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
     documentBundle: PA_DOCUMENT_BUNDLES["sleep-study"],
     typicalTimeline: "2–4 weeks (home test); 4–8 weeks (in-lab PSG)",
     autoAuthThreshold: 2000,
-    commonDenialReasons: ["CO-50: Screening questionnaire not documented", "CO-180: Prefer home sleep test over in-lab study", "CO-119: Mild OSA — lifestyle modification recommended first"],
+    commonDenialReasons: ["Screening questionnaire not documented", "Payer prefers a home sleep test over an in-lab study", "Mild OSA — lifestyle modification recommended first"],
     letterTemplateSections: ["Patient demographics and insurance information", "Sleep-related symptoms and duration", "STOP-BANG and Epworth Sleepiness Scale scores", "Comorbidities (HTN, obesity, diabetes) and their relationship to sleep", "Why this specific sleep study type is appropriate", "Risk of untreated sleep apnea (cardiovascular, accident risk)"]
   },
   "biologic": {
@@ -355,7 +355,7 @@ export const PA_PROCEDURES: Record<ProcedureKey, PAProcedureData> = {
     requiredDocs: requiredDocsFor("biologic"),
     documentBundle: PA_DOCUMENT_BUNDLES["biologic"],
     typicalTimeline: "7–14 business days (new); 5–7 days (reauthorization)",
-    commonDenialReasons: ["CO-50: Step therapy not completed", "CO-180: Disease severity not documented with validated score", "PR-1: TB / HepB screening missing or outdated (>1 year)", "CO-119: Prefer biosimilar over brand biologic"],
+    commonDenialReasons: ["Step therapy not completed", "Disease severity not documented with a validated score", "TB / HepB screening missing or outdated (over a year old)", "Payer prefers a biosimilar over the brand biologic"],
     letterTemplateSections: ["Patient demographics, insurance, prescribing specialist", "Confirmed diagnosis with supporting evidence (biopsy, imaging)", "Complete treatment history: topicals → DMARDs → prior biologics", "Disease activity scores (PASI, DAS28, CDAI) with dates", "Screening results: TB negative, HepB/C negative", "Why this biologic is medically necessary (vs. alternatives)", "Monitoring plan (labs, follow-up schedule, infection surveillance)"]
   },
   "medication": {
