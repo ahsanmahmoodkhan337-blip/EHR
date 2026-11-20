@@ -39,11 +39,17 @@ export type PipelineStatus =
 export interface ClaimServiceLine {
   dateOfService: string;   // 24A
   placeOfService: string;  // 24B
+  /** Box 24C — "Y" or blank. Blank is the normal state; a demo Y would declare an emergency. */
+  emg?: string;            // 24C
   cpt: string;             // 24D
   modifiers: string[];     // 24D
   diagnosisPointer: string;// 24E  e.g. "A" or "AB"
   charge: number;          // 24F
-  units: number;           // 24G
+  units: number;           // 24G — DAYS OR UNITS
+  /** Box 24H — EPSDT / family-plan code. Blank by default: it asserts a referral. */
+  epsdt?: string;          // 24H
+  /** Box 24I — qualifier for 24J. "XX" (NPI) on every line this app builds. */
+  idQualifier?: string;    // 24I
   renderingNpi: string;    // 24J
 }
 
@@ -89,7 +95,19 @@ export interface ClaimFormData {
   patientRelationship: string;  // 6
   insuredAddress: string;       // 7
   otherInsuranceName: string;   // 9
-  otherInsurancePlan: string;   // 9a
+  /** Box 9a — the other insured's policy or group number. */
+  otherInsuredPolicyGroup: string; // 9a
+  /** Box 9b — the other insured's date of birth and sex. */
+  otherInsuredDob: string;      // 9b
+  otherInsuredSex: string;      // 9b
+  /**
+   * Box 9d — INSURANCE PLAN NAME OR PROGRAM NAME of the other coverage.
+   *
+   * This key used to hold `planName · groupNumber` joined together, under the
+   * label 9a. The group number now has its own box (9a) and this is the plan
+   * name only; a saved claim is split on load by the v6 → v7 migration.
+   */
+  otherInsurancePlan: string;   // 9d
   /**
    * Box 9c — EMPLOYER'S OR SCHOOL'S NAME, inside the other-insured block.
    *
@@ -103,8 +121,17 @@ export interface ClaimFormData {
   conditionEmployment: boolean; // 10a
   conditionAuto: boolean;       // 10b
   conditionOther: boolean;      // 10c
+  /**
+   * Box 10d — CLAIM CODES (Designated by NUCC). Typed by the biller only when
+   * the payer requires attachment codes; no upstream stage fills it and it has
+   * no demo value, because a fabricated claim code declares an attachment that
+   * does not exist.
+   */
+  claimCodes: string;           // 10d
   insuredPolicyGroup: string;   // 11
   insuredDob: string;           // 11a
+  /** Box 11a — the insured's sex, printed beside the insured's date of birth. */
+  insuredSex: string;           // 11a
   /** Box 11b — OTHER CLAIM ID (ID). Not the employer; that is 9c. */
   otherClaimId: string;         // 11b
   insuredPlanName: string;      // 11c
@@ -127,6 +154,8 @@ export interface ClaimFormData {
   patientSignature: boolean;    // 12
   insuredSignature: boolean;    // 13
   currentIllnessDate: string;   // 14
+  /** Box 15 — the `QUAL.` qualifier for the other date. A date with no qualifier is invalid. */
+  similarIllnessQualifier: string; // 15
   similarIllnessDate: string;   // 15
   unableToWorkFrom: string;     // 16
   unableToWorkTo: string;       // 16
@@ -140,10 +169,16 @@ export interface ClaimFormData {
   outsideLab: string;           // 20
   diagnosisCodes: string[];     // 21, A–L (12 slots)
   resubmissionCode: string;     // 22
-  originalClaimNumber: string;  // 22a
+  /**
+   * Box 22 — `ORIGINAL REF. NO.`, printed beneath the resubmission code in the
+   * same cell. The key is unchanged so a saved value survives the 22a removal.
+   */
+  originalClaimNumber: string;  // 22
   priorAuthNumber: string;      // 23
   serviceLines: ClaimServiceLine[]; // 24A–24J, max 6
   federalTaxId: string;         // 25
+  /** Box 25 — whether `federalTaxId` is an EIN or an SSN. A payer rejects the box with no indicator. */
+  federalTaxIdType: string;     // 25
   patientAccountNumber: string; // 26
   acceptAssignment: string;     // 27
   totalCharge: number;          // 28

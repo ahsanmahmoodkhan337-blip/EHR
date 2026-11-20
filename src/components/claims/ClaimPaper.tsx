@@ -155,7 +155,14 @@ function Box({
       )}
 
       {box.fields && (
-        <div className="mt-0.5 flex flex-wrap items-end gap-x-1.5">
+        <div
+          className={`mt-0.5 flex gap-x-1.5 ${
+            // A stacked box prints its values one above the other (box 22's
+            // resubmission code with ORIGINAL REF. NO. beneath it) instead of
+            // side by side, as the paper folds them.
+            box.stack ? "flex-col items-stretch gap-y-0.5" : "flex-wrap items-end"
+          }`}
+        >
           {box.fields.map((field) => (
             <Field key={field.field} box={box} field={field} values={values} set={set} demo={demoFields?.[field.field]} />
           ))}
