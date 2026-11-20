@@ -1258,6 +1258,55 @@ export function appealOutcomeFor(denial: DentalDenial, lodgement: AppealLodgemen
   return stated?.meetsCriterion ? "upheld" : "denied";
 }
 
+/**
+ * What actually happened to the money on a line once an appeal has been decided.
+ *
+ * `denialMoney()` states the denial's own rule, which still holds for a line
+ * that was never appealed or whose appeal came back **denied**: a CO line is a
+ * provider write-off and the patient is never billed. An appeal that came back
+ * **upheld** is a different record — the payer released the allowed amount, so
+ * the line pays, nothing is written off, and no balance reaches the patient.
+ * The AR card reads this function, so it can never print a write-off sentence
+ * beside an amount the payer has released.
+ *
+ * `outcome` is `undefined` until an appeal has been decided, and then the
+ * denial's rule stands unchanged.
+ */
+export function settledLineMoney(
+  denial: DentalDenial,
+  outcome: DentalAppealOutcome | undefined,
+  amounts: { allowedUsd: number; planPaysUsd: number; writeOffUsd: number; patientOwesUsd: number },
+): {
+  /** What the plan pays now the line is worked. */
+  planPaysUsd: number;
+  /** What the practice writes off. */
+  writeOffUsd: number;
+  /** What the patient owes. */
+  patientOwesUsd: number;
+  /** The one amount the AR card prints for this line. */
+  displayUsd: number;
+  /** Student-facing sentence for that amount, after the line is committed. */
+  label: string;
+} {
+  if (outcome === "upheld") {
+    return {
+      planPaysUsd: amounts.allowedUsd,
+      writeOffUsd: 0,
+      patientOwesUsd: 0,
+      displayUsd: amounts.allowedUsd,
+      label: "paid by the plan; patient balance $0.00",
+    };
+  }
+  const rule = denialMoney(denial);
+  return {
+    planPaysUsd: amounts.planPaysUsd,
+    writeOffUsd: amounts.writeOffUsd,
+    patientOwesUsd: rule.patientBalance ? amounts.patientOwesUsd : 0,
+    displayUsd: rule.patientBalance ? amounts.patientOwesUsd : amounts.writeOffUsd,
+    label: rule.label,
+  };
+}
+
 /** One sentence combining the CARC, the money rule and the next action. */
 export function denialEffectSummary(denial: DentalDenial): string {
   return `${denial.carc} — ${denialMoney(denial).label}; ${denialActionLabel(denial)}.`;
