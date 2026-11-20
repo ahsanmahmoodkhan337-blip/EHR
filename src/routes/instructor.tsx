@@ -1,7 +1,8 @@
 /**
  * InstructorDashboard — Admin/Instructor Analytics Dashboard
  *
- * Protected by admin login. Shows:
+ * Gated on the admin's Supabase sign-in (the same session as /admin) — the
+ * shared admin password is gone from the bundle. Shows:
  * - Stats cards: total students, active sessions, completion rate
  * - Student list table with per-stage progress bars
  * - Error heatmap showing most common mistakes
@@ -10,7 +11,7 @@
  * Inspiration: Epic Cogito analytics / Canvas instructor dashboard
  */
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Activity,
@@ -21,6 +22,7 @@ import {
   Shield,
   Search,
 } from "lucide-react";
+import { supabase } from "../store/supabase";
 
 // ─── Mock Instructor Data ─────────────────────────────────────────
 
@@ -56,21 +58,30 @@ export const Route = createFileRoute("/instructor")({
 
 function InstructorDashboard() {
   const [search, setSearch] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    if (typeof window !== "undefined") {
-      const pw = sessionStorage.getItem("hh_admin_pw");
-      return pw === "Khankhail@1122";
-    }
-    return false;
-  });
-  const [password, setPassword] = useState("");
+  const [hasSession, setHasSession] = useState(false);
+  const [checked, setChecked] = useState(false);
 
-  const handleLogin = () => {
-    if (password === "Khankhail@1122") {
-      sessionStorage.setItem("hh_admin_pw", password);
-      setIsLoggedIn(true);
+  // Same Supabase session as /admin — no shared password in the bundle.
+  useEffect(() => {
+    if (!supabase) {
+      setChecked(true);
+      return;
     }
-  };
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setHasSession(Boolean(data.session));
+      setChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      setHasSession(Boolean(next));
+      setChecked(true);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   const filteredStudents = useMemo(() => {
     if (!search) return MOCK_STUDENTS;
@@ -110,25 +121,31 @@ function InstructorDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  if (!isLoggedIn) {
+  if (!checked) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <p className="text-xs text-slate-400">Checking sign-in…</p>
+      </div>
+    );
+  }
+
+  if (!hasSession) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <div className="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-lg">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="h-5 w-5 text-indigo-600" />
-            <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">Instructor Login</h2>
+            <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">Instructor Dashboard</h2>
           </div>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleLogin()}
-            placeholder="Enter admin password..."
-            className="w-full rounded-lg border border-slate-200 dark:border-slate-600 px-3 py-2 text-xs outline-none focus:border-indigo-400 mb-3 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
-          />
-          <button onClick={handleLogin} className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-500">
-            Login
-          </button>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Sign in with the admin email and password on the admin panel to open this dashboard.
+          </p>
+          <Link
+            to="/admin"
+            className="mt-4 block w-full rounded-lg bg-indigo-600 px-4 py-2 text-center text-xs font-medium text-white hover:bg-indigo-500"
+          >
+            Go to admin sign-in
+          </Link>
           <Link to="/" className="mt-2 block text-center text-[10px] text-slate-400 hover:text-slate-600">Back to app</Link>
         </div>
       </div>
@@ -147,8 +164,8 @@ function InstructorDashboard() {
           <Link to="/" className="rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-[10px] font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200">
             Back to App
           </Link>
-          <button onClick={() => { sessionStorage.removeItem("hh_admin_pw"); setIsLoggedIn(false); }} className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-1.5 text-[10px] font-medium text-red-600 hover:bg-red-100">
-            Logout
+          <button onClick={() => { supabase?.auth.signOut(); setHasSession(false); }} className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-1.5 text-[10px] font-medium text-red-600 hover:bg-red-100">
+            Sign out
           </button>
         </div>
       </header>
