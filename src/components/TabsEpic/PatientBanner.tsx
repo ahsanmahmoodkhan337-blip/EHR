@@ -17,10 +17,26 @@
 import { AlertTriangle, CalendarDays, ShieldCheck, User } from "lucide-react";
 import type { Patient } from "../../store/patientStore";
 
-/** Compute an age from a "YYYY-MM-DD" date string, safely. */
-function computeAge(dateOfBirth: string): number {
-  const birth = new Date(dateOfBirth);
-  if (Number.isNaN(birth.getTime())) return 0;
+/**
+ * Format a DOB for display, or null when the chart holds no usable date — the
+ * same rule the right-hand summary uses (PR #84). A patient registered without
+ * a date of birth has no DOB to show, so the banner leaves the DOB and age out
+ * instead of printing "DOB Invalid Date (0y)".
+ */
+function formatDateOfBirth(dateOfBirth?: string): string | null {
+  const raw = (dateOfBirth || "").trim();
+  if (!raw) return null;
+  const birth = new Date(raw);
+  if (Number.isNaN(birth.getTime())) return null;
+  return birth.toLocaleDateString();
+}
+
+/** Compute an age from a "YYYY-MM-DD" date string, or null when it has none. */
+function computeAge(dateOfBirth?: string): number | null {
+  const raw = (dateOfBirth || "").trim();
+  if (!raw) return null;
+  const birth = new Date(raw);
+  if (Number.isNaN(birth.getTime())) return null;
   const now = new Date();
   let age = now.getFullYear() - birth.getFullYear();
   const monthDiff = now.getMonth() - birth.getMonth();
@@ -52,6 +68,7 @@ export function PatientBanner({ patient, fallbackName }: PatientBannerProps) {
   const name = patient ? `${patient.firstName} ${patient.lastName}` : fallbackName!;
   const hasRecord = Boolean(patient);
   const age = patient ? computeAge(patient.dateOfBirth) : null;
+  const dobText = patient ? formatDateOfBirth(patient.dateOfBirth) : null;
   const visitType =
     hasRecord && (patient!.encounters || []).length > 0 ? "Established" : "New Patient";
   const serviceDate = formatServiceDate(new Date());
@@ -66,14 +83,19 @@ export function PatientBanner({ patient, fallbackName }: PatientBannerProps) {
       {/* Name */}
       <span className="text-sm font-bold leading-none">{name}</span>
 
-      {/* MRN · DOB (age) · sex */}
+      {/* MRN · DOB (age) · sex — the DOB block is left out when unknown */}
       {patient && (
         <span className="flex items-center gap-3 text-[11px] text-slate-300">
           <span>MRN {patient.mrn}</span>
-          <span className="h-3 w-px bg-slate-600" aria-hidden="true" />
-          <span>
-            DOB {new Date(patient.dateOfBirth).toLocaleDateString()} ({age}y)
-          </span>
+          {dobText && (
+            <>
+              <span className="h-3 w-px bg-slate-600" aria-hidden="true" />
+              <span>
+                DOB {dobText}
+                {age !== null ? ` (${age}y)` : ""}
+              </span>
+            </>
+          )}
           <span className="h-3 w-px bg-slate-600" aria-hidden="true" />
           <span>{patient.gender}</span>
         </span>
