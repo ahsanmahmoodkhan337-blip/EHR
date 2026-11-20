@@ -165,12 +165,19 @@ export async function lookupPhoneStatus(rawPhone: string): Promise<PhoneStatus |
   }
 
   try {
-    const { data, error } = await supabase
+    // Stored numbers arrive in every format (03105265337, +923105265337,
+    // 00923117563571, 923105265337). An exact-match query locks out any
+    // approved student whose saved format differs from what they type, so
+    // match on the last 9 local digits and then confirm the normalised forms
+    // are equal. Bounded to 25 rows — never a bulk read of the table.
+    const target = normalizePhone(phone);
+    const tail = target.length > 9 ? target.slice(-9) : target;
+
+    const { data: rows, error } = await supabase
       .from("access_requests")
-      .select("status, subscription_end_date, duration_label")
-      .in("phone", [phone, normalizePhone(phone)])
-      .limit(1)
-      .maybeSingle();
+      .select("phone, status, subscription_end_date, duration_label")
+      .ilike("phone", `%${tail}%`)
+      .limit(25);
 
     if (error) {
       lastSyncError = error.message;
@@ -179,6 +186,8 @@ export async function lookupPhoneStatus(rawPhone: string): Promise<PhoneStatus |
     }
 
     lastSyncError = null;
+    const data =
+      (rows ?? []).find((r) => normalizePhone(String((r as any).phone ?? "")) === target) ?? null;
     if (!data) return null;
     if (!isPhoneStatusValue((data as any).status)) return null;
     return {
