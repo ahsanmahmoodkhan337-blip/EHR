@@ -31,15 +31,21 @@ import { ReferenceDrawer } from "../components/shell/ReferenceDrawer";
 import { dentalReferenceTabs } from "../components/shell/referenceTabs";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { LockedStageNotice, useStageUrlSync } from "../components/shell/useStageUrlSync";
+import { setActiveTrack } from "../components/shell/activeTrack";
 import type { CaseStageParams } from "./medical-cases";
 
 /**
  * The dental case list lives on `/cases` with the medical one now (spec
  * `phase-1-navigation.md` item 6). This address redirects so no bookmarked URL
  * dies; the dental runner keeps its own per-stage addresses below it.
+ *
+ * The redirect also records that the student chose the dental track, so the case
+ * list it lands on is the dental one — the switch used to come through here and
+ * change nothing.
  */
 export const Route = createFileRoute("/dental")({
   beforeLoad: () => {
+    setActiveTrack("dental");
     throw redirect({ to: "/cases", replace: true });
   },
 });

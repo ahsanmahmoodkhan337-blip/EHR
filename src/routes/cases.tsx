@@ -10,19 +10,28 @@
  * old `/medical-cases` and `/dental` addresses redirect here, so a bookmark or a
  * link a student saved still works.
  *
- * Two tracks side by side, because both revenue cycles are one product. A card
- * links to that case's briefing URL: the runner reads the URL, selects the case
- * and opens the briefing, so nothing here has to reach into a case store.
+ * One page, one track. The list shows the revenue cycle the student is working
+ * in — the one the Medical/Dental switch in the top bar chose — and says which
+ * one it is in the heading and in the frame's track marker. Before this, the
+ * switch landed here and the page always drew the medical list under a MEDICAL
+ * RCM header, so choosing Dental changed nothing a student could see.
+ *
+ * A card links to that case's briefing URL: the runner reads the URL, selects
+ * the case and opens the briefing, so nothing here has to reach into a case
+ * store.
  *
  * STANDING-RULES 6: a card prints the case's setup — specialty, difficulty,
  * payer, minutes — never the trap, the expected action or the answer.
  */
 
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Phone, Smile, Stethoscope } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { findPlan, MEDICAL_CASE_SCENARIOS } from "../data/medical";
 import { DENTAL_CASE_SCENARIOS, findPlan as findDentalPlan } from "../data/dental";
+import { readActiveTrack, setActiveTrack } from "../components/shell/activeTrack";
+import type { ShellTrack } from "../components/shell/navItems";
 
 export const Route = createFileRoute("/cases")({
   component: CasesPage,
@@ -37,9 +46,17 @@ function difficultyTone(difficulty: string): string {
 }
 
 function CasesPage() {
+  const [track, setTrack] = useState<ShellTrack>(() => readActiveTrack());
+
+  const switchTrack = () => {
+    const next: ShellTrack = track === "dental" ? "medical" : "dental";
+    setActiveTrack(next);
+    setTrack(next);
+  };
+
   return (
     <AppShell
-      track="medical"
+      track={track}
       activeNav="practice-cases"
       footer={
         <footer className="border-t border-slate-200 bg-white px-4 py-2 text-center text-xs text-slate-400">
@@ -49,13 +66,27 @@ function CasesPage() {
       }
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
-        <h1 className="text-sm font-bold text-slate-800">Practice Cases</h1>
-        <p className="mt-0.5 text-[11px] text-slate-500">
-          Every graded case runs the same eight stages — Front Desk, Chart, Coding, Prior Auth, Claim,
-          Remittance, AR, Debrief. Pick one to begin.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-slate-800">
+              Practice Cases — {track === "dental" ? "Dental RCM" : "Medical RCM"}
+            </h1>
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              Every graded case runs the same eight stages — Front Desk, Chart, Coding, Prior Auth,
+              Claim, Remittance, AR, Debrief. Pick one to begin.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={switchTrack}
+            className="flex min-h-10 items-center rounded-lg border border-slate-300 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+          >
+            {track === "dental" ? "Show medical cases" : "Show dental cases"}
+          </button>
+        </div>
 
         {/* ── Medical ─────────────────────────────────────────────────── */}
+        {track === "medical" && (
         <section aria-labelledby="cases-medical" className="mt-4">
           <div className="mb-2 flex items-center gap-2">
             <Stethoscope className="h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
@@ -98,9 +129,11 @@ function CasesPage() {
             })}
           </ul>
         </section>
+        )}
 
         {/* ── Dental ──────────────────────────────────────────────────── */}
-        <section aria-labelledby="cases-dental" className="mt-6">
+        {track === "dental" && (
+        <section aria-labelledby="cases-dental" className="mt-4">
           <div className="mb-2 flex items-center gap-2">
             <Smile className="h-4 w-4 shrink-0 text-teal-600" aria-hidden="true" />
             <h2 id="cases-dental" className="text-xs font-bold uppercase tracking-wide text-teal-700">
@@ -159,6 +192,7 @@ function CasesPage() {
             })}
           </ul>
         </section>
+        )}
       </div>
     </AppShell>
   );
