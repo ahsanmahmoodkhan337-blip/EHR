@@ -24,6 +24,7 @@ import {
   encounterKey,
   EMPTY_ENCOUNTER,
   normalizePipelineStore,
+  restoredRoleFor,
   type ClaimFormData,
   type ClaimServiceLine,
   type PipelineEncounter,
@@ -233,12 +234,17 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       const key = encounterKey(patientId);
       const existing = prev.encounters[key];
       const encounter = existing ?? createEncounter(patientId);
-      if (prev.activePatientId === patientId && existing) return prev;
+      // Reopen the patient where they were left: their own role when the
+      // student picked one, otherwise the stage their work reached.
+      const restoredRole = restoredRoleFor(encounter);
+      if (prev.activePatientId === patientId && existing) {
+        return prev.currentRole === restoredRole ? prev : { ...prev, currentRole: restoredRole };
+      }
       return {
         ...prev,
         activePatientId: patientId,
         encounters: existing ? prev.encounters : { ...prev.encounters, [key]: encounter },
-        currentRole: encounter.role ?? "scribe",
+        currentRole: restoredRole,
       };
     });
   };
@@ -246,11 +252,13 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   const setRole = (role: Role) => {
     setStore((prev) => {
       const key = encounterKey(prev.activePatientId);
-      const enc = prev.encounters[key];
+      // Write the role onto the encounter even when it does not exist yet, so a
+      // role picked before the encounter was created still belongs to it.
+      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
       return {
         ...prev,
         currentRole: role,
-        encounters: enc ? { ...prev.encounters, [key]: { ...enc, role } } : prev.encounters,
+        encounters: { ...prev.encounters, [key]: { ...enc, role } },
       };
     });
   };
@@ -267,6 +275,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       cptCodes: ["99214", "93000"],
       status: "charted",
       stage: "coder",
+      role: "coder",
     }));
   };
 

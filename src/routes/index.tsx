@@ -1685,7 +1685,10 @@ function Home() {
       return;
     }
     restorePendingPatient.current = p.id;
-    if (PIPELINE_ROLES.includes(ctx.role as Role)) setRole(ctx.role as Role);
+    // A patient with an encounter of their own already knows which stage they
+    // were left at; the saved context role is only a fallback for a patient who
+    // has never been worked.
+    if (!getEncounter(p.id) && PIPELINE_ROLES.includes(ctx.role as Role)) setRole(ctx.role as Role);
     setActiveTab(ctx.tab);
     setActiveWorkspace(ctx.workspace || "chart");
     setSelectedPatientId(p.id);
