@@ -13,7 +13,7 @@
  * ──────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   CalendarDays, ChevronLeft, ChevronRight, User, Plus, FileEdit,
@@ -164,6 +164,11 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
   const [modalDate, setModalDate] = useState(selectedDate);
   const [modalProvider, setModalProvider] = useState("");
   const [modalStatus, setModalStatus] = useState<Appointment["status"]>("scheduled");
+  // Shown in the modal footer when Create Appointment cannot save — a silent
+  // no-op here is what made the button look broken.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // Guards a double click from registering the same patient twice.
+  const savingRef = useRef(false);
 
   // Shared entrance preset — collapses to no-op under prefers-reduced-motion.
   const fadeUp = (delay = 0) => ({
@@ -227,6 +232,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
     setModalDate(dateStr || selectedDate);
     setModalProvider("");
     setModalStatus("scheduled");
+    setSaveError(null);
     setShowModal(true);
   };
 
@@ -267,36 +273,22 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
     : undefined;
 
   const canRegister = newFirst.trim().length > 0 && newLast.trim().length > 0;
-  const canSave = editAppointment
-    ? true
-    : Boolean(modalPatientId) || (showRegister && canRegister);
 
   // Save appointment — registering the patient inline when there is no match.
+  //
+  // The decision is taken from the fields themselves, never from the render-time
+  // `canSave` snapshot: the register panel collapses when the search box changes,
+  // so `canSave` can be false by the time the click lands. That stale guard made
+  // the button do nothing at all, with no patient, no appointment and no message.
   const saveAppointment = () => {
-    if (!canSave) return;
-    let patientId = modalPatientId;
-    let patientName = selectedPatient
-      ? `${selectedPatient.firstName} ${selectedPatient.lastName}`
-      : patientQuery.trim();
-
-    if (!editAppointment && !patientId) {
-      if (!canRegister) return;
-      const created = registerPatient({
-        firstName: newFirst,
-        lastName: newLast,
-        dateOfBirth: newDob || undefined,
-        sex: newSex,
-        phone: newPhone || undefined,
-      });
-      patientId = created.id;
-      patientName = `${created.firstName} ${created.lastName}`;
-    }
-
-    const isNewPatient = !appointments.some((a) => a.patientId === patientId);
+    if (savingRef.current) return;
+    setSaveError(null);
 
     if (editAppointment) {
       updateAppointment(editAppointment.id, {
-        patientName,
+        patientName: selectedPatient
+          ? `${selectedPatient.firstName} ${selectedPatient.lastName}`
+          : editAppointment.patientName,
         type: modalType,
         time: modalTime,
         duration: modalDuration,
@@ -305,7 +297,49 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
         provider: modalProvider.trim() || undefined,
         status: modalStatus,
       });
-    } else {
+      setShowModal(false);
+      return;
+    }
+
+    let patientId = modalPatientId;
+    let patientName = selectedPatient
+      ? `${selectedPatient.firstName} ${selectedPatient.lastName}`
+      : patientQuery.trim();
+
+    if (!patientId) {
+      const first = newFirst.trim();
+      const last = newLast.trim();
+      if (!first || !last) {
+        setSaveError(
+          "Add the patient's first and last name in the register panel — or pick an existing patient above — then press Create Appointment again.",
+        );
+        return;
+      }
+      savingRef.current = true;
+      try {
+        const created = registerPatient({
+          firstName: first,
+          lastName: last,
+          dateOfBirth: newDob || undefined,
+          sex: newSex,
+          phone: newPhone || undefined,
+        });
+        patientId = created.id;
+        patientName = `${created.firstName} ${created.lastName}`;
+      } catch (err) {
+        setSaveError(
+          `The patient could not be registered: ${err instanceof Error ? err.message : "unknown error"}. Nothing was saved — try again.`,
+        );
+        return;
+      } finally {
+        savingRef.current = false;
+      }
+    }
+
+    const isNewPatient = !appointments.some((a) => a.patientId === patientId);
+
+    savingRef.current = true;
+    try {
       createAppointment({
         patientId,
         patientName,
@@ -318,6 +352,13 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
         status: modalStatus,
         isNewPatient,
       });
+    } catch (err) {
+      setSaveError(
+        `The appointment could not be created: ${err instanceof Error ? err.message : "unknown error"}.`,
+      );
+      return;
+    } finally {
+      savingRef.current = false;
     }
     setShowModal(false);
   };
@@ -726,7 +767,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
           transition={{ duration: reduceMotion ? 0 : 0.2 }}
         >
           <motion.div
-            className="w-full max-w-md rounded-2xl bg-white shadow-2xl"
+            className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl"
             initial={{ opacity: reduceMotion ? 1 : 0, scale: reduceMotion ? 1 : 0.96, y: reduceMotion ? 0 : 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.22 }}
@@ -956,7 +997,17 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                 />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-4 py-3">
+            <div className="border-t border-slate-200 px-4 py-3">
+              {saveError && (
+                <p
+                  role="alert"
+                  className="mb-2 flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10px] font-medium leading-snug text-amber-800"
+                >
+                  <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                  <span>{saveError}</span>
+                </p>
+              )}
+              <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setShowModal(false)}
                 className="rounded-xl border border-slate-200 px-3 py-1.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
@@ -965,12 +1016,13 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               </button>
               <button
                 onClick={saveAppointment}
-                disabled={!canSave}
+                disabled={!editAppointment && !modalPatientId && !canRegister}
                 className="flex items-center gap-1 rounded-xl bg-brand-600 px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Save className="h-3 w-3" />
                 {editAppointment ? "Update Appointment" : "Create Appointment"}
               </button>
+              </div>
             </div>
           </motion.div>
         </motion.div>
