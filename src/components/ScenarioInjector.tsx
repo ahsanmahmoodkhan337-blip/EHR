@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { FlaskConical, RotateCcw, ChevronDown, Zap, CheckCircle2, AlertTriangle, Stethoscope } from "lucide-react";
 import { useAppStore } from "../stores/appStore";
+import { removeStudentItem } from "../store/studentScope";
 
 // ─── Scenario Definitions ───────────────────────────────────────────
 
@@ -91,7 +92,8 @@ export function ScenarioInjector({ onSelectScenario }: ScenarioInjectorProps) {
   const handleReset = () => {
     localStorage.removeItem("hh_scenario_patient");
     localStorage.removeItem("hh_scenario");
-    localStorage.removeItem("hh_scores");
+    // This student's scores only — the key is the signed-in phone now.
+    removeStudentItem("hh_scores");
     setLoaded(null);
     setOpen(false);
     window.location.reload();

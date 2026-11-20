@@ -3,9 +3,27 @@
  *
  * Tracks per-stage scores and saves to localStorage.
  * Each stage has a max score and specific scoring logic.
- * Scores are stored in localStorage key "hh_scores" as JSON array.
- * Leaderboard reads from the same data.
+ * Scores are stored as a JSON array under `hh_scores_<phone>` — the signed-in
+ * student's own key (owner decision 2026-11-20, `specs/scores-per-student.md`).
+ * The leaderboard reads that same key, so a student never sees another
+ * student's scores on a shared classroom machine.
+ *
+ * One-time adoption: the old device-wide `hh_scores` array (keyed by a
+ * free-text name) is copied into the current student's key the first time they
+ * load scores with no phone-keyed value of their own. It is copied, not moved:
+ * the old value stays where it is, readable, and the marker `hh_scores_adopted`
+ * (suffixed with the phone) makes sure the adoption happens once and never
+ * again — including after a reset deletes the student's scores.
+ *
+ * The phone is used exactly as the student typed it. It is never normalised.
  */
+
+import {
+  getScopePhone,
+  readLegacyItem,
+  readStudentItem,
+  writeStudentItem,
+} from "../store/studentScope";
 
 export interface StageScores {
   registration: number;
@@ -25,22 +43,89 @@ export interface ScoreEntry {
   timestamp: string;
 }
 
-const STORAGE_KEY = "hh_scores";
+const SCORES_KEY = "hh_scores";
+const STREAK_KEY = "hh_streak";
+const CHALLENGES_KEY = "hh_challenges";
+/** One-time adoption marker, per phone. Never deleted by a reset. */
+const SCORES_ADOPTED_KEY = "hh_scores_adopted";
 
 // ─── Load / Save ────────────────────────────────────────────────────
 
-export function loadScores(): ScoreEntry[] {
+/**
+ * Copy the old device-wide score list into this student's key, once.
+ * Returns true only when it actually adopted something.
+ *
+ * Conditions, all of them required: a student is signed in; their own key does
+ * not exist; this phone has never adopted before; and an old unkeyed value
+ * exists. The old value is left in place — a second student on the same machine
+ * can still adopt it, and nobody's scores are destroyed.
+ */
+export function adoptLegacyScores(phone: string | null = getScopePhone()): boolean {
+  if (!phone) return false;
+  if (readStudentItem(SCORES_KEY, phone) !== null) return false;
+  if (readStudentItem(SCORES_ADOPTED_KEY, phone) !== null) return false;
+  const legacy = readLegacyItem(SCORES_KEY);
+  if (legacy === null) return false;
+  writeStudentItem(SCORES_KEY, legacy, phone);
+  writeStudentItem(SCORES_ADOPTED_KEY, new Date().toISOString(), phone);
+  return true;
+}
+
+/** This student's scores. Signed out reads nothing at all. */
+export function loadScores(phone: string | null = getScopePhone()): ScoreEntry[] {
+  if (!phone) return [];
+  adoptLegacyScores(phone);
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = readStudentItem(SCORES_KEY, phone);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as ScoreEntry[]) : [];
   } catch {
     return [];
   }
 }
 
-export function saveScores(scores: ScoreEntry[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+/** Write this student's scores. Signed out writes nothing. */
+export function saveScores(scores: ScoreEntry[], phone: string | null = getScopePhone()): void {
+  if (!phone) return;
+  writeStudentItem(SCORES_KEY, JSON.stringify(scores), phone);
+}
+
+// ─── Streak and daily challenges (same rule: the student's key) ─────
+
+/** Consecutive error-free actions for this student. Signed out is 0. */
+export function loadStreak(phone: string | null = getScopePhone()): number {
+  const raw = readStudentItem(STREAK_KEY, phone);
+  const value = raw ? parseInt(raw, 10) : 0;
+  return Number.isFinite(value) ? value : 0;
+}
+
+export function saveStreak(streak: number, phone: string | null = getScopePhone()): void {
+  writeStudentItem(STREAK_KEY, String(streak), phone);
+}
+
+/** Today's completed challenges for this student, `{}` when none or stale. */
+export function loadChallengeState(phone: string | null = getScopePhone()): Record<string, boolean> {
+  try {
+    const raw = readStudentItem(CHALLENGES_KEY, phone);
+    if (!raw) return {};
+    const data = JSON.parse(raw) as { date?: string; completed?: Record<string, boolean> };
+    if (data.date !== new Date().toISOString().split("T")[0]) return {};
+    return data.completed ?? {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveChallengeState(
+  completed: Record<string, boolean>,
+  phone: string | null = getScopePhone(),
+): void {
+  writeStudentItem(
+    CHALLENGES_KEY,
+    JSON.stringify({ date: new Date().toISOString().split("T")[0], completed }),
+    phone,
+  );
 }
 
 // ─── Get or Create Entry ────────────────────────────────────────────

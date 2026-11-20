@@ -55,9 +55,12 @@ function seedAll(storage: MemoryStorage): Record<string, string> {
     [`hh_userdata_${PHONE}`]: JSON.stringify({ v: 8, pipeline: { encounters: { "PAT-1": { note: "SOAP" } } } }),
     [`hh_dental_track_${PHONE}`]: JSON.stringify({ version: 6, caseId: "DEN-1", lines: ["D1110"] }),
     [`hh_medical_case_${PHONE}`]: JSON.stringify({ caseId: "MED-CASE-1", rubric: { coding: 3 } }),
-    hh_scores: JSON.stringify([{ name: "Ayesha", score: 42 }]),
-    hh_streak: "7",
-    hh_challenges: JSON.stringify({ done: ["c1", "c2"] }),
+    // Scores, streak and challenges are keyed by phone (scores-per-student fix).
+    [`hh_scores_${PHONE}`]: JSON.stringify([{ studentName: "Ayesha", totalScore: 42 }]),
+    [`hh_streak_${PHONE}`]: "7",
+    [`hh_challenges_${PHONE}`]: JSON.stringify({ done: ["c1", "c2"] }),
+    // The old device-wide score list: not this student's to delete.
+    hh_scores: JSON.stringify([{ studentName: "Legacy", totalScore: 9 }]),
     [`hh_ehr_${PHONE}`]: JSON.stringify({ app: "healthcare-hustlers-ehr", user: { patients: [] } }),
     [`hh_ehr_ls_${PHONE}`]: JSON.stringify({ app: "healthcare-hustlers-ehr", user: { patients: [] } }),
   };
@@ -123,7 +126,13 @@ describe("reset deletes exactly the checked group", () => {
     const seeded = seedAll(storage());
     const removed = deleteGroupStores(PHONE, ["scores"]);
 
-    expect(removed.sort()).toEqual(["hh_challenges", "hh_scores", "hh_streak"]);
+    expect(removed.sort()).toEqual([
+      `hh_challenges_${PHONE}`,
+      `hh_scores_${PHONE}`,
+      `hh_streak_${PHONE}`,
+    ]);
+    // The old device-wide score list stays: it may be another student's.
+    expect(storage().getItem("hh_scores")).toBe(seeded.hh_scores as string);
     expectOthersUntouched(seeded, removed);
   });
 
