@@ -60,6 +60,7 @@ import { statusEventsFor } from "../domain/statusEvent";
 import { encounterEventId } from "../store/pipelineEncounter";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
 import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
+import { EligibilityStage } from "../components/WorkflowAthena/EligibilityStage";
 import { HPIStage } from "../components/WorkflowAthena/HPIStage";
 import { ExamROSStage } from "../components/WorkflowAthena/ExamROSStage";
 import { AssessmentPlanStage, type SoapNoteData } from "../components/WorkflowAthena/AssessmentPlanStage";
@@ -2212,7 +2213,14 @@ function Home() {
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 animate-slide-in" key={activeStage}>
                     {activeStage === "registration" && (
-                      <RegistrationStage patientId={selectedPatientId} />
+                      <>
+                        <RegistrationStage patientId={selectedPatientId} />
+                        {/* The 270/271 writes the stored record the banner reads,
+                            so the Front Desk stage and the banner cannot disagree. */}
+                        <div className="mt-4">
+                          <EligibilityStage patientId={selectedPatientId} />
+                        </div>
+                      </>
                     )}
                     {activeStage === "intake-vitals" && (
                       <IntakeVitalsStage patientId={selectedPatientId} editableVitals={editableVitals} onVitalsChange={setEditableVitals} />

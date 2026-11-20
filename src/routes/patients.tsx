@@ -17,7 +17,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Search, UserRound } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
-import { requestPatientOpen } from "../components/shell/pendingPatient";
+import { DEFAULT_HUB_TAB } from "../components/patients/PatientHubTabs";
 
 export const Route = createFileRoute("/patients")({
   component: () => (
@@ -49,9 +49,10 @@ function PatientsPage() {
     );
   }, [patients, trimmed]);
 
-  const openChart = (patientId: string) => {
-    requestPatientOpen(patientId);
-    void navigate({ to: "/" });
+  // The hub is what Patients opens (`specs/patient-hub.md`): one patient, six
+  // tabs, at their own address. No new rail item was added for it.
+  const openPatient = (patientId: string) => {
+    void navigate({ to: "/patients/$id/$tab", params: { id: patientId, tab: DEFAULT_HUB_TAB } });
   };
 
   return (
@@ -105,7 +106,7 @@ function PatientsPage() {
                   <th>Provider</th>
                   <th>Coverage</th>
                   <th>
-                    <span className="sr-only">Open chart</span>
+                    <span className="sr-only">Open patient</span>
                   </th>
                 </tr>
               </thead>
@@ -122,11 +123,11 @@ function PatientsPage() {
                     <td className="text-right">
                       <button
                         type="button"
-                        onClick={() => openChart(patient.id)}
-                        aria-label={`Open the chart for ${patient.firstName} ${patient.lastName}`}
+                        onClick={() => openPatient(patient.id)}
+                        aria-label={`Open the patient hub for ${patient.firstName} ${patient.lastName}`}
                         className="min-h-10 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                       >
-                        Open chart
+                        Open patient
                       </button>
                     </td>
                   </tr>
