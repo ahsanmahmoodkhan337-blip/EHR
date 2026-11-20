@@ -13,8 +13,10 @@
  *    is appealable before the student decides: choosing appeal on a denial that
  *    is not appealable is a scored trap, explained only after the choice;
  *  - a downgrade is never listed here as a denial (it is a covered reduction);
- *  - the money line comes from `denialMoney()`, so a CO line never prints as a
- *    patient balance and an OA (COB) line never prints as a write-off. Before
+ *  - the money line comes from `denialMoney()` before the line is decided and
+ *    from `settledLineMoney()` after it, so a CO line never prints as a patient
+ *    balance, an OA (COB) line never prints as a write-off, and an upheld appeal
+ *    prints the amount it released instead of the write-off sentence. Before
  *    the line is committed it prints the unpaid amount only — never the money
  *    rule, which would answer who pays before the student decides;
  *  - an appeal on a crown or buildup is assembled against the documentation
@@ -39,6 +41,7 @@ import {
   appealGateFor,
   appealOutcomeFor,
   denialMoney,
+  settledLineMoney,
   scorePracticeLine,
   type DentalAppealOutcome,
   type DentalDenial,
@@ -323,6 +326,15 @@ export function DentalAR() {
           // One record decides the money: a CO line never carries a patient
           // balance, and an OA line is neither the patient's nor a write-off.
           const money = denialMoney(denial);
+          // The committed line prints what the money actually did, not the
+          // denial's standing rule: an upheld appeal released the allowed
+          // amount, so the same line can never still read as a write-off.
+          const settled = settledLineMoney(denial, row.appealOutcome, {
+            allowedUsd: row.allowedUsd,
+            planPaysUsd: row.planPaysUsd,
+            writeOffUsd: row.writeOffUsd,
+            patientOwesUsd: row.patientOwesUsd,
+          });
 
           return (
             <div key={lineId} className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -349,11 +361,11 @@ export function DentalAR() {
                   who pays. The rule and the patient/write-off split arrive with
                   the committed line.
                 */}
-                <span className={`ml-auto text-[11px] font-bold ${row.committed && money.patientBalance ? "text-red-600" : "text-slate-500"}`}>
+                <span className={`ml-auto text-[11px] font-bold ${row.committed && settled.patientOwesUsd > 0 ? "text-red-600" : "text-slate-500"}`}>
                   {row.committed
-                    ? money.patientBalance
-                      ? `${fmtUsd(row.patientOwesUsd)} patient balance — ${money.label}`
-                      : `${fmtUsd(row.writeOffUsd)} — ${money.label}`
+                    ? settled.patientOwesUsd > 0
+                      ? `${fmtUsd(settled.patientOwesUsd)} patient balance — ${settled.label}`
+                      : `${fmtUsd(settled.displayUsd)} — ${settled.label}`
                     : `${fmtUsd(money.patientBalance ? row.patientOwesUsd : row.writeOffUsd)} unpaid on this line`}
                 </span>
               </div>
@@ -381,8 +393,12 @@ export function DentalAR() {
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 rounded border border-slate-100 bg-slate-50 px-2 py-1 text-[10px] text-slate-600">
                     <span>Charged <b className="tabular-nums">{fmtUsd(row.chargedUsd)}</b></span>
                     <span>Allowed <b className="tabular-nums">{fmtUsd(row.allowedUsd)}</b></span>
-                    <span>Plan paid <b className="tabular-nums">{fmtUsd(row.planPaysUsd)}</b></span>
-                    <span>Patient <b className="tabular-nums">{fmtUsd(row.patientOwesUsd)}</b></span>
+                    <span>
+                      Plan paid <b className="tabular-nums">{fmtUsd(row.committed ? settled.planPaysUsd : row.planPaysUsd)}</b>
+                    </span>
+                    <span>
+                      Patient <b className="tabular-nums">{fmtUsd(row.committed ? settled.patientOwesUsd : row.patientOwesUsd)}</b>
+                    </span>
                   </div>
                 )}
               </div>

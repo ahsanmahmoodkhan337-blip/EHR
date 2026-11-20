@@ -69,6 +69,7 @@ export {
   AR_CALL_GUIDANCE,
   findDenial,
   denialMoney,
+  settledLineMoney,
   denialActionLabel,
   denialEffectSummary,
   appealGateFor,

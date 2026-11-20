@@ -109,9 +109,10 @@ describe("the AR card does not answer who pays before the decision", () => {
 
   test("the pre-commit money line carries no money rule", () => {
     expect(source).toContain("unpaid on this line");
-    // The money rule may only appear inside the committed branch.
+    // The money rule may only appear inside the committed branch, and there it
+    // is the settled one: an upheld appeal prints what it released.
     const committed = source.slice(source.indexOf("row.committed\n"));
-    expect(committed).toContain("money.label");
+    expect(committed).toContain("settled.label");
   });
 
   test("the group-code label is the X12 name, not the conclusion", () => {
