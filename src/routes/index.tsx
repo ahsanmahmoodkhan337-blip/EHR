@@ -75,6 +75,7 @@ import { InBasket } from "../components/TabsEpic/InBasket";
 import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
 import { ChartSearch } from "../components/TabsEpic/ChartSearch";
 import ARVoiceSimulator from "../components/ARVoiceSimulator/ARVoiceSimulator";
+import { ArWorkQueuePanel } from "../components/status/ArWorkQueuePanel";
 import { CodingQueue } from "../components/CodingQueue/CodingQueue";
 import { BillingLedger } from "../components/BillingLedger/BillingLedger";
 import PriorAuthPortal from "../components/PriorAuthPortal/PriorAuthPortal";
@@ -2079,7 +2080,14 @@ function Home() {
             <PriorAuthPortal />
           )}
           {currentRole === "ar-voice" && (
-            <ARVoiceSimulator />
+            <div className="flex flex-1 flex-col overflow-y-auto">
+              <div className="shrink-0 p-3">
+                <ArWorkQueuePanel />
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col">
+                <ARVoiceSimulator />
+              </div>
+            </div>
           )}
           {pipelineState.stage === "complete" && (
             <div className="flex flex-1 flex-col items-center justify-center p-8">

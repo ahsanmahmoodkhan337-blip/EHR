@@ -44,6 +44,16 @@ import {
 } from "../domain/adjudication";
 import { appendLedgerEntries, postRemittanceToLedger } from "../domain/ledger";
 import {
+  arResolutionEntries,
+  arResolutionOutcome,
+  arResolutionReason,
+  buildArWorkQueue,
+  type ArAction,
+  type ArItemState,
+  type ArQueueSource,
+  type ArWorkItem,
+} from "../domain/arWorkQueue";
+import {
   appendStatusEvent as appendEvent,
   makeStatusEvent,
   type StatusEventInput,
@@ -179,7 +189,28 @@ interface PipelineContextValue {
   // AR-specific
   deniedClaims: DeniedClaim[];
   arCalls: ARCallRecord[];
-  resolveDenial: (claimId: string, status: DeniedClaim["resolutionStatus"]) => void;
+  /**
+   * The AR work queue (`domain/arWorkQueue.ts`): one item per denied line of a
+   * posted 835 and one per patient balance, each with an age. Derived from the
+   * posted 835s and the ledger on every render — never stored.
+   */
+  arWorkItems: ArWorkItem[];
+  /**
+   * Clear one work-queue item with an action that moves money. Off the render
+   * path and idempotent: a resolved item cannot be resolved twice, and the
+   * ledger entry ids are derived from the item, so a double press adds nothing.
+   */
+  resolveArItem: (input: { itemId: string; action: ArAction; reasonCode?: string; note?: string }) => void;
+  /**
+   * Record the work in progress on an item — assigned to, in progress,
+   * escalated, or back to open. Moves no money and can never un-resolve one.
+   */
+  updateArItemWork: (input: {
+    itemId: string;
+    status: "open" | "in-progress" | "escalated";
+    assignedTo?: string;
+    note?: string;
+  }) => void;
   addCallRecord: (record: ARCallRecord) => void;
   assignDenial: (claimId: string, agent: string) => void;
   getClaimsByAging: () => Record<string, DeniedClaim[]>;
@@ -807,15 +838,169 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  // AR functions — the ledger spans patients, so these stay global.
-  const resolveDenial = (claimId: string, status: DeniedClaim["resolutionStatus"]) => {
-    setDeniedClaims((prev) =>
-      prev.map((c) =>
-        c.id === claimId
-          ? { ...c, resolutionStatus: status, agingBucket: determineAgingBucket(c.deniedAt) }
-          : c
-      )
-    );
+  // ── AR work queue (money cycle slice 3) ──────────────────────────
+  // The queue is derived, never stored: every item is a denied line of a posted
+  // 835 or a balance the ledger already sums. Only the work done on an item is
+  // stored, on the patient's own encounter, so it travels with the money.
+  const [arNow, setArNow] = useState(() => new Date().toISOString());
+  const arSources = useMemo<ArQueueSource[]>(
+    () =>
+      Object.values(store.encounters).map((enc) => ({
+        patientId: enc.patientId,
+        patientName: enc.displayName,
+        claimNumber: enc.claimNumber,
+        remittances: enc.remittances,
+        ledger: enc.ledger,
+        arItems: enc.arItems,
+      })),
+    [store.encounters],
+  );
+  const arWorkItems = useMemo(() => buildArWorkQueue(arSources, arNow), [arSources, arNow]);
+
+  /**
+   * Clear one item. The money the action moves is written to the patient's
+   * ledger in the same store write that marks the item resolved, so a cleared
+   * item and a ledger that still shows the money can never disagree.
+   */
+  const resolveArItem: PipelineContextValue["resolveArItem"] = (input) => {
+    const at = new Date().toISOString();
+    const by = getLoggedInPhone() ?? "system";
+    setStore((prev) => {
+      const queue = buildArWorkQueue(
+        Object.values(prev.encounters).map((enc) => ({
+          patientId: enc.patientId,
+          patientName: enc.displayName,
+          claimNumber: enc.claimNumber,
+          remittances: enc.remittances,
+          ledger: enc.ledger,
+          arItems: enc.arItems,
+        })),
+        at,
+      );
+      const item = queue.find((i) => i.id === input.itemId);
+      if (!item) return prev;
+      if (item.status === "resolved") return prev; // already cleared — no second money
+      if (!item.actions.includes(input.action)) return prev;
+      const reasonCode = (input.reasonCode ?? "").trim();
+      if (input.action === "write_off" && !reasonCode) return prev; // a write-off needs its reason
+
+      const key = encounterKey(item.patientId);
+      const enc = prev.encounters[key];
+      if (!enc) return prev;
+
+      const entries = arResolutionEntries(item, input.action, {
+        patientId: enc.patientId,
+        userId: by,
+        at,
+        reasonCode: reasonCode || undefined,
+      });
+      const ledger = appendLedgerEntries(enc.ledger, entries);
+      // The entries were already on the ledger from an earlier press: record
+      // nothing further rather than a second resolution.
+      if (entries.length > 0 && ledger === enc.ledger) return prev;
+
+      const state: ArItemState = {
+        id: item.id,
+        claimNumber: item.claimNumber,
+        status: "resolved",
+        action: input.action,
+        ...(reasonCode ? { reasonCode } : {}),
+        ...(input.note ? { note: input.note } : {}),
+        at,
+        by,
+      };
+      const arItems = [...enc.arItems.filter((s) => s.id !== item.id), state];
+      const outcome = arResolutionOutcome(input.action);
+      const movedCents =
+        input.action === "write_off"
+          ? entries
+              .filter((e) => e.type === "adjustment")
+              .reduce((sum, e) => sum + Math.abs(e.amountCents), 0)
+          : item.amountCents;
+      const event = makeStatusEvent(
+        {
+          entityType: "claim",
+          entityId: item.claimNumber,
+          patientId: enc.patientId,
+          claimNumber: item.claimNumber,
+          at,
+          from: enc.claimStatus,
+          to: outcome.to,
+          by,
+          jobRole: "ar-voice",
+          reasonCode: outcome.reasonCode,
+          reason: arResolutionReason(item, input.action, entries),
+          amountCents: movedCents,
+          refs: { refNumber: item.id, ...(item.carc ? { carc: item.carc } : {}) },
+        },
+        enc.statusEvents,
+      );
+      return {
+        ...prev,
+        encounters: {
+          ...prev.encounters,
+          [key]: {
+            ...enc,
+            ledger,
+            arItems,
+            statusEvents: appendEvent(enc.statusEvents, event),
+            claimStatus: outcome.to,
+            claimStatusMigrated: false,
+          },
+        },
+      };
+    });
+    setArNow(at);
+  };
+
+  /** Work in progress on an item: assignment, in progress, escalated, open. */
+  const updateArItemWork: PipelineContextValue["updateArItemWork"] = (input) => {
+    const at = new Date().toISOString();
+    const by = getLoggedInPhone() ?? "system";
+    setStore((prev) => {
+      const queue = buildArWorkQueue(
+        Object.values(prev.encounters).map((enc) => ({
+          patientId: enc.patientId,
+          patientName: enc.displayName,
+          claimNumber: enc.claimNumber,
+          remittances: enc.remittances,
+          ledger: enc.ledger,
+          arItems: enc.arItems,
+        })),
+        at,
+      );
+      const item = queue.find((i) => i.id === input.itemId);
+      if (!item) return prev;
+      if (item.status === "resolved") return prev; // resolved is final
+      const key = encounterKey(item.patientId);
+      const enc = prev.encounters[key];
+      if (!enc) return prev;
+      const existing = enc.arItems.find((s) => s.id === item.id);
+      const assignedTo = (input.assignedTo ?? existing?.assignedTo ?? "").trim();
+      // Same status, same owner: nothing to record.
+      if (existing && existing.status === input.status && (existing.assignedTo ?? "") === assignedTo) {
+        return prev;
+      }
+      const state: ArItemState = {
+        id: item.id,
+        claimNumber: item.claimNumber,
+        status: input.status,
+        ...(existing?.action ? { action: existing.action } : {}),
+        ...(existing?.reasonCode ? { reasonCode: existing.reasonCode } : {}),
+        ...(assignedTo ? { assignedTo } : {}),
+        ...(input.note ?? existing?.note ? { note: input.note ?? existing?.note } : {}),
+        at,
+        by,
+      };
+      return {
+        ...prev,
+        encounters: {
+          ...prev.encounters,
+          [key]: { ...enc, arItems: [...enc.arItems.filter((s) => s.id !== item.id), state] },
+        },
+      };
+    });
+    setArNow(at);
   };
 
   const addCallRecord = (record: ARCallRecord) => {
@@ -889,7 +1074,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         getRoleLabel,
         deniedClaims,
         arCalls,
-        resolveDenial,
+        arWorkItems,
+        resolveArItem,
+        updateArItemWork,
         addCallRecord,
         assignDenial,
         getClaimsByAging,

@@ -29,6 +29,7 @@ import { StatusTimeline } from "../status/StatusTimeline";
 import { ClaimAckChip, ClaimAckPanel } from "../status/ClaimAckPanel";
 import { RemittancePanel } from "../status/RemittancePanel";
 import { PatientLedgerPanel } from "../status/PatientLedgerPanel";
+import { ArWorkQueuePanel } from "../status/ArWorkQueuePanel";
 import { statusEventsFor } from "../../domain/statusEvent";
 import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
 import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
@@ -1011,6 +1012,7 @@ export function BillingLedger() {
                       remittance={remittance}
                       className="mt-3"
                     />
+                    <ArWorkQueuePanel className="mt-3" />
                   </>
                 )}
               </div>
@@ -1133,6 +1135,7 @@ export function BillingLedger() {
               </p>
               <RemittancePanel remittance={remittance} onPost={postRemittance} />
               <PatientLedgerPanel entries={state.ledger} remittance={remittance} />
+              <ArWorkQueuePanel />
             </div>
           ) : (
             <div className="mx-auto max-w-md rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
