@@ -4,30 +4,40 @@
  * Inspired by athenaOne's left navigation rail and Epic Hyperspace's activity
  * toolbar: one entry per destination, the same list on every page.
  *
- * Spec `phase-1-navigation.md` items 1 and 2, and the addendum of 2026-11-20:
- * every item in the rail is a page of its own, in this order — Home, Schedule,
- * Patients, Charts, Practice Cases, Settings — and nothing else. There is no
- * "coming soon" entry any more: a rail item that does not open a page is not in
- * the rail. The stages that used to sit here as SOON (Coding, Claims, Payments,
- * Denials and AR, Reports) are reached inside a case, where they are stages of
- * one encounter.
+ * Spec `eleven-rail-pages.md` (owner decisions, 2026-11-20): **eleven buttons in
+ * all**, in this order, in both tracks —
  *
- * Charts took the slot Reference held in PR #120: the owner's six are Home,
- * Schedule, Patients, Charts, Practice Cases, Settings. Reference is the drawer
- * beside the work, not a page students need in a six-button rail — its route
- * (`/reference`) still exists, it is simply not in the rail.
+ *   Home · Schedule · Patients · Charts · Coding · Claims · Payments ·
+ *   Denials and AR · Reports · Practice Cases · Settings
+ *
+ * The five money-cycle entries the old rail showed as SOON (Coding, Claims,
+ * Payments, Denials and AR, Reports) are real pages now. Nothing in the rail
+ * says Soon, and no entry is a placeholder: every item here opens a route that
+ * exists and draws something.
+ *
+ * The labels and the grouping are exactly the ones students already saw —
+ * **Denials and AR is one page**, and **Reports is a page**, not a drawer.
+ *
+ * Charts took the slot Reference held in PR #120; Reference is the drawer beside
+ * the work, not a page students need in the rail — its route (`/reference`) still
+ * exists, it is simply not in the rail.
  *
  * Kept free of React on purpose: the router, the sidebar and the tests all read
  * this one list.
  */
 
 import {
+  AlertTriangle,
+  BarChart3,
   BookOpen,
   CalendarDays,
+  ClipboardList,
+  FileText,
   Home,
   Settings,
   Stethoscope,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,15 +45,20 @@ import {
 export type ShellTrack = "medical" | "dental";
 
 /**
- * Every destination the shell can mark as current. Six of them are the rail;
+ * Every destination the shell can mark as current. Eleven of them are the rail;
  * `reference` stays here because `/reference` is still a page with its own
- * address, it is just not one of the six.
+ * address, it is just not one of the eleven.
  */
 export type ShellNavId =
   | "home"
   | "schedule"
   | "patients"
   | "charts"
+  | "coding"
+  | "claims"
+  | "payments"
+  | "denials-ar"
+  | "reports"
   | "practice-cases"
   | "settings"
   | "reference";
@@ -54,6 +69,11 @@ export type ShellRoutePath =
   | "/schedule"
   | "/patients"
   | "/charts"
+  | "/coding"
+  | "/claims"
+  | "/payments"
+  | "/denials-ar"
+  | "/reports"
   | "/cases"
   | "/reference"
   | "/settings";
@@ -73,6 +93,11 @@ export const SHELL_NAV_ITEMS: ShellNavItem[] = [
   { id: "schedule", label: "Schedule", icon: CalendarDays, to: "/schedule", shared: true },
   { id: "patients", label: "Patients", icon: Users, to: "/patients", shared: true },
   { id: "charts", label: "Charts", icon: Stethoscope, to: "/charts", shared: true },
+  { id: "coding", label: "Coding", icon: ClipboardList, to: "/coding", shared: true },
+  { id: "claims", label: "Claims", icon: FileText, to: "/claims", shared: true },
+  { id: "payments", label: "Payments", icon: Wallet, to: "/payments", shared: true },
+  { id: "denials-ar", label: "Denials and AR", icon: AlertTriangle, to: "/denials-ar", shared: true },
+  { id: "reports", label: "Reports", icon: BarChart3, to: "/reports", shared: true },
   { id: "practice-cases", label: "Practice Cases", icon: BookOpen, to: "/cases", shared: true },
   { id: "settings", label: "Settings", icon: Settings, to: "/settings", shared: true },
 ];

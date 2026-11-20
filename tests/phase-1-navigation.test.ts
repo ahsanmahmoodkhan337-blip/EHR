@@ -37,13 +37,18 @@ const EIGHT = [
   "Debrief",
 ];
 
-describe("the rail — six pages, no SOON", () => {
-  test("the items are Home, Schedule, Patients, Charts, Practice Cases, Settings", () => {
+describe("the rail — eleven pages, no SOON", () => {
+  test("the items are Home, Schedule, Patients, Charts, Coding, Claims, Payments, Denials and AR, Reports, Practice Cases, Settings", () => {
     expect(SHELL_NAV_ORDER).toEqual([
       "home",
       "schedule",
       "patients",
       "charts",
+      "coding",
+      "claims",
+      "payments",
+      "denials-ar",
+      "reports",
       "practice-cases",
       "settings",
     ]);

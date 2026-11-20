@@ -1425,6 +1425,9 @@ function Home() {
     if (match) {
       setSelectedPatientId(match.id);
       selectPatient(match.id);
+      // A money-cycle rail page hands over the stage its row was about, so the
+      // chart opens on that screen instead of wherever the student left it.
+      if (requested.role) setRole(requested.role);
       return;
     }
     // An appointment booked for someone who is not in the patient database

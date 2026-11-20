@@ -3,7 +3,8 @@
  *
  * Spec `every-button-works.md` item 5, STANDING-RULES 5.
  *
- * The six rail pages (Home `/`, `/schedule`, `/patients`, `/charts`, `/cases`,
+ * The eleven rail pages (Home `/`, `/schedule`, `/patients`, `/charts`,
+ * `/coding`, `/claims`, `/payments`, `/denials-ar`, `/reports`, `/cases`,
  * `/settings`) are walked here as source: every interactive element they draw —
  * button, link, input, select, textarea — must either
  *
@@ -18,7 +19,7 @@
  *
  * The page set is the route file plus the frame it renders (the rail, the top
  * bar, the banner, the help launcher) and the page's own panel — the files that
- * make up the six pages. A stage component inside an encounter is covered by
+ * make up the eleven pages. A stage component inside an encounter is covered by
  * the encounter's own tests, not by this one.
  */
 import { describe, expect, test } from "bun:test";
@@ -28,22 +29,32 @@ import { join } from "node:path";
 const root = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 
-/** The six rail pages: the owner's rail, one route each. */
+/** The eleven rail pages: the owner's rail, one route each (spec `eleven-rail-pages.md`). */
 const RAIL_PAGES: { path: string; label: string }[] = [
   { path: "/", label: "Home" },
   { path: "/schedule", label: "Schedule" },
   { path: "/patients", label: "Patients" },
   { path: "/charts", label: "Charts" },
+  { path: "/coding", label: "Coding" },
+  { path: "/claims", label: "Claims" },
+  { path: "/payments", label: "Payments" },
+  { path: "/denials-ar", label: "Denials and AR" },
+  { path: "/reports", label: "Reports" },
   { path: "/cases", label: "Practice Cases" },
   { path: "/settings", label: "Settings" },
 ];
 
-/** Every file the six pages draw: the route, the frame, the page's own panel. */
+/** Every file the eleven pages draw: the route, the frame, the page's own panel. */
 const PAGE_FILES = [
   "src/routes/index.tsx",
   "src/routes/schedule.tsx",
   "src/routes/patients.tsx",
   "src/routes/charts.tsx",
+  "src/routes/coding.tsx",
+  "src/routes/claims.tsx",
+  "src/routes/payments.tsx",
+  "src/routes/denials-ar.tsx",
+  "src/routes/reports.tsx",
   "src/routes/cases.tsx",
   "src/routes/cases.index.tsx",
   "src/routes/settings.tsx",
@@ -57,6 +68,7 @@ const PAGE_FILES = [
   "src/components/DarkModeToggle.tsx",
   "src/components/TabsEpic/DailySchedule.tsx",
   "src/components/status/HomeWorkQueues.tsx",
+  "src/components/rail/RailPageFrame.tsx",
 ];
 
 type Element = { file: string; tag: string; attrs: string; line: number };
@@ -131,7 +143,7 @@ function deadControls(file: string, source: string): string[] {
     });
 }
 
-describe("every control on the six rail pages does something or says why not", () => {
+describe("every control on the eleven rail pages does something or says why not", () => {
   for (const file of PAGE_FILES) {
     test(`${file} has no dead control`, () => {
       const dead = deadControls(file, read(file));
@@ -151,14 +163,42 @@ describe("the rail never lies about where the student is", () => {
     expect(sidebar).toContain("const isActive = activeNav === item.id;");
   });
 
-  test("each of the six rail entries opens its own page", () => {
+  test("each of the eleven rail entries opens its own page", () => {
     const targets = [...navItems.matchAll(/to: "([^"]+)"/g)].map((m) => m[1]);
     expect(targets).toEqual(RAIL_PAGES.map((page) => page.path));
+    expect(targets).toHaveLength(11);
+  });
+
+  test("no rail entry says Soon, and none is a placeholder", () => {
+    // No item carries a "soon" flag or a "soon" target — every one is a page.
+    expect(navItems).not.toMatch(/\bsoon\s*:/);
+    expect(navItems).not.toContain('"soon"');
+    expect(sidebar).not.toContain("Soon");
+    // Every label is a real destination, never a "coming soon" marker.
+    const labels = [...navItems.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]);
+    expect(labels).toEqual([
+      "Home",
+      "Schedule",
+      "Patients",
+      "Charts",
+      "Coding",
+      "Claims",
+      "Payments",
+      "Denials and AR",
+      "Reports",
+      "Practice Cases",
+      "Settings",
+    ]);
   });
 
   test("every rail page names itself to the rail", () => {
     const expected: Record<string, string> = {
       "src/routes/schedule.tsx": 'activeNav="schedule"',
+      "src/routes/coding.tsx": 'activeNav="coding"',
+      "src/routes/claims.tsx": 'activeNav="claims"',
+      "src/routes/payments.tsx": 'activeNav="payments"',
+      "src/routes/denials-ar.tsx": 'activeNav="denials-ar"',
+      "src/routes/reports.tsx": 'activeNav="reports"',
       "src/routes/patients.tsx": 'activeNav="patients"',
       "src/routes/charts.tsx": 'activeNav="charts"',
       "src/routes/cases.index.tsx": 'activeNav="practice-cases"',
