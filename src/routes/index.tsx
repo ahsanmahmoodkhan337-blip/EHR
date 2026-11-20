@@ -53,6 +53,9 @@ import { Header } from "../components/TabsEpic/Header";
 import { PatientBanner } from "../components/TabsEpic/PatientBanner";
 import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
 import { WorkflowAthena } from "../components/WorkflowAthena/WorkflowAthena";
+import { StatusTimeline } from "../components/status/StatusTimeline";
+import { statusEventsFor } from "../domain/statusEvent";
+import { encounterEventId } from "../store/pipelineEncounter";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
 import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
 import { HPIStage } from "../components/WorkflowAthena/HPIStage";
@@ -125,7 +128,6 @@ interface PatientSessionData {
   _patientId: string;
   soapNote: SoapNoteData;
   submittedToCoding: boolean;
-  completedStages: string[];
   editableVitals: {
     bloodPressure: string;
     heartRate: string;
@@ -1364,7 +1366,6 @@ function Home() {
   const hasFinancialActivity = billedTotal > 0 || deniedTotal > 0 || pipelineState.status !== "pending";
   const { addToast } = useToast();
   const [activeStage, setActiveStage] = useState("registration");
-  const [completedStages, setCompletedStages] = useState<Set<string>>(new Set(["registration"]));
 
   const [examMode, setExamMode] = useState(false);
   const [isLoadingPatient] = useState(false);
@@ -1494,13 +1495,10 @@ function Home() {
   function saveCurrentSession() {
     console.log("saveCurrentSession: saving to key:", selectedPatientId);
     if (!selectedPatientId) return;
-    const stages: string[] = [];
-    completedStages.forEach(s => stages.push(s));
     patientDataStore.current[selectedPatientId] = {
       _patientId: selectedPatientId,
       soapNote: { ...soapNote },
       submittedToCoding,
-      completedStages: stages,
       editableVitals: { ...editableVitals },
       editablePatientData: {
         ...editablePatientData,
@@ -1535,7 +1533,6 @@ function Home() {
         plan: "1. Admit to telemetry unit\n2. Serial troponins q6h x3\n3. Echocardiogram in AM\n4. Cardiology consult (Dr. Williams)\n5. Continue home medications\n6. NPO after midnight for possible cardiac catheterization\n7. Stress test if enzymes negative\n8. Discharge planning: cardiac rehab referral"
       });
       setSubmittedToCoding(false);
-      setCompletedStages(new Set(["registration", "intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"]));
       setActiveStage("sign-lock");
       setSharedImmunizations([
         { id: "imm-d1", vaccine: "Influenza 2026-2027", dose: "0.5 mL", date: "2026-10-01", status: "Given" },
@@ -1581,7 +1578,6 @@ function Home() {
     if (saved && saved._patientId === patientId) {
       setSoapNote(saved.soapNote);
       setSubmittedToCoding(saved.submittedToCoding);
-      setCompletedStages(new Set(saved.completedStages));
       setActiveStage(saved.activeStage);
       setEditableVitals(saved.editableVitals);
       setEditablePatientData(saved.editablePatientData);
@@ -1633,7 +1629,6 @@ function Home() {
       setSubmittedToCoding(false);
       setDisplayName(undefined);
       setActiveStage("registration");
-      setCompletedStages(new Set(["registration"]));
     }
     }
   }
@@ -1856,29 +1851,7 @@ function Home() {
       setIsSubmittingNote(false);
       setSubmittedToCoding(true);
       addToast({ type: "success", title: "Note Submitted to Coding!", description: "The clinical note has been signed, locked, and sent to the coding queue." });
-      // Mark sign-lock as completed
-      const updated = new Set(completedStages);
-      updated.add("sign-lock");
-      setCompletedStages(updated);
     }, 800);
-  };
-
-  const toggleStageComplete = (stageId: string) => {
-    // Registration is completed by the patient's data, never by a click.
-    if (stageId === "registration") return;
-    const updated = new Set(completedStages);
-    if (updated.has(stageId)) {
-      updated.delete(stageId);
-    } else {
-      updated.add(stageId);
-      // Auto-advance to next stage
-      const stageOrder = ["registration", "intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"];
-      const currentIdx = stageOrder.indexOf(stageId);
-      if (currentIdx >= 0 && currentIdx < stageOrder.length - 1) {
-        setActiveStage(stageOrder[currentIdx + 1]);
-      }
-    }
-    setCompletedStages(updated);
   };
 
   const selectedPatient = patients.find((p) => p.id === selectedPatientId);
@@ -1903,9 +1876,59 @@ function Home() {
     if (!payer) registrationGaps.push("coverage or self-pay");
   }
   const registrationComplete = !!selectedPatient && registrationGaps.length === 0;
-  const completedStagesDerived = new Set(completedStages);
+
+  // ─── Every step's state is read from the record ───────────────────
+  // A step is green only when the data its role captures is actually there.
+  // This is a projection recomputed on every render: no stored "done" flag, no
+  // click, and nothing written back from here (status-engine.md §4–5).
+  const vitalsGaps = (
+    [
+      ["blood pressure", editableVitals.bloodPressure],
+      ["heart rate", editableVitals.heartRate],
+      ["temperature", editableVitals.temperature],
+      ["respiratory rate", editableVitals.respiratoryRate],
+      ["oxygen saturation", editableVitals.oxygenSaturation],
+    ] as [string, string][]
+  )
+    .filter(([, value]) => !String(value ?? "").trim())
+    .map(([label]) => label);
+
+  const hpiDone = soapNote.subjective.trim().length > 0;
+  const examDone = soapNote.objective.trim().length > 0;
+  const planGaps: string[] = [];
+  if (!soapNote.assessment.trim()) planGaps.push("the assessment");
+  if (!soapNote.plan.trim()) planGaps.push("the plan");
+  // The encounter's own record says whether its note was signed and locked.
+  const noteSigned =
+    pipelineState.status !== "pending" && (pipelineState.scribeNote.trim().length > 0 || submittedToCoding);
+
+  const completedStagesDerived = new Set<string>();
   if (registrationComplete) completedStagesDerived.add("registration");
-  else completedStagesDerived.delete("registration");
+  if (vitalsGaps.length === 0) completedStagesDerived.add("intake-vitals");
+  if (hpiDone) completedStagesDerived.add("hpi");
+  if (examDone) completedStagesDerived.add("exam-ros");
+  if (planGaps.length === 0) completedStagesDerived.add("assessment-plan");
+  if (noteSigned) completedStagesDerived.add("sign-lock");
+
+  const stageHints: Record<string, string> = {};
+  if (!registrationComplete) {
+    stageHints.registration = registrationGaps.length
+      ? `Missing: ${registrationGaps.join(", ")}`
+      : "Select a patient to register.";
+  }
+  if (vitalsGaps.length > 0) stageHints["intake-vitals"] = `Missing: ${vitalsGaps.join(", ")}`;
+  if (!hpiDone) stageHints.hpi = "Missing: the history of present illness";
+  if (!examDone) stageHints["exam-ros"] = "Missing: the review of systems / exam";
+  if (planGaps.length > 0) stageHints["assessment-plan"] = `Missing: ${planGaps.join(" and ")}`;
+  if (!noteSigned) stageHints["sign-lock"] = "Missing: the signed and locked note";
+
+  // This patient's encounter timeline — the append-only record of what has
+  // actually happened to it, never a summary kept anywhere else.
+  const encounterEvents = statusEventsFor(
+    pipelineState.statusEvents,
+    "encounter",
+    encounterEventId(activePatientId),
+  );
 
   console.log("render: selectedPatientId=", selectedPatientId, "selectedPatient=", selectedPatient?.firstName, selectedPatient?.lastName);
 
@@ -1963,9 +1986,14 @@ function Home() {
                   setActiveStage(id);
                 }}
                 completedStages={completedStagesDerived}
-                onToggleStageComplete={toggleStageComplete}
-                derivedStages={["registration"]}
-                stageHints={{ registration: `Missing: ${registrationGaps.join(", ")}` }}
+                stageHints={stageHints}
+              />
+              <StatusTimeline
+                className="mt-4"
+                events={encounterEvents}
+                title="Encounter timeline"
+                subject={pipelineState.claimNumber}
+                emptyHint="No status change yet — sign and lock the note to record the first one."
               />
             </div>
           )}
@@ -2124,7 +2152,6 @@ function Home() {
                     setSharedReferrals([]);
                     setSharedOrders([]);
                     setSharedImaging([]);
-                    setCompletedStages(new Set(["registration"]));
                     setSubmittedToCoding(false);
                   }
                 }} />

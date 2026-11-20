@@ -16,6 +16,15 @@
  * 3. Exam / Review of Systems — Checkbox ROS grid
  * 4. Assessment & Plan — SOAP note + one-click macros
  * 5. Sign & Lock — Finalize note (placeholder)
+ *
+ * ── Status comes from the record, not from a click (status-engine.md §5) ──
+ * There is no "Mark complete" control any more. `completedStages` is derived by
+ * the caller from the patient's own data (a step turns green only when its
+ * required fields are valid), so this component never writes anything and never
+ * runs an effect. Each row is **one** real `<button>` — the icon and the badges
+ * inside it are plain `<span>`s, so there is one tab stop per row and no nested
+ * interactive element. A step that cannot be opened yet is **amber**, not red:
+ * it says what is still missing instead of looking like an error.
  */
 
 import {
@@ -88,10 +97,8 @@ interface WorkflowAthenaProps {
   stages?: WorkflowStage[];
   activeStage: string;
   onStageSelect: (stageId: string) => void;
+  /** Steps whose required data is complete — derived by the caller, never clicked. */
   completedStages: Set<string>;
-  onToggleStageComplete: (stageId: string) => void;
-  /** Steps whose completion comes from the patient's data, not from a click. */
-  derivedStages?: string[];
   /** Why a step is not done yet, keyed by stage id — shown under the step. */
   stageHints?: Record<string, string>;
   className?: string;
@@ -104,8 +111,6 @@ export function WorkflowAthena({
   activeStage,
   onStageSelect,
   completedStages,
-  onToggleStageComplete,
-  derivedStages = [],
   stageHints = {},
   className = "",
 }: WorkflowAthenaProps) {
@@ -134,88 +139,86 @@ export function WorkflowAthena({
         />
       </div>
 
-      {/* Stage Steps */}
+      {/* Stage Steps — one button per row */}
       <div className="space-y-1">
         {stages.map((stage, index) => {
           const isCompleted = completedStages.has(stage.id);
           const isCurrent = activeStage === stage.id;
+          // A step opens once the one before it is complete. Until then it is
+          // blocked — amber, with the reason, never red.
           const isPreviousCompleted =
             index === 0 || completedStages.has(stages[index - 1]?.id ?? "");
+          const blocked = !isCompleted && !isCurrent && !isPreviousCompleted;
+          const hint =
+            stageHints[stage.id] ??
+            (blocked ? `Complete ${stages[index - 1]?.label ?? "the previous step"} first.` : undefined);
 
           return (
-            <div
+            <button
               key={stage.id}
-              className={`group flex items-start gap-3 rounded-lg border p-3 transition-colors ${
+              type="button"
+              onClick={() => onStageSelect(stage.id)}
+              disabled={blocked}
+              aria-current={isCurrent ? "step" : undefined}
+              className={`group flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
                 isCurrent
                   ? "border-blue-200 bg-blue-50"
                   : isCompleted
-                    ? "border-green-200 bg-green-50/70"
-                    : "border-slate-200 bg-white hover:border-slate-300"
+                    ? "border-green-200 bg-green-50/70 hover:border-green-300"
+                    : blocked
+                      ? "cursor-not-allowed border-amber-200 bg-amber-50/60"
+                      : "border-slate-200 bg-white hover:border-slate-300"
               }`}
             >
-              {/* Completion checkbox — beside the step, never inside it */}
-              <input
-                type="checkbox"
-                checked={isCompleted}
-                disabled={derivedStages.includes(stage.id)}
-                onChange={() => onToggleStageComplete(stage.id)}
-                aria-label={
-                  isCompleted
-                    ? `Mark ${stage.label} as incomplete`
-                    : `Mark ${stage.label} as complete`
-                }
-                title={
-                  derivedStages.includes(stage.id)
-                    ? "This step is completed by the patient's data, not by a click."
-                    : undefined
-                }
-                className="mt-1 h-4 w-4 shrink-0 accent-green-600 disabled:cursor-not-allowed disabled:opacity-40"
-              />
+              {/* Step icon — decorative, never interactive */}
+              <span
+                aria-hidden="true"
+                className={`mt-0.5 shrink-0 ${
+                  isCurrent ? "text-blue-600" : isCompleted ? "text-green-600" : blocked ? "text-amber-500" : "text-slate-400"
+                }`}
+              >
+                {stage.icon}
+              </span>
 
-              {/* The step itself — one button */}
-              <div className="min-w-0 flex-1">
-                <button
-                  type="button"
-                  onClick={() => isPreviousCompleted && onStageSelect(stage.id)}
-                  disabled={!isPreviousCompleted}
-                  className={`flex w-full items-center gap-2 text-left ${
-                    isPreviousCompleted ? "cursor-pointer" : "cursor-not-allowed opacity-60"
-                  }`}
-                >
-                  <span
-                    className={`${
-                      isCurrent ? "text-blue-600" : "text-slate-400"
-                    }`}
-                  >
-                    {stage.icon}
-                  </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
                   <span
                     className={`text-sm font-medium ${
                       isCurrent
                         ? "text-blue-800"
                         : isCompleted
                           ? "text-green-800"
-                          : "text-slate-700"
+                          : blocked
+                            ? "text-amber-800"
+                            : "text-slate-700"
                     }`}
                   >
                     {stage.label}
                   </span>
                   {isCurrent && (
-                    <span className="ml-auto rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
                       Active
                     </span>
                   )}
-                </button>
-                <p className="mt-0.5 text-xs text-slate-500">
+                  {isCompleted && (
+                    <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                      From the record
+                    </span>
+                  )}
+                  {blocked && (
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                      Not open yet
+                    </span>
+                  )}
+                </span>
+                <span className="mt-0.5 block text-xs text-slate-500">
                   {stage.description}
-                </p>
-                {!isCompleted && stageHints[stage.id] && (
-                  <p className="mt-0.5 text-[10px] font-medium text-amber-700">
-                    {stageHints[stage.id]}
-                  </p>
+                </span>
+                {!isCompleted && hint && (
+                  <span className="mt-0.5 block text-[10px] font-medium text-amber-700">{hint}</span>
                 )}
-              </div>
-            </div>
+              </span>
+            </button>
           );
         })}
       </div>

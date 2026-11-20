@@ -12,6 +12,8 @@
  */
 
 import type { ClaimType } from "../data/claims/claimType";
+import type { ClaimHold, ClaimStatus, JobRole } from "../domain/claimStatus";
+import type { StatusEvent } from "../domain/statusEvent";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -157,6 +159,25 @@ export interface PipelineEncounter {
   paData: Record<string, string>;
   /** The role the student last worked this patient in — restored on a switch. */
   role: Role;
+  /**
+   * The claim number, minted the moment this encounter's claim is created and
+   * never re-minted. Null while the encounter has no claim at all.
+   */
+  claimNumber: string | null;
+  /** Where the claim stands (`domain/claimStatus`). Null while there is no claim. */
+  claimStatus: ClaimStatus | null;
+  /**
+   * True when `claimStatus` came from a v3 blob rather than a recorded
+   * transition — no 835 backs it, and no money was invented for it.
+   */
+  claimStatusMigrated: boolean;
+  /** Holds are an attribute, not a state (status-engine.md §2). */
+  holds: ClaimHold[];
+  /**
+   * The append-only timeline for this encounter and its claim. Written only
+   * through `appendStatusEvent` in the store — never edited, never removed.
+   */
+  statusEvents: StatusEvent[];
 }
 
 /**
@@ -235,6 +256,11 @@ export function createEncounter(patientId: string | null): PipelineEncounter {
     denialInfo: null,
     paData: {},
     role: "scribe",
+    claimNumber: null,
+    claimStatus: null,
+    claimStatusMigrated: false,
+    holds: [],
+    statusEvents: [],
   };
 }
 
@@ -260,7 +286,26 @@ export function normalizeEncounter(
     role: raw.role ?? roleForStage(raw.stage ?? base.stage),
     stage: raw.stage ?? base.stage,
     status: raw.status ?? base.status,
+    claimNumber: raw.claimNumber ?? base.claimNumber,
+    claimStatus: raw.claimStatus ?? base.claimStatus,
+    claimStatusMigrated: raw.claimStatusMigrated === true,
+    holds: Array.isArray(raw.holds) ? raw.holds : [],
+    statusEvents: Array.isArray(raw.statusEvents) ? raw.statusEvents : [],
   };
+}
+
+/**
+ * The id a status event names for this patient's encounter. The pipeline keys an
+ * encounter by its patient, so the patient id *is* the encounter's identity; the
+ * unassigned bucket (work with no chart attached) keeps its own id.
+ */
+export function encounterEventId(patientId: string | null | undefined): string {
+  return patientId || "unassigned";
+}
+
+/** The status-engine role that matches a pipeline role. */
+export function jobRoleFor(role: Role | "complete"): JobRole {
+  return role === "complete" ? "ar-voice" : role;
 }
 
 /**
