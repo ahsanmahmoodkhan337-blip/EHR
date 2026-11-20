@@ -16,21 +16,30 @@
  */
 import { supabase } from "./supabase";
 import type { CaseState } from "./patientStore";
-import type { PipelineState, DeniedClaim, ARCallRecord, PARecordStore, Role } from "./pipelineStore";
+import type { DeniedClaim, ARCallRecord, PARecordStore, Role } from "./pipelineStore";
+import {
+  normalizePipelineStore,
+  type PipelineEncounter,
+  type PipelineStoreState,
+} from "./pipelineEncounter";
 import type { Appointment } from "../components/TabsEpic/DailySchedule";
 import type { AccountSecurityState } from "./accountSecurity";
 import { migrateClaimData } from "../utils/claimAutoFill";
 
 const STORAGE_PREFIX = "hh_userdata_";
-/** v2 added the structured CMS-1500 record (`pipeline.claimForm`). */
-const BLOB_VERSION = 2;
+/**
+ * v2 added the structured CMS-1500 record (`pipeline.claimForm`).
+ * v3 made the pipeline one encounter per patient (`activePatientId` +
+ * `encounters`), so picking a patient loads their work instead of wiping it.
+ */
+const BLOB_VERSION = 3;
 
 export interface PersistedUserData {
   v: number;
   updatedAt: string;
   appointments?: Appointment[];
   caseStates?: Record<string, CaseState>;
-  pipeline?: PipelineState;
+  pipeline?: PipelineStoreState;
   currentRole?: Role;
   deniedClaims?: DeniedClaim[];
   arCalls?: ARCallRecord[];
@@ -44,20 +53,29 @@ export function userDataKey(phone: string): string {
 }
 
 /**
- * Schema migration. v1 → v2 back-fills `pipeline.claimForm` from the legacy
- * `claimData` box map and makes sure the new fields exist, so a student who
- * had a claim open before the CMS-1500 replica shipped keeps their data.
+ * Schema migration.
+ * v1 → v2 back-fills `pipeline.claimForm` from the legacy `claimData` box map
+ * and makes sure the new fields exist, so a student who had a claim open before
+ * the CMS-1500 replica shipped keeps their data.
+ * v2 → v3 turns the single stored encounter into that patient's encounter in
+ * the per-patient map, so a student mid-workflow keeps their place.
  */
 function migrateBlob(parsed: PersistedUserData): PersistedUserData {
   if ((parsed.v ?? 1) >= BLOB_VERSION) return parsed;
-  const pipeline = parsed.pipeline;
-  if (pipeline) {
-    const p = pipeline as PipelineState & { claimForm?: PipelineState["claimForm"] };
-    if (!p.claimForm) p.claimForm = migrateClaimData(p.claimData);
-    if (!Array.isArray(p.codingLines)) p.codingLines = [];
+  const pipeline = parsed.pipeline as unknown as
+    | (Partial<PipelineEncounter> & { claimForm?: PipelineEncounter["claimForm"] })
+    | undefined;
+  if (pipeline && !("encounters" in pipeline)) {
+    if (!pipeline.claimForm) pipeline.claimForm = migrateClaimData(pipeline.claimData ?? {});
+    if (!Array.isArray(pipeline.codingLines)) pipeline.codingLines = [];
   }
-  return { ...parsed, v: BLOB_VERSION };
+  return {
+    ...parsed,
+    pipeline: pipeline ? normalizePipelineStore(pipeline, parsed.currentRole ?? "scribe") : parsed.pipeline,
+    v: BLOB_VERSION,
+  };
 }
+
 
 /** Read the full per-user blob from localStorage (null when absent/corrupt). */
 export function loadUserData(phone: string | null | undefined): PersistedUserData | null {

@@ -22,7 +22,7 @@ import {
 } from "../store/accessStore";
 import { loadUserData } from "../store/persistence";
 import { getSharingSignal, MAX_DEVICE_COUNT, resetOtherSessions } from "../store/accountSecurity";
-import type { PipelineState, Role } from "../store/pipelineStore";
+import { encounterKey, type PipelineStoreState, type Role } from "../store/pipelineStore";
 import type { DentalTrackState, DentalStageName } from "../components/dental/DentalTrackStore";
 
 export const Route = createFileRoute("/dashboard")({
@@ -107,14 +107,16 @@ function DashboardPage() {
 
   // ── read persisted state (no providers needed) ──────────────────────
   const medical = loadUserData(phone);
-  const pipeline: PipelineState | undefined = medical?.pipeline;
+  // One encounter per patient — the dashboard reports the patient being worked on.
+  const pipeline: PipelineStoreState | undefined = medical?.pipeline;
+  const activeEncounter = pipeline?.encounters?.[encounterKey(pipeline.activePatientId)];
   const dental = readDentalState(phone);
 
   const subStatus = getSubscriptionStatus(phone);
   const signal = getSharingSignal(phone);
 
   // Medical progress
-  const currentRole: Role | "complete" = pipeline?.stage ?? "scribe";
+  const currentRole: Role | "complete" = activeEncounter?.stage ?? "scribe";
   const medicalIdx = currentRole === "complete" ? MEDICAL_STAGES.length : MEDICAL_STAGES.findIndex((s) => s.role === currentRole);
   const medicalDone = currentRole === "complete" ? MEDICAL_STAGES.length : Math.max(0, medicalIdx);
   const medicalPct = Math.round((medicalDone / MEDICAL_STAGES.length) * 100);
@@ -206,9 +208,9 @@ function DashboardPage() {
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500">Progress</span>
                 <span className="text-xs font-bold text-slate-700">{medicalPct}%</span>
-                {pipeline?.status && (
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${STATUS_TONE[pipeline.status] ?? STATUS_TONE.pending}`}>
-                    {pipeline.status}
+                {activeEncounter?.status && (
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${STATUS_TONE[activeEncounter.status] ?? STATUS_TONE.pending}`}>
+                    {activeEncounter.status}
                   </span>
                 )}
               </div>
