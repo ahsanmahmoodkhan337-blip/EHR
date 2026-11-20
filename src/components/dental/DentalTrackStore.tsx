@@ -36,6 +36,9 @@ import type { ADAFormData } from "../../data/claims/adaLayout";
 import { mintClaimNumber, nextClaimNumber, type ClaimStatus } from "../../domain/claimStatus";
 import { buildSubmissionEvents, type ClaimTrack } from "../../domain/clearinghouse";
 import { appendStatusEvent, makeStatusEvent, type StatusEvent } from "../../domain/statusEvent";
+import { appendLedgerEntries, type LedgerEntry } from "../../domain/ledger";
+import { postDentalRemittanceToLedger } from "../../domain/dentalRemittance";
+import type { EraRemittance } from "../../data/dental";
 
 export type DentalStageName =
   | "case-select"
@@ -183,10 +186,12 @@ export interface DentalAdjustment {
 export interface DentalTrackState {
   /**
    * v2 added the structured ADA claim form (`adaForm`); v3 added `furthestStage`;
-   * v4 added the claim number and the append-only status timeline; v5 added the
-   * AR practice bench slice (`practice`, `activePracticeId`).
+   * v4 added the claim number and the append-only status timeline; v5 replaced
+   * the mock payment/adjustment arrays with the ledger — the one list of money
+   * that actually moved, and the only thing the patient ledger sums; v6 added
+   * the AR practice bench slice (`practice`, `activePracticeId`).
    */
-  version: 5;
+  version: 6;
   /** null = no case loaded (case-select screen). */
   caseId: string | null;
   stage: DentalStageName;
@@ -223,10 +228,12 @@ export interface DentalTrackState {
   perio: Record<string, PerioToothEntry>;
   /** Treatment plan items (planning stage → seeding coding). */
   txPlan: TxPlanItem[];
-  /** Posted payments (ledger). */
-  payments: DentalPayment[];
-  /** Posted adjustments / write-offs (ledger). */
-  adjustments: DentalAdjustment[];
+  /**
+   * The ledger: every charge, insurance payment, adjustment and patient payment
+   * that actually moved, appended by the 835 posting step or by hand. The
+   * patient balance is summed from these entries and from nothing else.
+   */
+  ledger: LedgerEntry[];
   /** Structured ADA 2019 claim record (box by box). Null until the claim opens. */
   adaForm: ADAFormData | null;
   /**
@@ -245,7 +252,7 @@ const STORAGE_PREFIX = "hh_dental_track_";
 
 function freshState(): DentalTrackState {
   return {
-    version: 5,
+    version: 6,
     caseId: null,
     stage: "case-select",
     furthestStage: "case-select",
@@ -264,8 +271,7 @@ function freshState(): DentalTrackState {
     lineResolutions: {},
     perio: {},
     txPlan: [],
-    payments: [],
-    adjustments: [],
+    ledger: [],
     adaForm: null,
     practice: {},
     activePracticeId: null,
@@ -286,68 +292,149 @@ function keyFor(phone: string | null): string | null {
   return phone ? `${STORAGE_PREFIX}${phone}` : null;
 }
 
+/**
+ * v4 → v5: translate the two mock money arrays into ledger entries. The amount,
+ * the date and the note are carried forward exactly as the student posted them;
+ * the entry says `migrated` so nothing pretends it came from an 835.
+ */
+function migrateLegacyMoney(
+  payments: DentalPayment[] | undefined,
+  adjustments: DentalAdjustment[] | undefined,
+  ctx: { patientId: string | null; claimNumber: string | null },
+): LedgerEntry[] {
+  const entries: LedgerEntry[] = [];
+  for (const payment of payments ?? []) {
+    entries.push({
+      id: `LEDG-MIGRATED-${payment.id}`,
+      patientId: ctx.patientId,
+      claimNumber: ctx.claimNumber ?? "",
+      date: (payment.at ?? "").slice(0, 10),
+      type: payment.source === "patient" ? "patient_payment" : "insurance_payment",
+      code: "MIGRATED",
+      description: `Moved from the pre-ledger dental record: ${payment.source} payment${
+        payment.method ? ` · ${payment.method}` : ""
+      }${payment.note ? ` (${payment.note})` : ""}`,
+      amountCents: -Math.round(payment.amountUsd * 100),
+      userId: "migrated",
+    });
+  }
+  for (const adjustment of adjustments ?? []) {
+    entries.push({
+      id: `LEDG-MIGRATED-${adjustment.id}`,
+      patientId: ctx.patientId,
+      claimNumber: ctx.claimNumber ?? "",
+      date: (adjustment.at ?? "").slice(0, 10),
+      type: "adjustment",
+      code: "MIGRATED",
+      description: `Moved from the pre-ledger dental record: ${adjustment.type}${
+        adjustment.note ? ` (${adjustment.note})` : ""
+      }`,
+      amountCents: -Math.round(adjustment.amountUsd * 100),
+      userId: "migrated",
+    });
+  }
+  return entries;
+}
+
 function loadState(phone: string | null): DentalTrackState {
   const key = keyFor(phone);
   if (!key) return freshState();
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return freshState();
-    const parsed = JSON.parse(raw) as DentalTrackState & { version?: number };
-    // v1 → v2: the ADA claim record was added; older tracks simply have none.
-    // v2 → v3: the stepper now remembers how far the student got. A v2 record
-    // only knows the stage it stopped on, so that stage is carried forward as
-    // the furthest reached — nothing is invented, and no work is dropped.
-    // v3 → v4: the claim gets a number and a timeline. A record whose claim was
-    // already submitted has no 277CA behind it, so it is carried forward as
-    // `submitted` — never as accepted — and says so in its own MIGRATED entry.
-    const version = (parsed as { version?: number }).version;
-    if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5) return freshState();
-    // v4 → v5: the AR practice bench was added. An older record simply has no
-    // practice runs, so it starts with none — nothing is invented and no case
-    // work is touched.
-    const migrated: DentalTrackState = {
-      ...freshState(),
-      ...parsed,
-      version: 5,
-      furthestStage: parsed.furthestStage ?? parsed.stage ?? "case-select",
-      claimNumber: parsed.claimNumber ?? null,
-      claimStatus: parsed.claimStatus ?? null,
-      statusEvents: Array.isArray(parsed.statusEvents) ? parsed.statusEvents : [],
-      practice: parsed.practice && typeof parsed.practice === "object" ? parsed.practice : {},
-      activePracticeId: parsed.activePracticeId ?? null,
-      practiceBenchOpen: parsed.practiceBenchOpen === true,
-    };
-    if (version < 4 && migrated.claimSubmitted && !migrated.claimNumber) {
-      const claimNumber = mintClaimNumber(1);
-      const patientId = migrated.caseId ? findCase(migrated.caseId)?.patient?.id ?? null : null;
-      const event = makeStatusEvent(
-        {
-          entityType: "claim",
-          entityId: claimNumber,
-          patientId,
-          claimNumber,
-          from: null,
-          to: "submitted",
-          by: "system",
-          jobRole: "system",
-          reasonCode: "MIGRATED",
-          reason:
-            "Carried forward from an earlier saved dental record. The claim had been submitted, but no 277CA was ever recorded, so it is not marked accepted. Its claim number was minted at migration so the claim can be named.",
-          ...(migrated.startedAt ? { at: migrated.startedAt } : {}),
-        },
-        [],
-      );
-      return {
-        ...migrated,
-        claimNumber,
-        claimStatus: "submitted",
-        statusEvents: appendStatusEvent([], event),
-      };
-    }
-    return migrated;
+    return migrateDentalTrackState(JSON.parse(raw));
   } catch {
     return freshState();
   }
+}
+
+/**
+ * Translate a saved dental record into the current shape. Pure, exported and
+ * used by both `loadState` and the tests, so a migration cannot pass a test the
+ * app does not run.
+ *
+ * v1 → v2: the ADA claim record was added; older tracks simply have none.
+ * v2 → v3: the stepper now remembers how far the student got. A v2 record only
+ * knows the stage it stopped on, so that stage is carried forward as the
+ * furthest reached — nothing is invented, and no work is dropped.
+ * v3 → v4: the claim gets a number and a timeline. A record whose claim was
+ * already submitted has no 277CA behind it, so it is carried forward as
+ * `submitted` — never as accepted — and says so in its own MIGRATED entry.
+ * v4 → v5: the ledger replaces the two mock money arrays. Every payment and
+ * adjustment the student had already posted is translated into a ledger entry
+ * with the same amount, date and note, marked `migrated` — carried forward
+ * verbatim, never re-priced, and never dropped.
+ * v5 → v6: the AR practice bench was added. An older record simply has no
+ * practice runs, so it starts with none — nothing is invented, and no case work
+ * is touched. Two builds both called themselves v5 while this landed, so the
+ * ledger translation is driven by whether a record already HAS a ledger rather
+ * than by its version number: a v5 record saved before the ledger existed still
+ * has its payments and adjustments carried across.
+ */
+export function migrateDentalTrackState(raw: unknown): DentalTrackState {
+  const parsed = (raw ?? {}) as DentalTrackState & { version?: number };
+  if (typeof parsed !== "object") return freshState();
+  const version: number | undefined = (parsed as { version?: number }).version;
+  if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6) {
+    return freshState();
+  }
+  const legacy = parsed as DentalTrackState & {
+    payments?: DentalPayment[];
+    adjustments?: DentalAdjustment[];
+  };
+  const { payments: legacyPayments, adjustments: legacyAdjustments, ...rest } = legacy;
+  const hadLedger = Array.isArray(parsed.ledger);
+  const migrated: DentalTrackState = {
+    ...freshState(),
+    ...rest,
+    version: 6,
+    furthestStage: parsed.furthestStage ?? parsed.stage ?? "case-select",
+    claimNumber: parsed.claimNumber ?? null,
+    claimStatus: parsed.claimStatus ?? null,
+    statusEvents: Array.isArray(parsed.statusEvents) ? parsed.statusEvents : [],
+    ledger: hadLedger ? (parsed.ledger as DentalTrackState["ledger"]) : [],
+    practice: parsed.practice && typeof parsed.practice === "object" ? parsed.practice : {},
+    activePracticeId: parsed.activePracticeId ?? null,
+    practiceBenchOpen: parsed.practiceBenchOpen === true,
+  };
+  if (!hadLedger) {
+    const patientId = migrated.caseId ? findCase(migrated.caseId)?.patient?.id ?? null : null;
+    migrated.ledger = [
+      ...migrated.ledger,
+      ...migrateLegacyMoney(legacyPayments, legacyAdjustments, {
+        patientId,
+        claimNumber: migrated.claimNumber,
+      }),
+    ];
+  }
+  if (version < 4 && migrated.claimSubmitted && !migrated.claimNumber) {
+    const claimNumber = mintClaimNumber(1);
+    const patientId = migrated.caseId ? findCase(migrated.caseId)?.patient?.id ?? null : null;
+    const event = makeStatusEvent(
+      {
+        entityType: "claim",
+        entityId: claimNumber,
+        patientId,
+        claimNumber,
+        from: null,
+        to: "submitted",
+        by: "system",
+        jobRole: "system",
+        reasonCode: "MIGRATED",
+        reason:
+          "Carried forward from an earlier saved dental record. The claim had been submitted, but no 277CA was ever recorded, so it is not marked accepted. Its claim number was minted at migration so the claim can be named.",
+        ...(migrated.startedAt ? { at: migrated.startedAt } : {}),
+      },
+      [],
+    );
+    return {
+      ...migrated,
+      claimNumber,
+      claimStatus: "submitted",
+      statusEvents: appendStatusEvent([], event),
+    };
+  }
+  return migrated;
 }
 
 /**
@@ -416,10 +503,19 @@ interface DentalTrackApi {
   removePlanItem: (id: string) => void;
   acceptPlan: () => void;
   // ledger
-  postPayment: (payment: DentalPayment) => void;
-  postAdjustment: (adjustment: DentalAdjustment) => void;
-  removePayment: (id: string) => void;
-  removeAdjustment: (id: string) => void;
+  /**
+   * Post this claim's 835 to the patient ledger: the charge, the insurance
+   * payment and every contractual adjustment, in one store write. **Graded case
+   * claims only** — the claim must have been submitted, so a practice-bench
+   * remittance (which never carries a graded claim number) cannot post here.
+   */
+  postRemittance: (remittance: EraRemittance) => void;
+  /** True when this 835 is already on the ledger — a second press adds nothing. */
+  isRemittancePosted: (remittance: EraRemittance) => boolean;
+  /** Append one hand-posted entry (a patient payment or a courtesy adjustment). */
+  postLedgerEntry: (entry: LedgerEntry) => void;
+  /** Remove a hand-posted entry. An entry that came from an 835 cannot be removed. */
+  removeLedgerEntry: (id: string) => void;
   // scoring
   scoreTally: {
     maxPoints: number;
@@ -526,6 +622,33 @@ function computeEarned(
   return { earned, autoScored };
 }
 
+/**
+ * May this 835 be posted to the ledger? **Graded case claims only.**
+ *
+ * A remittance can post only when a graded case is open, its claim was
+ * submitted (so the 835 is that claim's own answer) and the 835 names that
+ * claim. The sample ERAs and any future practice-bench slice therefore cannot
+ * reach the ledger, and a second press is refused rather than doubling money.
+ */
+export function canPostDentalRemittance(
+  state: Pick<DentalTrackState, "caseId" | "claimSubmitted" | "claimNumber" | "ledger">,
+  remittance: EraRemittance,
+): { ok: boolean; reason?: string } {
+  if (!state.caseId) {
+    return { ok: false, reason: "No graded case is open, so there is no claim to post against." };
+  }
+  if (!state.claimSubmitted || !state.claimNumber) {
+    return { ok: false, reason: "This claim has not been submitted, so no 835 exists for it yet." };
+  }
+  if (remittance.claimControlNumber !== state.claimNumber) {
+    return { ok: false, reason: "That 835 belongs to another claim. Only this case's own claim can be posted." };
+  }
+  if (state.ledger.some((entry) => entry.eraId === remittance.id)) {
+    return { ok: false, reason: "This 835 is already on the ledger — posting it again adds nothing." };
+  }
+  return { ok: true };
+}
+
 export function DentalTrackProvider({ children }: { children: ReactNode }) {
   const phone = getLoggedInPhone();
   const [state, setState] = useState<DentalTrackState>(() => loadState(phone));
@@ -624,8 +747,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
       lineResolutions: {},
       perio: {},
       txPlan: [],
-      payments: [],
-      adjustments: [],
+      ledger: [],
     }));
   }, []);
 
@@ -744,20 +866,44 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── ledger ───────────────────────────────────────────────────────────
-  const postPayment = useCallback((payment: DentalPayment) => {
-    setState((s) => ({ ...s, payments: [...s.payments, payment] }));
+  /**
+   * Post the claim's 835 (spec item 13: "insurance payments and write-offs post
+   * from the ERA step, not left at zero"). Refuses anything that is not a
+   * graded case claim: no case, or a claim that was never submitted, posts
+   * nothing. The entry ids are derived from the 835, so a double press is a
+   * no-op instead of double money.
+   */
+  const postRemittance = useCallback((remittance: EraRemittance) => {
+    setState((s) => {
+      if (!canPostDentalRemittance(s, remittance).ok) return s;
+
+      const entries = postDentalRemittanceToLedger(remittance, {
+        patientId: s.caseId ? findCase(s.caseId)?.patient?.id ?? null : null,
+        userId: getLoggedInPhone() ?? "system",
+        at: new Date().toISOString(),
+      });
+      const ledger = appendLedgerEntries(s.ledger, entries);
+      if (ledger === s.ledger) return s;
+      return { ...s, ledger };
+    });
   }, []);
 
-  const postAdjustment = useCallback((adjustment: DentalAdjustment) => {
-    setState((s) => ({ ...s, adjustments: [...s.adjustments, adjustment] }));
+  const isRemittancePosted = useCallback(
+    (remittance: EraRemittance) => state.ledger.some((entry) => entry.eraId === remittance.id),
+    [state.ledger],
+  );
+
+  const postLedgerEntry = useCallback((entry: LedgerEntry) => {
+    setState((s) => ({ ...s, ledger: appendLedgerEntries(s.ledger, [entry]) }));
   }, []);
 
-  const removePayment = useCallback((id: string) => {
-    setState((s) => ({ ...s, payments: s.payments.filter((p) => p.id !== id) }));
-  }, []);
-
-  const removeAdjustment = useCallback((id: string) => {
-    setState((s) => ({ ...s, adjustments: s.adjustments.filter((a) => a.id !== id) }));
+  const removeLedgerEntry = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      // An entry that came from an 835 is a record of what the payer said, not a
+      // typo: only hand-posted entries can be taken back.
+      ledger: s.ledger.filter((entry) => entry.id !== id || Boolean(entry.eraId)),
+    }));
   }, []);
 
   // ── AR practice bench ────────────────────────────────────────────────
@@ -917,10 +1063,10 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     updatePlanItem,
     removePlanItem,
     acceptPlan,
-    postPayment,
-    postAdjustment,
-    removePayment,
-    removeAdjustment,
+    postRemittance,
+    isRemittancePosted,
+    postLedgerEntry,
+    removeLedgerEntry,
     scoreTally,
     traps,
   };

@@ -12,15 +12,22 @@
  * an amber "Paid w/ adjustment" badge with a CO-59 style note ("paid at the
  * lower allowance"), never as a red denial. Only a true exclusion/denial renders
  * red (`disposition: "denied"`).
+ *
+ * Posting (money-cycle item 13): the claim's own 835 carries an `onPost`
+ * callback and a "Post this 835 to the ledger" button. The button is disabled
+ * until every line balances, by the one rule in `domain/dentalRemittance.ts`.
+ * The sample ERAs (ERA-01…ERA-03) are practice material: no callback, no
+ * button, nothing to post.
  */
 
-import { BadgeCheck, FileText, Info } from "lucide-react";
+import { BadgeCheck, FileText, Info, Landmark } from "lucide-react";
 import type {
   EraClaimLevelAdjustment,
   EraLineAdjustment,
   EraLineDisposition,
   EraRemittance,
 } from "../../data/dental";
+import { dentalLineBalances } from "../../domain/dentalRemittance";
 
 const DISPOSITION_BADGE: Record<EraLineDisposition, { cls: string; label: string }> = {
   paid: { cls: "status-badge is-success", label: "Paid" },
@@ -28,7 +35,25 @@ const DISPOSITION_BADGE: Record<EraLineDisposition, { cls: string; label: string
   denied: { cls: "status-badge is-danger", label: "Denied" },
 };
 
-export function DentalEraRemittance({ remittance }: { remittance: EraRemittance }) {
+export interface DentalEraRemittanceProps {
+  remittance: EraRemittance;
+  /** Post this 835 to the patient ledger. Called from a click, never a render. */
+  onPost?: () => void;
+  /** True once this 835 is on the ledger — the button becomes a confirmation. */
+  posted?: boolean;
+  /** Why posting is unavailable, when it is. Shown instead of the hint. */
+  postBlockedReason?: string;
+}
+
+export function DentalEraRemittance({
+  remittance,
+  onPost,
+  posted = false,
+  postBlockedReason,
+}: DentalEraRemittanceProps) {
+  const unbalanced = remittance.lines.filter((line) => !dentalLineBalances(line).balances);
+  const canPost = Boolean(onPost) && !posted && !postBlockedReason && unbalanced.length === 0;
+
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       {/* ── remittance header ─────────────────────────────────────────── */}
@@ -125,6 +150,44 @@ export function DentalEraRemittance({ remittance }: { remittance: EraRemittance 
               <li key={i}>{t}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* ── posting the 835 to the patient ledger ─────────────────────── */}
+      {(onPost || posted) && (
+        <div className="border-t border-slate-200 bg-slate-50 px-3 py-2.5">
+          {unbalanced.length > 0 && (
+            <p className="mb-2 text-[10px] leading-snug text-red-700">
+              Line{unbalanced.length === 1 ? "" : "s"}{" "}
+              {unbalanced.map((l) => l.line).join(", ")} do{unbalanced.length === 1 ? "es" : ""} not balance:
+              the charge must equal the payment + the write-off + the provider adjustment + the patient's
+              share. Nothing can be posted until it does.
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {posted ? (
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-700">
+                <Landmark className="h-3.5 w-3.5" aria-hidden="true" />
+                Posted — the charges, the insurance payment and every contractual adjustment are on the
+                patient ledger.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={onPost}
+                disabled={!canPost}
+                aria-label={`Post 835 ${remittance.claimControlNumber} to the patient ledger`}
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-emerald-700 px-3 text-[11px] font-semibold text-white hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Landmark className="h-3.5 w-3.5" aria-hidden="true" />
+                Post this 835 to the ledger
+              </button>
+            )}
+            <p className="text-[10px] text-slate-500">
+              {postBlockedReason ??
+                "Posting writes the charge, the insurance payment and every contractual adjustment to the patient's ledger. Nothing is posted until you press it."}
+            </p>
+          </div>
         </div>
       )}
     </div>

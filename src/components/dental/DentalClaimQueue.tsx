@@ -15,6 +15,7 @@ import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
 import { adjudicateDentalClaim } from "./adjudication";
 import { DentalEraRemittance } from "./DentalEraRemittance";
 import { DentalDenialDebrief } from "./DentalDenialDebrief";
+import { buildDentalClaimRemittance } from "../../domain/dentalRemittance";
 
 type ClaimStage = "created" | "sent" | "pending" | "settled";
 
@@ -39,13 +40,41 @@ function lineStatus(resolution: DentalLineResolution | undefined, denied: boolea
 }
 
 export function DentalClaimQueue() {
-  const { state, activeCase, planId, goTo } = useDentalTrack();
+  const { state, activeCase, planId, goTo, postRemittance, isRemittancePosted } = useDentalTrack();
   const adjudication = useMemo(() => adjudicateDentalClaim(state.lines, activeCase), [state.lines, activeCase]);
 
   const remittances = useMemo(
     () => ERA_REMITTANCES.filter((r) => r.payerPlanId === planId),
     [planId],
   );
+
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  /**
+   * This claim's own 835 (spec item 1). Built from the adjudication, never from
+   * a sample: one line per CDT code, with the group code + CARC behind every
+   * adjustment, and the claim number the clearinghouse accepted. This is the
+   * only remittance on this screen that can be posted.
+   */
+  const claimRemittance = useMemo(() => {
+    if (!state.claimSubmitted || !state.claimNumber || !activeCase || adjudication.lines.length === 0) {
+      return null;
+    }
+    return buildDentalClaimRemittance({
+      claimNumber: state.claimNumber,
+      payerPlanId: planId,
+      patientName: `${activeCase.patient.firstName} ${activeCase.patient.lastName}`,
+      remittanceDate: today,
+      lines: adjudication.lines.map((line, index) => ({
+        line: index + 1,
+        code: line.code,
+        tooth: line.claimLine.tooth,
+        dateOfService: line.claimLine.dateOfService,
+        result: line.result,
+        denial: line.denial,
+      })),
+    });
+  }, [state.claimSubmitted, state.claimNumber, activeCase, planId, adjudication.lines, today]);
 
   /* Rule 6 — the debrief teaches from the denials THIS claim actually earned,
      never from every scenario filed under the patient's plan. */
@@ -170,15 +199,39 @@ export function DentalClaimQueue() {
         })}
       </div>
 
-      {/* ERA (835) remittance — the payer's response once the claim is sent */}
+      {/* ERA (835) remittance — this claim's own, postable, then the samples */}
+      {sent && claimRemittance && (
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">835 remittance for this claim</h3>
+              <p className="text-[10px] text-slate-400">
+                The payer's answer on {claimRemittance.claimControlNumber}. Read it, then post it to the patient ledger.
+              </p>
+            </div>
+            <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
+              {claimRemittance.lines.length} line{claimRemittance.lines.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <DentalEraRemittance
+            remittance={claimRemittance}
+            onPost={() => postRemittance(claimRemittance)}
+            posted={isRemittancePosted(claimRemittance)}
+          />
+        </div>
+      )}
+
       {sent && remittances.length > 0 && (
         <div className="mt-4">
           <div className="mb-2 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-800">ERA (835) remittance</h3>
-              <p className="text-[10px] text-slate-400">Read the payer's electronic remittance and reconcile it against your claim.</p>
+              <h3 className="text-sm font-bold text-slate-800">Sample ERAs — practice reading</h3>
+              <p className="text-[10px] text-slate-400">
+                Extra 835s to read and reconcile. They belong to other patients and other claims, so they are
+                read-only — nothing here can be posted to this patient's ledger.
+              </p>
             </div>
-            <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
+            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
               {remittances.length} sample{remittances.length === 1 ? "" : "s"}
             </span>
           </div>
