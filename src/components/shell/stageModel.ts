@@ -139,18 +139,18 @@ export const MEDICAL_STAGE_TO_MODEL: Record<string, RcmStageId> = {
 };
 
 /**
- * Dental: the stage whose screen is the claim status queue with its 835 and
- * sample ERAs was called "Claims" next to a different stage called "Claim". It
- * is the remittance stage, so it is called Remittance now — its stored id stays
- * `claims`, so no saved case has to be migrated. The patient ledger is this
- * track's own screen and is not one of the eight.
+ * Dental: the owner's mapping (2026-11-20) is explicit — the claim status queue
+ * is **Claim**, and the patient ledger is **Remittance**. Both used to sit
+ * outside the model as their own steps (`claims`, `ledger`); the store folds
+ * them in and migrates a saved record that still names them (v7), so the track
+ * now shows the eight stages and nothing else.
  */
 export const DENTAL_STAGE_TO_MODEL: Record<string, RcmStageId> = {
   planning: "chart",
   predetermination: "prior-auth",
   coding: "coding",
   claim: "claim",
-  claims: "remittance",
+  remittance: "remittance",
   ar: "ar",
   debrief: "debrief",
 };

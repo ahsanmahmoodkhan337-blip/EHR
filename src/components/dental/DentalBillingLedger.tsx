@@ -63,8 +63,8 @@ import { exportClaimFormPDF } from "../../utils/claimFormPdf";
 import { toast } from "sonner";
 
 
-export function DentalBillingLedger() {
-  const { state, activeCase, planId, goTo, resolveLine, adaForm, setAdaForm, submitClaim } = useDentalTrack();
+export function DentalBillingLedger({ embedded = false }: { embedded?: boolean } = {}) {
+  const { state, activeCase, planId, resolveLine, adaForm, setAdaForm, submitClaim } = useDentalTrack();
   const plan = findPlan(planId);
 
   const adjudication = useMemo(
@@ -210,7 +210,7 @@ export function DentalBillingLedger() {
   }, [adjudication]);
 
   return (
-    <div className="h-full overflow-y-auto p-3">
+    <div className={embedded ? "p-3" : "h-full overflow-y-auto p-3"}>
       {/* ── ADA 2019 claim form replica (shared claim shell) ───────────────── */}
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <span className="rounded bg-accent-50 px-2 py-0.5 text-[10px] font-medium text-accent-700">
@@ -445,7 +445,9 @@ export function DentalBillingLedger() {
           Edit checks <DentalClaimScrub compact />
         </span>
         <button
-          onClick={() => goTo("claims")}
+          onClick={() =>
+            document.getElementById("dental-claim-status")?.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
           className="ml-auto flex items-center gap-1.5 rounded-lg bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-600"
         >
           <Phone className="h-3.5 w-3.5" /> View claim status →

@@ -41,6 +41,17 @@ import { appendLedgerEntries, type LedgerEntry } from "../../domain/ledger";
 import { postDentalRemittanceToLedger } from "../../domain/dentalRemittance";
 import type { EraRemittance } from "../../data/dental";
 
+/**
+ * The dental track's stages. The frames (`case-select`, `briefing`) are not
+ * encounter stages; every other id is one of the shared model's stages
+ * (`stageModel.ts`), which is why there is no `claims` and no `ledger` here any
+ * more — the owner's mapping (`phase-1-navigation-addendum.md` item 3) puts the
+ * claim status queue inside **Claim** and the patient ledger in **Remittance**.
+ *
+ * Old records and old URLs still carry `claims` and `ledger`: `DENTAL_LEGACY_STAGE`
+ * translates them on load (`migrateDentalTrackState`) and on the way into a URL
+ * (`normalizeDentalStageId`), so nothing a student saved is stranded.
+ */
 export type DentalStageName =
   | "case-select"
   | "briefing"
@@ -48,9 +59,8 @@ export type DentalStageName =
   | "predetermination"
   | "coding"
   | "claim"
-  | "claims"
+  | "remittance"
   | "ar"
-  | "ledger"
   | "debrief";
 
 /**
@@ -64,11 +74,30 @@ export const DENTAL_STAGE_ORDER: DentalStageName[] = [
   "predetermination",
   "coding",
   "claim",
-  "claims",
+  "remittance",
   "ar",
-  "ledger",
   "debrief",
 ];
+
+/**
+ * Stage ids that earlier builds wrote into a saved record or a URL, and the
+ * stage each one is now. Reading the old key is deliberate (owner's
+ * instruction): `claims` was the claim status queue, which is part of Claim, and
+ * `ledger` was the patient ledger, which is Remittance.
+ */
+export const DENTAL_LEGACY_STAGE: Record<string, DentalStageName> = {
+  claims: "claim",
+  ledger: "remittance",
+};
+
+/**
+ * The stage a URL or a saved record names, translated if it is an old id. An id
+ * that is already current is returned unchanged, and an unknown id is returned
+ * as-is so the URL sync can refuse it out loud instead of guessing.
+ */
+export function normalizeDentalStageId(id: string): string {
+  return DENTAL_LEGACY_STAGE[id] ?? id;
+}
 
 function stageRank(stage: DentalStageName): number {
   const i = DENTAL_STAGE_ORDER.indexOf(stage);
@@ -190,9 +219,11 @@ export interface DentalTrackState {
    * v4 added the claim number and the append-only status timeline; v5 replaced
    * the mock payment/adjustment arrays with the ledger — the one list of money
    * that actually moved, and the only thing the patient ledger sums; v6 added
-   * the AR practice bench slice (`practice`, `activePracticeId`).
+   * the AR practice bench slice (`practice`, `activePracticeId`); v7 folded the
+   * two out-of-model dental steps into the eight-stage model (`claims` → Claim,
+   * `ledger` → Remittance).
    */
-  version: 6;
+  version: 7;
   /** null = no case loaded (case-select screen). */
   caseId: string | null;
   stage: DentalStageName;
@@ -253,7 +284,7 @@ const STORAGE_PREFIX = "hh_dental_track_";
 
 function freshState(): DentalTrackState {
   return {
-    version: 6,
+    version: 7,
     caseId: null,
     stage: "case-select",
     furthestStage: "case-select",
@@ -383,12 +414,26 @@ export function readDentalTrackRecord(phone: string | null = getLoggedInPhone())
  * ledger translation is driven by whether a record already HAS a ledger rather
  * than by its version number: a v5 record saved before the ledger existed still
  * has its payments and adjustments carried across.
+ * v6 → v7: the two dental steps outside the eight-stage model are folded into it
+ * (owner's mapping, `phase-1-navigation-addendum.md` item 3). A record saved on
+ * `claims` is carried to `claim` (the claim status queue is a section of Claim)
+ * and one saved on `ledger` to `remittance`. Only the stage names change: every
+ * ledger entry, claim queue row and posted figure is carried across untouched,
+ * and running the migration twice changes nothing the second time.
  */
 export function migrateDentalTrackState(raw: unknown): DentalTrackState {
   const parsed = (raw ?? {}) as DentalTrackState & { version?: number };
   if (typeof parsed !== "object") return freshState();
   const version: number | undefined = (parsed as { version?: number }).version;
-  if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== 6) {
+  if (
+    version !== 1 &&
+    version !== 2 &&
+    version !== 3 &&
+    version !== 4 &&
+    version !== 5 &&
+    version !== 6 &&
+    version !== 7
+  ) {
     return freshState();
   }
   const legacy = parsed as DentalTrackState & {
@@ -397,11 +442,21 @@ export function migrateDentalTrackState(raw: unknown): DentalTrackState {
   };
   const { payments: legacyPayments, adjustments: legacyAdjustments, ...rest } = legacy;
   const hadLedger = Array.isArray(parsed.ledger);
+  /**
+   * A saved stage id as the current stage. An id from before the fold is
+   * translated; anything unrecognised falls back rather than rendering a stage
+   * that does not exist.
+   */
+  const asStage = (id: string | undefined, fallback: DentalStageName): DentalStageName => {
+    const next = normalizeDentalStageId(id ?? fallback);
+    return (DENTAL_STAGE_ORDER as string[]).includes(next) ? (next as DentalStageName) : fallback;
+  };
   const migrated: DentalTrackState = {
     ...freshState(),
     ...rest,
-    version: 6,
-    furthestStage: parsed.furthestStage ?? parsed.stage ?? "case-select",
+    version: 7,
+    stage: asStage(parsed.stage, "case-select"),
+    furthestStage: asStage(parsed.furthestStage ?? parsed.stage, "case-select"),
     claimNumber: parsed.claimNumber ?? null,
     claimStatus: parsed.claimStatus ?? null,
     statusEvents: Array.isArray(parsed.statusEvents) ? parsed.statusEvents : [],

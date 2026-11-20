@@ -219,7 +219,7 @@ export function DentalAR() {
           </span>
         ) : (
           <button
-            onClick={() => goTo("ledger")}
+            onClick={() => goTo("remittance")}
             disabled={!allResolved}
             className="min-h-[40px] rounded-lg bg-teal-700 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-slate-300"
           >

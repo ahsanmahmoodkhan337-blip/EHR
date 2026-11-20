@@ -87,8 +87,8 @@ function CasesPage() {
                     {plan ? ` · ${plan.name}` : ""}
                   </p>
                   <Link
-                    to="/medical-cases/$caseId/$stage"
-                    params={{ caseId: scenario.id, stage: "briefing" }}
+                    to="/cases/$track/$caseId/$stage"
+                    params={{ track: "medical", caseId: scenario.id, stage: "briefing" }}
                     className="mt-3 flex min-h-10 items-center justify-center gap-1 rounded-lg bg-blue-700 px-3 text-xs font-semibold text-white hover:bg-blue-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                   >
                     Begin case <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -148,8 +148,8 @@ function CasesPage() {
                     {plan ? ` · ${plan.payerName} · ${plan.planName}` : ""}
                   </p>
                   <Link
-                    to="/dental/$caseId/$stage"
-                    params={{ caseId: scenario.id, stage: "briefing" }}
+                    to="/cases/$track/$caseId/$stage"
+                    params={{ track: "dental", caseId: scenario.id, stage: "briefing" }}
                     className="mt-3 flex min-h-10 items-center justify-center gap-1 rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white hover:bg-teal-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
                   >
                     Begin case <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />

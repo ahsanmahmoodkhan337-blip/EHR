@@ -69,15 +69,15 @@ function MedicalCasesShell({ urlCaseId, urlStage }: { urlCaseId?: string; urlSta
   const goToStage = useCallback(
     (caseId: string, stage: string, replace = false) => {
       void navigate({
-        to: "/medical-cases/$caseId/$stage",
-        params: { caseId, stage },
+        to: "/cases/$track/$caseId/$stage",
+        params: { track: "medical", caseId, stage },
         replace,
       });
     },
     [navigate],
   );
   const goToBase = useCallback(() => {
-    void navigate({ to: "/medical-cases", replace: true });
+    void navigate({ to: "/cases", replace: true });
   }, [navigate]);
 
   // Keep the address and the case record in step (refresh, back/forward, and a

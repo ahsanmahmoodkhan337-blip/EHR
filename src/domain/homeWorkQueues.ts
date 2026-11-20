@@ -238,7 +238,7 @@ export function buildDentalQueueRows(dental: DentalTrackState): QueueRow[] {
       detail: `${CLAIM_STATUS_LABELS[dental.claimStatus as ClaimStatus]}${
         last ? ` since ${formatWhen(last.at)}` : ""
       } — no 835 has come back yet`,
-      target: { kind: "dental", caseId: dental.caseId, stage: "claims" },
+      target: { kind: "dental", caseId: dental.caseId, stage: "claim" },
     });
   }
 

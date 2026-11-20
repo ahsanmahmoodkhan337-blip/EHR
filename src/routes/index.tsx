@@ -1468,7 +1468,7 @@ function Home() {
   // log-out/log-in cannot lose a registered patient or their appointment.
   const appointments = useAllAppointments();
 
-  const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(() => {
+  const [selectedScheduleDate] = useState<string>(() => {
     const today = new Date().toISOString().slice(0, 10);
     if (appointments.some((a) => a.date === today)) return today;
     const dates = [...new Set(appointments.map((a) => a.date))].sort();

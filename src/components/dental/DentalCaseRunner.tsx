@@ -25,7 +25,6 @@ import {
   Smile,
   Stethoscope,
   Trophy,
-  Wallet,
 } from "lucide-react";
 import { DENTAL_CASE_SCENARIOS, findPlan, type DentalCaseScenario } from "../../data/dental";
 import { EncounterStepper, type EncounterStep } from "../shell/EncounterStepper";
@@ -66,14 +65,6 @@ const MODEL_ICON: Record<RcmStageId, ReactNode> = {
   debrief: <Trophy className="h-3.5 w-3.5" />,
 };
 
-/** The patient ledger — this track's own screen, after AR and before Debrief. */
-const LEDGER_STEP: EncounterStep = {
-  id: "ledger",
-  label: "Ledger",
-  role: "Patient Ledger",
-  icon: <Wallet className="h-3.5 w-3.5" />,
-};
-
 const DEBRIEF_STEP: EncounterStep = {
   id: "debrief",
   label: rcmLabel("debrief"),
@@ -102,17 +93,51 @@ export const DENTAL_STAGE_LABEL: Record<DentalStageName, string> = {
   predetermination: rcmLabel("prior-auth"),
   coding: rcmLabel("coding"),
   claim: rcmLabel("claim"),
-  claims: rcmLabel("remittance"),
+  remittance: rcmLabel("remittance"),
   ar: rcmLabel("ar"),
-  ledger: "Ledger",
   debrief: rcmLabel("debrief"),
 };
+
+/**
+ * The Claim stage. The owner's mapping puts the claim and its submission status
+ * in one stage (`phase-1-navigation-addendum.md` item 3): the ADA claim form and
+ * its totals, then the claim status queue with the 835 and the ERA. They are two
+ * sections of one stage, not two steps, and nothing either screen showed before
+ * is dropped.
+ */
+function ClaimStage() {
+  return (
+    <div className="h-full overflow-y-auto">
+      <section aria-labelledby="dental-claim-form">
+        <h3
+          id="dental-claim-form"
+          className="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
+        >
+          The claim — ADA 2019 (J430)
+        </h3>
+        <DentalBillingLedger embedded />
+      </section>
+      <section aria-labelledby="dental-claim-status" className="border-t-4 border-slate-100">
+        <h3
+          id="dental-claim-status"
+          className="border-b border-slate-200 bg-white px-4 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
+        >
+          Submission status, the 835 and the ERA
+        </h3>
+        <DentalClaimQueue embedded />
+      </section>
+    </div>
+  );
+}
 
 export function DentalCaseRunner() {
   const { state, activeCase, goTo } = useDentalTrack();
   const navigate = useNavigate();
 
   // The same eight-stage model the medical track shows, under the same names.
+  // Every step here is one of the model's stages: the claim status queue is a
+  // section of Claim and the patient ledger is Remittance, so the stepper has no
+  // step of its own outside the model.
   const stages = useMemo<EncounterStep[]>(() => {
     const model = modelStagesFor(DENTAL_STAGE_TO_MODEL).filter((s) => s.id !== "debrief");
     return [
@@ -123,7 +148,6 @@ export function DentalCaseRunner() {
         role: stage.role,
         icon: MODEL_ICON[stage.id],
       })),
-      LEDGER_STEP,
       DEBRIEF_STEP,
     ];
   }, []);
@@ -180,10 +204,9 @@ export function DentalCaseRunner() {
       {state.stage === "planning" && <DentalTreatmentPlan />}
       {state.stage === "predetermination" && <DentalPredetermination />}
       {state.stage === "coding" && <DentalCodingQueue />}
-      {state.stage === "claim" && <DentalBillingLedger />}
-      {state.stage === "claims" && <DentalClaimQueue />}
+      {state.stage === "claim" && <ClaimStage />}
+      {state.stage === "remittance" && <DentalPatientLedger />}
       {state.stage === "ar" && <DentalAR />}
-      {state.stage === "ledger" && <DentalPatientLedger />}
       {state.stage === "debrief" && <Debrief />}
     </>
   );

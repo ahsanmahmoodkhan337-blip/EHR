@@ -61,12 +61,16 @@ function DentalTrackShell({ urlCaseId, urlStage }: { urlCaseId?: string; urlStag
 
   const goToStage = useCallback(
     (caseId: string, stage: string, replace = false) => {
-      void navigate({ to: "/dental/$caseId/$stage", params: { caseId, stage }, replace });
+      void navigate({
+        to: "/cases/$track/$caseId/$stage",
+        params: { track: "dental", caseId, stage },
+        replace,
+      });
     },
     [navigate],
   );
   const goToBase = useCallback(() => {
-    void navigate({ to: "/dental", replace: true });
+    void navigate({ to: "/cases", replace: true });
   }, [navigate]);
 
   const { blockedStage, dismissBlocked } = useStageUrlSync({

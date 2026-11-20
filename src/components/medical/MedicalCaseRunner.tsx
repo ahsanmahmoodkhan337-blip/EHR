@@ -1229,7 +1229,7 @@ function ARStage() {
 // ─── debrief ─────────────────────────────────────────────────────────────────
 
 function Debrief() {
-  const { state, activeCase, scoreTally, goTo, resetTrack, traps, triggeredTrapIds } = useMedicalCase();
+  const { state, activeCase, scoreTally, resetTrack, traps, triggeredTrapIds } = useMedicalCase();
   if (!activeCase) return null;
   const triggered = new Set(triggeredTrapIds);
   const passed = scoreTally.earned >= scoreTally.passingPoints;

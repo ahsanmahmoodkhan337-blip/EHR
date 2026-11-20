@@ -1,20 +1,20 @@
 /**
- * /medical-cases/$caseId/$stage — one medical case stage at its own address
+ * /medical-cases/$caseId/$stage — the old medical case-stage address
  *
- * Inspired by: Epic's Chart activity URLs, where the encounter you are in is
- * part of the address. It renders the same case-runner page as /medical-cases;
- * the params only tell the runner which case and stage to open, so a refresh,
- * a bookmark or a shared link lands the student exactly there.
+ * Inspired by: Epic's Chart activity URLs. The brief's shape is
+ * `/cases/:track/:caseId/:stage` now (`phase-1-navigation-addendum.md` item 2),
+ * so this address redirects there and keeps both the case and the stage: a
+ * bookmark from last week lands on the same stage of the same case.
  */
 
-import { createFileRoute } from "@tanstack/react-router";
-import { MedicalCasesPage } from "./medical-cases";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/medical-cases/$caseId/$stage")({
-  component: MedicalCaseStageRoute,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/cases/$track/$caseId/$stage",
+      params: { track: "medical", caseId: params.caseId, stage: params.stage },
+      replace: true,
+    });
+  },
 });
-
-function MedicalCaseStageRoute() {
-  const { caseId, stage } = Route.useParams();
-  return <MedicalCasesPage caseId={caseId} stage={stage} />;
-}

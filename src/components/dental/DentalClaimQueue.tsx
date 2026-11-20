@@ -39,7 +39,7 @@ function lineStatus(resolution: DentalLineResolution | undefined, denied: boolea
   return { label: "Pending", tone: "bg-slate-100 text-slate-600" };
 }
 
-export function DentalClaimQueue() {
+export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = {}) {
   const { state, activeCase, planId, goTo, postRemittance, isRemittancePosted } = useDentalTrack();
   const adjudication = useMemo(() => adjudicateDentalClaim(state.lines, activeCase), [state.lines, activeCase]);
 
@@ -102,7 +102,7 @@ export function DentalClaimQueue() {
   const stageIdx = STEPS.findIndex((s) => s.id === stage);
 
   return (
-    <div className="h-full overflow-y-auto p-4">
+    <div className={embedded ? "p-4" : "h-full overflow-y-auto p-4"}>
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Claim Status Queue</h3>
