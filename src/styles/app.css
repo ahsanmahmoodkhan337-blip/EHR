@@ -193,20 +193,19 @@
     align-items: stretch;
     width: 100%;
     max-width: 100vw;
-    height: 100dvh;
-    overflow: hidden;
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
-  /* The frame is exactly one viewport tall and never scrolls itself: the rail
-     stays put, the top bar and the patient banner stay put, and the work area
-     beside them is the one thing that scrolls (spec phase-2-layout.md §1). */
+  /* The 19 Nov frame (owner's reference build `f8fd8681`): the page is as tall
+     as its content and scrolls normally; the rail stays put beside it. The
+     fixed one-viewport frame from #131 is gone — it clipped tall pages and is
+     what the owner asked us to put back. */
   .app-shell-main {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-width: 0;
-    height: 100dvh;
-    min-height: 0;
-    overflow: hidden;
+    min-height: 100dvh;
   }
   .app-shell-body {
     /* A flex row, not a grid: the reference drawer (spec item 6) is a fourth

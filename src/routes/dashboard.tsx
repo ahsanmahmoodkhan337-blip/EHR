@@ -138,7 +138,9 @@ function DashboardPage() {
         void navigate({ to: "/" });
       }}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50">
+      {/* 19 Nov display: the dashboard sits on the brand gradient and its cards
+          float on it, exactly as the reference build's student dashboard did. */}
+      <div className="brand-gradient min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-4xl px-4 py-8">
         {/* welcome */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
