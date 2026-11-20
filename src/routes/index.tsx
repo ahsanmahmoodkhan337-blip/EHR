@@ -1725,8 +1725,8 @@ function Home() {
     setCheckingAuth(false);
     // Record session start time for timeout tracking
     setSessionStart();
-    // Sync access data from Supabase to localStorage
-    import("../store/accessStore").then(m => m.syncFromSupabase());
+    // Deliberately no enrolment sync here: the dashboard must never download
+    // the access_requests table. Login asks the server about one phone only.
   }, []);
 
   // Exam mode timer
