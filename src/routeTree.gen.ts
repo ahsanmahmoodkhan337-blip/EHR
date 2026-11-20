@@ -14,16 +14,21 @@ import { Route as AccessRouteImport } from './routes/access'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CasesRouteImport } from './routes/cases'
 import { Route as ChartsRouteImport } from './routes/charts'
+import { Route as ClaimsRouteImport } from './routes/claims'
+import { Route as CodingRouteImport } from './routes/coding'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DenialsArRouteImport } from './routes/denials-ar'
 import { Route as DentalRouteImport } from './routes/dental'
 import { Route as InstructorRouteImport } from './routes/instructor'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MedicalCasesRouteImport } from './routes/medical-cases'
 import { Route as PatientsRouteImport } from './routes/patients'
 import { Route as PatientsIdRouteImport } from './routes/patients.$id'
+import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as PracticeArRouteImport } from './routes/practice-ar'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ReferenceRouteImport } from './routes/reference'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as DentalCaseIdStageRouteImport } from './routes/dental.$caseId.$stage'
@@ -58,6 +63,16 @@ const ChartsRoute = ChartsRouteImport.update({
   path: '/charts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClaimsRoute = ClaimsRouteImport.update({
+  id: '/claims',
+  path: '/claims',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CodingRoute = CodingRouteImport.update({
+  id: '/coding',
+  path: '/coding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -66,6 +81,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const DentalRoute = DentalRouteImport.update({
   id: '/dental',
   path: '/dental',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DenialsArRoute = DenialsArRouteImport.update({
+  id: '/denials-ar',
+  path: '/denials-ar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InstructorRoute = InstructorRouteImport.update({
@@ -98,6 +118,11 @@ const PracticeArRoute = PracticeArRouteImport.update({
   path: '/practice-ar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuizRoute = QuizRouteImport.update({
   id: '/quiz',
   path: '/quiz',
@@ -106,6 +131,11 @@ const QuizRoute = QuizRouteImport.update({
 const ReferenceRoute = ReferenceRouteImport.update({
   id: '/reference',
   path: '/reference',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ScheduleRoute = ScheduleRouteImport.update({
@@ -156,17 +186,22 @@ export interface FileRoutesByFullPath {
   '/cases': typeof CasesRouteWithChildren
   '/cases/': typeof CasesIndexRoute
   '/charts': typeof ChartsRoute
+  '/claims': typeof ClaimsRoute
+  '/coding': typeof CodingRoute
   '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRouteWithChildren
+  '/denials-ar': typeof DenialsArRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/medical-cases': typeof MedicalCasesRouteWithChildren
   '/patients': typeof PatientsRoute
   '/patients/$id': typeof PatientsIdRouteWithChildren
   '/patients/$id/': typeof PatientsIdIndexRoute
+  '/payments': typeof PaymentsRoute
   '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
   '/reference': typeof ReferenceRoute
+  '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
@@ -181,17 +216,22 @@ export interface FileRoutesByTo {
   '/cases': typeof CasesRouteWithChildren
   '/cases/': typeof CasesIndexRoute
   '/charts': typeof ChartsRoute
+  '/claims': typeof ClaimsRoute
+  '/coding': typeof CodingRoute
   '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRouteWithChildren
+  '/denials-ar': typeof DenialsArRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/medical-cases': typeof MedicalCasesRouteWithChildren
   '/patients': typeof PatientsRoute
   '/patients/$id': typeof PatientsIdRouteWithChildren
   '/patients/$id/': typeof PatientsIdIndexRoute
+  '/payments': typeof PaymentsRoute
   '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
   '/reference': typeof ReferenceRoute
+  '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
@@ -207,17 +247,22 @@ export interface FileRoutesById {
   '/cases': typeof CasesRouteWithChildren
   '/cases/': typeof CasesIndexRoute
   '/charts': typeof ChartsRoute
+  '/claims': typeof ClaimsRoute
+  '/coding': typeof CodingRoute
   '/dashboard': typeof DashboardRoute
   '/dental': typeof DentalRouteWithChildren
+  '/denials-ar': typeof DenialsArRoute
   '/instructor': typeof InstructorRoute
   '/login': typeof LoginRoute
   '/medical-cases': typeof MedicalCasesRouteWithChildren
   '/patients': typeof PatientsRoute
   '/patients/$id': typeof PatientsIdRouteWithChildren
   '/patients/$id/': typeof PatientsIdIndexRoute
+  '/payments': typeof PaymentsRoute
   '/practice-ar': typeof PracticeArRoute
   '/quiz': typeof QuizRoute
   '/reference': typeof ReferenceRoute
+  '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
@@ -234,17 +279,22 @@ export interface FileRouteTypes {
     | '/cases'
     | '/cases/'
     | '/charts'
+    | '/claims'
+    | '/coding'
     | '/dashboard'
     | '/dental'
+    | '/denials-ar'
     | '/instructor'
     | '/login'
     | '/medical-cases'
     | '/patients'
     | '/patients/$id'
     | '/patients/$id/'
+    | '/payments'
     | '/practice-ar'
     | '/quiz'
     | '/reference'
+    | '/reports'
     | '/schedule'
     | '/settings'
     | '/dental/$caseId/$stage'
@@ -259,17 +309,22 @@ export interface FileRouteTypes {
     | '/cases'
     | '/cases/'
     | '/charts'
+    | '/claims'
+    | '/coding'
     | '/dashboard'
     | '/dental'
+    | '/denials-ar'
     | '/instructor'
     | '/login'
     | '/medical-cases'
     | '/patients'
     | '/patients/$id'
     | '/patients/$id/'
+    | '/payments'
     | '/practice-ar'
     | '/quiz'
     | '/reference'
+    | '/reports'
     | '/schedule'
     | '/settings'
     | '/dental/$caseId/$stage'
@@ -284,17 +339,22 @@ export interface FileRouteTypes {
     | '/cases'
     | '/cases/'
     | '/charts'
+    | '/claims'
+    | '/coding'
     | '/dashboard'
     | '/dental'
+    | '/denials-ar'
     | '/instructor'
     | '/login'
     | '/medical-cases'
     | '/patients'
     | '/patients/$id'
     | '/patients/$id/'
+    | '/payments'
     | '/practice-ar'
     | '/quiz'
     | '/reference'
+    | '/reports'
     | '/schedule'
     | '/settings'
     | '/dental/$caseId/$stage'
@@ -309,15 +369,20 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   CasesRoute: typeof CasesRouteWithChildren
   ChartsRoute: typeof ChartsRoute
+  ClaimsRoute: typeof ClaimsRoute
+  CodingRoute: typeof CodingRoute
   DashboardRoute: typeof DashboardRoute
+  DenialsArRoute: typeof DenialsArRoute
   DentalRoute: typeof DentalRouteWithChildren
   InstructorRoute: typeof InstructorRoute
   LoginRoute: typeof LoginRoute
   MedicalCasesRoute: typeof MedicalCasesRouteWithChildren
   PatientsRoute: typeof PatientsRoute
+  PaymentsRoute: typeof PaymentsRoute
   PracticeArRoute: typeof PracticeArRoute
   QuizRoute: typeof QuizRoute
   ReferenceRoute: typeof ReferenceRoute
+  ReportsRoute: typeof ReportsRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
 }
@@ -352,6 +417,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CasesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/claims': {
+      id: '/claims'
+      path: '/claims'
+      fullPath: '/claims'
+      preLoaderRoute: typeof ClaimsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coding': {
+      id: '/coding'
+      path: '/coding'
+      fullPath: '/coding'
+      preLoaderRoute: typeof CodingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/charts': {
       id: '/charts'
       path: '/charts'
@@ -371,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/dental'
       fullPath: '/dental'
       preLoaderRoute: typeof DentalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/denials-ar': {
+      id: '/denials-ar'
+      path: '/denials-ar'
+      fullPath: '/denials-ar'
+      preLoaderRoute: typeof DenialsArRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/instructor': {
@@ -401,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/practice-ar': {
       id: '/practice-ar'
       path: '/practice-ar'
@@ -413,6 +506,13 @@ declare module '@tanstack/react-router' {
       path: '/quiz'
       fullPath: '/quiz'
       preLoaderRoute: typeof QuizRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reference': {
@@ -543,16 +643,21 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   CasesRoute: CasesRouteWithChildren,
   ChartsRoute: ChartsRoute,
+  ClaimsRoute: ClaimsRoute,
+  CodingRoute: CodingRoute,
   DashboardRoute: DashboardRoute,
+  DenialsArRoute: DenialsArRoute,
   DentalRoute: DentalRouteWithChildren,
   InstructorRoute: InstructorRoute,
   LoginRoute: LoginRoute,
   MedicalCasesRoute: MedicalCasesRouteWithChildren,
   PatientsRoute: PatientsRoute,
   PatientsIdRoute: PatientsIdRouteWithChildren,
+  PaymentsRoute: PaymentsRoute,
   PracticeArRoute: PracticeArRoute,
   QuizRoute: QuizRoute,
   ReferenceRoute: ReferenceRoute,
+  ReportsRoute: ReportsRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
 }
