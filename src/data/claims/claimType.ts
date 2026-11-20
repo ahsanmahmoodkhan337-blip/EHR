@@ -8,10 +8,12 @@
  *   institutional → UB-04 (CMS-1450)      hospital, ER, outpatient department, ASC
  *   dental        → ADA Dental Claim (J430D)
  *
- * The type is suggested from the encounter, never asked blind: a dental-track
- * encounter is dental, a medical encounter at place of service 21, 22 or 23 is
- * institutional, and everything else is professional. The biller can override
- * it, and the reason for the suggestion is printed in one line.
+ * The type is derived from the encounter's place of service, never picked by
+ * hand (Phase 3, 2026-11-20): a dental-track encounter is dental, a medical
+ * encounter at place of service 21, 22 or 23 is institutional, and everything
+ * else is professional. A place of service that does not match the encounter is
+ * flagged with the denial it would earn — see `domain/claimPaper.ts` — and is
+ * never rewritten for the student.
  *
  * Inspiration: the claim-type / bill-type selector at the top of a
  * practice-management claim screen — Epic Resolute splits professional
@@ -56,6 +58,17 @@ export const CLAIM_TYPE_PAPER: Record<ClaimType, string> = {
   professional: "CMS-1500 (02/12)",
   institutional: "UB-04 (CMS-1450)",
   dental: "ADA Dental Claim (J430D)",
+};
+
+/**
+ * The X12 transaction set each claim type is submitted as. One table, so the
+ * paper, the documents tab and the claim screen cannot disagree: a CMS-1500 is
+ * an 837P, a UB-04 an 837I, an ADA form an 837D.
+ */
+export const CLAIM_X12: Record<ClaimType, "837P" | "837I" | "837D"> = {
+  professional: "837P",
+  institutional: "837I",
+  dental: "837D",
 };
 
 /**
