@@ -10,7 +10,6 @@
 import { describe, expect, test } from "bun:test";
 import { DENTAL_DENIALS, DENTAL_CASE_SCENARIOS, findDenial, denialMoney } from "../src/data/dental";
 import { CARC_BY_CODE } from "../src/data/claims/carc";
-import { evaluateClaim } from "../src/data/dental/coverage";
 
 describe("denial records", () => {
   test("every CARC exists in the single table and its group letter matches groupCode", () => {

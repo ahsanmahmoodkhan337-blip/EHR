@@ -20,7 +20,7 @@
  */
 
 import { CDT_CODE_INDEX } from "./cdtCodes";
-import { CARC_BY_CODE, type CarcCodeString, type CarcGroup } from "../claims/carc";
+import { type CarcCodeString, type CarcGroup } from "../claims/carc";
 
 export type DenialCategory =
   | "Eligibility"

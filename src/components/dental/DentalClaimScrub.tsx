@@ -74,7 +74,7 @@ const CATEGORY_BADGE: Record<ScrubCategory, string> = {
  */
 export function scrubDentalClaim(
   lines: DentalClaimLine[],
-  plan: DentalPlan | undefined,
+  _plan: DentalPlan | undefined,
   adjudication?: DentalClaimAdjudication,
 ): ScrubFinding[] {
   const findings: ScrubFinding[] = [];
