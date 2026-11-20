@@ -13,6 +13,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SHELL_NAV_ITEMS, SHELL_NAV_ORDER } from "../src/components/shell/navItems";
+import { DENTAL_LEGACY_STAGE } from "../src/components/dental/DentalTrackStore";
 import {
   DENTAL_STAGE_TO_MODEL,
   MEDICAL_STAGE_TO_MODEL,
@@ -37,13 +38,13 @@ const EIGHT = [
 ];
 
 describe("the rail — six pages, no SOON", () => {
-  test("the items are Home, Schedule, Patients, Practice Cases, Reference, Settings", () => {
+  test("the items are Home, Schedule, Patients, Charts, Practice Cases, Settings", () => {
     expect(SHELL_NAV_ORDER).toEqual([
       "home",
       "schedule",
       "patients",
+      "charts",
       "practice-cases",
-      "reference",
       "settings",
     ]);
   });
@@ -81,10 +82,17 @@ describe("one eight-stage model for both tracks", () => {
     }
   });
 
-  test("dental's duplicate 'Claims' stage is the Remittance stage now", () => {
-    expect(DENTAL_STAGE_TO_MODEL.claims).toBe("remittance");
+  test("dental's old 'claims' and 'ledger' steps are Claim and Remittance now", () => {
+    // The two out-of-model steps are read, never dropped: an old id still names
+    // the stage it belongs to (spec `sidebar-stage-fixes.md`, defect 4).
+    expect(DENTAL_LEGACY_STAGE.claims).toBe("claim");
+    expect(DENTAL_LEGACY_STAGE.ledger).toBe("remittance");
+    // The mapping itself names only current stages — no `claims`, no `ledger`.
     expect(DENTAL_STAGE_TO_MODEL.claim).toBe("claim");
-    expect(rcmLabel(DENTAL_STAGE_TO_MODEL.claims)).toBe("Remittance");
+    expect(DENTAL_STAGE_TO_MODEL.remittance).toBe("remittance");
+    expect(rcmLabel(DENTAL_STAGE_TO_MODEL.remittance)).toBe("Remittance");
+    expect(DENTAL_STAGE_TO_MODEL.claims).toBeUndefined();
+    expect(DENTAL_STAGE_TO_MODEL.ledger).toBeUndefined();
   });
 
   test("medical's registration and eligibility are one Front Desk stage", () => {

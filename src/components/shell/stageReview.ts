@@ -41,6 +41,14 @@ export interface StageReviewInput {
    * never pick another one.
    */
   exemptIds?: readonly string[];
+  /**
+   * Stages that still owe a required action — an 835 that has not been posted,
+   * a denied line nobody has worked. Such a stage is **not** finished, so it
+   * stays live however far the student has moved on. Without this, the posting
+   * step is dead the moment the student reaches AR: the frame's `fieldset
+   * disabled` would swallow the Post button and strand the money.
+   */
+  unfinishedIds?: readonly string[];
 }
 
 /**
@@ -52,8 +60,10 @@ export function isReviewingStage({
   currentId,
   furthestId,
   exemptIds = [],
+  unfinishedIds = [],
 }: StageReviewInput): boolean {
   if (exemptIds.includes(currentId)) return false;
+  if (unfinishedIds.includes(currentId)) return false;
   const current = stageIndex(stageIds, currentId);
   const furthest = stageIndex(stageIds, furthestId);
   // An id the spine does not know (a conditional stage that is hidden right

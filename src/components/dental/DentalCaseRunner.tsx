@@ -2,10 +2,12 @@
  * DentalCaseRunner.tsx — Dental RCM case runner shell
  *
  * Inspired by: the medical track's seven-stage encounter spine, applied to the
- * dental case data. Walks the student through:
- *   case-select → briefing → coding → claim → AR follow-up → debrief
- * The coding / claim / AR stages are the dedicated dental components; this file
- * owns the case-select, briefing and debrief frames plus the stage stepper.
+ * dental case data. Walks the student through the shared eight-stage model —
+ * Chart → Coding → Prior Auth → Claim → Remittance → AR → Debrief — between the
+ * two frames that are not stages (the case picker and the briefing).
+ * The money path runs forward: the claim is built and transmitted in Claim, the
+ * 835 is read and posted in Remittance, and AR chases what is left (spec
+ * `sidebar-stage-fixes.md`, defect 2).
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -37,12 +39,13 @@ import {
 import { StageReviewFrame } from "../shell/StageReviewFrame";
 import { useStageShortcuts } from "../shell/useStageShortcuts";
 import { adjacentStage, isReviewingStage, isStageUnlocked } from "../shell/stageReview";
-import { DENTAL_STAGE_ORDER, useDentalTrack, type DentalStageName } from "./DentalTrackStore";
+import { DENTAL_STAGE_ORDER, unfinishedDentalStages, useDentalTrack, type DentalStageName } from "./DentalTrackStore";
 import { DentalCodingQueue } from "./DentalCodingQueue";
 import { DentalBillingLedger } from "./DentalBillingLedger";
 import { DentalAR } from "./DentalAR";
 import { DentalTreatmentPlan } from "./DentalTreatmentPlan";
 import { DentalPatientLedger } from "./DentalPatientLedger";
+import { DentalRemittance } from "./DentalRemittance";
 import { DentalClaimQueue } from "./DentalClaimQueue";
 import { DentalPredetermination } from "./DentalPredetermination";
 import { DentalARBench } from "./DentalARBench";
@@ -101,31 +104,64 @@ export const DENTAL_STAGE_LABEL: Record<DentalStageName, string> = {
 /**
  * The Claim stage. The owner's mapping puts the claim and its submission status
  * in one stage (`phase-1-navigation-addendum.md` item 3): the ADA claim form and
- * its totals, then the claim status queue with the 835 and the ERA. They are two
- * sections of one stage, not two steps, and nothing either screen showed before
- * is dropped.
+ * its totals, then the claim status queue with the 277CA and the timeline. They
+ * are two sections of one stage, not two steps, and nothing either screen showed
+ * before is dropped. The 835 and the posting are **not** here — they are the
+ * Remittance stage (spec `sidebar-stage-fixes.md`, defect 2).
  */
 function ClaimStage() {
+  const { state } = useDentalTrack();
+  /**
+   * Keep the student on the screen they were working: a claim that has been
+   * transmitted (and not rejected back for correction) opens on its status,
+   * which is where a migrated `claims` record was; a claim still being built —
+   * or one the clearinghouse rejected — opens on the form.
+   */
+  const statusFirst = state.claimSubmitted && state.claimStatus !== "rejected";
+
+  const form = (
+    <section key="form" aria-labelledby="dental-claim-form">
+      <h3
+        id="dental-claim-form"
+        className="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
+      >
+        The claim — ADA 2019 (J430)
+      </h3>
+      <DentalBillingLedger embedded />
+    </section>
+  );
+
+  const status = (
+    <section key="status" aria-labelledby="dental-claim-status" className="border-t-4 border-slate-100">
+      <h3
+        id="dental-claim-status"
+        className="border-b border-slate-200 bg-white px-4 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
+      >
+        Submission status and the 277CA
+      </h3>
+      <DentalClaimQueue embedded />
+    </section>
+  );
+
   return (
     <div className="h-full overflow-y-auto">
-      <section aria-labelledby="dental-claim-form">
-        <h3
-          id="dental-claim-form"
-          className="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
-        >
-          The claim — ADA 2019 (J430)
-        </h3>
-        <DentalBillingLedger embedded />
-      </section>
-      <section aria-labelledby="dental-claim-status" className="border-t-4 border-slate-100">
-        <h3
-          id="dental-claim-status"
-          className="border-b border-slate-200 bg-white px-4 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
-        >
-          Submission status, the 835 and the ERA
-        </h3>
-        <DentalClaimQueue embedded />
-      </section>
+      {statusFirst ? [status, form] : [form, status]}
+    </div>
+  );
+}
+
+/**
+ * The Remittance stage: this claim's 835, the sample ERAs, the posting, and the
+ * patient ledger that sums from what was posted — in that order, which is the
+ * order the money moves.
+ */
+function RemittanceStage() {
+  return (
+    <div className="h-full overflow-y-auto">
+      <DentalRemittance />
+      <div className="border-t-4 border-slate-100">
+        <DentalPatientLedger embedded />
+      </div>
     </div>
   );
 }
@@ -156,6 +192,20 @@ export function DentalCaseRunner() {
 
   const labelOf = (id: string) => DENTAL_STAGE_LABEL[id as DentalStageName] ?? id;
 
+  /**
+   * Stages that still owe a required action are not finished, so they stay
+   * editable however far the student has moved on. Without this, the moment the
+   * student reached AR the posting step in Remittance would be wrapped in a
+   * disabled fieldset and the money could never be posted (spec
+   * `sidebar-stage-fixes.md`, defect 3).
+   */
+  const unfinishedIds = useMemo(() => {
+    const deniedLineIds = adjudicateDentalClaim(state.lines, activeCase)
+      .lines.filter((line) => line.denial)
+      .map((line) => line.lineId);
+    return unfinishedDentalStages(state, deniedLineIds);
+  }, [state, activeCase]);
+
   // Item 11: a finished stage opens for reading, not editing. The case picker is
   // exempt so a student can always start a different case.
   const [reopenedStage, setReopenedStage] = useState<string | null>(null);
@@ -169,6 +219,7 @@ export function DentalCaseRunner() {
       currentId: state.stage,
       furthestId: state.furthestStage,
       exemptIds: ["case-select"],
+      unfinishedIds,
     });
 
   // Item 8: the same Alt+→ / Alt+← spine keys as the medical runner.
@@ -205,7 +256,7 @@ export function DentalCaseRunner() {
       {state.stage === "predetermination" && <DentalPredetermination />}
       {state.stage === "coding" && <DentalCodingQueue />}
       {state.stage === "claim" && <ClaimStage />}
-      {state.stage === "remittance" && <DentalPatientLedger />}
+      {state.stage === "remittance" && <RemittanceStage />}
       {state.stage === "ar" && <DentalAR />}
       {state.stage === "debrief" && <Debrief />}
     </>

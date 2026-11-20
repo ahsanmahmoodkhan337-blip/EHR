@@ -34,7 +34,7 @@ function daysBetween(dos: string, ref: Date): number {
   return Math.max(0, Math.floor((ref.getTime() - d.getTime()) / 86400000));
 }
 
-export function DentalPatientLedger() {
+export function DentalPatientLedger({ embedded = false }: { embedded?: boolean } = {}) {
   const { state, activeCase, postLedgerEntry, removeLedgerEntry, goTo } = useDentalTrack();
 
   const [payDraft, setPayDraft] = useState({ amountUsd: 0, source: "patient" as "patient" | "insurance", method: "Cash" });
@@ -112,7 +112,7 @@ export function DentalPatientLedger() {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-4">
+    <div className={embedded ? "p-4" : "h-full overflow-y-auto p-4"}>
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Patient Ledger</h3>
@@ -326,10 +326,10 @@ export function DentalPatientLedger() {
       <div className="mt-3 flex justify-end">
         <button
           type="button"
-          onClick={() => goTo("debrief")}
+          onClick={() => goTo("ar")}
           className="flex min-h-[40px] items-center gap-1.5 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white hover:bg-teal-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
         >
-          Finish & review debrief <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          Continue to AR <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
     </div>

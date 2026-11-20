@@ -99,6 +99,37 @@ export function normalizeDentalStageId(id: string): string {
   return DENTAL_LEGACY_STAGE[id] ?? id;
 }
 
+/**
+ * The dental spine as it stood before v7, when `claims` and `ledger` were steps
+ * of their own. A saved record's `furthestStage` was written against **this**
+ * order, so the migration has to read it against this order too — otherwise
+ * `ledger` (position 8, AR already finished) becomes Remittance (6) and the
+ * student's AR and Debrief render locked on work they already did.
+ */
+export const DENTAL_LEGACY_STAGE_ORDER = [
+  "case-select",
+  "briefing",
+  "planning",
+  "predetermination",
+  "coding",
+  "claim",
+  "claims",
+  "ar",
+  "ledger",
+  "debrief",
+] as const;
+
+/**
+ * How far an old id had actually got, in the current order. A plain rename is
+ * not enough: the old `claims` step held the claim queue (now a section of
+ * Claim) and the old `ledger` step came **after** AR, so a record saved on the
+ * ledger had already finished AR and must keep it unlocked.
+ */
+const LEGACY_FURTHEST_FLOOR: Record<string, DentalStageName> = {
+  claims: "claim",
+  ledger: "ar",
+};
+
 function stageRank(stage: DentalStageName): number {
   const i = DENTAL_STAGE_ORDER.indexOf(stage);
   return i < 0 ? 0 : i;
@@ -107,6 +138,47 @@ function stageRank(stage: DentalStageName): number {
 /** The later of two stages — how "furthest reached" is advanced, never reset backwards. */
 function furthestOf(a: DentalStageName, b: DentalStageName): DentalStageName {
   return stageRank(b) > stageRank(a) ? b : a;
+}
+
+/**
+ * A saved `furthestStage` translated into the current order, **never
+ * backwards**: the renamed stage is the floor from the plain translation, and
+ * the old step's real position raises it when that step covered more work.
+ */
+export function migrateFurthestStage(rawId: string | undefined): DentalStageName {
+  const id = rawId ?? "case-select";
+  const translated = normalizeDentalStageId(id);
+  const current = (DENTAL_STAGE_ORDER as string[]).includes(translated)
+    ? (translated as DentalStageName)
+    : "case-select";
+  const floor = LEGACY_FURTHEST_FLOOR[id];
+  return floor ? furthestOf(current, floor) : current;
+}
+
+/**
+ * The dental stages that still owe a required action — so they are **not**
+ * finished, and must stay editable however far the student has moved on.
+ *
+ * The case is not done until the money has moved: a claim that was never
+ * transmitted, an 835 that was never posted and a denied line nobody has worked
+ * are all unfinished work. Without this list a finished-stage frame would
+ * swallow the Post button and strand the posting step (spec
+ * `sidebar-stage-fixes.md`, defect 3).
+ *
+ * Pure: it reads the saved record and the claim's denied line ids only, so the
+ * runner and the tests read the same rule.
+ */
+export function unfinishedDentalStages(
+  state: DentalTrackState,
+  deniedLineIds: readonly string[] = [],
+): DentalStageName[] {
+  const pending: DentalStageName[] = [];
+  if (state.lines.length > 0 && !state.claimSubmitted) pending.push("claim");
+  if (state.claimSubmitted && !state.ledger.some((entry) => Boolean(entry.eraId))) {
+    pending.push("remittance");
+  }
+  if (deniedLineIds.some((id) => !state.lineResolutions[id])) pending.push("ar");
+  return pending;
 }
 
 /** A single CDT line the student is building in the coding stage. */
@@ -420,6 +492,9 @@ export function readDentalTrackRecord(phone: string | null = getLoggedInPhone())
  * and one saved on `ledger` to `remittance`. Only the stage names change: every
  * ledger entry, claim queue row and posted figure is carried across untouched,
  * and running the migration twice changes nothing the second time.
+ * `furthestStage` is translated against the **old** order (`DENTAL_LEGACY_STAGE_ORDER`)
+ * and never moves backwards: a record saved on `ledger` had already finished AR,
+ * so AR stays unlocked instead of being re-locked behind a lower position.
  */
 export function migrateDentalTrackState(raw: unknown): DentalTrackState {
   const parsed = (raw ?? {}) as DentalTrackState & { version?: number };
@@ -456,7 +531,9 @@ export function migrateDentalTrackState(raw: unknown): DentalTrackState {
     ...rest,
     version: 7,
     stage: asStage(parsed.stage, "case-select"),
-    furthestStage: asStage(parsed.furthestStage ?? parsed.stage, "case-select"),
+    // Never backwards: a record saved on `ledger` had already finished AR, so
+    // AR (and Debrief behind it) stay reachable.
+    furthestStage: migrateFurthestStage(parsed.furthestStage ?? parsed.stage),
     claimNumber: parsed.claimNumber ?? null,
     claimStatus: parsed.claimStatus ?? null,
     statusEvents: Array.isArray(parsed.statusEvents) ? parsed.statusEvents : [],
