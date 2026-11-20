@@ -134,7 +134,7 @@ export function AppTopBar({
   ) : null;
 
   return (
-    <header className="flex min-w-0 shrink-0 flex-nowrap items-center gap-1 border-b border-slate-200 bg-white px-2 py-1.5 sm:gap-2 dark:border-slate-800 dark:bg-slate-900">
+    <header className="header-nav flex min-w-0 shrink-0 flex-nowrap items-center gap-1 border-b border-black/10 px-2 py-1.5 sm:gap-2 dark:border-black/40">
       {/* Sidebar drawer trigger — below lg only */}
       <button
         type="button"
