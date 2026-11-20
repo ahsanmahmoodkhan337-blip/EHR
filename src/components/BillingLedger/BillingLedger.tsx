@@ -79,9 +79,17 @@ export function BillingLedger() {
   // Seeded once from the encounter (demographics, codes, PA number, provider
   // profile). After that the record is the student's: it is persisted with the
   // pipeline, so edits survive a reload.
+  //
+  // The paper is drawn even when the pipeline carries no patient id — a student
+  // who reaches Billing without an attached chart (tutorial prefill, or a
+  // coder hand-off from a session with no patient selected) still gets the form
+  // filled from the coded encounter and the provider profile. The demographic
+  // boxes are then theirs to complete.
   useEffect(() => {
-    if (!patientId || claimForm) return;
-    const paNumber = paRecords.filter((r) => r.patientId === patientId).slice(-1)[0]?.id;
+    if (claimForm) return;
+    const paNumber = patientId
+      ? paRecords.filter((r) => r.patientId === patientId).slice(-1)[0]?.id
+      : undefined;
     setClaimForm(
       buildClaimForm({
         patient: patient ?? null,
@@ -246,16 +254,28 @@ export function BillingLedger() {
     setActiveTab("denials");
   };
 
-  // Calculate estimated payment from the ACTUAL CPT codes chosen in Coding
-  // (medicare fee schedule basis) — never a hardcoded flat amount.
+  // Estimated payment from the ACTUAL CPT codes chosen in Coding — never a
+  // hardcoded flat amount. `medicareRate` in the code set is what Medicare
+  // ALLOWS (not a charge), so it is the fee-schedule basis: Medicare pays it in
+  // full, commercial payers pay a multiple of it, and the patient carries the
+  // standard 20% coinsurance. Paid + patient responsibility = allowed.
+  const PAYER_FACTOR: Record<string, number> = {
+    Medicare: 1.0,
+    Medicaid: 0.8,
+    "Blue Cross": 1.6,
+    "United Healthcare": 1.5,
+    Aetna: 1.55,
+    Cigna: 1.5,
+  };
   const calcPayment = () => {
-    const rates: Record<string, number> = { Medicare: 0.80, Medicaid: 0.65, "Blue Cross": 0.85, "United Healthcare": 0.82, Aetna: 0.83 };
-    const rate = rates[payer] ?? 0.80;
+    const factor = PAYER_FACTOR[payer] ?? 1.0;
     const billed = (state.cptCodes || []).reduce((sum, code) => {
       const cpt = CPT_CODES.find((c) => c.code === code);
       return sum + (cpt?.medicareRate ?? 0);
     }, 0);
-    return { billed, allowed: billed * rate, paid: billed * rate * 0.90, patient: billed * rate * 0.10 };
+    const allowed = billed * factor;
+    const patient = allowed * 0.2;
+    return { billed, allowed, paid: allowed - patient, patient, factor };
   };
 
   return (
@@ -639,7 +659,7 @@ export function BillingLedger() {
               </div>
               <div className="rounded-lg bg-white p-3 shadow-sm">
                 <p className="text-[10px] text-slate-400">Payer Rate</p>
-                <p className="text-sm font-bold text-slate-700">{calcPayment().billed > 0 ? `${payer}: {(calcPayment().allowed / calcPayment().billed * 100).toFixed(0)}% of billed` : `${payer}: — no codes yet`}</p>
+                <p className="text-sm font-bold text-slate-700">{calcPayment().billed > 0 ? `${payer}: pays ${(calcPayment().allowed / calcPayment().billed * 100).toFixed(0)}% of the Medicare fee schedule` : `${payer}: — no codes yet`}</p>
               </div>
               <div className="rounded-lg bg-green-50 p-3 border border-green-200">
                 <p className="text-[10px] text-green-600">Estimated Payment</p>
