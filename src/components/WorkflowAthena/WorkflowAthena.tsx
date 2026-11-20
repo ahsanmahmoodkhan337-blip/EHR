@@ -92,6 +92,10 @@ interface WorkflowAthenaProps {
   onStageSelect: (stageId: string) => void;
   completedStages: Set<string>;
   onToggleStageComplete: (stageId: string) => void;
+  /** Steps whose completion comes from the patient's data, not from a click. */
+  derivedStages?: string[];
+  /** Why a step is not done yet, keyed by stage id — shown under the step. */
+  stageHints?: Record<string, string>;
   className?: string;
 }
 
@@ -103,6 +107,8 @@ export function WorkflowAthena({
   onStageSelect,
   completedStages,
   onToggleStageComplete,
+  derivedStages = [],
+  stageHints = {},
   className = "",
 }: WorkflowAthenaProps) {
   const progressPercent =
@@ -147,43 +153,37 @@ export function WorkflowAthena({
                   : isCompleted
                     ? "border-green-200 bg-green-50/70"
                     : "border-slate-200 bg-white hover:border-slate-300"
-              } ${isPreviousCompleted ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
-              onClick={() => isPreviousCompleted && onStageSelect(stage.id)}
-              role="button"
-              tabIndex={isPreviousCompleted ? 0 : -1}
-              onKeyDown={(e) => {
-                if (isPreviousCompleted && (e.key === "Enter" || e.key === " ")) {
-                  onStageSelect(stage.id);
-                }
-              }}
+              }`}
             >
-              {/* Status indicator */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleStageComplete(stage.id);
-                }}
-                className={`mt-0.5 shrink-0 transition-colors ${
-                  isCompleted
-                    ? "text-green-600 hover:text-green-700"
-                    : "text-slate-300 hover:text-slate-400"
-                }`}
+              {/* Completion checkbox — beside the step, never inside it */}
+              <input
+                type="checkbox"
+                checked={isCompleted}
+                disabled={derivedStages.includes(stage.id)}
+                onChange={() => onToggleStageComplete(stage.id)}
                 aria-label={
                   isCompleted
                     ? `Mark ${stage.label} as incomplete`
                     : `Mark ${stage.label} as complete`
                 }
-              >
-                {isCompleted ? (
-                  <CheckCircle2 className="h-5 w-5" />
-                ) : (
-                  <CircleDot className="h-5 w-5" />
-                )}
-              </button>
+                title={
+                  derivedStages.includes(stage.id)
+                    ? "This step is completed by the patient's data, not by a click."
+                    : undefined
+                }
+                className="mt-1 h-4 w-4 shrink-0 accent-green-600 disabled:cursor-not-allowed disabled:opacity-40"
+              />
 
-              {/* Stage content */}
+              {/* The step itself — one button */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => isPreviousCompleted && onStageSelect(stage.id)}
+                  disabled={!isPreviousCompleted}
+                  className={`flex w-full items-center gap-2 text-left ${
+                    isPreviousCompleted ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                  }`}
+                >
                   <span
                     className={`${
                       isCurrent ? "text-blue-600" : "text-slate-400"
@@ -207,10 +207,15 @@ export function WorkflowAthena({
                       Active
                     </span>
                   )}
-                </div>
+                </button>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {stage.description}
                 </p>
+                {!isCompleted && stageHints[stage.id] && (
+                  <p className="mt-0.5 text-[10px] font-medium text-amber-700">
+                    {stageHints[stage.id]}
+                  </p>
+                )}
               </div>
             </div>
           );

@@ -12,6 +12,7 @@
 import { Activity, AlertTriangle, Pill, Stethoscope, FileText, Shield, CheckCircle2, Clock } from "lucide-react";
 import type { Patient, Allergy } from "../../store/patientStore";
 import type { PARecordStore } from "../../store/pipelineStore";
+import { formatVital } from "../../utils/vitals";
 
 interface RightPaneleCWProps {
   patient: Patient | null;
@@ -67,7 +68,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
   const demographicLine = [
     patient.gender?.trim() || null,
     ageKnown ? `${patient.age} yrs` : null,
-    dobKnown ? `DOB: ${parsedDob!.toLocaleDateString()}` : null,
+    dobKnown ? `DOB: ${parsedDob!.toLocaleDateString()}` : "DOB: —",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -122,23 +123,23 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-sm">
           <span className="text-slate-500">BP:</span>
           <span className="font-medium text-slate-800">
-            {editableVitals?.bloodPressure ?? patient.vitals.bloodPressure}
+            {formatVital(editableVitals?.bloodPressure ?? patient.vitals.bloodPressure)}
           </span>
           <span className="text-slate-500">HR:</span>
           <span className="font-medium text-slate-800">
-            {editableVitals?.heartRate ?? patient.vitals.heartRate} bpm
+            {formatVital(editableVitals?.heartRate ?? patient.vitals.heartRate, " bpm")}
           </span>
           <span className="text-slate-500">Temp:</span>
           <span className="font-medium text-slate-800">
-            {editableVitals?.temperature ?? patient.vitals.temperature}°F
+            {formatVital(editableVitals?.temperature ?? patient.vitals.temperature, "°F")}
           </span>
           <span className="text-slate-500">RR:</span>
           <span className="font-medium text-slate-800">
-            {editableVitals?.respiratoryRate ?? patient.vitals.respiratoryRate}
+            {formatVital(editableVitals?.respiratoryRate ?? patient.vitals.respiratoryRate)}
           </span>
           <span className="text-slate-500">SpO2:</span>
           <span className="font-medium text-slate-800">
-            {editableVitals?.oxygenSaturation ?? patient.vitals.oxygenSaturation}%
+            {formatVital(editableVitals?.oxygenSaturation ?? patient.vitals.oxygenSaturation, "%")}
           </span>
         </div>
       </div>

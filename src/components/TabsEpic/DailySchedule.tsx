@@ -272,7 +272,11 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
     ? patients.find((p) => p.id === modalPatientId)
     : undefined;
 
-  const canRegister = newFirst.trim().length > 0 && newLast.trim().length > 0;
+  const canRegister =
+    newFirst.trim().length > 0 &&
+    newLast.trim().length > 0 &&
+    newDob.trim().length > 0 &&
+    newPhone.trim().length > 0;
 
   // Save appointment — registering the patient inline when there is no match.
   //
@@ -312,6 +316,31 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
       if (!first || !last) {
         setSaveError(
           "Add the patient's first and last name in the register panel — or pick an existing patient above — then press Create Appointment again.",
+        );
+        return;
+      }
+      // A date of birth is required and must be real and not in the future: the
+      // banner, the summary and the claim all derive the age and box 3 from it.
+      if (!newDob.trim()) {
+        setSaveError(
+          "Add the patient's date of birth — Registration cannot be completed without it.",
+        );
+        return;
+      }
+      const dobDate = new Date(newDob);
+      if (Number.isNaN(dobDate.getTime())) {
+        setSaveError("That date of birth is not a real date. Re-enter it and save again.");
+        return;
+      }
+      if (dobDate.getTime() > Date.now()) {
+        setSaveError(
+          "That date of birth is in the future, so the patient's age would be wrong on every screen. Correct it before saving.",
+        );
+        return;
+      }
+      if (!newPhone.trim()) {
+        setSaveError(
+          "Add the patient's phone number — it identifies the patient on the chart and the claim.",
         );
         return;
       }
