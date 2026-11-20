@@ -61,7 +61,7 @@ export function WorkflowTracker({}: WorkflowTrackerProps) {
       ? "Denied"
       : state.status === "reprocessed"
       ? "Reprocessed"
-      : "Pending";
+      : "Work Queues";
 
   return (
     <div className="border-b border-slate-200 bg-white px-4 py-3">

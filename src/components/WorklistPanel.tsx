@@ -6,7 +6,7 @@
  * Demo/Tutorial patient is always pinned at the top.
  */
 
-import { Clock, Circle, Pin } from "lucide-react";
+import { Clock, Circle, Pin, AlertTriangle } from "lucide-react";
 import type { Patient } from "../store/patientStore";
 
 interface WorklistPanelProps {
@@ -19,6 +19,17 @@ const IDLE_DAYS = [2, 3, 1, 4, 5, 2, 3, 0, 1, 2, 4, 3, 7, 2, 1];
 
 function getInitials(p: Patient): string {
   return `${p.firstName.charAt(0)}${p.lastName.charAt(0)}`.toUpperCase();
+}
+
+/**
+ * A record saved before DOB was required has no usable date of birth. The row
+ * says so out loud, and the marker disappears as soon as Registration writes a
+ * real one — a blank is not a silent answer.
+ */
+function hasDob(p: Patient): boolean {
+  const raw = (p.dateOfBirth || "").trim();
+  if (!raw) return false;
+  return !Number.isNaN(new Date(raw).getTime());
 }
 
 function getIdleDays(index: number): number {
@@ -113,6 +124,11 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
                   {p.firstName} {p.lastName}
                 </p>
                 <p className="truncate text-[10px] text-slate-400">{p.chiefComplaint}</p>
+                {!hasDob(p) && (
+                  <span className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-800">
+                    <AlertTriangle className="h-2.5 w-2.5" /> DOB missing — complete at Registration
+                  </span>
+                )}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-0.5">
                 <Circle className={`h-2 w-2 fill-current ${getPriorityColor(idleDays)}`} />

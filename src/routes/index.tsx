@@ -77,6 +77,7 @@ import PriorAuthPortal from "../components/PriorAuthPortal/PriorAuthPortal";
 import { toast } from "sonner";
 import { FadeTransition } from "../components/FadeTransition";
 import { WorklistPanel } from "../components/WorklistPanel";
+import { hasVital, formatVital } from "../utils/vitals";
 import { FinancialLedger } from "../components/FinancialLedger";
 import { CPT_CODES } from "../components/CodingQueue/cptData";
 import { ToastProvider, useToast } from "../components/Toast";
@@ -235,7 +236,7 @@ const SEED_IMAGING: ImagingEntry[] = [
   { id: "img-seed-1", study: "Chest X-ray (PA & Lateral)", status: "Resulted", date: "2026-07-09" },
 ];
 const SEED_IMMUNIZATIONS: ImmunizationEntry[] = [
-  { id: "imm-seed-1", vaccine: "Influenza (2024-2025)", dose: "0.5 mL", date: "2024-10-15", status: "Given" },
+  { id: "imm-seed-1", vaccine: "Influenza (2026-2027)", dose: "0.5 mL", date: "2026-10-15", status: "Given" },
   { id: "imm-seed-2", vaccine: "COVID-19 Booster", dose: "0.3 mL", date: "2024-11-02", status: "Given" },
 ];
 const SEED_REFERRALS: ReferralEntry[] = [
@@ -431,7 +432,7 @@ function SummaryTab({
               className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
             />
           ) : (
-            <p className="clinical-value">{patient.vitals.bloodPressure}</p>
+            <p className="clinical-value">{formatVital(patient.vitals.bloodPressure)}</p>
           )}
           {(() => {
             const parts = vitals.bloodPressure.split("/").map(s => parseFloat(s.trim()));
@@ -448,7 +449,7 @@ function SummaryTab({
           <p className="clinical-label">HR</p>
           {isScribe ? (
             <input type="text" value={vitals.heartRate} onChange={e => updateVital("heartRate", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
-          ) : <p className="clinical-value">{patient.vitals.heartRate} bpm</p>}
+          ) : <p className="clinical-value">{formatVital(patient.vitals.heartRate, " bpm")}</p>}
           {(() => {
             const val = parseFloat(vitals.heartRate);
             if (isNaN(val)) return null;
@@ -461,7 +462,7 @@ function SummaryTab({
           <p className="clinical-label">Temp</p>
           {isScribe ? (
             <input type="text" value={vitals.temperature} onChange={e => updateVital("temperature", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
-          ) : <p className="clinical-value">{patient.vitals.temperature}°F</p>}
+          ) : <p className="clinical-value">{formatVital(patient.vitals.temperature, "°F")}</p>}
           {(() => {
             const val = parseFloat(vitals.temperature);
             if (isNaN(val)) return null;
@@ -474,7 +475,7 @@ function SummaryTab({
           <p className="clinical-label">SpO2</p>
           {isScribe ? (
             <input type="text" value={vitals.oxygenSaturation} onChange={e => updateVital("oxygenSaturation", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
-          ) : <p className="clinical-value">{patient.vitals.oxygenSaturation}%</p>}
+          ) : <p className="clinical-value">{formatVital(patient.vitals.oxygenSaturation, "%")}</p>}
           {(() => {
             const val = parseFloat(vitals.oxygenSaturation);
             if (isNaN(val)) return null;
@@ -923,6 +924,8 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
 
   // Dynamic normal/abnormal badge logic
   const getBadge = (type: string, valueStr: string): { className: string; label: string } => {
+    const rawValue = (valueStr ?? "").trim();
+    if (!hasVital(rawValue)) return { className: "status-badge is-neutral", label: "—" };
     switch (type) {
       case "bp": {
         const parts = valueStr.split("/").map((s) => parseFloat(s.trim()));
@@ -1000,7 +1003,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{patient.vitals.bloodPressure} mmHg</>
+                    <>{formatVital(patient.vitals.bloodPressure, " mmHg")}</>
                   )}
                 </td>
                 <td><span className={bpBadge.className}>{bpBadge.label}</span></td>
@@ -1016,7 +1019,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{patient.vitals.heartRate} bpm</>
+                    <>{formatVital(patient.vitals.heartRate, " bpm")}</>
                   )}
                 </td>
                 <td><span className={hrBadge.className}>{hrBadge.label}</span></td>
@@ -1032,7 +1035,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{patient.vitals.temperature} °F</>
+                    <>{formatVital(patient.vitals.temperature, " °F")}</>
                   )}
                 </td>
                 <td><span className={tempBadge.className}>{tempBadge.label}</span></td>
@@ -1048,7 +1051,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{patient.vitals.respiratoryRate} /min</>
+                    <>{formatVital(patient.vitals.respiratoryRate)} /min</>
                   )}
                 </td>
                 <td><span className={rrBadge.className}>{rrBadge.label}</span></td>
@@ -1064,7 +1067,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{patient.vitals.oxygenSaturation}%</>
+                    <>{formatVital(patient.vitals.oxygenSaturation, "%")}</>
                   )}
                 </td>
                 <td><span className={o2Badge.className}>{o2Badge.label}</span></td>
@@ -1406,12 +1409,13 @@ function Home() {
     insurance: patients[0]?.insurance ?? "",
   });
   const [newProblem, setNewProblem] = useState("");
-  // Shared lists across Summary + tabs (real-time sync)
-  const [sharedImmunizations, setSharedImmunizations] = useState<ImmunizationEntry[]>(SEED_IMMUNIZATIONS);
+  // Shared lists across Summary + tabs (real-time sync). They start empty: demo
+  // clinical items belong to the seeded demo patients and load for those only.
+  const [sharedImmunizations, setSharedImmunizations] = useState<ImmunizationEntry[]>([]);
   const [sharedLabs, setSharedLabs] = useState<string[]>([]);
-  const [sharedReferrals, setSharedReferrals] = useState<ReferralEntry[]>(SEED_REFERRALS);
-  const [sharedOrders, setSharedOrders] = useState<OrderEntry[]>(SEED_ORDERS);
-  const [sharedImaging, setSharedImaging] = useState<ImagingEntry[]>(SEED_IMAGING);
+  const [sharedReferrals, setSharedReferrals] = useState<ReferralEntry[]>([]);
+  const [sharedOrders, setSharedOrders] = useState<OrderEntry[]>([]);
+  const [sharedImaging, setSharedImaging] = useState<ImagingEntry[]>([]);
 
   // ── Phase 0: patients and appointments come from the central store ──
   // No component-state copy of either list, so a refresh, a role switch or a
@@ -1534,7 +1538,7 @@ function Home() {
       setCompletedStages(new Set(["registration", "intake-vitals", "hpi", "exam-ros", "assessment-plan", "sign-lock"]));
       setActiveStage("sign-lock");
       setSharedImmunizations([
-        { id: "imm-d1", vaccine: "Influenza 2025-2026", dose: "0.5 mL", date: "2025-10-01", status: "Given" },
+        { id: "imm-d1", vaccine: "Influenza 2026-2027", dose: "0.5 mL", date: "2026-10-01", status: "Given" },
         { id: "imm-d2", vaccine: "Tdap", dose: "0.5 mL", date: "2023-05-10", status: "Given" },
         { id: "imm-d3", vaccine: "COVID-19 Bivalent", dose: "0.3 mL", date: "2024-09-20", status: "Given" },
       ]);
@@ -1600,18 +1604,24 @@ function Home() {
         pcp: p.primaryCareProvider ?? "",
         insurance: p.insurance ?? "",
       });
+      // A measurement that was never taken stays empty so every screen shows
+      // "—": filling in 72 bpm / 98.6°F made an untaken vitals look recorded.
+      const recorded = (v: string | number | undefined) => (hasVital(v) ? String(v) : "");
       setEditableVitals({
-        bloodPressure: p.vitals.bloodPressure ?? "120/80",
-        heartRate: p.vitals.heartRate?.toString() ?? "72",
-        temperature: p.vitals.temperature?.toString() ?? "98.6",
-        respiratoryRate: p.vitals.respiratoryRate?.toString() ?? "16",
-        oxygenSaturation: p.vitals.oxygenSaturation?.toString() ?? "98",
+        bloodPressure: recorded(p.vitals.bloodPressure),
+        heartRate: recorded(p.vitals.heartRate),
+        temperature: recorded(p.vitals.temperature),
+        respiratoryRate: recorded(p.vitals.respiratoryRate),
+        oxygenSaturation: recorded(p.vitals.oxygenSaturation),
       });
-      setSharedImmunizations(SEED_IMMUNIZATIONS);
+      // Demo clinical items appear on seeded demo patients only (owner decision
+      // 2026-11-20). A patient the student registered starts with empty lists.
+      const seeded = p.isSeed === true;
+      setSharedImmunizations(seeded ? SEED_IMMUNIZATIONS : []);
       setSharedLabs([]);
-      setSharedReferrals(SEED_REFERRALS);
-      setSharedOrders(SEED_ORDERS);
-      setSharedImaging(SEED_IMAGING);
+      setSharedReferrals(seeded ? SEED_REFERRALS : []);
+      setSharedOrders(seeded ? SEED_ORDERS : []);
+      setSharedImaging(seeded ? SEED_IMAGING : []);
       // Phase 0 section 5 — an autosaved draft survives a refresh, so the
       // half-written note comes back with the patient.
       const savedDraft = useEhrStore.getState().user.noteDrafts[patientId];
@@ -1854,6 +1864,8 @@ function Home() {
   };
 
   const toggleStageComplete = (stageId: string) => {
+    // Registration is completed by the patient's data, never by a click.
+    if (stageId === "registration") return;
     const updated = new Set(completedStages);
     if (updated.has(stageId)) {
       updated.delete(stageId);
@@ -1870,6 +1882,31 @@ function Home() {
   };
 
   const selectedPatient = patients.find((p) => p.id === selectedPatientId);
+
+  // ─── Registration is done when its data is done ───────────────────
+  // Name, a real (non-future) DOB, sex, phone and coverage — or self-pay. The
+  // workflow step status is derived from these, not from a checkbox, so a
+  // student cannot advance past Registration with a half-filled patient.
+  const registrationGaps: string[] = [];
+  if (selectedPatient) {
+    const filled = (v?: string) => !!v && v.trim().length > 0;
+    const dobRaw = (selectedPatient.dateOfBirth || "").trim();
+    const dobDate = dobRaw ? new Date(dobRaw) : null;
+    if (!filled(selectedPatient.firstName) || !filled(selectedPatient.lastName)) registrationGaps.push("name");
+    if (!dobDate || Number.isNaN(dobDate.getTime())) registrationGaps.push("date of birth");
+    else if (dobDate.getTime() > Date.now()) registrationGaps.push("a date of birth that is not in the future");
+    if (!filled(selectedPatient.gender)) registrationGaps.push("sex");
+    if (!filled(selectedPatient.phone)) registrationGaps.push("phone");
+    const payer =
+      (selectedPatient.insuranceRecord?.primary.payerName || "").trim() ||
+      (selectedPatient.insurance || "").trim();
+    if (!payer) registrationGaps.push("coverage or self-pay");
+  }
+  const registrationComplete = !!selectedPatient && registrationGaps.length === 0;
+  const completedStagesDerived = new Set(completedStages);
+  if (registrationComplete) completedStagesDerived.add("registration");
+  else completedStagesDerived.delete("registration");
+
   console.log("render: selectedPatientId=", selectedPatientId, "selectedPatient=", selectedPatient?.firstName, selectedPatient?.lastName);
 
   // Safely load a patient — always clears loading state even on error
@@ -1921,9 +1958,14 @@ function Home() {
             <div className="flex-1 overflow-y-auto p-4">
               <WorkflowAthena
                 activeStage={activeStage}
-                onStageSelect={setActiveStage}
-                completedStages={completedStages}
+                onStageSelect={(id) => {
+                  if (!registrationComplete && id !== "registration") return;
+                  setActiveStage(id);
+                }}
+                completedStages={completedStagesDerived}
                 onToggleStageComplete={toggleStageComplete}
+                derivedStages={["registration"]}
+                stageHints={{ registration: `Missing: ${registrationGaps.join(", ")}` }}
               />
             </div>
           )}

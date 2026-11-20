@@ -83,6 +83,8 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
   const [submitted, setSubmitted] = useState(false);
   const [savedToChart, setSavedToChart] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  /** No insurance: the patient pays cash. Coverage is then "Self-pay". */
+  const [selfPay, setSelfPay] = useState(false);
 
   // Re-open a patient that already has a record: show what the chart holds, so
   // re-verifying corrects it instead of silently replacing it with blanks. The
@@ -115,10 +117,18 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
     if (!form.lastName.trim()) errs.lastName = "Last name is required";
     if (!form.dob.trim()) errs.dob = "Date of birth is required";
     else if (!/^\d{2}\/\d{2}\/\d{4}$/.test(form.dob.trim())) errs.dob = "Use MM/DD/YYYY format";
-    if (!form.payerName.trim()) errs.payerName = "Payer name is required";
-    if (!form.subscriberId.trim()) errs.subscriberId = "Subscriber ID is required";
-    if (!form.groupNumber.trim()) errs.groupNumber = "Group number is required";
-    if (!form.payerId.trim()) errs.payerId = "Payer ID is required";
+    else {
+      const iso = toIsoDate(form.dob);
+      if (!iso) errs.dob = "That is not a real date — check the day and the month";
+      else if (new Date(iso).getTime() > Date.now())
+        errs.dob = "A date of birth cannot be in the future";
+    }
+    if (!selfPay) {
+      if (!form.payerName.trim()) errs.payerName = "Payer name is required";
+      if (!form.subscriberId.trim()) errs.subscriberId = "Subscriber ID is required";
+      if (!form.groupNumber.trim()) errs.groupNumber = "Group number is required";
+      if (!form.payerId.trim()) errs.payerId = "Payer ID is required";
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -162,12 +172,12 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
           patient.id,
           buildInsuranceRecord({
             primary: {
-              payerName: form.payerName,
-              ediPayerId: form.payerId,
-              subscriberId: form.subscriberId,
-              groupNumber: form.groupNumber,
+              payerName: selfPay ? "Self-pay" : form.payerName,
+              ediPayerId: selfPay ? "" : form.payerId,
+              subscriberId: selfPay ? "" : form.subscriberId,
+              groupNumber: selfPay ? "" : form.groupNumber,
               relationshipToSubscriber: form.relationship,
-              planName: form.payerName,
+              planName: selfPay ? "Self-pay" : form.payerName,
             },
             secondary: secondaryFilled
               ? {
@@ -248,6 +258,15 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
       {/* ─── Transcription Form ─── */}
       <div className="clinical-card">
         <h4 className="mb-3 text-sm font-semibold text-slate-700">Transcribe Patient Information</h4>
+        <label className="mb-3 flex items-center gap-2 text-[11px] font-medium text-slate-600">
+          <input
+            type="checkbox"
+            checked={selfPay}
+            onChange={(e) => setSelfPay(e.target.checked)}
+            className="h-3.5 w-3.5 accent-brand-600"
+          />
+          Self-pay — the patient has no insurance (coverage is recorded as Self-pay)
+        </label>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label className="text-[11px] font-medium text-slate-500">First Name</label>

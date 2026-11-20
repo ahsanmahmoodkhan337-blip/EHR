@@ -87,15 +87,10 @@ export function PatientBanner({ patient, fallbackName }: PatientBannerProps) {
       {patient && (
         <span className="flex items-center gap-3 text-[11px] text-slate-300">
           <span>MRN {patient.mrn}</span>
-          {dobText && (
-            <>
-              <span className="h-3 w-px bg-slate-600" aria-hidden="true" />
-              <span>
-                DOB {dobText}
-                {age !== null ? ` (${age}y)` : ""}
-              </span>
-            </>
-          )}
+          <span className="h-3 w-px bg-slate-600" aria-hidden="true" />
+          <span>
+            {dobText ? `DOB ${dobText}${age !== null ? ` (${age}y)` : ""}` : "DOB —"}
+          </span>
           <span className="h-3 w-px bg-slate-600" aria-hidden="true" />
           <span>{patient.gender}</span>
         </span>
