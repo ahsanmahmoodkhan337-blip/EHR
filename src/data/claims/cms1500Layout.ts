@@ -49,8 +49,14 @@ export interface ClaimBox {
   label: string;
   /** Editable values. Absent for structural boxes. */
   fields?: ClaimField[];
-  /** Checkbox group (boxes 10a–c). */
+  /** Checkbox group (box 8, boxes 10a–c). */
   checks?: ClaimCheck[];
+  /**
+   * A box the 02/12 prints shaded and reserved: it carries no data, so it has
+   * no fields and the paper draws it empty. Box 30 is the only one — "Balance
+   * Due" was the 12/90 form and never came back.
+   */
+  reserved?: boolean;
   /** Structural boxes: the A–L diagnosis grid, the service table, a band. */
   structural?: "pointerGrid" | "table" | "band";
   /** Columns out of 12. */
@@ -204,8 +210,20 @@ export const CMS1500_LAYOUT: ClaimLayout = {
         {
           id: "6",
           label: "6. PATIENT RELATIONSHIP TO INSURED",
-          colSpan: 5,
+          colSpan: 3,
           fields: [{ field: "patientRelationship", kind: "select", options: RELATIONSHIP_OPTIONS }],
+        },
+        {
+          id: "8",
+          label: "8. PATIENT STATUS",
+          colSpan: 4,
+          checks: [
+            { field: "patientStatusSingle", label: "SINGLE" },
+            { field: "patientStatusMarried", label: "MARRIED" },
+            { field: "patientStatusEmployed", label: "EMPLOYED" },
+            { field: "patientStatusFullTimeStudent", label: "FULL-TIME STUDENT" },
+            { field: "patientStatusPartTimeStudent", label: "PART-TIME STUDENT" },
+          ],
         },
       ],
     },
@@ -215,8 +233,14 @@ export const CMS1500_LAYOUT: ClaimLayout = {
         {
           id: "9",
           label: "9. OTHER INSURED'S NAME",
-          colSpan: 7,
+          colSpan: 4,
           fields: [{ field: "otherInsuranceName", kind: "text" }],
+        },
+        {
+          id: "9c",
+          label: "9c. EMPLOYER'S OR SCHOOL'S NAME",
+          colSpan: 3,
+          fields: [{ field: "insuredEmployer", kind: "text" }],
         },
         {
           id: "10",
@@ -252,9 +276,9 @@ export const CMS1500_LAYOUT: ClaimLayout = {
       cells: [
         {
           id: "11b",
-          label: "11b. OTHER CLAIM ID / EMPLOYER",
+          label: "11b. OTHER CLAIM ID (ID)",
           colSpan: 4,
-          fields: [{ field: "insuredEmployer", kind: "text" }],
+          fields: [{ field: "otherClaimId", kind: "text" }],
         },
         {
           id: "11c",
@@ -323,15 +347,21 @@ export const CMS1500_LAYOUT: ClaimLayout = {
           fields: [{ field: "referringProvider", kind: "text" }],
         },
         {
+          id: "17a",
+          label: "17a. OTHER ID #",
+          colSpan: 2,
+          fields: [{ field: "referringOtherId", kind: "text" }],
+        },
+        {
           id: "17b",
           label: "17b. NPI",
-          colSpan: 3,
+          colSpan: 2,
           fields: [{ field: "referringNpi", kind: "text" }],
         },
         {
           id: "18",
           label: "18. HOSPITALIZATION DATES RELATED TO CURRENT SERVICES",
-          colSpan: 4,
+          colSpan: 3,
           fields: [
             { field: "hospitalizationFrom", kind: "date", flex: 1 },
             { field: "hospitalizationTo", kind: "date", flex: 1 },
@@ -442,9 +472,13 @@ export const CMS1500_LAYOUT: ClaimLayout = {
         },
         {
           id: "30",
-          label: "30. R.S. AMOUNT / BALANCE DUE",
+          // 02/12: box 30 is R.S. AMOUNT — shaded and reserved, no data. The
+          // "BALANCE DUE" that used to print here was the 12/90 form. A
+          // patient's balance belongs on the ledger, not on a claim.
+          label: "30. R.S. AMOUNT",
           colSpan: 4,
-          fields: [{ field: "balanceDue", kind: "money" }],
+          reserved: true,
+          hint: "Box 30 is R.S. AMOUNT — shaded and reserved on the 02/12, with no data. The patient's balance lives on the ledger, not on the claim.",
         },
       ],
     },

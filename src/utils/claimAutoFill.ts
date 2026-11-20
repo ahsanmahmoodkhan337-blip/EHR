@@ -79,8 +79,14 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
     insuredPolicyGroup: "",
     insuredDob: "",
     insuredEmployer: "",
+    otherClaimId: "",
     insuredPlanName: "",
     otherBenefitPlan: "No",
+    patientStatusSingle: false,
+    patientStatusMarried: false,
+    patientStatusEmployed: false,
+    patientStatusFullTimeStudent: false,
+    patientStatusPartTimeStudent: false,
     payerName: "",
     payerEdiId: "",
     patientSignature: true,
@@ -90,6 +96,7 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
     unableToWorkFrom: "",
     unableToWorkTo: "",
     referringProvider: "",
+    referringOtherId: "",
     referringNpi: "",
     hospitalizationFrom: "",
     hospitalizationTo: "",
@@ -420,7 +427,6 @@ export function buildClaimForm({
     priorAuthNumber: paNumber ?? "",
     serviceLines,
     totalCharge,
-    balanceDue: totalCharge,
   };
 }
 
@@ -451,7 +457,13 @@ export function migrateClaimData(map: Record<string, string> | undefined): Claim
     insuredPlanName: val("11c"),
     currentIllnessDate: val("14") || base.currentIllnessDate,
     referringProvider: val("17"),
-    referringNpi: val("17a"),
+    // The NPI is box 17b. The legacy map's "17a" key held the referring NPI
+    // (the old block list mislabelled 17a), so it is read second — the value is
+    // carried forward rather than dropped, and new records use the real box.
+    referringNpi: val("17b") || val("17a"),
+    // Box 11b is OTHER CLAIM ID. The old map's "11b" key held the employer, which
+    // the 02/12 prints in 9c — so an old employer value lands there, verbatim.
+    insuredEmployer: val("9c") || val("11b"),
     diagnosisCodes: val("21")
       .split(",")
       .map((c) => c.trim())
@@ -467,7 +479,7 @@ export function migrateClaimData(map: Record<string, string> | undefined): Claim
     })),
     federalTaxId: val("25") || base.federalTaxId,
     totalCharge: charge,
-    balanceDue: charge,
+    // No balanceDue: box 30 is reserved on the 02/12 and prints no money.
     facilityName: val("32") || base.facilityName,
     billingProviderName: val("33") || base.billingProviderName,
   };

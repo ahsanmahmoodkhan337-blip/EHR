@@ -103,8 +103,8 @@ function Box({
   return (
     <div
       className={`relative min-w-0 border border-form-red/70 px-1 pt-0.5 ${
-        invalid ? "outline outline-2 -outline-offset-2 outline-danger" : ""
-      }`}
+        box.reserved ? "bg-form-red/[0.07]" : ""
+      } ${invalid ? "outline outline-2 -outline-offset-2 outline-danger" : ""}`}
       style={{ flex: box.colSpan }}
       data-box={box.id}
       title={invalid ? issue?.message : box.hint}
