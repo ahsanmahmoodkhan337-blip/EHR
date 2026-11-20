@@ -16,7 +16,7 @@ export interface FormBlock {
 }
 
 export const CMS1500_BLOCKS: FormBlock[] = [
-  { box: "1", label: "Insurance Coverage", description: "Mark the appropriate insurance type — Medicare, Medicaid, Blue Cross/Blue Shield, etc.", commonError: "Checking multiple boxes or no box at all causes automatic denial." },
+  { box: "1", label: "Insurance Coverage", description: "Mark the appropriate insurance type — Medicare, Medicaid, TRICARE, CHAMPVA, Group Health Plan, FECA, or Other, as printed on the form.", commonError: "Checking multiple boxes or no box at all causes automatic denial." },
   { box: "2", label: "Patient Name", description: "Patient's full last name, first name, middle initial as it appears on the insurance card.", autoFilled: true, commonError: "Name mismatch with insurance records." },
   { box: "3", label: "Patient DOB & Sex", description: "Patient's date of birth (MM/DD/YYYY) and sex (M/F).", autoFilled: true, commonError: "DOB missing or incorrect." },
   { box: "4", label: "Insured Name", description: "Name of the person who holds the insurance policy (if different from patient).", commonError: "Left blank when patient is not the policyholder." },

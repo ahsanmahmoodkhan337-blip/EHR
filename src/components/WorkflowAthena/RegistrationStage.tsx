@@ -70,7 +70,7 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
     firstName: "",
     lastName: "",
     dob: "",
-    payerName: "Anthem Blue Cross",
+    payerName: "Northwind Health Plan",
     subscriberId: "",
     groupNumber: "",
     payerId: "",
@@ -231,13 +231,13 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
         <div className="flex items-center gap-2 border-b border-blue-200 pb-2">
           <CreditCard className="h-5 w-5 text-blue-700" />
           <span className="text-sm font-bold uppercase tracking-wider text-blue-800">Insurance Card — Front</span>
-          <span className="ml-auto rounded bg-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800">Anthem Blue Cross</span>
+          <span className="ml-auto rounded bg-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800">Northwind Health Plan</span>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
           <p><span className="text-[10px] font-semibold uppercase text-blue-700">Member Name</span><br /><span className="font-medium text-slate-800">Jonathon Doe</span></p>
           <p><span className="text-[10px] font-semibold uppercase text-blue-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">XYZ987654321</span></p>
           <p><span className="text-[10px] font-semibold uppercase text-blue-700">Group Number</span><br /><span className="font-medium text-slate-800">GRP-4477</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Payer ID</span><br /><span className="font-medium text-slate-800">ANTHEM01</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Payer ID</span><br /><span className="font-medium text-slate-800">NWIND01</span></p>
         </div>
       </div>
 
@@ -289,7 +289,7 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
           <div>
             <label className="text-[11px] font-medium text-slate-500">Payer Name</label>
             <input type="text" value={form.payerName} onChange={e => setForm({ ...form, payerName: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. Anthem Blue Cross" />
+              className="mt-1 input-field" placeholder="e.g. Northwind Health Plan" />
             {errors.payerName && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerName}</p>}
           </div>
           <div>
@@ -307,7 +307,7 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
           <div>
             <label className="text-[11px] font-medium text-slate-500">Payer ID (EDI)</label>
             <input type="text" value={form.payerId} onChange={e => setForm({ ...form, payerId: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. ANTHEM01" />
+              className="mt-1 input-field" placeholder="e.g. NWIND01" />
             {errors.payerId && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerId}</p>}
           </div>
           <div>

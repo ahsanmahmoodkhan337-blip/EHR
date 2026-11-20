@@ -184,7 +184,6 @@ function coverageTypeFor(payerName: string): string {
   if (!payer.trim()) return "";
   if (payer.includes("medicare")) return "Medicare";
   if (payer.includes("medicaid")) return "Medicaid";
-  if (payer.includes("tricare")) return "TRICARE";
   if (payer.includes("champva")) return "CHAMPVA";
   if (payer.includes("feca") || payer.includes("black lung")) return "FECA Black Lung";
   return "Group Health Plan";

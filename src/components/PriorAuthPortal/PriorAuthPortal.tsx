@@ -84,10 +84,10 @@ const docKindIcon = (kind: PADocument["kind"]) => {
 const PAYER_REQUIREMENTS: Record<string, { label: string; requirements: string[]; turnaroundTime: string }> = {
   Medicare: { label: "Medicare", requirements: ["CMS NCD/LCD criteria", "Medicare Advantage policy", "Signature requirements"], turnaroundTime: "72 hours" },
   Medicaid: { label: "Medicaid", requirements: ["State-specific criteria", "Income verification", "Referral from PCP"], turnaroundTime: "5-7 business days" },
-  "Blue Cross Blue Shield": { label: "BCBS", requirements: ["BCBS medical policy", "Step therapy (if applicable)", "Network provider confirmation"], turnaroundTime: "48-72 hours" },
-  "United Healthcare": { label: "UHC", requirements: ["UHC Care Provider guidelines", "Lab values within 30 days", "Specialist referral"], turnaroundTime: "48 hours" },
-  Aetna: { label: "Aetna", requirements: ["Aetna Clinical Policy Bulletins", "ICD-10 code matching", "Prior treatment history"], turnaroundTime: "48-72 hours" },
-  Cigna: { label: "Cigna", requirements: ["Cigna Medical Coverage Policy", "Peer-to-peer review available", "Documentation of failed conservative therapy"], turnaroundTime: "3-5 business days" },
+  "Northwind Health Plan": { label: "Northwind", requirements: ["Northwind medical policy", "Step therapy (if applicable)", "Network provider confirmation"], turnaroundTime: "48-72 hours" },
+  "Cascadia Health Plan": { label: "Cascadia", requirements: ["Cascadia provider manual", "Lab values within 30 days", "Specialist referral"], turnaroundTime: "48 hours" },
+  "Meridian Health Plan": { label: "Meridian", requirements: ["Meridian clinical policy bulletins", "ICD-10 code matching", "Prior treatment history"], turnaroundTime: "48-72 hours" },
+  "Ridgeline Health Plan": { label: "Ridgeline", requirements: ["Ridgeline medical coverage policy", "Peer-to-peer review available", "Documentation of failed conservative therapy"], turnaroundTime: "3-5 business days" },
 };
 
 // Document attachment simulation
@@ -1772,7 +1772,7 @@ export default function PriorAuthPortal() {
                         type="text"
                         value={followupRep}
                         onChange={(e) => setFollowupRep(e.target.value)}
-                        placeholder="e.g. Sarah from Cigna"
+                        placeholder="e.g. Sarah from Meridian Health Plan"
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-500"
                       />
                     </div>

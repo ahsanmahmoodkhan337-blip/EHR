@@ -42,7 +42,7 @@ export interface CallScript {
 export const INSURANCE_CARRIERS: InsuranceCarrier[] = [
   {
     name: "Medicare",
-    phone: "1-800-MEDICARE (1-800-633-4227)",
+    phone: "(800) 555-0101 (Provider Line — simulated)",
     hours: "24/7 (Automated) / M-F 7a-7p (Agent)",
     department: "Provider Line / MAC",
     waitTime: "10-20 min (peak), 3-5 min (off-peak)",
@@ -50,62 +50,61 @@ export const INSURANCE_CARRIERS: InsuranceCarrier[] = [
   },
   {
     name: "Medicaid",
-    phone: "Varies by state — check state MAC website",
+    phone: "Varies by state — simulated state plan line, (555) 555-01xx",
     hours: "M-F 8a-5pm local time",
     department: "Provider Services / Claims",
     waitTime: "15-30 min typical",
-    notes: "Each state has its own MAC. Keep NPI, TIN, and beneficiary ID ready. Expect longer holds during end-of-month."
+    notes: "Each state runs its own Medicaid programme and its own fiscal agent. Keep NPI, TIN, and beneficiary ID ready. Expect longer holds during end-of-month."
   },
   {
-    name: "Blue Cross Blue Shield",
-    phone: "1-888-XXX-XXXX (varies by plan)",
+    name: "Northwind Health Plan",
+    phone: "(800) 555-0142 (Provider Line — simulated)",
     hours: "M-F 7a-7p CT",
     department: "Provider Relations / Claims",
     waitTime: "5-15 min",
-    notes: "BCBS plans vary by state. Have group number, member ID, and claim number ready. Ask for 'claim reprocessing' not 'appeal' for simple fixes."
+    notes: "Northwind plans vary by market. Have group number, member ID, and claim number ready. Ask for 'claim reprocessing' not 'appeal' for simple fixes."
   },
   {
-    name: "United Healthcare",
-    phone: "1-877-842-3210 (Provider Line)",
+    name: "Cascadia Health Plan",
+    phone: "(877) 555-0118 (Provider Line — simulated)",
     hours: "M-F 7a-7p CT",
     department: "Network Relations / Claims",
     waitTime: "8-12 min",
-    notes: "Use Optum Pay portal for fast resolution. Have patient's UHC ID and claim number. Ask for 'claim reconsideration' for coding errors."
+    notes: "Cascadia takes electronic reconsiderations through its provider portal for fast resolution. Have the member ID and claim number ready, and ask for 'claim reconsideration' for coding errors."
   },
   {
-    name: "Aetna",
-    phone: "1-800-624-0756 (Provider Services)",
+    name: "Meridian Health Plan",
+    phone: "(800) 555-0173 (Provider Services — simulated)",
     hours: "M-F 8a-6p ET",
     department: "Claims / Prior Auth / Appeals",
     waitTime: "5-10 min",
-    notes: "Aetna has separate lines for different plan types (HMO, PPO, Medicare). Identify plan type first. Use 'virtual hold' callback option."
+    notes: "Meridian runs separate lines for different plan types (HMO, PPO, Medicare-style). Identify the plan type first. Use the virtual-hold callback option."
   },
   {
-    name: "Cigna",
-    phone: "1-800-882-6492 (Provider Line)",
+    name: "Ridgeline Health Plan",
+    phone: "(800) 555-0126 (Provider Line — simulated)",
     hours: "M-F 8a-6p CT",
     department: "Customer Service / Claims",
     waitTime: "10-15 min",
-    notes: "Cigna prefers online portal submissions. Call only for complex denials. Have Cigna ID and claim reference number."
+    notes: "Ridgeline prefers online portal submissions. Call only for complex denials. Have the member ID and claim reference number ready."
   },
   {
-    name: "Humana",
-    phone: "1-877-852-1877 (Provider Services)",
+    name: "Lakeshore Mutual Health",
+    phone: "(877) 555-0159 (Provider Services — simulated)",
     hours: "M-F 8a-8p ET",
     department: "Claims / Provider Services",
     waitTime: "5-12 min",
-    notes: "Humana has Medicare Advantage-specific processes. Verify if patient has Humana Medicare or Humana Commercial."
+    notes: "Lakeshore runs a Medicare-style product alongside its commercial plans, each with its own process. Verify which plan the patient is on before quoting a rule."
   },
   {
-    name: "Tricare",
-    phone: "1-800-442-6252",
+    name: "Pinecrest Federal Health Plan",
+    phone: "(800) 555-0134 (Provider Line — simulated)",
     hours: "24/7 (Automated) / M-F 7a-6p CT (Agent)",
-    department: "Tricare Provider Line",
+    department: "Pinecrest Provider Line",
     waitTime: "3-8 min",
-    notes: "Have sponsor SSN/DoD ID, beneficiary relationship, and referral number ready. Use 'Tricare Encounter Data' system."
+    notes: "Have the sponsor ID, beneficiary relationship, and referral number ready. Encounters are submitted through the plan's encounter data system."
   },
 ];
-
 // ─── Appeal Letter Templates ────────────────────────────────────────
 
 export const APPEAL_TEMPLATES: AppealTemplate[] = [

@@ -345,10 +345,10 @@ export function BillingLedger() {
   const PAYER_FACTOR: Record<string, number> = {
     Medicare: 1.0,
     Medicaid: 0.8,
-    "Blue Cross": 1.6,
-    "United Healthcare": 1.5,
-    Aetna: 1.55,
-    Cigna: 1.5,
+    "Northwind Health Plan": 1.6,
+    "Cascadia Health Plan": 1.5,
+    "Meridian Health Plan": 1.55,
+    "Ridgeline Health Plan": 1.5,
   };
   const calcPayment = () => {
     const factor = PAYER_FACTOR[payer] ?? 1.0;
@@ -593,8 +593,8 @@ export function BillingLedger() {
                     <div>
                       <label className="text-[10px] text-slate-500">Payer</label>
                       <select value={payer} onChange={(e) => setPayer(e.target.value)} className="w-full rounded border border-slate-200 px-2 py-1.5 text-xs">
-                        <option>Medicare</option><option>Medicaid</option><option>Blue Cross</option>
-                        <option>United Healthcare</option><option>Aetna</option>
+                        <option>Medicare</option><option>Medicaid</option><option>Northwind Health Plan</option>
+                        <option>Cascadia Health Plan</option><option>Meridian Health Plan</option>
                       </select>
                     </div>
                     <div>

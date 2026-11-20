@@ -848,7 +848,7 @@ function ScenarioBuilder() {
         </div>
         <div>
           <label className="mb-1 block text-[9px] font-medium text-slate-400">Insurance</label>
-          <input type="text" value={form.insurance} onChange={e => updateField("insurance", e.target.value)} placeholder="Blue Cross PPO" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
+          <input type="text" value={form.insurance} onChange={e => updateField("insurance", e.target.value)} placeholder="Northwind Health PPO" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
         </div>
       </div>
       {/* Vitals */}

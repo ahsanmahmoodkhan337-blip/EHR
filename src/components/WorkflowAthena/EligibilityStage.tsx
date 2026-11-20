@@ -45,7 +45,7 @@ export function EligibilityStage({ patientName, dob, insurance }: { patientName?
         <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
           <Building className="h-5 w-5 text-slate-600" />
           <span className="text-sm font-bold text-slate-700">Payer Portal</span>
-          <span className="ml-auto rounded bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">{insurance || "Anthem Blue Cross"}</span>
+          <span className="ml-auto rounded bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">{insurance || "Northwind Health Plan"}</span>
         </div>
         <div className="mt-3 space-y-3">
           <div className="flex items-center gap-2 text-sm text-slate-600">

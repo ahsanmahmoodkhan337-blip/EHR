@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { ArrowRight, Printer, X } from "lucide-react";
 
-const SECONDARY_PAYERS = ["Medicaid (after Medicare)", "Spouse BCBS", "VA Benefits"];
+const SECONDARY_PAYERS = ["Medicaid (after Medicare)", "Spouse Northwind", "VA Benefits"];
 
 export function CrossoverClaims() {
   const [showPanel, setShowPanel] = useState(false);
@@ -26,7 +26,7 @@ export function CrossoverClaims() {
           <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4"><div><h3 className="text-sm font-bold text-slate-800">Crossover/COB Claims</h3></div><button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button></div>
             <div className="rounded-lg border border-green-200 bg-green-50 p-3 mb-3">
-              <p className="text-[10px] font-semibold text-green-700 mb-1">Primary Claim (BCBS)</p>
+              <p className="text-[10px] font-semibold text-green-700 mb-1">Primary Claim (Northwind)</p>
               <div className="grid grid-cols-2 text-[9px]"><span>Allowed:</span><span>${primary.allowed}</span><span>Paid:</span><span className="text-green-600">${primary.paid}</span><span>Patient Due:</span><span className="text-red-600">${primary.pr}</span></div>
             </div>
             <div className="mb-3"><label className="text-[10px] font-medium text-slate-500">Route to Secondary Payer</label><select value={secondary} onChange={e => setSecondary(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-[10px] outline-none mt-1"><option value="">Select secondary payer...</option>{SECONDARY_PAYERS.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
