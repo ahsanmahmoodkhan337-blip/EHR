@@ -151,12 +151,16 @@ function HubTabBar({ patientId }: { patientId: string }) {
     go(HUB_TABS[next].id);
   };
 
+  // `shrink-0` is what keeps the strip on screen: the workspace is a flex
+  // column, and without it this scroll container is the one child that can be
+  // squashed to nothing at a narrow width (it collapsed to 1 px at 390 px).
+  // The strip keeps its 40 px height and scrolls its own tabs.
   return (
     <div
       role="tablist"
       aria-label="Patient hub"
       onKeyDown={onKeyDown}
-      className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200 [scrollbar-width:thin]"
+      className="flex min-h-10 shrink-0 flex-nowrap gap-1 overflow-x-auto border-b border-slate-200 [scrollbar-width:thin]"
     >
       {HUB_TABS.map((tab) => {
         const selected = tab.id === active;

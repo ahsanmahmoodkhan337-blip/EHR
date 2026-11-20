@@ -134,7 +134,7 @@ export function AppTopBar({
   ) : null;
 
   return (
-    <header className="flex shrink-0 flex-nowrap items-center gap-2 border-b border-slate-200 bg-white px-2 py-1.5 dark:border-slate-800 dark:bg-slate-900">
+    <header className="flex min-w-0 shrink-0 flex-nowrap items-center gap-1 border-b border-slate-200 bg-white px-2 py-1.5 sm:gap-2 dark:border-slate-800 dark:bg-slate-900">
       {/* Sidebar drawer trigger — below lg only */}
       <button
         type="button"
@@ -187,7 +187,9 @@ export function AppTopBar({
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">
             ST
           </span>
-          <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+          {/* The chevron is the first thing to go when the bar is tight; the
+              button keeps its label and its menu either way. */}
+          <ChevronDown className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
         </button>
         {userOpen && (
           <div
