@@ -34,8 +34,15 @@ import {
   type PipelineStoreState,
   type Role,
 } from "./pipelineEncounter";
-import { nextClaimNumber, type ClaimStatus } from "../domain/claimStatus";
+import { nextClaimNumber, type ClaimStatus, type ReasonCode } from "../domain/claimStatus";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
+import {
+  adjudicateClaim as adjudicateClaimDomain,
+  planForPayerName,
+  remittanceForClaim,
+  type Remittance835,
+} from "../domain/adjudication";
+import { appendLedgerEntries, postRemittanceToLedger } from "../domain/ledger";
 import {
   appendStatusEvent as appendEvent,
   makeStatusEvent,
@@ -151,6 +158,21 @@ interface PipelineContextValue {
     payerName?: string;
   }) => void;
   handleDenial: (denialCode: string, meta?: { amount?: number; patientName?: string }) => void;
+  /**
+   * Ask the payer to adjudicate the active patient's accepted claim. The payer's
+   * 835 comes back priced against the plan's rules (allowance, deductible,
+   * coinsurance, contractual write-off, any denial CARC) and is stored on the
+   * encounter. **No money moves here** — nothing is paid and the ledger is
+   * untouched until the 835 is posted.
+   */
+  adjudicateClaim: (input?: { payerName?: string }) => void;
+  /**
+   * Post the 835 the payer sent to the patient ledger. One store write adds the
+   * charge, insurance payment and adjustment entries, records the posting and
+   * the patient balance on the claim's timeline, and moves the claim's status.
+   * Idempotent: posting the same 835 twice adds no money.
+   */
+  postRemittance: () => void;
   submitPA: (paData: Record<string, string>) => void;
   completePipeline: () => void;
   getRoleLabel: (role: Role) => string;
@@ -196,6 +218,49 @@ const ROLE_LABELS: Record<Role, string> = {
   "prior-auth": "Prior Authorization",
   "ar-voice": "AR Voice Specialist",
 };
+
+// ─── The money cycle: what a posted 835 does to the claim ──────────
+
+function money(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+/**
+ * Where the claim stands once its 835 is posted. Read from the money alone:
+ * a claim some of whose lines paid and some of whose lines were written off is
+ * partially paid; a claim nobody paid and nobody owes is a contractual
+ * write-off; a claim the plan paid nothing on but the patient owes is the
+ * patient's. A patient balance never closes a claim (`domain/claimStatus.ts`).
+ */
+function claimStatusForRemittance(remittance: Remittance835): ClaimStatus {
+  const { paidCents, deniedCents, patientRespCents } = remittance.totals;
+  if (paidCents > 0 && deniedCents > 0) return "partially_paid";
+  if (paidCents > 0) return "paid";
+  if (deniedCents > 0) return patientRespCents === 0 ? "written_off" : "denied";
+  if (patientRespCents > 0) return "patient_responsibility";
+  return "denied";
+}
+
+/** One plain sentence for the timeline, naming the money and who carries it. */
+function remittanceReason(remittance: Remittance835): string {
+  const { paidCents, patientRespCents, writeOffCents, allowedCents, deniedCents } = remittance.totals;
+  if (remittance.outcome === "paid_in_full") {
+    return `Paid in full: the plan paid ${money(paidCents)} of ${money(allowedCents)} allowed. The patient's ${money(
+      patientRespCents,
+    )} (deductible and coinsurance) is now on the ledger as their balance.`;
+  }
+  if (remittance.outcome === "partially_paid") {
+    return `Partially paid: ${money(paidCents)} paid, ${money(deniedCents)} denied, ${money(
+      writeOffCents,
+    )} written off. The patient's ${money(patientRespCents)} is on the ledger; the denied lines are for the AR queue.`;
+  }
+  if (remittance.outcome === "patient_responsibility") {
+    return `Nothing paid by the plan: the whole ${money(patientRespCents)} allowed is the patient's responsibility and is on the ledger. No write-off.`;
+  }
+  return `Denied with no patient balance: ${money(deniedCents)} written off as contractual (${money(
+    writeOffCents,
+  )} in total adjustments). Nothing is owed by the patient.`;
+}
 
 /** Initial store — read straight from localStorage so the first render has it. */
 function initialState(): PipelineStoreState {
@@ -499,6 +564,182 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  /**
+   * The payer adjudicates the accepted claim (money-cycle items 1, 3 and 5).
+   * One write stores the 835 and records its arrival on the claim's timeline.
+   * The 835 is priced against the plan's rules from `domain/adjudication.ts`;
+   * nothing on this screen invents an amount, and no money moves yet.
+   */
+  const adjudicateClaim: PipelineContextValue["adjudicateClaim"] = (input) => {
+    setStore((prev) => {
+      const key = encounterKey(prev.activePatientId);
+      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
+      if (!enc.claimNumber) return prev;
+      // Only an accepted claim reaches adjudication: a rejected or unsubmitted
+      // claim has never been to the payer.
+      if (enc.claimStatus !== "accepted") return prev;
+      // Already adjudicated — a second press changes nothing.
+      if (remittanceForClaim(enc.remittances, enc.claimNumber)) return prev;
+
+      const payerName = (input?.payerName || enc.claimForm?.payerName || "").trim();
+      const plan = planForPayerName(payerName);
+      const lines = (enc.claimForm?.serviceLines ?? [])
+        .filter((line) => (line.cpt ?? "").trim() !== "")
+        .map((line) => ({
+          cpt: line.cpt.trim(),
+          modifiers: (Array.isArray(line.modifiers) ? line.modifiers : []).filter(Boolean),
+          units: Number(line.units) > 0 ? Number(line.units) : 1,
+          chargeCents: Math.round((Number(line.charge) || 0) * 100),
+        }));
+      if (lines.length === 0) return prev;
+
+      const remittance = adjudicateClaimDomain({
+        claimNumber: enc.claimNumber,
+        payerName: payerName || "the payer",
+        plan,
+        lines,
+        // The plan's deductible is what this member has still to meet; the
+        // simulator records no accumulated deductible, so it starts unmet and
+        // the 835 says so on every line it touches.
+        deductibleRemainingCents: Math.round((plan?.deductibleUsd ?? 0) * 100),
+        // Box 23: the authorisation number the claim actually carries.
+        priorAuthNumber: enc.claimForm?.priorAuthNumber ?? "",
+      });
+
+      const event = makeStatusEvent(
+        {
+          entityType: "claim",
+          entityId: enc.claimNumber,
+          patientId: enc.patientId,
+          claimNumber: enc.claimNumber,
+          from: enc.claimStatus,
+          to: "adjudicated",
+          by: "system",
+          jobRole: "system",
+          reasonCode: "ERA_RECEIVED",
+          reason: `835 ${remittance.checkOrEftNumber} received from ${remittance.payerName}: billed ${money(remittance.totals.billedCents)}, allowed ${money(
+            remittance.totals.allowedCents,
+          )}, paid ${money(remittance.totals.paidCents)}, patient ${money(remittance.totals.patientRespCents)}. Nothing has reached the ledger yet.`,
+          amountCents: remittance.totals.paidCents,
+          refs: { eraId: remittance.id, checkNumber: remittance.checkOrEftNumber },
+        },
+        enc.statusEvents,
+      );
+
+      return {
+        ...prev,
+        encounters: {
+          ...prev.encounters,
+          [key]: {
+            ...enc,
+            remittances: [...enc.remittances, remittance],
+            claimStatus: "adjudicated" as ClaimStatus,
+            claimStatusMigrated: false,
+            statusEvents: appendEvent(enc.statusEvents, event),
+          },
+        },
+      };
+    });
+  };
+
+  /**
+   * Post the 835 to the patient ledger (items 5 and 13). This is the write that
+   * makes money move: charges, the insurance payment and the contractual
+   * adjustments become ledger entries, the claim's timeline records the posting
+   * and the patient balance, and the claim's status follows the money. One store
+   * write, so a status never exists without the entries behind it.
+   */
+  const postRemittance: PipelineContextValue["postRemittance"] = () => {
+    setStore((prev) => {
+      const key = encounterKey(prev.activePatientId);
+      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
+      const remittance = remittanceForClaim(enc.remittances, enc.claimNumber);
+      if (!remittance || remittance.postedAt) return prev;
+
+      const at = new Date().toISOString();
+      const by = getLoggedInPhone() ?? "system";
+      const entries = postRemittanceToLedger(remittance, {
+        patientId: enc.patientId,
+        userId: by,
+        at,
+      });
+      const ledger = appendLedgerEntries(enc.ledger, entries);
+      if (ledger === enc.ledger) return prev; // already on the ledger — no second posting
+
+      const posted: typeof remittance = { ...remittance, postedAt: at };
+      const status = claimStatusForRemittance(remittance);
+      let events = enc.statusEvents;
+
+      const postEvent = makeStatusEvent(
+        {
+          entityType: "claim",
+          entityId: remittance.claimNumber,
+          patientId: enc.patientId,
+          claimNumber: remittance.claimNumber,
+          at,
+          from: enc.claimStatus,
+          to: "adjudicated",
+          by,
+          jobRole: "payment-poster",
+          reasonCode: "ERA_POSTED",
+          reason: `835 ${remittance.checkOrEftNumber} posted: ${entries.length} ledger entr${entries.length === 1 ? "y" : "ies"} — charges ${money(
+            remittance.totals.billedCents,
+          )}, insurance payment ${money(remittance.totals.paidCents)}, contractual write-off ${money(remittance.totals.writeOffCents)}.`,
+          amountCents: remittance.totals.paidCents,
+          refs: { eraId: remittance.id, checkNumber: remittance.checkOrEftNumber },
+        },
+        events,
+      );
+      events = appendEvent(events, postEvent);
+
+      const outcomeCode: ReasonCode =
+        remittance.outcome === "paid_in_full"
+          ? "ERA_PAID_IN_FULL"
+          : remittance.outcome === "partially_paid"
+            ? "ERA_PARTIAL"
+            : remittance.outcome === "patient_responsibility"
+              ? "PATIENT_BALANCE_CREATED"
+              : "ERA_DENIED";
+      const outcomeEvent = makeStatusEvent(
+        {
+          entityType: "claim",
+          entityId: remittance.claimNumber,
+          patientId: enc.patientId,
+          claimNumber: remittance.claimNumber,
+          at,
+          from: "adjudicated",
+          to: status,
+          by,
+          jobRole: "payment-poster",
+          reasonCode: outcomeCode,
+          reason: remittanceReason(remittance),
+          amountCents:
+            remittance.outcome === "patient_responsibility"
+              ? remittance.totals.patientRespCents
+              : remittance.totals.paidCents,
+          refs: { eraId: remittance.id, checkNumber: remittance.checkOrEftNumber },
+        },
+        events,
+      );
+      events = appendEvent(events, outcomeEvent);
+
+      return {
+        ...prev,
+        encounters: {
+          ...prev.encounters,
+          [key]: {
+            ...enc,
+            ledger,
+            remittances: enc.remittances.map((r) => (r.id === remittance.id ? posted : r)),
+            claimStatus: status,
+            claimStatusMigrated: false,
+            statusEvents: events,
+          },
+        },
+      };
+    });
+  };
+
   const patchClaimForm = (patch: Partial<ClaimFormData>) => {
     updateActive((enc) => ({
       ...enc,
@@ -640,6 +881,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         setDemoFillMissingBoxes,
         appendStatusEvent,
         transmitClaim,
+        adjudicateClaim,
+        postRemittance,
         handleDenial,
         submitPA,
         completePipeline,

@@ -14,6 +14,8 @@
 import type { ClaimType } from "../data/claims/claimType";
 import type { ClaimHold, ClaimStatus, JobRole } from "../domain/claimStatus";
 import type { StatusEvent } from "../domain/statusEvent";
+import type { Remittance835 } from "../domain/adjudication";
+import type { LedgerEntry } from "../domain/ledger";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -178,6 +180,18 @@ export interface PipelineEncounter {
    * through `appendStatusEvent` in the store — never edited, never removed.
    */
   statusEvents: StatusEvent[];
+  /**
+   * The 835s this encounter's claim received from the payer. One per claim in
+   * this build; `postedAt` on a remittance is what says the money reached the
+   * ledger (`domain/adjudication.ts`).
+   */
+  remittances: Remittance835[];
+  /**
+   * The patient ledger: every posted charge, insurance payment, adjustment,
+   * patient payment, refund and transfer, append-only
+   * (`domain/ledger.ts`). The balances are summed from here, never stored.
+   */
+  ledger: LedgerEntry[];
 }
 
 /**
@@ -261,6 +275,8 @@ export function createEncounter(patientId: string | null): PipelineEncounter {
     claimStatusMigrated: false,
     holds: [],
     statusEvents: [],
+    remittances: [],
+    ledger: [],
   };
 }
 
@@ -291,6 +307,11 @@ export function normalizeEncounter(
     claimStatusMigrated: raw.claimStatusMigrated === true,
     holds: Array.isArray(raw.holds) ? raw.holds : [],
     statusEvents: Array.isArray(raw.statusEvents) ? raw.statusEvents : [],
+    // v5 (money cycle slice 2). A record saved before the ledger existed keeps
+    // an empty ledger and an empty remittance list: no money is invented for it,
+    // and the claim's status is carried forward exactly as it was stored.
+    remittances: Array.isArray(raw.remittances) ? raw.remittances : [],
+    ledger: Array.isArray(raw.ledger) ? raw.ledger : [],
   };
 }
 
@@ -367,6 +388,8 @@ export function encounterHasWork(enc: PipelineEncounter | undefined | null): boo
     enc.cptCodes.length ||
     enc.claimForm ||
     enc.codingLines.length ||
+    enc.ledger.length ||
+    enc.remittances.length ||
     Object.keys(enc.claimData).length ||
     Object.keys(enc.paData).length ||
     enc.stage !== "scribe" ||

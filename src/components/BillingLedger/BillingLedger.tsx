@@ -27,9 +27,12 @@ import { scoreBiller, updateStageScore, getStudentName } from "../../utils/scori
 import { ClaimFormShell } from "../claims/ClaimFormShell";
 import { StatusTimeline } from "../status/StatusTimeline";
 import { ClaimAckChip, ClaimAckPanel } from "../status/ClaimAckPanel";
+import { RemittancePanel } from "../status/RemittancePanel";
+import { PatientLedgerPanel } from "../status/PatientLedgerPanel";
 import { statusEventsFor } from "../../domain/statusEvent";
 import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
 import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
+import { OUTCOME_LABELS, remittanceForClaim } from "../../domain/adjudication";
 import { CMS1500Form } from "./CMS1500Form";
 import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
@@ -48,7 +51,7 @@ import {
 } from "../../data/claims/claimType";
 import { toast } from "sonner";
 
-type BillingTab = "form" | "scrubber" | "denials" | "references";
+type BillingTab = "form" | "scrubber" | "remittance" | "denials" | "references";
 
 /** Column spec for the box-24 table in the downloaded PDF. */
 const CMS1500_PDF_COLUMNS = [
@@ -63,7 +66,7 @@ const CMS1500_PDF_COLUMNS = [
 ];
 
 export function BillingLedger() {
-  const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm, setDemoFillMissingBoxes, transmitClaim } = usePipeline();
+  const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm, setDemoFillMissingBoxes, transmitClaim, adjudicateClaim, postRemittance } = usePipeline();
   const claimForm = state.claimForm;
   const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
   // The encounter knows its patient even when the pipeline's nullable
@@ -121,6 +124,13 @@ export function BillingLedger() {
   const ack = useMemo(
     () => ackForClaim(state.statusEvents, state.claimNumber),
     [state.statusEvents, state.claimNumber],
+  );
+
+  // The payer's 835 for this claim, once it has been adjudicated — read off the
+  // encounter, so a reload shows the same remittance and the same money.
+  const remittance = useMemo(
+    () => remittanceForClaim(state.remittances, state.claimNumber),
+    [state.remittances, state.claimNumber],
   );
 
   // `demoFillMissingBoxes` (owner decision 2026-11-20) — a claim box with no
@@ -497,6 +507,11 @@ export function BillingLedger() {
           <h2 className="text-sm font-bold text-slate-800">Medical Billing — Enhanced Billing Ledger</h2>
           <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 3</span>
           <ClaimAckChip ack={ack} />
+          {state.claimStatus && state.claimStatus !== "draft" && (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+              {CLAIM_STATUS_LABELS[state.claimStatus]}
+            </span>
+          )}
         </div>
       </div>
 
@@ -525,9 +540,19 @@ export function BillingLedger() {
                 Biller Score: <strong>{billingScore}/15</strong>
               </div>
             )}
-            <div className="mt-6 flex justify-center gap-3">
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
               <button onClick={() => setSubmitted(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                 Back to Billing
+              </button>
+              <button
+                onClick={() => {
+                  setSubmitted(false);
+                  setActiveTab("remittance");
+                }}
+                className="flex min-h-[40px] items-center gap-2 rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
+              >
+                <Receipt className="h-4 w-4" aria-hidden="true" />
+                {remittance ? "Open the 835 and the ledger" : "Adjudicate the claim"}
               </button>
               <button
                 onClick={() => downloadPdf(claimValues, claimLines)}
@@ -556,6 +581,7 @@ export function BillingLedger() {
               {[
                 { key: "form" as BillingTab, label: "Claim Form" },
                 { key: "scrubber" as BillingTab, label: "Claim Scrubber" },
+                { key: "remittance" as BillingTab, label: "Remittance & Ledger" },
                 { key: "denials" as BillingTab, label: "Denial Codes" },
                 { key: "references" as BillingTab, label: "References" },
               ].map((tab) => (
@@ -942,6 +968,54 @@ export function BillingLedger() {
               </div>
             )}
 
+            {/* Remittance & Ledger — the payer's 835 and the money it posts */}
+            {activeTab === "remittance" && (
+              <div className="space-y-3">
+                {!state.claimNumber ? (
+                  <p className="text-[11px] text-slate-500">
+                    No claim exists yet. Open the claim paper first — a remittance is always about a claim
+                    the payer has already received.
+                  </p>
+                ) : ack?.category !== "A1" ? (
+                  <p className="text-[11px] text-slate-500">
+                    The payer adjudicates only a claim the clearinghouse accepted. This claim's 277CA is{" "}
+                    {ack ? ack.category : "not recorded yet"} — a rejection is not a denial: correct the
+                    claim and transmit it again before a remittance can exist.
+                  </p>
+                ) : !remittance ? (
+                  <div className="clinical-card">
+                    <p className="text-xs font-bold text-slate-800">Payer adjudication</p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-slate-600">
+                      The claim is accepted and sitting with {payer}. The payer prices every line against the
+                      plan's own rules: the contracted allowance, the deductible still to be met, the plan's
+                      coinsurance, any authorisation the service required and any edit the plan applies to
+                      codes billed together. What it allows becomes the payment, the patient's share and a
+                      contractual write-off — and that answer arrives as an 835. Nothing reaches the patient's
+                      ledger until you post it.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => adjudicateClaim({ payerName: payer })}
+                      aria-label={`Adjudicate claim ${state.claimNumber} against the plan's rules`}
+                      className="mt-2 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                    >
+                      <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
+                      Adjudicate this claim
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <RemittancePanel remittance={remittance} onPost={postRemittance} />
+                    <PatientLedgerPanel
+                      entries={state.ledger}
+                      remittance={remittance}
+                      className="mt-3"
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Denial Code Reference */}
             {activeTab === "denials" && (
               <div className="space-y-3">
@@ -1051,19 +1125,26 @@ export function BillingLedger() {
           </div>
         </div>
       ) : state.status === "paid" ? (
-        <div className="flex flex-1 items-center justify-center p-4">
-          <div className="max-w-md rounded-xl border border-green-200 bg-green-50 p-8 text-center">
-            <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-500" />
-            <p className="text-sm font-medium text-green-700">Claim Submitted & Paid — ERA Summary</p>
-            <div className="mt-4 space-y-2 text-left text-xs">
-              <div className="flex justify-between border-b border-green-200 pb-1"><span className="text-green-600">Billed Amount:</span><span className="font-medium text-green-800">${calcPayment().billed.toFixed(2)}</span></div>
-              <div className="flex justify-between border-b border-green-200 pb-1"><span className="text-green-600">Allowed Amount:</span><span className="font-medium text-green-800">${calcPayment().allowed.toFixed(2)}</span></div>
-              <div className="flex justify-between border-b border-green-200 pb-1"><span className="text-green-600">Paid Amount:</span><span className="font-bold text-green-800">${calcPayment().paid.toFixed(2)}</span></div>
-              <div className="flex justify-between border-b border-green-200 pb-1"><span className="text-green-600">Patient Responsibility:</span><span className="font-medium text-green-800">${calcPayment().patient.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-green-600">Contractual Adjustment:</span><span className="font-medium text-green-800">${(calcPayment().billed - calcPayment().allowed).toFixed(2)}</span></div>
+        <div className="flex-1 overflow-y-auto p-4">
+          {remittance ? (
+            <div className="mx-auto max-w-3xl space-y-3">
+              <p className="text-sm font-semibold text-slate-800">
+                Claim {remittance.claimNumber} — {OUTCOME_LABELS[remittance.outcome]}
+              </p>
+              <RemittancePanel remittance={remittance} onPost={postRemittance} />
+              <PatientLedgerPanel entries={state.ledger} remittance={remittance} />
             </div>
-            <p className="mt-4 text-[10px] text-green-500">This is an Electronic Remittance Advice (ERA) — it shows what the insurance paid vs what was billed. The difference is the contractual adjustment per your payer agreement.</p>
-          </div>
+          ) : (
+            <div className="mx-auto max-w-md rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
+              <AlertTriangle className="mx-auto mb-2 h-7 w-7 text-amber-500" aria-hidden="true" />
+              <p className="text-sm font-medium text-amber-800">No remittance backs this claim</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-amber-700">
+                The claim is marked paid, but no 835 was ever received for it and no money was posted. A
+                payment no remittance explains is not a payment — the ledger shows nothing until an 835 is
+                adjudicated and posted.
+              </p>
+            </div>
+          )}
         </div>
       ) : state.status === "denied" ? (
         <div className="flex flex-1 overflow-hidden">
