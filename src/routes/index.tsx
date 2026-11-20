@@ -2125,7 +2125,7 @@ function Home() {
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 animate-slide-in" key={activeStage}>
                     {activeStage === "registration" && (
-                      <RegistrationStage />
+                      <RegistrationStage patientId={selectedPatientId} />
                     )}
                     {activeStage === "intake-vitals" && (
                       <IntakeVitalsStage patientId={selectedPatientId} editableVitals={editableVitals} onVitalsChange={setEditableVitals} />
