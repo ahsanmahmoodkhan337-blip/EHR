@@ -207,7 +207,7 @@ export const MEDICAL_BENEFIT_SCENARIOS: MedicalBenefitScenario[] = [
     caseId: "MCASE-003",
     description:
       "A chronic-disease follow-up is coded with a symptom instead of the definitive diagnosis, so the payer cannot see why the higher-level visit was needed and denies for medical necessity.",
-    exampleCodes: { icd: "R53.1", cpt: "99214" },
+    exampleCodes: { icd: "R53.83", cpt: "99214" },
     resultingCarc: "CO-50",
     teachingPoint:
       "Code the definitive diagnosis, not the symptom that led the patient in. The symptom tells the payer what the patient felt; the diagnosis tells it why the service was needed.",
@@ -243,10 +243,10 @@ export const MEDICAL_BENEFIT_SCENARIOS: MedicalBenefitScenario[] = [
     caseId: "MCASE-007",
     description:
       "A therapy visit is correctly coded and covered, but the patient has already used the plan's annual therapy allowance, so the visit stops paying. The claim is not wrong; the benefit is simply gone.",
-    exampleCodes: { icd: "M54.5", cpt: "97110" },
+    exampleCodes: { icd: "M54.50", cpt: "97110" },
     resultingCarc: "CO-119",
     teachingPoint:
-      "Benefit-exhausted is not a coding error and not appealable on necessity grounds. The plan paid what it owed; the remaining visits are the patient's or a coverage decision.",
+      "Benefit-exhausted is not a coding error and not appealable on necessity grounds. CO-119 is a contractual write-off with no patient balance; further visits need a coverage decision or a self-pay agreement made before the visit.",
   },
   {
     id: "SCEN-DEDUCTIBLE-COINSURANCE",
@@ -268,7 +268,7 @@ export const MEDICAL_BENEFIT_SCENARIOS: MedicalBenefitScenario[] = [
     description:
       "A service the plan excludes outright — here a benign growth removed for appearance — is billed to insurance and returns a non-covered denial. The service was done, the claim was not wrong, and the balance is the patient's.",
     exampleCodes: { icd: "D23.9", cpt: "17110" },
-    resultingCarc: "CO-96",
+    resultingCarc: "PR-96",
     teachingPoint:
       "An exclusion is absolute. It is not reduced, not downgraded, and not appealable on clinical grounds — the only correct move is to quote the patient before the service.",
   },

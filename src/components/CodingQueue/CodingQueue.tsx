@@ -81,14 +81,29 @@ const initialCptData = (cpt: CPTCode): CPTCodeData => ({
   charges: 0,
 });
 
+/**
+ * Office/outpatient E/M levels, one row per code, keyed on the medical decision
+ * making (MDM) level the code pays at — 1 straightforward, 2 low, 3 moderate,
+ * 4 high. 99202-99205 are new patient, 99212-99215 established.
+ *
+ * The AMA rule the calculator applies: a level is supported when at least TWO of
+ * the three MDM elements (problems, data, risk) meet it. Every row used to sit
+ * one level too high and 99205 / 99215 were missing, so the "Recommended Code"
+ * panel named the wrong code for the complexity the student had entered.
+ */
 const E_M_LEVELS = [
-  { code: "99202", name: "New Patient — Low", problems: 1, data: 1, risk: "Low" },
-  { code: "99203", name: "New Patient — Moderate", problems: 2, data: 2, risk: "Moderate" },
-  { code: "99204", name: "New Patient — High", problems: 3, data: 3, risk: "Moderate" },
-  { code: "99212", name: "Established — Low", problems: 1, data: 1, risk: "Low" },
-  { code: "99213", name: "Established — Moderate", problems: 2, data: 2, risk: "Low" },
-  { code: "99214", name: "Established — High", problems: 3, data: 2, risk: "Moderate" },
+  { code: "99202", name: "New Patient — Straightforward MDM", mdm: 1, newPatient: true },
+  { code: "99203", name: "New Patient — Low MDM", mdm: 2, newPatient: true },
+  { code: "99204", name: "New Patient — Moderate MDM", mdm: 3, newPatient: true },
+  { code: "99205", name: "New Patient — High MDM", mdm: 4, newPatient: true },
+  { code: "99212", name: "Established — Straightforward MDM", mdm: 1, newPatient: false },
+  { code: "99213", name: "Established — Low MDM", mdm: 2, newPatient: false },
+  { code: "99214", name: "Established — Moderate MDM", mdm: 3, newPatient: false },
+  { code: "99215", name: "Established — High MDM", mdm: 4, newPatient: false },
 ];
+
+/** The three risk dropdown values as MDM levels, so risk can be compared like the sliders. */
+const MDM_RISK_LEVEL: Record<string, number> = { Minimal: 1, Low: 2, Moderate: 3, High: 4 };
 
 const CONVENTIONS = [
   { title: "Excludes1", desc: "Codes that are mutually exclusive. Both conditions cannot occur together. DO NOT report both.", color: "bg-red-50 border-red-200 text-red-700" },
@@ -133,6 +148,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
   const [emProblems, setEmProblems] = useState<number>(1);
   const [emData, setEmData] = useState<number>(1);
   const [emRisk, setEmRisk] = useState<string>("Low");
+  const [emPatientType, setEmPatientType] = useState<"new" | "established">("established");
 
   // Conventions panel
   const [showConventions, setShowConventions] = useState(false);
@@ -232,11 +248,19 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
     });
   };
 
+  // A level is supported when at least two of the three MDM elements meet it;
+  // the highest level that clears two elements is the one to report.
   const calcEMMLevel = () => {
-    const match = E_M_LEVELS.find(
-      (l) => l.problems <= emProblems && l.data <= emData && l.risk === emRisk
-    );
-    return match || E_M_LEVELS[0];
+    const elements = [emProblems, emData, MDM_RISK_LEVEL[emRisk] ?? 1];
+    let mdm = 1;
+    for (let level = 4; level >= 1; level--) {
+      if (elements.filter((v) => v >= level).length >= 2) {
+        mdm = level;
+        break;
+      }
+    }
+    const newPatient = emPatientType === "new";
+    return E_M_LEVELS.find((l) => l.newPatient === newPatient && l.mdm === mdm) ?? E_M_LEVELS[0];
   };
 
   const handleSubmitToBilling = () => {
@@ -1049,18 +1073,54 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] text-slate-500">Problems Addressed</label>
-                <input type="range" min="1" max="4" value={emProblems} onChange={(e) => setEmProblems(Number(e.target.value))} className="w-full accent-brand-500" />
+                <label htmlFor="em-patient-type" className="text-[10px] text-slate-500">Patient Type</label>
+                <select
+                  id="em-patient-type"
+                  value={emPatientType}
+                  onChange={(e) => setEmPatientType(e.target.value === "new" ? "new" : "established")}
+                  className="min-h-[40px] w-full rounded border border-slate-200 px-2 py-1 text-[10px]"
+                >
+                  <option value="established">Established patient</option>
+                  <option value="new">New patient</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="em-problems" className="text-[10px] text-slate-500">Problems Addressed</label>
+                <input
+                  id="em-problems"
+                  type="range"
+                  min="1"
+                  max="4"
+                  value={emProblems}
+                  onChange={(e) => setEmProblems(Number(e.target.value))}
+                  aria-label="Problems addressed — 1 minimal, 2 low, 3 moderate, 4 high"
+                  className="w-full accent-brand-500"
+                />
                 <span className="text-[10px] text-slate-400">{emProblems}</span>
               </div>
               <div>
-                <label className="text-[10px] text-slate-500">Data Reviewed</label>
-                <input type="range" min="1" max="4" value={emData} onChange={(e) => setEmData(Number(e.target.value))} className="w-full accent-brand-500" />
+                <label htmlFor="em-data" className="text-[10px] text-slate-500">Data Reviewed</label>
+                <input
+                  id="em-data"
+                  type="range"
+                  min="1"
+                  max="4"
+                  value={emData}
+                  onChange={(e) => setEmData(Number(e.target.value))}
+                  aria-label="Data reviewed — 1 minimal, 2 limited, 3 moderate, 4 extensive"
+                  className="w-full accent-brand-500"
+                />
                 <span className="text-[10px] text-slate-400">{emData}</span>
               </div>
               <div>
-                <label className="text-[10px] text-slate-500">Risk Level</label>
-                <select value={emRisk} onChange={(e) => setEmRisk(e.target.value)} className="w-full rounded border border-slate-200 px-2 py-1 text-[10px]">
+                <label htmlFor="em-risk" className="text-[10px] text-slate-500">Risk Level</label>
+                <select
+                  id="em-risk"
+                  value={emRisk}
+                  onChange={(e) => setEmRisk(e.target.value)}
+                  className="min-h-[40px] w-full rounded border border-slate-200 px-2 py-1 text-[10px]"
+                >
+                  <option>Minimal</option>
                   <option>Low</option>
                   <option>Moderate</option>
                   <option>High</option>
@@ -1070,6 +1130,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
                 <p className="text-[10px] text-slate-400">Recommended Code</p>
                 <p className="text-xl font-bold text-brand-600">{emLevel.code}</p>
                 <p className="text-[10px] text-slate-500">{emLevel.name}</p>
+                <p className="mt-1 text-[9px] text-slate-400">Two of three MDM elements met</p>
               </div>
             </div>
           </div>
