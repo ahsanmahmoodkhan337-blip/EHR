@@ -467,7 +467,7 @@ function Briefing() {
 // ─── debrief ─────────────────────────────────────────────────────────────────
 
 function Debrief() {
-  const { state, activeCase, scoreTally, goTo, resetTrack, traps } = useDentalTrack();
+  const { state, activeCase, scoreTally, resetTrack, traps } = useDentalTrack();
   if (!activeCase) return null;
   const adjudication = useMemo(() => adjudicateDentalClaim(state.lines, activeCase), [state.lines, activeCase]);
   const triggered = new Set(state.trapsTriggered);
