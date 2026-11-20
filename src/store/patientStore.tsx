@@ -1327,7 +1327,7 @@ export function PatientProvider({ children }: { children: ReactNode }) {
 
   return (
     <PatientContext.Provider
-      value={{ patients: mockPatients, getPatientById, getPatientByMrn, caseStates, addAuditLog, setQueueStage, setModifier25, setBillingStatus, setPaStatus, setArStatus, addRoutingNote, addFollowUp }}
+      value={{ patients, getPatientById, getPatientByMrn, caseStates, addAuditLog, setQueueStage, setModifier25, setBillingStatus, setPaStatus, setArStatus, addRoutingNote, addFollowUp }}
     >
       {children}
     </PatientContext.Provider>

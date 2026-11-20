@@ -262,6 +262,33 @@ export function patientIdentityBoxes(
   };
 }
 
+/**
+ * A stable fingerprint of everything the identity boxes are seeded from: which
+ * patient this is, their demographics, and their insurance record.
+ *
+ * The claim stores this so seeding can be re-evaluated per patient instead of
+ * frozen by a one-shot `identitySeeded` flag. A patient the student registers
+ * themselves starts with no insurance record and may gain an address later, so
+ * the fingerprint has to cover the demographics too, not just the patient id.
+ */
+export function identitySeedFor(
+  patient: Patient | null | undefined,
+  displayName?: string | null,
+): string {
+  if (!patient && !displayName) return "";
+  return JSON.stringify({
+    id: patient?.id ?? "",
+    name: patient
+      ? `${patient.lastName}, ${patient.firstName}`
+      : displayName ?? "",
+    dob: patient?.dateOfBirth ?? "",
+    sex: patient?.gender ?? "",
+    address: patient?.address ?? "",
+    insurance: patient?.insurance ?? "",
+    coverage: patient?.insuranceRecord ?? null,
+  });
+}
+
 const isBlank = (value: unknown): boolean =>
   value === undefined || value === null || (typeof value === "string" && value.trim() === "");
 
@@ -308,6 +335,49 @@ export function backfillIdentityBoxes(
   return patch;
 }
 
+/**
+ * Re-seed the identity boxes when the claim's patient fingerprint changed.
+ *
+ * This replaces the one-shot `identitySeeded` gate: the fingerprint
+ * (`identitySeedFor`) covers the patient id, demographics and insurance record,
+ * so a claim opened before the student registered their own patient — or before
+ * that patient's insurance was captured — fills in as soon as the record exists,
+ * and a claim that belongs to a different patient re-seeds onto the right one.
+ *
+ * A box is only written when it is blank or still holds the value this claim
+ * last seeded it with. Anything else was typed by the student and is left
+ * exactly as they typed it.
+ */
+export function reseedIdentityBoxes(
+  form: ClaimFormData,
+  patient: Patient | null | undefined,
+  displayName?: string | null,
+): Partial<ClaimFormData> {
+  const key = identitySeedFor(patient, displayName);
+  if (!key) return {};                       // nothing known yet — try again later
+  if (form.identitySeedKey === key) return {};
+
+  const known = patientIdentityBoxes(patient, displayName) as Record<string, unknown>;
+  const seededBefore = (form.identitySeedValues ?? {}) as Record<string, unknown>;
+  const values: Record<string, string> = { ...(form.identitySeedValues ?? {}) };
+  const patch: Partial<ClaimFormData> = {};
+
+  for (const [box, value] of Object.entries(known)) {
+    if (typeof value !== "string" || value === "") continue;
+    const current = (form as unknown as Record<string, unknown>)[box];
+    const untouched =
+      isBlank(current) || (box in seededBefore && current === seededBefore[box]);
+    if (!untouched) continue;                // the student typed this box
+    (patch as Record<string, unknown>)[box] = value;
+    values[box] = value;
+  }
+
+  patch.identitySeedKey = key;
+  patch.identitySeedValues = values;
+  patch.identitySeeded = true;
+  return patch;
+}
+
 /** Build the claim record from the encounter. */
 export function buildClaimForm({
   patient,
@@ -326,12 +396,20 @@ export function buildClaimForm({
     encounterDateFor(patient, encounterDate),
   );
   const totalCharge = serviceLines.reduce((sum, l) => sum + (l.charge || 0), 0);
+  const identityBoxes = patientIdentityBoxes(patient, displayName);
+  const seedKey = identitySeedFor(patient, displayName);
 
   return {
     ...base,
     claimType,
     identitySeeded: Boolean(patient || displayName),
-    ...patientIdentityBoxes(patient, displayName),
+    identitySeedKey: seedKey,
+    identitySeedValues: Object.fromEntries(
+      Object.entries(identityBoxes).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1] !== "",
+      ),
+    ),
+    ...identityBoxes,
     diagnosisCodes: (pipeline.icdCodes ?? []).slice(0, 12),
     priorAuthNumber: paNumber ?? "",
     serviceLines,
