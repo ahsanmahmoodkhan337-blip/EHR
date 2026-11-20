@@ -111,7 +111,7 @@ function buildFHIREOB(p: PatientInfo | null) {
     use: "claim",
     patient: { reference: `Patient/pat-${p?.id || "unknown"}` },
     created: new Date().toISOString(),
-    insurer: { display: "Blue Cross Blue Shield" },
+    insurer: { display: "Northwind Health Plan" },
     total: [{ category: { coding: [{ code: "submitted" }] }, amount: { value: 250.00, currency: "USD" } }],
     payment: { amount: { value: 200.00, currency: "USD" } },
   }, null, 2);

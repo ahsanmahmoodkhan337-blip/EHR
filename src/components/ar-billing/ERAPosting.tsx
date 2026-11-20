@@ -9,9 +9,9 @@ import { useState } from "react";
 import { CheckCircle2, DollarSign, X } from "lucide-react";
 
 const MOCK_REMITTANCES = [
-  { id: "RMT-001", payer: "Blue Cross", checkNo: "CHK-1001", date: "2026-07-20", totalPaid: 133.20, claims: [{ id: "CLAIM-001", billed: 185, allowed: 148, paid: 133.20, adj: [{ code: "CO-45", desc: "Contractual Obligation", amt: 14.80 }, { code: "PR-1", desc: "Deductible", amt: 0 }] }] },
+  { id: "RMT-001", payer: "Northwind Health Plan", checkNo: "CHK-1001", date: "2026-07-20", totalPaid: 133.20, claims: [{ id: "CLAIM-001", billed: 185, allowed: 148, paid: 133.20, adj: [{ code: "CO-45", desc: "Contractual Obligation", amt: 14.80 }, { code: "PR-1", desc: "Deductible", amt: 0 }] }] },
   { id: "RMT-002", payer: "Medicare", checkNo: "CHK-2001", date: "2026-07-22", totalPaid: 210.50, claims: [{ id: "CLAIM-002", billed: 250, allowed: 225, paid: 210.50, adj: [{ code: "CO-45", desc: "Contractual", amt: 14.50 }, { code: "PR-2", desc: "Coinsurance", amt: 25 }] }] },
-  { id: "RMT-003", payer: "Aetna", checkNo: "CHK-3001", date: "2026-07-24", totalPaid: 85.00, claims: [{ id: "CLAIM-003", billed: 100, allowed: 90, paid: 85.00, adj: [{ code: "CO-45", desc: "Contractual", amt: 5.00 }, { code: "PR-1", desc: "Deductible", amt: 10 }] }] },
+  { id: "RMT-003", payer: "Meridian Health Plan", checkNo: "CHK-3001", date: "2026-07-24", totalPaid: 85.00, claims: [{ id: "CLAIM-003", billed: 100, allowed: 90, paid: 85.00, adj: [{ code: "CO-45", desc: "Contractual", amt: 5.00 }, { code: "PR-1", desc: "Deductible", amt: 10 }] }] },
 ];
 
 export function ERAPosting() {

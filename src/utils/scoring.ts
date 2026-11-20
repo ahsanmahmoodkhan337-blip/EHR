@@ -128,7 +128,7 @@ export function scoreRegistration(
   if (dob.trim() && /^\d{2}\/\d{2}\/\d{4}$/.test(dob.trim())) score += 2;
   if (subscriberId.trim() === "XYZ987654321") score += 2;
   if (groupNumber.trim() === "GRP-4477") score += 1;
-  if (payerId.trim() === "ANTHEM01") score += 1;
+  if (payerId.trim() === "NWIND01") score += 1;
 
   // Penalty: name mismatch trap — if student blindly copied "Jonathon" from insurance card
   if (firstName.toLowerCase() === "jonathon") {

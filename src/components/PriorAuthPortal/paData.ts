@@ -106,7 +106,7 @@ export interface PARecord {
 export const PA_RECORDS: PARecord[] = [
   {
     id: "PA-001", patientName: "John Smith", procedure: "MRI Lumbar Spine",
-    insuranceName: "Blue Cross Blue Shield", paProcessor: "Karen Miller",
+    insuranceName: "Northwind Health Plan", paProcessor: "Karen Miller",
     authStartDate: "2026-07-01", authEndDate: "2026-10-01", nextRefillDate: "2026-09-01",
     submissionMethod: "Electronic PA", submittedBy: "Dr. Sarah Chen", submittedAt: "2026-07-01T09:30:00Z",
     status: "submitted", urgency: "routine"
@@ -120,28 +120,28 @@ export const PA_RECORDS: PARecord[] = [
   },
   {
     id: "PA-003", patientName: "Mike Chen", procedure: "Cardiac Catheterization",
-    insuranceName: "United Healthcare", paProcessor: "UHC Clinical Review",
+    insuranceName: "Cascadia Health Plan", paProcessor: "Cascadia Clinical Review",
     authStartDate: "2026-06-20", authEndDate: "2026-09-20", nextRefillDate: "2026-08-20",
     submissionMethod: "Online Payer Portal", submittedBy: "Dr. James Wilson", submittedAt: "2026-06-20T11:00:00Z",
     status: "approved", urgency: "urgent"
   },
   {
     id: "PA-004", patientName: "Emily Davis", procedure: "Remicade Infusion",
-    insuranceName: "Aetna", paProcessor: "Aetna Specialty Pharmacy",
+    insuranceName: "Meridian Health Plan", paProcessor: "Meridian Specialty Pharmacy",
     authStartDate: "2026-06-15", authEndDate: "2026-09-15", nextRefillDate: "2026-07-15",
     submissionMethod: "Fax", submittedBy: "Dr. Lisa Wong", submittedAt: "2026-06-15T16:45:00Z",
     status: "denied", urgency: "routine"
   },
   {
     id: "PA-005", patientName: "Robert Wilson", procedure: "Sleep Study (Home)",
-    insuranceName: "Cigna", paProcessor: "Cigna Medical Review",
+    insuranceName: "Ridgeline Health Plan", paProcessor: "Ridgeline Medical Review",
     authStartDate: "2026-06-30", authEndDate: "2026-09-30", nextRefillDate: "2026-08-30",
     submissionMethod: "EHR", submittedBy: "Dr. Sarah Chen", submittedAt: "2026-06-30T08:00:00Z",
     status: "ordered", urgency: "routine"
   },
   {
     id: "PA-006", patientName: "Maria Garcia", procedure: "Biologic Therapy (Humira)",
-    insuranceName: "United Healthcare", paProcessor: "UHC Specialty Pharmacy",
+    insuranceName: "Cascadia Health Plan", paProcessor: "Cascadia Specialty Pharmacy",
     authStartDate: "2026-06-10", authEndDate: "2026-08-10", nextRefillDate: "2026-07-10",
     submissionMethod: "Electronic PA", submittedBy: "Dr. Karen Thompson", submittedAt: "2026-06-10T10:30:00Z",
     status: "info-required", urgency: "urgent"
@@ -155,7 +155,7 @@ export const PA_RECORDS: PARecord[] = [
   },
   {
     id: "PA-008", patientName: "Lisa Brown", procedure: "Infusion Therapy (Entyvio)",
-    insuranceName: "Aetna", paProcessor: "Aetna Clinical Review",
+    insuranceName: "Meridian Health Plan", paProcessor: "Meridian Clinical Review",
     authStartDate: "2026-05-01", authEndDate: "2026-07-28", nextRefillDate: "2026-07-14",
     submissionMethod: "Online Payer Portal", submittedBy: "Dr. Lisa Wong", submittedAt: "2026-05-01T09:00:00Z",
     status: "next-followup", urgency: "routine"

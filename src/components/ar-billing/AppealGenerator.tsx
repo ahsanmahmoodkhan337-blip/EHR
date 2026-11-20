@@ -67,7 +67,7 @@ ${additionalNotes ? additionalNotes + "\n\n" : ""}We respectfully request that y
 
 Sincerely,
 Healthcare Hustlers RCM Department
-Phone: (555) 123-4567`;
+Phone: (555) 555-0105`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(letter).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });

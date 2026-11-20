@@ -13,7 +13,7 @@ interface Credit {
 
 const MOCK_CREDITS: Credit[] = [
   { id: "CR-001", date: "2026-07-20", source: "Patient overpayment — copay", amount: 25, type: "Patient", status: "Pending" },
-  { id: "CR-002", date: "2026-07-18", source: "Insurance duplicate payment — BCBS", amount: 150, type: "Insurance", status: "Pending" },
+  { id: "CR-002", date: "2026-07-18", source: "Insurance duplicate payment — Northwind", amount: 150, type: "Insurance", status: "Pending" },
   { id: "CR-003", date: "2026-07-15", source: "Copay overpayment — cash", amount: 10, type: "Patient", status: "Pending" },
   { id: "CR-004", date: "2026-07-10", source: "Credit adjustment — contractual", amount: 50, type: "Insurance", status: "Resolved" },
 ];

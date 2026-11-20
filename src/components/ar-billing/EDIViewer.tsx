@@ -12,14 +12,14 @@ import { FileCode, Copy, X } from "lucide-react";
 
 const EDI_TRANSACTIONS: Record<string, { raw: string; parsed: { seg: string; desc: string; value: string }[] }> = {
   "837P": {
-    raw: "ISA*00*          *00*          *ZZ*1234567890     *ZZ*9876543210     *240725*1200*^*00501*000000001*0*P*:~GS*HC*1234567890*9876543210*20240725*1200*1*X*005010X222A1~ST*837*0001*005010X222A1~BHT*0019*00*CLAIM001*20240725*1200*CH~NM1*41*1*DOE*JANE****46*1001~NM1*40*2*BCBS*****46*ANTHEM01~HL*1**20*1~NM1*85*1*SMITH*JOHN****XX*1234567890~CLM*CLAIM001*185.00***11:B:1*Y*A*Y*Y~",
+    raw: "ISA*00*          *00*          *ZZ*1234567890     *ZZ*9876543210     *240725*1200*^*00501*000000001*0*P*:~GS*HC*1234567890*9876543210*20240725*1200*1*X*005010X222A1~ST*837*0001*005010X222A1~BHT*0019*00*CLAIM001*20240725*1200*CH~NM1*41*1*DOE*JANE****46*1001~NM1*40*2*NORTHWIND*****46*NWIND01~HL*1**20*1~NM1*85*1*SMITH*JOHN****XX*1234567890~CLM*CLAIM001*185.00***11:B:1*Y*A*Y*Y~",
     parsed: [
       { seg: "ISA", desc: "Interchange Control Header", value: "Sender: 1234567890, Receiver: 9876543210" },
       { seg: "GS", desc: "Functional Group Header", value: "HC=Health Care Claim, Group# 1" },
       { seg: "ST", desc: "Transaction Set Header", value: "837 Claim Transaction" },
       { seg: "BHT", desc: "Beginning of Hierarchical Transaction", value: "Batch: CLAIM001" },
       { seg: "NM1-41", desc: "Submitter Name", value: "JANE DOE" },
-      { seg: "NM1-40", desc: "Receiver Name", value: "BCBS (ANTHEM01)" },
+      { seg: "NM1-40", desc: "Receiver Name", value: "Northwind Health Plan (NWIND01)" },
       { seg: "HL", desc: "Hierarchical Level", value: "Level 1 — Billing Provider" },
       { seg: "NM1-85", desc: "Billing Provider", value: "JOHN SMITH, NPI: 1234567890" },
       { seg: "CLM", desc: "Claim Information", value: "Claim# CLAIM001, $185.00" },
@@ -46,23 +46,23 @@ const EDI_TRANSACTIONS: Record<string, { raw: string; parsed: { seg: string; des
     ],
   },
   "276/277": {
-    raw: "ISA*00*          *00*          *ZZ*1234567890     *ZZ*9876543210     *240725*1230*^*00501*000000003*0*P*:~GS*HN*1234567890*9876543210*20240725*1230*1*X*005010X212~ST*276*0003~BHT*0010*13*STATUS001*20240725*1230~HL*1**20*1~NM1*PR*2*BCBS*****PI*ANTHEM01~TRN*1*TRACE003*1998765432~STC*A1:20:PR*20240725*WQ*15*2024-08-08~",
+    raw: "ISA*00*          *00*          *ZZ*1234567890     *ZZ*9876543210     *240725*1230*^*00501*000000003*0*P*:~GS*HN*1234567890*9876543210*20240725*1230*1*X*005010X212~ST*276*0003~BHT*0010*13*STATUS001*20240725*1230~HL*1**20*1~NM1*PR*2*NORTHWIND*****PI*NWIND01~TRN*1*TRACE003*1998765432~STC*A1:20:PR*20240725*WQ*15*2024-08-08~",
     parsed: [
       { seg: "ISA", desc: "Interchange Control Header", value: "Status Inquiry 276" },
       { seg: "ST", desc: "Transaction Set Header", value: "276 Claim Status Request" },
       { seg: "BHT", desc: "Beginning of Hierarchical Transaction", value: "Status Request: STATUS001" },
-      { seg: "NM1-PR", desc: "Payer Name", value: "BCBS (ANTHEM01)" },
+      { seg: "NM1-PR", desc: "Payer Name", value: "Northwind Health Plan (NWIND01)" },
       { seg: "TRN", desc: "Trace Number", value: "TRACE003" },
       { seg: "STC", desc: "Status Information", value: "Status: In Process, Est. Completion: 08/08/2024" },
     ],
   },
   "278": {
-    raw: "ISA*00*          *00*          *ZZ*1234567890     *ZZ*9876543210     *240725*1245*^*00501*000000004*0*P*:~GS*HI*1234567890*9876543210*20240725*1245*1*X*005010X217~ST*278*0004~BHT*0007*11*PA001*20240725*1245~HL*1**20*1~NM1*EX*2*BCBS*****PI*ANTHEM01~UM*I*1**PA*:27447*2024-07-25~DTP*435*D8*20240725~HCR*PA*:27447~",
+    raw: "ISA*00*          *00*          *ZZ*1234567890     *ZZ*9876543210     *240725*1245*^*00501*000000004*0*P*:~GS*HI*1234567890*9876543210*20240725*1245*1*X*005010X217~ST*278*0004~BHT*0007*11*PA001*20240725*1245~HL*1**20*1~NM1*EX*2*NORTHWIND*****PI*NWIND01~UM*I*1**PA*:27447*2024-07-25~DTP*435*D8*20240725~HCR*PA*:27447~",
     parsed: [
       { seg: "ISA", desc: "Interchange Control Header", value: "PA Request 278" },
       { seg: "ST", desc: "Transaction Set Header", value: "278 Prior Auth Request" },
       { seg: "BHT", desc: "Beginning of Hierarchical Transaction", value: "PA Request: PA001" },
-      { seg: "NM1-EX", desc: "Utilization Review Org", value: "BCBS (ANTHEM01)" },
+      { seg: "NM1-EX", desc: "Utilization Review Org", value: "Northwind Health Plan (NWIND01)" },
       { seg: "UM", desc: "Utilization Management", value: "PA for CPT 27447 — Knee Replacement" },
       { seg: "DTP", desc: "Date — Service", value: "2024-07-25" },
       { seg: "HCR", desc: "Health Care Review", value: "PA required for 27447" },
