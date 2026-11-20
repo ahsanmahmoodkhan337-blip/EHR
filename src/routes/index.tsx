@@ -51,6 +51,7 @@ import { isSessionSuperseded } from "../store/accountSecurity";
 import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
 import { PatientBanner } from "../components/shell/PatientBanner";
+import { postedCopayForPatient } from "../domain/checkIn";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
 import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
@@ -2048,6 +2049,7 @@ function Home() {
         <PatientBanner
           patient={selectedPatient ?? null}
           fallbackName={displayName}
+          copayUsd={postedCopayForPatient(appointments, selectedPatient?.id)?.copayUsd}
           patientBalance={
             pipelineState.ledger.length > 0
               ? ledgerBalance(pipelineState.ledger).patientBalanceCents / 100

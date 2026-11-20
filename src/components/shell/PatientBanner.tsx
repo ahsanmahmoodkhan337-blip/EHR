@@ -16,6 +16,7 @@
  */
 
 import { AlertTriangle, CalendarDays, ShieldCheck, User } from "lucide-react";
+import { eligibilityOf, eligibilitySummary, type EligibilityCoverage } from "../../domain/eligibility";
 
 /**
  * What the banner needs in order to draw a patient.
@@ -34,11 +35,7 @@ export interface BannerPatient {
   allergies?: { allergen: string; severity: string }[];
   insurance?: string;
   insuranceRecord?: {
-    primary?: {
-      payerName?: string;
-      planName?: string;
-      subscriberId?: string;
-    } | null;
+    primary?: (EligibilityCoverage & { payerName?: string; planName?: string; subscriberId?: string }) | null;
   };
   primaryCareProvider?: string;
 }
@@ -58,6 +55,12 @@ interface PatientBannerProps {
    * `R.S. AMOUNT` and carries no money.
    */
   patientBalance?: number;
+  /**
+   * The copay the front desk collected at check-in and posted to this visit's
+   * ledger (`domain/checkIn.ts`). Left undefined when nothing was collected, so
+   * the banner says "—" rather than a zero nobody took.
+   */
+  copayUsd?: number;
 }
 
 function parseDate(raw?: string): Date | null {
@@ -106,7 +109,7 @@ function Chip({ tone, children, title }: { tone: "ok" | "warn" | "danger" | "neu
   );
 }
 
-export function PatientBanner({ patient, fallbackName, patientBalance }: PatientBannerProps) {
+export function PatientBanner({ patient, fallbackName, patientBalance, copayUsd }: PatientBannerProps) {
   // No patient and no name to show — the strip stays out of the way.
   if (!patient && !fallbackName) return null;
 
@@ -125,20 +128,33 @@ export function PatientBanner({ patient, fallbackName, patientBalance }: Patient
       ? allergies.map((allergy) => `${allergy.allergen} (${allergy.severity})`).join(", ")
       : null;
 
-  // Eligibility: nothing in the record holds a 271 response yet, so the chip
-  // says what is actually known — coverage on file, or none.
-  const eligibility =
-    patient && payerName
+  // Eligibility: the stored 271 (`specs/patient-hub.md` § Insurance) — the
+  // result and the date the payer answered. A coverage nobody checked reads
+  // "not checked", never a made-up active.
+  const eligibilityRecord = eligibilityOf(patient?.insuranceRecord?.primary ?? null);
+  const eligibility = !patient || !payerName
+    ? {
+        tone: "danger" as const,
+        label: "No coverage on file",
+        title: "No insurance record on this patient — registration has not captured a card.",
+      }
+    : eligibilityRecord.status === "active"
       ? {
-          tone: "warn" as const,
-          label: "Eligibility not checked",
-          title: "No 270/271 eligibility response is recorded for this patient yet — run the eligibility check in Registration.",
+          tone: "ok" as const,
+          label: eligibilitySummary(eligibilityRecord),
+          title: eligibilityRecord.payerResponse || "The payer answered this coverage is active.",
         }
-      : {
-          tone: "danger" as const,
-          label: "No coverage on file",
-          title: "No insurance record on this patient — registration has not captured a card.",
-        };
+      : eligibilityRecord.status === "inactive"
+        ? {
+            tone: "danger" as const,
+            label: eligibilitySummary(eligibilityRecord),
+            title: eligibilityRecord.payerResponse || "The payer answered this coverage is not active.",
+          }
+        : {
+            tone: "warn" as const,
+            label: "Eligibility not checked",
+            title: "No 270/271 eligibility response is recorded for this patient yet — run it at check-in or on the Insurance section of the chart.",
+          };
 
   return (
     <section
@@ -202,8 +218,17 @@ export function PatientBanner({ patient, fallbackName, patientBalance }: Patient
           {eligibility.label}
         </Chip>
 
-        <span title="No copay is recorded for this visit — the front desk collects it (TASK 2).">
-          Copay: <span className="text-slate-300">—</span>
+        <span
+          title={
+            typeof copayUsd === "number"
+              ? "The copay the front desk collected at check-in, posted to this visit's ledger as a patient payment."
+              : "No copay has been collected at check-in for this patient yet."
+          }
+        >
+          Copay:{" "}
+          <span className={typeof copayUsd === "number" ? "font-semibold text-slate-100" : "text-slate-300"}>
+            {typeof copayUsd === "number" ? formatMoney(copayUsd) : "—"}
+          </span>
         </span>
 
         <span

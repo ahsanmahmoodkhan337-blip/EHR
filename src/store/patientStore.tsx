@@ -13,6 +13,7 @@
 import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { getLoggedInPhone } from "./accessStore";
 import { deriveInsuranceRecord } from "../utils/insuranceRecord";
+import type { EligibilityRecord } from "../domain/eligibility";
 import {
   useEhrStore,
   useAllPatients,
@@ -151,6 +152,12 @@ export interface InsuranceCoverage {
   subscriberSex?: string;
   /** Plan or program name (CMS-1500 box 11c). */
   planName?: string;
+  /**
+   * The 271 this coverage received (`specs/patient-hub.md` § Insurance). Absent
+   * on a coverage saved before eligibility was stored, and on any coverage no
+   * one has checked — both read as `not-checked`, never as `active`.
+   */
+  eligibility?: EligibilityRecord;
 }
 
 /**
