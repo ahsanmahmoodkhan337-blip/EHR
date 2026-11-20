@@ -77,6 +77,7 @@ import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
 import { ChartSearch } from "../components/TabsEpic/ChartSearch";
 import ARVoiceSimulator from "../components/ARVoiceSimulator/ARVoiceSimulator";
 import { ArWorkQueuePanel } from "../components/status/ArWorkQueuePanel";
+import { HomeWorkQueues } from "../components/status/HomeWorkQueues";
 import { CodingQueue } from "../components/CodingQueue/CodingQueue";
 import { BillingLedger } from "../components/BillingLedger/BillingLedger";
 import PriorAuthPortal from "../components/PriorAuthPortal/PriorAuthPortal";
@@ -1967,6 +1968,24 @@ function Home() {
     toast(p.firstName + " " + p.lastName + " loaded");
   };
 
+  // ── Home work queues (TASK 1): open the stage that holds the work ──
+  // Home's stages are workspace views rather than URLs, so a queue entry
+  // navigates the way the patient list does: load that patient's own
+  // encounter, switch to the role whose screen holds the work, show the chart.
+  // Nothing is reset and nothing is written.
+  const openMedicalStage = (patientId: string | null, role: Role) => {
+    if (patientId && patients.some((p) => p.id === patientId)) {
+      handlePatientSelect(patientId);
+    } else {
+      saveNoteDraftNow();
+      saveCurrentSession();
+      selectPatient(patientId);
+    }
+    setRole(role);
+    setActiveWorkspace("chart");
+    setActiveStage("");
+  };
+
   // Which sidebar item matches the workspace on screen.
   const shellActiveNav: ShellNavId | null =
     activeWorkspace === "schedule"
@@ -2071,6 +2090,9 @@ function Home() {
     >
       {/* ─── Workflow Tracker (always visible) ─── */}
       {selectedPatient && <WorkflowTracker encounterId={selectedPatientId} />}
+
+      {/* ─── Home work queues — counted from the student's own records ─── */}
+      <HomeWorkQueues onOpenMedicalStage={openMedicalStage} />
 
       {/* ─── Role-Based Workspace ─── */}
       {selectedPatient && currentRole !== "scribe" ? (
