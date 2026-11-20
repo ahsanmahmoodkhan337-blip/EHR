@@ -104,6 +104,23 @@ export function ClaimFormShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
+  // The store can change under the shell: the claim is back-filled the moment
+  // the encounter's patient resolves, and a reset restores an earlier claim.
+  // Adopt those values while the student has no unsaved edit of their own —
+  // otherwise the paper keeps showing the blank claim it mounted with and
+  // reports boxes 1a / 2 / 3 as missing although the claim already carries them.
+  const storeSnapshot = useRef(JSON.stringify({ values, lines }));
+  useEffect(() => {
+    const snapshot = JSON.stringify({ values, lines });
+    if (snapshot === storeSnapshot.current) return;
+    storeSnapshot.current = snapshot;
+    if (dirty || timer.current) return; // the student's unsaved edits win
+    setDraft(values);
+    setDraftLines(lines);
+    draftRef.current = values;
+    linesRef.current = lines;
+  }, [values, lines, dirty]);
+
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);

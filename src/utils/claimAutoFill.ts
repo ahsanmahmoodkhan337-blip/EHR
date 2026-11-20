@@ -41,6 +41,7 @@ const OFFICE_EM = new Set([
 export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROFILE): ClaimFormData {
   return {
     claimType: "professional",
+    identitySeeded: false,
     insuranceType: "",
     insuredId: "",
     patientName: "",
@@ -181,6 +182,37 @@ export function patientIdentityBoxes(
   };
 }
 
+const isBlank = (value: unknown): boolean =>
+  value === undefined || value === null || (typeof value === "string" && value.trim() === "");
+
+/**
+ * The identity boxes a claim is still missing, taken from the patient.
+ *
+ * A claim persisted by an earlier build was written before the encounter's
+ * patient was known, so boxes 1a, 2, 3 (and 4, 5, 6, 7, 26) arrive empty. This
+ * returns only the boxes that are blank on the claim, so nothing the student
+ * typed is overwritten, plus the `identitySeeded` marker so the same claim is
+ * not re-seeded on every render.
+ */
+export function backfillIdentityBoxes(
+  form: ClaimFormData,
+  patient: Patient | null | undefined,
+  displayName?: string | null,
+): Partial<ClaimFormData> {
+  const known = patientIdentityBoxes(patient, displayName);
+  const patch: Partial<ClaimFormData> = {};
+  for (const [key, value] of Object.entries(known)) {
+    if (value === undefined || value === null || value === "") continue;
+    if (isBlank((form as unknown as Record<string, unknown>)[key])) {
+      (patch as Record<string, unknown>)[key] = value;
+    }
+  }
+  // Only mark the claim as seeded when there was a patient to seed it from —
+  // otherwise the next open (with the encounter finally resolved) must try again.
+  if (patient || displayName) patch.identitySeeded = true;
+  return patch;
+}
+
 /** Build the claim record from the encounter. */
 export function buildClaimForm({
   patient,
@@ -198,6 +230,7 @@ export function buildClaimForm({
   return {
     ...base,
     claimType,
+    identitySeeded: Boolean(patient || displayName),
     ...patientIdentityBoxes(patient, displayName),
     diagnosisCodes: (pipeline.icdCodes ?? []).slice(0, 12),
     priorAuthNumber: paNumber ?? "",

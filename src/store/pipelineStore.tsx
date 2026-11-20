@@ -48,6 +48,13 @@ export interface ClaimFormData {
    * paper. See `src/data/claims/claimType.ts`.
    */
   claimType: ClaimType;
+  /**
+   * True once the identity boxes (1a, 2, 3, 4, 5, 6, 7, 26) have been seeded
+   * from the encounter's patient. Claims persisted by an earlier build carry
+   * `undefined`, so they get seeded once on the next open — and a box the
+   * student clears afterwards stays cleared instead of being refilled.
+   */
+  identitySeeded?: boolean;
   insuranceType: string;        // 1
   insuredId: string;            // 1a
   patientName: string;          // 2
