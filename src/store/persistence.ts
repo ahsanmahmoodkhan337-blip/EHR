@@ -38,8 +38,13 @@ const STORAGE_PREFIX = "hh_userdata_";
  * v4 is the status engine (`specs/status-engine.md` §8): every claim gets a
  * claim number, a claim status, and a MIGRATED timeline entry. Nothing is
  * invented — no `accepted`, no money, no CARC.
+ * v5 is money cycle slice 2: every encounter gains `remittances` (the 835s the
+ * payer sent) and `ledger` (the posted money). Both start empty on a migrated
+ * record — no payment, no adjustment and no patient balance is invented for a
+ * claim that was saved before the ledger existed, and a claim status carried
+ * from v4 stays exactly what it said.
  */
-const BLOB_VERSION = 4;
+const BLOB_VERSION = 5;
 
 export interface PersistedUserData {
   v: number;
@@ -82,6 +87,10 @@ export function userDataKey(phone: string): string {
  *     place in the unassigned bucket instead of being dropped.
  * `caseStates.*` are not migrated: they were never persisted, so they are
  * projections now, not a source of truth.
+ *
+ * v4 → v5 adds `remittances` and `ledger` to every encounter (normalised to
+ * empty arrays by `normalizeEncounter`) and changes nothing else: a claim saved
+ * before the ledger existed keeps its status and gains no money.
  */
 function migrateBlob(parsed: PersistedUserData): PersistedUserData {
   if ((parsed.v ?? 1) >= BLOB_VERSION) return parsed;

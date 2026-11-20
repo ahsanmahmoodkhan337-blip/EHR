@@ -250,6 +250,7 @@ export type ReasonCode =
   | "SUBMITTED_837P"
   | "277CA_ACCEPTED"
   | "277CA_REJECTED"
+  | "ERA_RECEIVED"
   | "ERA_POSTED"
   | "ERA_PAID_IN_FULL"
   | "ERA_PARTIAL"
@@ -281,6 +282,7 @@ export const REASON_CODE_LABELS: Record<ReasonCode, string> = {
   SUBMITTED_837P: "837P submitted",
   "277CA_ACCEPTED": "277CA accepted",
   "277CA_REJECTED": "277CA rejected",
+  ERA_RECEIVED: "835 received",
   ERA_POSTED: "835 posted",
   ERA_PAID_IN_FULL: "Paid in full",
   ERA_PARTIAL: "Partial payment",
