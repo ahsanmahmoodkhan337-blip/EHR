@@ -18,6 +18,81 @@ import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persiste
 
 export type Role = "scribe" | "coder" | "biller" | "prior-auth" | "ar-voice";
 
+/**
+ * One row of box 24 on the CMS-1500 (02/12).
+ * The spec's field names are kept as-is; the printed box each one feeds is in
+ * the comment, because that is how the form and its validation talk.
+ */
+export interface ClaimServiceLine {
+  dateOfService: string;   // 24A
+  placeOfService: string;  // 24B
+  cpt: string;             // 24D
+  modifiers: string[];     // 24D
+  diagnosisPointer: string;// 24E  e.g. "A" or "AB"
+  charge: number;          // 24F
+  units: number;           // 24G
+  renderingNpi: string;    // 24J
+}
+
+/**
+ * The structured CMS-1500 claim record — every printed box, keyed by the box
+ * number in the comment. Sits alongside the legacy `claimData` string map so
+ * nothing that reads that map breaks.
+ */
+export interface ClaimFormData {
+  insuranceType: string;        // 1
+  insuredId: string;            // 1a
+  patientName: string;          // 2
+  patientDob: string;           // 3
+  patientSex: string;           // 3
+  insuredName: string;          // 4
+  patientAddress: string;       // 5
+  patientRelationship: string;  // 6
+  insuredAddress: string;       // 7
+  otherInsuranceName: string;   // 9
+  otherInsurancePlan: string;   // 9a
+  conditionEmployment: boolean; // 10a
+  conditionAuto: boolean;       // 10b
+  conditionOther: boolean;      // 10c
+  insuredPolicyGroup: string;   // 11
+  insuredDob: string;           // 11a
+  insuredEmployer: string;      // 11b
+  insuredPlanName: string;      // 11c
+  otherBenefitPlan: string;     // 11d
+  patientSignature: boolean;    // 12
+  insuredSignature: boolean;    // 13
+  currentIllnessDate: string;   // 14
+  similarIllnessDate: string;   // 15
+  unableToWorkFrom: string;     // 16
+  unableToWorkTo: string;       // 16
+  referringProvider: string;    // 17
+  referringNpi: string;         // 17b
+  hospitalizationFrom: string;  // 18
+  hospitalizationTo: string;    // 18
+  additionalInfo: string;       // 19
+  outsideLab: string;           // 20
+  diagnosisCodes: string[];     // 21, A–L (12 slots)
+  resubmissionCode: string;     // 22
+  originalClaimNumber: string;  // 22a
+  priorAuthNumber: string;      // 23
+  serviceLines: ClaimServiceLine[]; // 24A–24J, max 6
+  federalTaxId: string;         // 25
+  patientAccountNumber: string; // 26
+  acceptAssignment: string;     // 27
+  totalCharge: number;          // 28
+  amountPaid: number;           // 29
+  balanceDue: number;           // 30
+  providerSignature: string;    // 31
+  providerSignatureDate: string;// 31
+  facilityName: string;         // 32
+  facilityAddress: string;      // 32
+  facilityNpi: string;          // 32
+  billingProviderName: string;  // 33
+  billingProviderAddress: string; // 33
+  billingProviderNpi: string;   // 33
+  billingProviderTaxId: string; // 33
+}
+
 export interface PipelineState {
   patientId: string | null;
   displayName: string | null;  // override for custom/new patients from calendar
@@ -27,6 +102,10 @@ export interface PipelineState {
   icdCodes: string[];
   cptCodes: string[];
   claimData: Record<string, string>;
+  /** Structured CMS-1500 record (box-by-box). Null until the claim is opened. */
+  claimForm: ClaimFormData | null;
+  /** Per-line coding data handed over by the Coder stage (seeds box 24). */
+  codingLines: ClaimServiceLine[];
   denialInfo: { code: string; reason: string; amount: number } | null;
   paData: Record<string, string>;
 }
@@ -80,8 +159,11 @@ interface PipelineContextValue {
   currentRole: Role;
   setRole: (role: Role) => void;
   submitToCoding: (note: string) => void;
-  submitToBilling: (icdCodes: string[], cptCodes: string[]) => void;
+  submitToBilling: (icdCodes: string[], cptCodes: string[], lines?: ClaimServiceLine[]) => void;
   submitClaim: (claimData: Record<string, string>) => void;
+  // Structured CMS-1500 record
+  setClaimForm: (form: ClaimFormData | null) => void;
+  patchClaimForm: (patch: Partial<ClaimFormData>) => void;
   handleDenial: (denialCode: string, meta?: { amount?: number; patientName?: string }) => void;
   submitPA: (paData: Record<string, string>) => void;
   completePipeline: () => void;
@@ -137,6 +219,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     icdCodes: [],
     cptCodes: [],
     claimData: {},
+    claimForm: null,
+    codingLines: [],
     denialInfo: null,
     paData: {},
   });
@@ -214,6 +298,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       icdCodes: [],
       cptCodes: [],
       claimData: {},
+      claimForm: null,
+      codingLines: [],
       denialInfo: null,
       paData: {},
       status: "pending",
@@ -232,13 +318,26 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   };
 
   // Auto-advance: Coder → Prior Auth (PA first)
-  const submitToBilling = (icdCodes: string[], cptCodes: string[]) => {
+  const submitToBilling = (icdCodes: string[], cptCodes: string[], lines?: ClaimServiceLine[]) => {
     setPipeline((prev) => ({
       ...prev,
       icdCodes,
       cptCodes,
+      codingLines: lines ?? prev.codingLines,
       stage: "prior-auth",
       status: "coded",
+    }));
+  };
+
+  // ── Structured CMS-1500 record ──────────────────────────────────
+  const setClaimForm = (form: ClaimFormData | null) => {
+    setPipeline((prev) => ({ ...prev, claimForm: form }));
+  };
+
+  const patchClaimForm = (patch: Partial<ClaimFormData>) => {
+    setPipeline((prev) => ({
+      ...prev,
+      claimForm: prev.claimForm ? { ...prev.claimForm, ...patch } : prev.claimForm,
     }));
   };
 
@@ -360,6 +459,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         submitToCoding,
         submitToBilling,
         submitClaim,
+        setClaimForm,
+        patchClaimForm,
         handleDenial,
         submitPA,
         completePipeline,

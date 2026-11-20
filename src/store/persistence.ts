@@ -19,9 +19,11 @@ import type { CaseState } from "./patientStore";
 import type { PipelineState, DeniedClaim, ARCallRecord, PARecordStore, Role } from "./pipelineStore";
 import type { Appointment } from "../components/TabsEpic/DailySchedule";
 import type { AccountSecurityState } from "./accountSecurity";
+import { migrateClaimData } from "../utils/claimAutoFill";
 
 const STORAGE_PREFIX = "hh_userdata_";
-const BLOB_VERSION = 1;
+/** v2 added the structured CMS-1500 record (`pipeline.claimForm`). */
+const BLOB_VERSION = 2;
 
 export interface PersistedUserData {
   v: number;
@@ -41,6 +43,22 @@ export function userDataKey(phone: string): string {
   return `${STORAGE_PREFIX}${phone}`;
 }
 
+/**
+ * Schema migration. v1 → v2 back-fills `pipeline.claimForm` from the legacy
+ * `claimData` box map and makes sure the new fields exist, so a student who
+ * had a claim open before the CMS-1500 replica shipped keeps their data.
+ */
+function migrateBlob(parsed: PersistedUserData): PersistedUserData {
+  if ((parsed.v ?? 1) >= BLOB_VERSION) return parsed;
+  const pipeline = parsed.pipeline;
+  if (pipeline) {
+    const p = pipeline as PipelineState & { claimForm?: PipelineState["claimForm"] };
+    if (!p.claimForm) p.claimForm = migrateClaimData(p.claimData);
+    if (!Array.isArray(p.codingLines)) p.codingLines = [];
+  }
+  return { ...parsed, v: BLOB_VERSION };
+}
+
 /** Read the full per-user blob from localStorage (null when absent/corrupt). */
 export function loadUserData(phone: string | null | undefined): PersistedUserData | null {
   if (!phone) return null;
@@ -49,7 +67,7 @@ export function loadUserData(phone: string | null | undefined): PersistedUserDat
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedUserData;
     if (!parsed || typeof parsed !== "object") return null;
-    return parsed;
+    return migrateBlob(parsed);
   } catch (e) {
     console.warn("loadUserData: failed to parse storage for", phone, e);
     return null;
@@ -109,7 +127,7 @@ export async function syncUserDataFromSupabase(phone: string | null | undefined)
       return loadUserData(phone);
     }
     if (data?.data && typeof data.data === "object") {
-      const remote = data.data as PersistedUserData;
+      const remote = migrateBlob(data.data as PersistedUserData);
       const local = loadUserData(phone);
       // Prefer whichever was updated more recently — but always let the fresher
       // `security` slice win, because device binding + active session are

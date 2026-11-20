@@ -12,7 +12,8 @@
 
 import { useState, useMemo } from "react";
 import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertTriangle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, Activity, Star, ChevronDown, ChevronRight } from "lucide-react";
-import { usePipeline } from "../../store/pipelineStore";
+import { usePipeline, type ClaimServiceLine } from "../../store/pipelineStore";
+import { MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
 import { ICD10_CODES, searchICD10, type ICD10Code } from "./icd10Data";
 import { CPT_CODES, searchCPT, type CPTCode } from "./cptData";
 import { MODIFIER_REFERENCE, POS_REFERENCE } from "./modifierPosData";
@@ -150,6 +151,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
   // Pending codes stored before PA interstitial decision
   const [pendingIcdCodes, setPendingIcdCodes] = useState<string[]>([]);
   const [pendingCptCodes, setPendingCptCodes] = useState<string[]>([]);
+  const [pendingLines, setPendingLines] = useState<ClaimServiceLine[]>([]);
 
   // Code details panel (D3: Code Lookup)
   const [selectedCodeDetails, setSelectedCodeDetails] = useState<ICD10Code | CPTCode | null>(null);
@@ -242,6 +244,31 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
       const icdCodes = selectedICDs.map((c) => c.code);
       const cptCodes = selectedCPTs.map((c) => c.code);
 
+      // Box 24 of the CMS-1500 is filled from these per-line values: the date,
+      // place of service, modifiers, diagnosis pointer, charge and units the
+      // coder captured, so the biller never re-types what coding already did.
+      const today = new Date().toISOString().slice(0, 10);
+      const claimLines: ClaimServiceLine[] = selectedCPTs.map((c) => {
+        const d = cptDataMap[c.code] ?? initialCptData(c);
+        const pointer = d.linkedICDs
+          .map((code) => {
+            const idx = icdCodes.indexOf(code);
+            return idx >= 0 ? String.fromCharCode(65 + idx) : "";
+          })
+          .filter(Boolean)
+          .join("");
+        return {
+          dateOfService: today,
+          placeOfService: d.pos || DEFAULT_POS,
+          cpt: c.code,
+          modifiers: d.modifiers,
+          diagnosisPointer: pointer || "A",
+          charge: d.charges > 0 ? d.charges : (c.medicareRate ?? 0),
+          units: d.units > 0 ? d.units : 1,
+          renderingNpi: MEDICAL_PROVIDER_PROFILE.npi,
+        };
+      });
+
       // Calculate coding score
       const modifier25Applied = selectedCPTs.some(c => cptDataMap[c.code]?.modifiers.includes("25") ?? false);
       const score = scoreCoder(icdCodes, cptCodes, modifier25Applied);
@@ -288,13 +315,14 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
       setPaTriggerReasons(paReasons);
       setPendingIcdCodes(icdCodes);
       setPendingCptCodes(cptCodes);
+      setPendingLines(claimLines);
 
       if (detectedPA) {
         // Show interstitial with reasons — don't submit yet
         setShowPAInterstitial(true);
       } else {
         // No PA needed — submit and go to Biller directly
-        submitToBilling(icdCodes, cptCodes);
+        submitToBilling(icdCodes, cptCodes, claimLines);
         setSubmitted(true);
         setRole("biller");
       }
@@ -303,7 +331,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
 
   const handleConfirmPA = () => {
     // Submit codes and route to Prior Auth
-    submitToBilling(pendingIcdCodes, pendingCptCodes);
+    submitToBilling(pendingIcdCodes, pendingCptCodes, pendingLines);
     setSubmitted(true);
     setShowPAInterstitial(false);
     setRole("prior-auth");
@@ -311,7 +339,7 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
 
   const handleSkipPA = () => {
     // Submit codes but skip PA — go directly to Biller
-    submitToBilling(pendingIcdCodes, pendingCptCodes);
+    submitToBilling(pendingIcdCodes, pendingCptCodes, pendingLines);
     setSubmitted(true);
     setShowPAInterstitial(false);
     setRole("biller");

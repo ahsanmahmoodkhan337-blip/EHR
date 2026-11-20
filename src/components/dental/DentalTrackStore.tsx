@@ -29,6 +29,7 @@ import {
   type DentalCaseScenario,
 } from "../../data/dental";
 import { getLoggedInPhone } from "../../store/accessStore";
+import type { ADAFormData } from "../../data/claims/adaLayout";
 
 export type DentalStageName =
   | "case-select"
@@ -125,7 +126,8 @@ export interface DentalAdjustment {
 }
 
 export interface DentalTrackState {
-  version: 1;
+  /** v2 added the structured ADA claim form (`adaForm`). */
+  version: 2;
   /** null = no case loaded (case-select screen). */
   caseId: string | null;
   stage: DentalStageName;
@@ -151,13 +153,15 @@ export interface DentalTrackState {
   payments: DentalPayment[];
   /** Posted adjustments / write-offs (ledger). */
   adjustments: DentalAdjustment[];
+  /** Structured ADA 2019 claim record (box by box). Null until the claim opens. */
+  adaForm: ADAFormData | null;
 }
 
 const STORAGE_PREFIX = "hh_dental_track_";
 
 function freshState(): DentalTrackState {
   return {
-    version: 1,
+    version: 2,
     caseId: null,
     stage: "case-select",
     startedAt: null,
@@ -174,6 +178,7 @@ function freshState(): DentalTrackState {
     txPlan: [],
     payments: [],
     adjustments: [],
+    adaForm: null,
   };
 }
 
@@ -188,8 +193,9 @@ function loadState(phone: string | null): DentalTrackState {
     const raw = localStorage.getItem(key);
     if (!raw) return freshState();
     const parsed = JSON.parse(raw) as DentalTrackState;
-    if (parsed.version !== 1) return freshState();
-    return { ...freshState(), ...parsed };
+    // v1 → v2: the ADA claim record was added; older tracks simply have none.
+    if ((parsed as { version?: number }).version !== 1 && parsed.version !== 2) return freshState();
+    return { ...freshState(), ...parsed, version: 2 };
   } catch {
     return freshState();
   }
@@ -197,6 +203,8 @@ function loadState(phone: string | null): DentalTrackState {
 
 interface DentalTrackApi {
   state: DentalTrackState;
+  /** Structured ADA 2019 claim record (null until the claim screen seeds it). */
+  adaForm: ADAFormData | null;
   /** Active case scenario (undefined when no case is selected). */
   activeCase: DentalCaseScenario | undefined;
   planId: string;
@@ -213,6 +221,8 @@ interface DentalTrackApi {
   updateLine: (id: string, patch: Partial<DentalClaimLine>) => void;
   removeLine: (id: string) => void;
   submitClaim: () => void;
+  /** Persist the ADA claim form (debounced by the shell). */
+  setAdaForm: (form: ADAFormData) => void;
   // ar
   logCall: (objective: string, note: string) => void;
   resolveLine: (lineId: string, resolution: DentalLineResolution) => void;
@@ -392,6 +402,10 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, claimSubmitted: true, stage: "claim" }));
   }, []);
 
+  const setAdaForm = useCallback((form: ADAFormData) => {
+    setState((s) => ({ ...s, adaForm: form }));
+  }, []);
+
   const logCall = useCallback((objective: string, note: string) => {
     setState((s) => ({
       ...s,
@@ -486,6 +500,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
 
   const api: DentalTrackApi = {
     state,
+    adaForm: state.adaForm,
     activeCase,
     planId,
     selectCase,
@@ -498,6 +513,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     updateLine,
     removeLine,
     submitClaim,
+    setAdaForm,
     logCall,
     resolveLine,
     triggerTrap,
