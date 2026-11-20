@@ -67,6 +67,16 @@ export function useStageUrlSync(options: StageUrlSyncOptions): StageUrlSync {
 
   const { urlCaseId, urlStage } = options;
 
+  /**
+   * A cold deep link is handled by the URL effect below, which selects the case
+   * the address names. Until the store has taken that case, `caseId` is still
+   * null — and the store → URL effect used to read that as "no case open" and
+   * send the student to the case list, so every deep link bounced to `/cases`
+   * instead of opening its case. The first run is therefore left to the URL
+   * effect; from the second run on, the two are in step.
+   */
+  const storeSettled = useRef(false);
+
   useEffect(() => {
     const o = live.current;
     if (!urlCaseId) return;
@@ -100,6 +110,10 @@ export function useStageUrlSync(options: StageUrlSyncOptions): StageUrlSync {
   }, [urlCaseId, urlStage]);
 
   useEffect(() => {
+    if (!storeSettled.current) {
+      storeSettled.current = true;
+      return;
+    }
     if (!options.caseId || options.stage === "case-select") {
       if (urlCaseId) options.goToBase();
       return;
