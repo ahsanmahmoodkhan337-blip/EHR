@@ -18,7 +18,7 @@
  *     form does.
  */
 
-import { CLAIM_TYPE_PAPER, suggestClaimType, type ClaimType } from "../data/claims/claimType";
+import { CLAIM_TYPE_PAPER, CLAIM_X12, suggestClaimType } from "../data/claims/claimType";
 
 export type DocumentCategory = "claim-form" | "eob" | "superbill" | "note" | "other";
 
@@ -58,13 +58,6 @@ export const DOCUMENT_CATEGORY_OPTIONS: DocumentCategory[] = [
 /** What the tab prints instead of an upload button that would do nothing. */
 export const DOCUMENTS_UPLOAD_NOTE =
   "File upload is not available yet — a document here is a named entry in the chart, not a stored file.";
-
-/** The X12 transaction each claim type is submitted as. */
-const CLAIM_X12: Record<ClaimType, string> = {
-  professional: "837P",
-  institutional: "837I",
-  dental: "837D",
-};
 
 /** What an encounter has to tell the documents tab. */
 export interface PaperSource {

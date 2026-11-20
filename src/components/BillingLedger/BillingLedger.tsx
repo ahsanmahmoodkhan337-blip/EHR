@@ -49,13 +49,13 @@ import {
 } from "../../utils/encounterPatient";
 import {
   CLAIM_TYPE_OPTIONS,
-  CLAIM_TYPE_PAPER,
-  suggestClaimType,
+
   type ClaimType,
 } from "../../data/claims/claimType";
+import { checkPlaceOfService, principalDiagnosisOf } from "../../domain/claimPaper";
 import { toast } from "sonner";
 
-type BillingTab = "form" | "scrubber" | "remittance" | "denials" | "references";
+type BillingTab = "form" | "remittance" | "denials" | "references";
 
 /**
  * Column spec for the box-24 table in the downloaded PDF — the same list the
@@ -83,7 +83,6 @@ export function BillingLedger() {
   const cs = patientId ? caseStates[patientId] : undefined;
 
   const [payer, setPayer] = useState("Medicare");
-  const [posCode, setPosCode] = useState("11");
   const [submitted, setSubmitted] = useState(false);
   const [billingScore, setBillingScore] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<BillingTab>("form");
@@ -106,21 +105,39 @@ export function BillingLedger() {
   // Claim scrubber state
   const [scrubResults, setScrubResults] = useState<{ check: string; pass: boolean; note: string }[] | null>(null);
 
-  // ── Claim type — which paper this claim is submitted on ──────────
-  // Suggested from the encounter: the first service line's place of service
-  // (the biller can edit it), then the encounter's registered POS, then the
-  // scrubber's field. The biller can override; the choice is stored on the
-  // claim, so reopening it shows the same paper.
+  // ── Claim type — the place of service decides the paper ──────────
+  // Phase 3 (owner decision 2026-11-20): the claim type follows the POS. The
+  // claim bills at box 24B of its first line, else the POS the encounter was
+  // registered at; that POS selects the paper (CMS-1500 / UB-04 / ADA) and the
+  // X12 set (837P / 837I / 837D). A stored `claimType` is written from this and
+  // never read to choose a paper, so a claim cannot print on a form its place
+  // of service does not bill on. A POS that disagrees with the encounter is
+  // flagged with the denial it earns — `posCheck.denial` — and left as typed.
   const encounterPos = useEncounterPlaceOfService(patientId || null);
   const encounterDate = useEncounterDateOfService(patientId || null);
-  const primaryPos =
-    claimForm?.serviceLines?.[0]?.placeOfService || encounterPos || posCode || "11";
-  const suggestion = suggestClaimType({
-    placeOfService: primaryPos,
-    posDescription: POS_CODES.find((p) => p.code === primaryPos)?.description,
+  const linePositions = (claimForm?.serviceLines ?? []).map((line) => line.placeOfService);
+  const claimPos =
+    linePositions.map((value) => String(value ?? "").trim()).find(Boolean) ||
+    String(encounterPos ?? "").trim();
+  const posDescription = POS_CODES.find((p) => p.code === claimPos)?.description;
+  const posCheck = checkPlaceOfService({
+    claimPos,
+    encounterPos,
+    linePositions,
+    posDescription,
     track: patient?.track,
   });
-  const claimType: ClaimType = claimForm?.claimType ?? suggestion.claimType;
+  const paper = posCheck.paper;
+  const claimType: ClaimType = paper.claimType;
+  /** The principal diagnosis — the first code of the Coder's final list. */
+  const principalDiagnosis = principalDiagnosisOf(state.icdCodes, claimForm?.principalDiagnosis);
+  /** Box 21's list, in the order the claim actually prints it. */
+  const claimDiagnoses = (claimForm?.diagnosisCodes ?? [])
+    .map((code) => String(code ?? "").trim())
+    .filter(Boolean);
+  /** First-listed: code A of box 21 is the principal diagnosis. */
+  const principalFirst =
+    !principalDiagnosis || claimDiagnoses[0]?.toUpperCase() === principalDiagnosis;
 
   // The claim's own timeline — every recorded change to this claim, in order.
   // Read-only, and identified by the claim number the engine minted for it.
@@ -145,11 +162,6 @@ export function BillingLedger() {
   // it off so an assessment claim shows only what the student captured.
   const demoFillEnabled = state.demoFillMissingBoxes !== false;
 
-  const setClaimType = (next: ClaimType) => {
-    if (!claimForm) return;
-    setClaimForm({ ...claimForm, claimType: next });
-  };
-
   // ── Structured claim record ──────────────────────────────────────
   // Seeded once from the encounter (demographics, codes, PA number, provider
   // profile). After that the record is the student's: it is persisted with the
@@ -172,8 +184,9 @@ export function BillingLedger() {
           displayName: state.displayName,
           pipeline: state,
           paNumber,
-          claimType: suggestion.claimType,
+          claimType: paper.claimType,
           encounterDate,
+          placeOfService: encounterPos,
         }),
       );
       return;
@@ -182,7 +195,10 @@ export function BillingLedger() {
     // had no patient to seed it — gets the identity boxes filled in place.
     // Codes, charges and anything the student edited are left alone.
     const patch: Partial<ClaimFormData> = {};
-    if (!claimForm.claimType) patch.claimType = suggestion.claimType;
+    // The type is written from the POS every time it is read, so a claim opened
+    // after its place of service changed (or written by a build that let the
+    // biller pick a paper) follows the POS instead of the old value.
+    patch.claimType = paper.claimType;
     // A claim written by an earlier build carries an invented member ID and
     // group number; clear them so the boxes fall through to the tagged demo.
     Object.assign(patch, stripFabricatedIds(claimForm));
@@ -208,7 +224,7 @@ export function BillingLedger() {
       if (!same) changed[box] = value;
     }
     if (Object.keys(changed).length > 0) setClaimForm({ ...claimForm, ...changed });
-  }, [patientId, claimForm, patient, state, paRecords, setClaimForm, suggestion.claimType, encounterDate]);
+  }, [patientId, claimForm, patient, state, paRecords, setClaimForm, paper.claimType, encounterDate, encounterPos]);
 
   const claimValues = useMemo(() => {
     if (!claimForm) return {};
@@ -246,13 +262,19 @@ export function BillingLedger() {
     [setClaimForm],
   );
 
+  // The paper's own edit checks, plus the one rule it cannot see for itself:
+  // the principal diagnosis is the first code of the Coder's final list, so it
+  // must be first-listed (box 21 A / box 67). Flagged, never reordered.
   const validate = useCallback(
     (values: Record<string, unknown>, lines: Record<string, unknown>[]): ClaimIssue[] =>
-      validateCMS1500({
-        ...(values as unknown as Omit<ClaimFormData, "serviceLines">),
-        serviceLines: lines as unknown as ClaimServiceLine[],
-      }),
-    [],
+      validateCMS1500(
+        {
+          ...(values as unknown as Omit<ClaimFormData, "serviceLines">),
+          serviceLines: lines as unknown as ClaimServiceLine[],
+        },
+        { principalDiagnosis },
+      ),
+    [principalDiagnosis],
   );
 
   /** Legacy box map, kept so anything still reading `claimData` sees the claim. */
@@ -421,7 +443,7 @@ export function BillingLedger() {
           message: `837P transmitted to ${payer} — 277CA accepted, claim with the payer for adjudication`,
           status: "success",
         });
-        submitClaim({ ...legacyBoxMap(values), payer, posCode, submittedAt: new Date().toISOString() });
+        submitClaim({ ...legacyBoxMap(values), payer, posCode: claimPos, submittedAt: new Date().toISOString() });
         setSubmitted(true);
         // The modifier-25 trap still costs the student its score; it is not a
         // clearinghouse rejection, so it is reported as an edit check, not an outcome.
@@ -439,7 +461,7 @@ export function BillingLedger() {
       patient,
       needsPriorAuth,
       payer,
-      posCode,
+      claimPos,
       state.cptCodes,
       state.claimNumber,
       state.claimStatus,
@@ -472,7 +494,27 @@ export function BillingLedger() {
       { check: "CPT code present", pass: state.cptCodes.length > 0, note: state.cptCodes.length > 0 ? `${state.cptCodes.length} code(s) found` : "No procedure codes entered" },
       { check: "Diagnosis supports procedure", pass: state.icdCodes.length > 0 && state.cptCodes.length > 0, note: "Educational: Verify ICD-10 supports medical necessity for the CPT code" },
       { check: "Payer selected", pass: true, note: `Payer: ${payer}` },
-      { check: "Place of service selected", pass: true, note: `POS: ${posCode}` },
+      {
+        // The POS decides the paper and the price. A POS that is not the one the
+        // encounter was registered at is reported with the denial it earns — the
+        // POS itself is never changed (owner decision 2026-11-20).
+        check: "Place of service matches the encounter",
+        pass: !posCheck.denial,
+        note: posCheck.denial
+          ? posCheck.denial.message
+          : `POS ${posCheck.claimPos || "—"}${posDescription ? ` — ${posDescription}` : ""} on every line and on the encounter. ${
+              paper.paper
+            } (${paper.x12}).`,
+      },
+      {
+        check: "Principal diagnosis first-listed",
+        pass: principalFirst,
+        note: principalFirst
+          ? `${principalDiagnosis} is code A of box 21 / box 67 on the UB-04.`
+          : `The Coder's first code is ${principalDiagnosis || "—"} and the claim lists ${
+              claimDiagnoses[0] || "nothing"
+            } first. The payer reads the first code as the principal and answers CO-11, diagnosis does not support the procedure. Move ${principalDiagnosis} to A.`,
+      },
       {
         check: "Same-day edit (payer claim edit)",
         pass: sameDayLines <= 1,
@@ -602,8 +644,10 @@ export function BillingLedger() {
             {/* Tab navigation */}
             <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 pb-2 mb-4">
               {[
+                // One scrub control on this screen: the Scrub claim button below.
+                // The old scrubber tab drew nothing and sat beside it, so
+                // two controls claimed to scrub and one of them did nothing.
                 { key: "form" as BillingTab, label: "Claim Form" },
-                { key: "scrubber" as BillingTab, label: "Claim Scrubber" },
                 { key: "remittance" as BillingTab, label: "Remittance & Ledger" },
                 { key: "denials" as BillingTab, label: "Denial Codes" },
                 { key: "references" as BillingTab, label: "References" },
@@ -638,44 +682,37 @@ export function BillingLedger() {
             {/* Claim type + the paper it picks */}
             {activeTab === "form" && (
               <div className="space-y-4">
-                {/* ─── Claim type ─── */}
+                {/* ─── Claim type — read off the place of service ─── */}
                 <div className="clinical-card">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-xs font-semibold text-slate-700">Claim type</p>
-                    <div className="flex overflow-hidden rounded-lg border border-slate-200">
-                      {CLAIM_TYPE_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.value}
-                          onClick={() => setClaimType(opt.value)}
-                          disabled={!claimForm}
-                          title={`${opt.hint} Prints on ${opt.paper}.`}
-                          className={`px-2.5 py-1 text-[10px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                            claimType === opt.value
-                              ? "bg-brand-600 text-white"
-                              : "bg-white text-slate-500 hover:bg-slate-50"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
+                    <span
+                      className="rounded-lg bg-brand-50 px-2 py-1 text-[10px] font-semibold text-brand-700"
+                      title={paper.reason}
+                    >
+                      {CLAIM_TYPE_OPTIONS.find((opt) => opt.value === claimType)?.label ?? claimType}
+                    </span>
                     <span className="ml-auto text-[10px] font-medium text-slate-500">
-                      Paper: <strong className="text-slate-700">{CLAIM_TYPE_PAPER[claimType]}</strong>
+                      Paper: <strong className="text-slate-700">{paper.paper}</strong> ·{" "}
+                      <strong className="text-slate-700">{paper.x12}</strong>
                     </span>
                   </div>
-                  <p className="mt-1.5 text-[10px] text-slate-500">
-                    {claimType === suggestion.claimType
-                      ? `Suggested from the encounter — ${suggestion.reason}.`
-                      : `Set by hand — the encounter suggests ${CLAIM_TYPE_PAPER[suggestion.claimType]} (${suggestion.reason}).`}
-                    {claimType !== suggestion.claimType && (
-                      <button
-                        onClick={() => setClaimType(suggestion.claimType)}
-                        className="ml-1 font-medium text-brand-600 underline"
-                      >
-                        Use the suggestion
-                      </button>
-                    )}
-                  </p>
+                  {/* The POS decides the paper: it is not a picker, and the reason
+                      names the place of service the claim actually bills at. */}
+                  <p className="mt-1.5 text-[10px] text-slate-500">{paper.reason}.</p>
+                  {/* A POS that is not the encounter's is reported with the denial
+                      it would earn. It is never changed for the student. */}
+                  {posCheck.denial && (
+                    <p
+                      role="status"
+                      className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] leading-relaxed text-amber-800"
+                    >
+                      <strong className="font-semibold">
+                        {posCheck.denial.carc} ({posCheck.denial.group}) · {posCheck.denial.rarc}
+                      </strong>{" "}
+                      — {posCheck.denial.message}
+                    </p>
+                  )}
                   {/* demoFillMissingBoxes — instructor switch */}
                   <label className="mt-2 flex items-start gap-2 rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] text-slate-600">
                     <input
@@ -747,10 +784,13 @@ export function BillingLedger() {
                       maxLines={UB04_LAYOUT.maxLines}
                       resetKey={patientId}
                       validate={(values, lines) =>
-                        validateUB04({
-                          ...(values as unknown as ClaimFormData),
-                          serviceLines: lines as unknown as ClaimServiceLine[],
-                        })
+                        validateUB04(
+                          {
+                            ...(values as unknown as ClaimFormData),
+                            serviceLines: lines as unknown as ClaimServiceLine[],
+                          },
+                          { principalDiagnosis },
+                        )
                       }
                       onCommit={commitClaim}
                       onSubmit={handleSubmitClaim}
@@ -794,15 +834,15 @@ export function BillingLedger() {
                       </select>
                     </div>
                     <div>
-                      <label htmlFor="posCodeInput" className="text-[10px] text-slate-500">Place of Service</label>
-                      <input
-                        id="posCodeInput"
-                        type="text"
-                        value={posCode}
-                        onChange={(e) => setPosCode(e.target.value)}
-                        placeholder="11"
-                        className="w-full rounded border border-slate-200 px-2 py-1.5 font-mono text-xs outline-none focus:border-brand-500"
-                      />
+                      {/* One POS, and it is the claim's own: box 24B on the paper,
+                          else the place of service the encounter was registered at.
+                          It decides the claim type, so a second loose field that
+                          the claim never read could only disagree with it. */}
+                      <p className="text-[10px] text-slate-500">Place of Service (box 24B)</p>
+                      <p className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 font-mono text-xs text-slate-700">
+                        {claimPos || "—"}
+                        {posDescription ? <span className="ml-1 font-sans text-[10px] text-slate-500">{posDescription}</span> : null}
+                      </p>
                       <div className="mt-1 flex flex-wrap gap-x-1.5 gap-y-0.5">
                         {POS_CODES.map((p) => (
                           <span key={p.code} className="text-[8px] text-slate-400">
@@ -910,8 +950,14 @@ export function BillingLedger() {
                   <button onClick={simulateDenial} className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 hover:bg-red-100">
                     <AlertTriangle className="h-3.5 w-3.5" /> Simulate Denial (Path B)
                   </button>
-                  <button onClick={runScrubber} className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs font-medium text-brand-700 hover:bg-brand-100">
-                    <Search className="h-3.5 w-3.5" /> Run Clearinghouse Scrubber
+                  {/* The only scrub control on this screen. */}
+                  <button
+                    type="button"
+                    onClick={runScrubber}
+                    aria-label="Scrub claim"
+                    className="flex min-h-[40px] items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-4 text-xs font-medium text-brand-700 hover:bg-brand-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                  >
+                    <Search className="h-3.5 w-3.5" aria-hidden="true" /> Scrub claim
                   </button>
                   {/* Phase 3: Route to PA */}
                   {cs?.paStatus === "REQUIRED_MISSING" && (

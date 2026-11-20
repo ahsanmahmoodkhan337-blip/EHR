@@ -228,6 +228,7 @@ function buildServiceLines(
   pipeline: PipelineState,
   provider: ProviderProfile,
   encounterDate: string,
+  encounterPos = "",
 ): ClaimServiceLine[] {
   if (pipeline.codingLines && pipeline.codingLines.length > 0) {
     // A Coder line arrives without 24I, because the qualifier is not the
@@ -241,7 +242,10 @@ function buildServiceLines(
     const cpt = CPT_CODES.find((c) => c.code === code);
     return {
       dateOfService: encounterDate,
-      placeOfService: "11",
+      // The encounter's own place of service: the claim type follows it, so a
+      // hardcoded 11 here billed an ER encounter on the CMS-1500. With no
+      // encounter POS the previous office default stands, unchanged.
+      placeOfService: encounterPos || "11",
       cpt: code,
       modifiers: [],
       diagnosisPointer: String.fromCharCode(65 + Math.min(i, 11)),
@@ -264,6 +268,12 @@ export interface AutoFillArgs {
   claimType?: ClaimType;
   /** Date of service the encounter was registered at (box 24A fallback). */
   encounterDate?: string | null;
+  /**
+   * Place of service the encounter was registered at (box 24B). The claim type
+   * follows it, so a line that carries no POS of its own takes this one instead
+   * of the invented office default.
+   */
+  placeOfService?: string | null;
 }
 
 /**
@@ -488,6 +498,7 @@ export function buildClaimForm({
   provider = MEDICAL_PROVIDER_PROFILE,
   claimType = "professional",
   encounterDate,
+  placeOfService,
 }: AutoFillArgs): ClaimFormData {
   const base = blankClaimForm(provider);
 
@@ -495,6 +506,7 @@ export function buildClaimForm({
     pipeline,
     provider,
     encounterDateFor(patient, encounterDate),
+    String(placeOfService ?? "").trim(),
   );
   const totalCharge = serviceLines.reduce((sum, l) => sum + (l.charge || 0), 0);
   const identityBoxes = patientIdentityBoxes(patient, displayName);

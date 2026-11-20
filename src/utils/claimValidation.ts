@@ -20,6 +20,16 @@ export interface ClaimIssue {
   severity: "error" | "warn";
 }
 
+/**
+ * What the paper cannot see for itself. The principal diagnosis is decided by
+ * the Coder's final list (the first code), which lives on the encounter, so the
+ * screen hands it in rather than the form guessing it from box 21's order.
+ */
+export interface ValidationContext {
+  /** The principal diagnosis — the first code of the Coder's final list. */
+  principalDiagnosis?: string | null;
+}
+
 const ICD10_RE = /^[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/;
 const CPT_RE = /^(\d{5}|[A-Z]\d{4})$/;
 const TAX_ID_RE = /^\d{2}-\d{7}$/;
@@ -67,7 +77,7 @@ export function errorBoxes(issues: ClaimIssue[]): Set<string> {
 
 // ─── CMS-1500 ───────────────────────────────────────────────────────
 
-export function validateCMS1500(form: ClaimFormData): ClaimIssue[] {
+export function validateCMS1500(form: ClaimFormData, context: ValidationContext = {}): ClaimIssue[] {
   const issues: ClaimIssue[] = [];
   const err = (box: string, message: string) => issues.push({ box, message, severity: "error" });
   const warn = (box: string, message: string) => issues.push({ box, message, severity: "warn" });
@@ -96,6 +106,18 @@ export function validateCMS1500(form: ClaimFormData): ClaimIssue[] {
     codes.forEach((c) => {
       if (!ICD10_RE.test(c)) err("21", `Box 21: "${c}" is not a valid ICD-10-CM code.`);
     });
+  }
+
+  // The principal diagnosis is first-listed: the first code of the Coder's
+  // final list is code A of box 21, and loop 2300 sends it as HI01-1=ABK. A
+  // claim that lists a secondary code first is priced against the wrong
+  // condition, so it is flagged with the denial it earns — never reordered.
+  const principal = String(context.principalDiagnosis ?? "").trim().toUpperCase();
+  if (principal && codes.length > 0 && codes[0].toUpperCase() !== principal) {
+    err(
+      "21",
+      `Box 21: ${principal} is the principal diagnosis — the first code of the Coder's final list — and it must be listed first (A). The payer reads the first code as the principal (HI01-1=ABK) and box 24E's A pointer points at it; a secondary code listed first earns CO-11, diagnosis does not support the procedure. Move ${principal} to A.`,
+    );
   }
 
   const lines = (form.serviceLines || []).filter(
@@ -263,7 +285,7 @@ export function validateADA(form: ADAFormData): ClaimIssue[] {
  *    auto-corrected: a room-and-board code on an outpatient bill is what the
  *    payer answers with CARC 16 + MA130.
  */
-export function validateUB04(form: ClaimFormData): ClaimIssue[] {
+export function validateUB04(form: ClaimFormData, context: ValidationContext = {}): ClaimIssue[] {
   const issues: ClaimIssue[] = [];
   const err = (box: string, message: string) => issues.push({ box, message, severity: "error" });
   const warn = (box: string, message: string) => issues.push({ box, message, severity: "warn" });
@@ -308,6 +330,17 @@ export function validateUB04(form: ClaimFormData): ClaimIssue[] {
     err("67", "Box 67: the principal diagnosis is required — the first code of the Coder's final list.");
   } else if (!ICD10_RE.test(form.principalDiagnosis)) {
     err("67", `Box 67: "${form.principalDiagnosis}" is not a valid ICD-10-CM code.`);
+  } else {
+    // First-listed on the institutional paper means box 67 carries the first
+    // code of the Coder's final list, not any other code from it. Flagged with
+    // the denial it earns, never rewritten.
+    const principal = String(context.principalDiagnosis ?? "").trim().toUpperCase();
+    if (principal && form.principalDiagnosis.trim().toUpperCase() !== principal) {
+      err(
+        "67",
+        `Box 67: ${principal} is the principal diagnosis — the first code of the Coder's final list — and box 67 is where it is first-listed. "${form.principalDiagnosis}" there prices the bill against the wrong condition and earns CO-11, diagnosis does not support the procedure. Put ${principal} in box 67.`,
+      );
+    }
   }
 
   const lines = (form.serviceLines || []).filter(
