@@ -29,7 +29,7 @@
  */
 
 import type { CasePatient, DentalAdjudicationContext } from "./caseScenarios";
-import { findDenial, type DentalDenial } from "./denialReasons";
+import { findDenial, type DentalAppealOutcome, type DentalDenial } from "./denialReasons";
 import type { CarcGroup } from "../claims/carc";
 
 /** The six per-line actions the AR workspace offers, plus "not handled". */
@@ -186,12 +186,19 @@ export interface PracticeLineScore {
 /**
  * Score one committed line. Called only after the student commits, and its
  * result is the only place the key reaches the screen.
+ *
+ * `appealOutcome` is optional and additive: where a line's appeal came back
+ * **upheld** the appeal counts as paid, and where it came back **denied** a
+ * contractual write-off counts exactly as a clean write-off does. The final
+ * action still decides — an appeal outcome can never turn a wrong action right
+ * (billing the patient stays wrong however the appeal ended).
  */
 export function scorePracticeLine(
   scenario: DentalARPracticeScenario,
   lineId: string,
   resolution: PracticeLineResolution,
   callNotes: { lineId?: string; note: string }[],
+  appealOutcome?: DentalAppealOutcome,
 ): PracticeLineScore | null {
   const line = scenario.lines.find((l) => l.id === lineId);
   if (!line?.key) return null;
@@ -204,8 +211,16 @@ export function scorePracticeLine(
     : key.noteMustMention && key.noteMustMention.length > 0
       ? key.noteMustMention.some((phrase) => noteText.includes(phrase.toLowerCase()))
       : noteText.trim().length > 0;
+  /**
+   * The two endings of an appeal, scored as the outcome they produced: an upheld
+   * appeal is the line paying, and a denied appeal followed by the write-off is
+   * the write-off. Both are compared against the key's own action.
+   */
+  const appealConfirms =
+    (appealOutcome === "upheld" && resolution === "appealed" && key.resolution === "appealed") ||
+    (appealOutcome === "denied" && resolution === "write-off" && key.resolution === "write-off");
   return {
-    correct: resolution === key.resolution && noteSatisfied,
+    correct: (resolution === key.resolution || appealConfirms) && noteSatisfied,
     expected: key.resolution,
     noteRequired,
     noteSatisfied,
