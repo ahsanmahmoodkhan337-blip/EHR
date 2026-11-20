@@ -17,7 +17,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronDown, LogOut, Menu, Moon, Settings, Sun, Timer } from "lucide-react";
+import { ChevronDown, LogOut, Menu, Moon, Settings, Timer } from "lucide-react";
 import { logout } from "../../store/accessStore";
 import { DarkModeToggle } from "../DarkModeToggle";
 import { TrackSwitcher } from "../dental/TrackSwitcher";
