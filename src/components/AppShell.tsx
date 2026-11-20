@@ -136,7 +136,9 @@ export function AppShell({
             </aside>
           )}
 
-          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">{children}</main>
+          {/* The one scroll container in the app: the workspace scrolls
+              itself, the page never does (spec phase-2-layout.md §1). */}
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
 
           {rightPanel && showRightPanel && (
             <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-slate-200 xl:block dark:border-slate-800">

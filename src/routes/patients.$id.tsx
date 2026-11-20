@@ -156,7 +156,7 @@ function HubTabBar({ patientId }: { patientId: string }) {
       role="tablist"
       aria-label="Patient hub"
       onKeyDown={onKeyDown}
-      className="flex flex-wrap gap-1 border-b border-slate-200"
+      className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200 [scrollbar-width:thin]"
     >
       {HUB_TABS.map((tab) => {
         const selected = tab.id === active;
@@ -170,7 +170,7 @@ function HubTabBar({ patientId }: { patientId: string }) {
             aria-selected={selected}
             aria-controls="hub-panel"
             tabIndex={selected ? 0 : -1}
-            className={`inline-flex min-h-10 items-center rounded-t-lg px-3 text-[11px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 ${
+            className={`inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-t-lg px-3 text-[11px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 ${
               selected
                 ? "border-b-2 border-brand-600 text-brand-700"
                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
