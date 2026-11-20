@@ -18,6 +18,7 @@ import { getLoggedInPhone, getSubscriptionStatus, isLoggedIn } from "../store/ac
 import { loadUserData } from "../store/persistence";
 import { PatientProvider } from "../store/patientStore";
 import { AppShell } from "../components/AppShell";
+import { SHELL_NAV_ITEMS } from "../components/shell/navItems";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { getSharingSignal, MAX_DEVICE_COUNT, resetOtherSessions } from "../store/accountSecurity";
 import { encounterKey, type PipelineStoreState } from "../store/pipelineStore";
@@ -45,6 +46,14 @@ export const Route = createFileRoute("/dashboard")({
  * (Coder 2, Prior Auth 3, Biller 4), which contradicted the real order.
  */
 const MEDICAL_STAGES = ENCOUNTER_FLOW_STAGES;
+
+/**
+ * The destinations the dashboard carries a card for: everything the removed
+ * left rail held except Home and Settings, which are the header's own controls.
+ */
+const PRACTICE_AREAS = SHELL_NAV_ITEMS.filter(
+  (item) => item.id !== "home" && item.id !== "settings",
+);
 
 const DENTAL_STAGE_LABELS: Record<DentalStageName, string> = {
   "case-select": "Select a case",
@@ -245,6 +254,31 @@ function DashboardPage() {
                 {dentalStarted ? "Resume" : "Start"} <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Practice areas — the destinations the left rail used to hold.
+            Owner's style correction, 2026-11-21 (spec `nov19-style-restore.md`
+            §1): the rail is gone, so every destination it carried gets a 19
+            November card here instead. The list is `navItems.ts` — the same one
+            the header reads — so a page cannot fall out of both. Home and
+            Settings are the header's own two controls and are left out here. */}
+        <div className="surface-card mt-5 p-5">
+          <h2 className="text-base font-bold text-slate-800">Practice areas</h2>
+          <p className="mt-0.5 text-[11px] text-slate-400">
+            Every page in the simulator, one click away.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {PRACTICE_AREAS.map(({ id, label, icon: Icon, to }) => (
+              <Link
+                key={id}
+                to={to}
+                className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              >
+                <Icon className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
+                <span className="min-w-0 truncate">{label}</span>
+              </Link>
+            ))}
           </div>
         </div>
 

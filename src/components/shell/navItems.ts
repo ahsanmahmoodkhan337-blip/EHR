@@ -1,29 +1,33 @@
 /**
- * navItems.ts — the one sidebar model
+ * navItems.ts — the one list of destinations
  *
- * Inspired by athenaOne's left navigation rail and Epic Hyperspace's activity
- * toolbar: one entry per destination, the same list on every page.
+ * Inspired by Epic Hyperspace's activity list: one entry per destination, the
+ * same list on every page.
  *
- * Spec `eleven-rail-pages.md` (owner decisions, 2026-11-20): **eleven buttons in
- * all**, in this order, in both tracks —
+ * Owner's style correction, 2026-11-21 (spec `nov19-style-restore.md` §1): the
+ * eleven-button left rail is **gone**, and this list is no longer a rail. It is
+ * the register of destinations — **eleven buttons in all**, in this order, in
+ * both tracks —
  *
  *   Home · Schedule · Patients · Charts · Coding · Claims · Payments ·
  *   Denials and AR · Reports · Practice Cases · Settings
  *
- * The five money-cycle entries the old rail showed as SOON (Coding, Claims,
- * Payments, Denials and AR, Reports) are real pages now. Nothing in the rail
- * says Soon, and no entry is a placeholder: every item here opens a route that
- * exists and draws something.
+ * and each one is still a real page reached from the 19 November navigation:
+ * Home and Settings from the header bar (`shell/AppHeader.tsx`), the other nine
+ * from the dashboard's Practice areas card (`routes/dashboard.tsx`) and, inside
+ * an encounter, from the stepper (Coding, Claims, Payments, Denials and AR).
+ * The dashboard builds its cards from this list, so a destination cannot fall
+ * out of both.
  *
- * The labels and the grouping are exactly the ones students already saw —
- * **Denials and AR is one page**, and **Reports is a page**, not a drawer.
+ * No entry says Soon, and no entry is a placeholder: every item here opens a
+ * route that exists and draws something.
  *
  * Charts took the slot Reference held in PR #120; Reference is the drawer beside
- * the work, not a page students need in the rail — its route (`/reference`) still
- * exists, it is simply not in the rail.
+ * the work, not a page students need in the list — its route (`/reference`)
+ * still exists, it is simply not one of the eleven.
  *
- * Kept free of React on purpose: the router, the sidebar and the tests all read
- * this one list.
+ * Kept free of React on purpose: the router, the dashboard and the tests all
+ * read this one list.
  */
 
 import {
@@ -45,9 +49,9 @@ import {
 export type ShellTrack = "medical" | "dental";
 
 /**
- * Every destination the shell can mark as current. Eleven of them are the rail;
- * `reference` stays here because `/reference` is still a page with its own
- * address, it is just not one of the eleven.
+ * Every destination the shell can name. Eleven of them are the eleven
+ * destinations; `reference` stays here because `/reference` is still a page
+ * with its own address, it is just not one of the eleven.
  */
 export type ShellNavId =
   | "home"

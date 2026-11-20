@@ -20,7 +20,7 @@ const read = (path: string) => readFileSync(join(root, path), "utf8");
 const STORE = read("src/store/pipelineStore.tsx");
 const INDEX = read("src/routes/index.tsx");
 const SHELL = read("src/components/AppShell.tsx");
-const SIDEBAR = read("src/components/shell/AppSidebar.tsx");
+const SIDEBAR = read("src/components/shell/AppHeader.tsx");
 const STAGE_NAV = read("src/components/shell/StageNav.tsx");
 
 /** The body of one function, from its declaration to its closing brace. */
@@ -101,8 +101,10 @@ describe("every stage after the first has one way back", () => {
 });
 
 describe("Home always takes you home", () => {
-  test("the rail's Home entry tells the page it was clicked", () => {
-    expect(SIDEBAR).toContain('if (item.id === "home") onHomeClick?.();');
+  test("the header's Home control tells the page it was clicked", () => {
+    // The rail is gone (spec `nov19-style-restore.md`); Home is the header's
+    // house icon now, and it still reports the click to the page.
+    expect(SIDEBAR).toContain("onClick={() => onHomeClick?.()}");
     expect(SHELL).toContain("onHomeClick={onHomeClick}");
     expect(INDEX).toContain("onHomeClick={handleHomeClick}");
   });
@@ -121,7 +123,7 @@ describe("Home always takes you home", () => {
 
   test("Home is marked current on Home and the label is still visible", () => {
     expect(INDEX).toContain('const shellActiveNav: ShellNavId = "home";');
-    expect(SIDEBAR).toContain('aria-current={isActive ? "page" : undefined}');
-    expect(SIDEBAR).toContain("min-h-10");
+    expect(SIDEBAR).toContain('aria-label="Home"');
+    expect(SIDEBAR).toContain("h-10 w-10");
   });
 });
