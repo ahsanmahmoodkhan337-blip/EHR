@@ -296,7 +296,7 @@ function contextFor(args: {
 }
 
 /* ------------------------------------------------------------------ */
-/* The seven scenarios                                                */
+/* The nine scenarios                                                 */
 /* ------------------------------------------------------------------ */
 
 /** DAR-01 — a bitewing set eight months after the payer bought the last one. */
@@ -812,6 +812,150 @@ const DAR_07: DentalARPracticeScenario = (() => {
   };
 })();
 
+/**
+ * DAR-08 — a crown replacement inside the plan's replacement interval, where the
+ * record shows a fracture and the film exists. The appeal carries, and the line
+ * pays (`specs/appeal-documentation-gate.md`).
+ */
+const DAR_08: DentalARPracticeScenario = (() => {
+  const lines: DentalPracticeLine[] = [
+    {
+      id: "DAR-08-L1",
+      code: "D2740",
+      tooth: "14",
+      dateOfService: "2027-04-09",
+      feeUsd: 1240,
+      allowedUsd: 1040,
+      seedDenialId: "DEN-FREQ-CROWN",
+      key: {
+        resolution: "appealed",
+        why: "CO-119 is a frequency denial, not a coverage exclusion: the plan bought a crown on tooth 14 inside its replacement interval. The record shows the old crown fractured, and the pre-operative radiograph that shows the fracture is in the chart. That is the plan's criterion, so the appeal carries and the 1,040.00 allowed amount is released — the patient balance stays at 0.00.",
+        lesson:
+          "A frequency denial is appealed with the clinical failure, not with the patient's opinion of the crown. The payer decides on the film and the stated reason, so the appeal has to carry both before it is lodged — and if the criterion is not met, the same line ends in a contractual write-off instead.",
+      },
+    },
+    {
+      id: "DAR-08-L2",
+      code: "D0120",
+      dateOfService: "2027-04-09",
+      feeUsd: 62,
+      allowedUsd: 58,
+    },
+  ];
+  return {
+    id: "DAR-08",
+    title: "A crown replaced inside the plan's interval",
+    whatYouWillPractise: "A frequency denial where the record shows the clinical failure",
+    payerName: "Cascadia Dental Guard",
+    planId: "PLAN-CASCADIA-PPO",
+    dos: "2027-04-09",
+    claimNumber: "CASC-2027-007451",
+    brief:
+      "A ceramic crown on an upper first molar, seated on 2027-04-09 and billed the same day. The payer's records show a crown on the same tooth from a previous practice, 3 years 4 months earlier, inside its five-year replacement interval. The chart holds a pre-operative radiograph taken that morning: the old crown had fractured at the distobuccal cusp and could not be repaired. The patient had also asked about a lighter shade before the appointment.",
+    callObjectives: [
+      "Ask which tooth and which prior crown the frequency interval is being measured from.",
+      "Ask what the payer reviews to show the replacement was clinically necessary.",
+      "Ask whether an upheld appeal releases the full allowed amount or a reduced one.",
+    ],
+    lines,
+    context: contextFor({
+      planId: "PLAN-CASCADIA-PPO",
+      patient: patient({
+        id: "DPT-7008",
+        firstName: "Nadia",
+        lastName: "Sorenson",
+        dateOfBirth: "1979-02-14",
+        ageAtServiceDate: 48,
+        gender: "Female",
+        memberId: "CDG551208744",
+        coverageEffectiveDate: "2021-07-01",
+        monthsCoveredAtServiceDate: 69,
+      }),
+      lines,
+      remainingAnnualMaximumUsd: 1750,
+      status: "Active. Major services at 50% after twelve months of continuous coverage.",
+      representativeNotes: [
+        "The plan's replacement interval for a crown is five years on the same tooth.",
+        "The prior crown on tooth 14 was placed 3 years 4 months before this date of service.",
+        "The interval follows the tooth, not the practice that placed the earlier crown.",
+      ],
+    }),
+  };
+})();
+
+/**
+ * DAR-09 — a buildup denied as bundled, where the record shows the buildup was
+ * preparation shaping. The appeal is refused by the payer's criterion, so the
+ * student finishes the line with the CO write-off
+ * (`specs/appeal-documentation-gate.md`, `specs/appeal-then-write-off.md`).
+ */
+const DAR_09: DentalARPracticeScenario = (() => {
+  const lines: DentalPracticeLine[] = [
+    {
+      id: "DAR-09-L1",
+      code: "D2950",
+      tooth: "30",
+      dateOfService: "2027-05-21",
+      feeUsd: 295,
+      allowedUsd: 250,
+      seedDenialId: "DEN-BUNDLE-BUILDUP",
+      key: {
+        resolution: "write-off",
+        why: "CO-97 says the payer treats the buildup as part of preparing the tooth for the crown. The note and the pre-operative film show the tooth was not badly broken down — the buildup was shaping the preparation for the crown, which is exactly what the payer includes in the crown's payment. Stating that honestly on the appeal gets it denied, because it is not one of the plan's criteria; the line then ends as a contractual write-off, patient balance 0.00.",
+        lesson:
+          "A bundling denial is contractual. An appeal is still the first action, but it only carries on the plan's own criterion — and when it does not, the answer is a CO write-off, never a bill to the patient. Bill the buildup only when the record supports it, not on every crown.",
+      },
+    },
+    {
+      id: "DAR-09-L2",
+      code: "D2750",
+      tooth: "30",
+      dateOfService: "2027-05-21",
+      feeUsd: 1215,
+      allowedUsd: 1010,
+    },
+  ];
+  return {
+    id: "DAR-09",
+    title: "A buildup billed with every crown",
+    whatYouWillPractise: "A bundling denial where the record does not meet the plan's criterion",
+    payerName: "Cascadia Dental Guard",
+    planId: "PLAN-CASCADIA-PPO",
+    dos: "2027-05-21",
+    claimNumber: "CASC-2027-008103",
+    brief:
+      "A porcelain-fused-to-metal crown on a lower right first molar, with a core buildup billed on the same day. The crown paid; the buildup came back bundled into it. The operative note records that the tooth was not badly broken down: the buildup was shaping the preparation so the crown would seat. A pre-operative radiograph is in the chart and shows the same. The practice bills a buildup with every crown as a matter of routine.",
+    callObjectives: [
+      "Ask what the payer includes in the crown's payment, so the boundary is clear.",
+      "Ask what the payer reviews to separate a necessary buildup from preparation.",
+      "Ask what happens to the balance if the bundling is upheld on review.",
+    ],
+    lines,
+    context: contextFor({
+      planId: "PLAN-CASCADIA-PPO",
+      patient: patient({
+        id: "DPT-7009",
+        firstName: "Hector",
+        lastName: "Villalobos",
+        dateOfBirth: "1958-11-02",
+        ageAtServiceDate: 68,
+        gender: "Male",
+        memberId: "CDG664512903",
+        coverageEffectiveDate: "2022-01-01",
+        monthsCoveredAtServiceDate: 64,
+      }),
+      lines,
+      remainingAnnualMaximumUsd: 1240,
+      status: "Active. Major services at 50% after twelve months of continuous coverage.",
+      representativeNotes: [
+        "The plan bundles a core buildup into the crown when the tooth did not need it to retain the restoration.",
+        "The operative note describes shaping the preparation, not rebuilding missing tooth structure.",
+        "The pre-operative radiograph is on file and shows a tooth with its walls intact.",
+      ],
+    }),
+  };
+})();
+
 export const DENTAL_AR_PRACTICE_SCENARIOS: DentalARPracticeScenario[] = [
   DAR_01,
   DAR_02,
@@ -820,6 +964,8 @@ export const DENTAL_AR_PRACTICE_SCENARIOS: DentalARPracticeScenario[] = [
   DAR_05,
   DAR_06,
   DAR_07,
+  DAR_08,
+  DAR_09,
 ];
 
 export const DENTAL_AR_PRACTICE_INDEX: Record<string, DentalARPracticeScenario> = Object.fromEntries(

@@ -14,7 +14,13 @@
  *    is not appealable is a scored trap, explained only after the choice;
  *  - a downgrade is never listed here as a denial (it is a covered reduction);
  *  - the money line comes from `denialMoney()`, so a CO line never prints as a
- *    patient balance and an OA (COB) line never prints as a write-off.
+ *    patient balance and an OA (COB) line never prints as a write-off. Before
+ *    the line is committed it prints the unpaid amount only — never the money
+ *    rule, which would answer who pays before the student decides;
+ *  - an appeal on a crown or buildup is assembled against the documentation
+ *    gate (`specs/appeal-documentation-gate.md`): the film, one stated reason,
+ *    and the student's own words as narrative. An incomplete appeal is refused
+ *    before it is lodged; the words never decide the outcome.
  *
  * Two callers, one component (spec `dental-ar-practice-bench.md`):
  *  - a graded case — `state.lines` and `state.lineResolutions`, scored by the
@@ -30,6 +36,7 @@ import {
   findCDT,
   findPracticeScenario,
   AR_CALL_GUIDANCE,
+  appealGateFor,
   appealOutcomeFor,
   denialMoney,
   scorePracticeLine,
@@ -38,6 +45,7 @@ import {
 } from "../../data/dental";
 import { adjudicateDentalClaim, adjudicatePracticeScenario } from "./adjudication";
 import { useDentalTrack, type DentalLineResolution } from "./DentalTrackStore";
+import { AppealDocumentationChecklist } from "./AppealDocumentationChecklist";
 
 const RESOLUTION_LABELS: Record<DentalLineResolution, string> = {
   "not-handled": "Not handled",
@@ -193,27 +201,37 @@ export function DentalAR() {
   };
 
   /**
-   * The documentation behind a line's appeal: the call notes logged against it.
-   * Where the denial's appeal has two endings this is what the payer answers.
+   * The appeal being assembled on one line: the film, the stated reason, the
+   * student's own words, and any refusal the gate came back with. Held per line
+   * so opening a second line's appeal never carries the first one's answers.
    */
-  const appealDocumentationFor = (lineId: string): string => {
-    const notes = practiceScenario
-      ? (practiceRun?.callLog ?? []).filter((n) => n.lineId === lineId)
-      : state.arCallLog.filter((n) => n.lineId === lineId);
-    return notes.map((n) => n.note).join(" ");
-  };
+  const [appealDraft, setAppealDraft] = useState<{
+    lineId: string;
+    filmAttached: boolean;
+    reasonId: string | null;
+    narrative: string;
+    refusal: { rule: string; consequence: string } | null;
+  } | null>(null);
 
   /**
    * Commit one line's action. This is the only place a decision is recorded,
    * and the only place anything about the correct answer can appear.
    *
-   * An appeal on a two-ending denial also comes back with an outcome: an appeal
-   * lodged without the documentation the criterion asks for is denied, and the
-   * student then has to finish the line with the contractual write-off.
+   * An appeal on a two-ending denial also comes back with an outcome, and that
+   * outcome is the payer's answer to the documentation the student lodged
+   * (`specs/appeal-documentation-gate.md`): a complete appeal stating one of the
+   * plan's criteria is upheld; a complete appeal stating a reason the plan does
+   * not cover is denied, and the student then has to finish the line with the
+   * contractual write-off. The words never decide it.
    */
-  const commit = (lineId: string, denial: DentalDenial, resolution: DentalLineResolution) => {
+  const commit = (
+    lineId: string,
+    denial: DentalDenial,
+    resolution: DentalLineResolution,
+    lodgement?: { filmAttached: boolean; reasonId: string | null; narrative: string },
+  ) => {
     const appealOutcome =
-      resolution === "appealed" ? (appealOutcomeFor(denial, appealDocumentationFor(lineId)) ?? undefined) : undefined;
+      resolution === "appealed" ? (appealOutcomeFor(denial, lodgement ?? { filmAttached: false }) ?? undefined) : undefined;
     if (practiceScenario) {
       practiceResolveLine(practiceScenario.id, lineId, resolution, appealOutcome);
       return;
@@ -314,7 +332,9 @@ export function DentalAR() {
                 <span className="text-[11px] font-medium text-slate-700">{codeInfo?.shortName ?? "Unknown"}</span>
                 <span
                   className={`rounded px-1.5 py-0.5 text-[10px] font-bold ring-1 ${
-                    money.patientBalance ? "bg-red-50 text-red-700 ring-red-100" : "bg-slate-100 text-slate-700 ring-slate-200"
+                    row.committed && money.patientBalance
+                      ? "bg-red-50 text-red-700 ring-red-100"
+                      : "bg-slate-100 text-slate-700 ring-slate-200"
                   }`}
                   title="Claim Adjustment Reason Code, group code first"
                 >
@@ -323,12 +343,18 @@ export function DentalAR() {
                 <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[9px] font-medium text-slate-400 ring-1 ring-slate-100">
                   {denial.id}
                 </span>
-                <span
-                  className={`ml-auto text-[11px] font-bold ${money.patientBalance ? "text-red-600" : "text-slate-500"}`}
-                >
-                  {money.patientBalance
-                    ? `${fmtUsd(row.patientOwesUsd)} patient balance — ${money.label}`
-                    : `${fmtUsd(row.writeOffUsd)} — ${money.label}`}
+                {/*
+                  Rule 6: before the line is decided this is the unpaid amount on
+                  the remittance and nothing else — no money rule, no answer to
+                  who pays. The rule and the patient/write-off split arrive with
+                  the committed line.
+                */}
+                <span className={`ml-auto text-[11px] font-bold ${row.committed && money.patientBalance ? "text-red-600" : "text-slate-500"}`}>
+                  {row.committed
+                    ? money.patientBalance
+                      ? `${fmtUsd(row.patientOwesUsd)} patient balance — ${money.label}`
+                      : `${fmtUsd(row.writeOffUsd)} — ${money.label}`
+                    : `${fmtUsd(money.patientBalance ? row.patientOwesUsd : row.writeOffUsd)} unpaid on this line`}
                 </span>
               </div>
 
@@ -345,7 +371,11 @@ export function DentalAR() {
                   “{denial.payerRemark}”
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  <Badge k="Group code" v={groupCodeLabel(denial.groupCode)} tone={denial.groupCode === "PR" ? "red" : "slate"} />
+                  <Badge
+                    k="Group code"
+                    v={groupCodeLabel(denial.groupCode)}
+                    tone={row.committed && denial.groupCode === "PR" ? "red" : "slate"}
+                  />
                 </div>
                 {isPractice && (
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 rounded border border-slate-100 bg-slate-50 px-2 py-1 text-[10px] text-slate-600">
@@ -375,7 +405,22 @@ export function DentalAR() {
                     {ACTIONS.map((action) => (
                       <button
                         key={action.res}
-                        onClick={() => commit(lineId, denial, action.res)}
+                        onClick={() => {
+                          // An appeal on a two-ending denial is assembled first:
+                          // the gate refuses an incomplete one before it is
+                          // lodged, so the checklist opens instead of committing.
+                          if (action.res === "appealed" && denial.appealEvidence) {
+                            setAppealDraft({
+                              lineId,
+                              filmAttached: false,
+                              reasonId: null,
+                              narrative: "",
+                              refusal: null,
+                            });
+                            return;
+                          }
+                          commit(lineId, denial, action.res);
+                        }}
                         aria-label={`${action.label} for ${code}`}
                         className="min-h-[40px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-[11px] font-semibold text-slate-700 hover:border-teal-300 hover:text-teal-800"
                       >
@@ -383,6 +428,55 @@ export function DentalAR() {
                       </button>
                     ))}
                   </div>
+
+                  {appealDraft?.lineId === lineId && denial.appealEvidence && (
+                    <div className="mt-2 rounded-lg border border-red-200 bg-white p-2">
+                      <p className="mb-1 text-[10px] font-bold text-red-800">Appeal — {denial.title}</p>
+                      <AppealDocumentationChecklist
+                        idPrefix={`ar-appeal-${lineId}`}
+                        denial={denial}
+                        filmAttached={appealDraft.filmAttached}
+                        reasonId={appealDraft.reasonId}
+                        narrative={appealDraft.narrative}
+                        onFilm={(filmAttached) => setAppealDraft({ ...appealDraft, filmAttached, refusal: null })}
+                        onReason={(reasonId) => setAppealDraft({ ...appealDraft, reasonId, refusal: null })}
+                        onNarrative={(narrative) => setAppealDraft({ ...appealDraft, narrative })}
+                        refusal={appealDraft.refusal}
+                      />
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const lodgement = {
+                              filmAttached: appealDraft.filmAttached,
+                              reasonId: appealDraft.reasonId,
+                              narrative: appealDraft.narrative,
+                            };
+                            const gate = appealGateFor(denial, lodgement);
+                            if (!gate.complete) {
+                              setAppealDraft({
+                                ...appealDraft,
+                                refusal: { rule: gate.rule ?? "", consequence: gate.consequence ?? "" },
+                              });
+                              return;
+                            }
+                            setAppealDraft(null);
+                            commit(lineId, denial, "appealed", lodgement);
+                          }}
+                          className="inline-flex min-h-[40px] items-center rounded-lg bg-red-600 px-3 text-[11px] font-semibold text-white hover:bg-red-500"
+                        >
+                          Lodge appeal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAppealDraft(null)}
+                          className="min-h-[40px] rounded-lg border border-slate-200 px-3 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {isTarget && callState === "connected" && (
                     <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 p-2">
@@ -564,9 +658,13 @@ export function DentalAR() {
 }
 
 function groupCodeLabel(groupCode: string): string {
-  if (groupCode === "CO") return "CO — contractual, not billable to patient";
+  // The X12 group code's own name, and nothing past it: "not billable to the
+  // patient" is the payer's money rule, which the student is here to work out
+  // (rule 6). CO is "contractual obligation" in the single table in
+  // `src/data/claims/carc.ts`; the rest of that sentence is teaching copy.
+  if (groupCode === "CO") return "CO — contractual obligation";
   if (groupCode === "PR") return "PR — patient responsibility";
-  if (groupCode === "OA") return "OA — another payer's share";
+  if (groupCode === "OA") return "OA — other adjustment";
   return `${groupCode} — check the remittance`;
 }
 

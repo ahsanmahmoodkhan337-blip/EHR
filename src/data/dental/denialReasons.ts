@@ -44,6 +44,57 @@ export type DenialOutcome =
 /** How an appeal came back, where the appeal has two possible endings. */
 export type DentalAppealOutcome = "upheld" | "denied";
 
+/**
+ * One reason a student may state on an appeal, from the denial's short list
+ * (`specs/appeal-documentation-gate.md`).
+ *
+ * `meetsCriterion` is the plan's criterion, not the student's: a true-but-not-
+ * covered reason is a real thing a practice says and a real reason a payer
+ * denies, so the two endings both stay reachable. The screen never marks which
+ * is which — the plan's criterion is stated on the denial, and the student
+ * applies it to the record.
+ */
+export interface AppealReason {
+  id: string;
+  /** What the record would have to show, in student-facing words. */
+  text: string;
+  /** True where this is one of the criteria the payer decides the appeal on. */
+  meetsCriterion: boolean;
+}
+
+/** What an appeal on this denial must carry to be reviewable at all. */
+export interface AppealDocumentation {
+  /** The plan's criterion, in one phrase. Teaching copy for the label. */
+  label: string;
+  /** The film the payer's criterion names. Attached, or the appeal is refused. */
+  film: string;
+  /** The short list the student states one reason from. */
+  reasons: AppealReason[];
+}
+
+/**
+ * What the student actually lodged: the film, one stated reason, and their own
+ * words. The narrative is carried and never read by `appealOutcomeFor` — the
+ * words do not decide the appeal, the documentation does.
+ */
+export interface AppealLodgement {
+  filmAttached: boolean;
+  reasonId?: string | null;
+  narrative?: string;
+}
+
+/** The result of checking a lodgement against the denial's documentation rule. */
+export interface AppealGate {
+  /** True when the appeal may be lodged. */
+  complete: boolean;
+  /** Which required items are missing. Empty when complete. */
+  missing: ("film" | "reason")[];
+  /** The rule that was not met, stated for the student. */
+  rule?: string;
+  /** What the payer does with an appeal lodged without it. */
+  consequence?: string;
+}
+
 export interface DentalDenial {
   id: string;
   /**
@@ -87,11 +138,13 @@ export interface DentalDenial {
    */
   appealResolvesTo?: "pay-or-write-off";
   /**
-   * What the appeal has to say to carry, where the ending depends on the
-   * documentation the student lodges. Matched only AFTER the appeal is lodged —
-   * the label is teaching copy, never the answer to a decision not yet made.
+   * What the appeal must carry to be reviewable, where the ending depends on the
+   * documentation the student lodges (`specs/appeal-documentation-gate.md`):
+   * the film the payer's criterion names, and the short list of reasons the
+   * student states one of. Matched only AFTER the appeal is lodged — the label
+   * is the plan's criterion, never the answer to a decision not yet made.
    */
-  appealEvidence?: { label: string; phrases: string[] };
+  appealEvidence?: AppealDocumentation;
   /** Can the balance legitimately be billed to the patient? */
   patientBillable: boolean;
   /** The one sentence a student should remember. */
@@ -273,7 +326,24 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     appealEvidence: {
       label:
         "the clinical failure — new decay or a fracture under the crown — and the radiograph that shows it",
-      phrases: ["decay", "fracture", "recurrent", "radiograph", "x-ray", "xray", "broken"],
+      film: "a pre-operative or diagnostic radiograph of the tooth",
+      reasons: [
+        {
+          id: "crown-fractured",
+          text: "the existing crown fractured under function",
+          meetsCriterion: true,
+        },
+        {
+          id: "recurrent-decay",
+          text: "new recurrent decay was found under the crown",
+          meetsCriterion: true,
+        },
+        {
+          id: "shade-dissatisfied",
+          text: "the patient was unhappy with the shade of the existing crown",
+          meetsCriterion: false,
+        },
+      ],
     },
     patientBillable: false,
     teachingPoint: "Replacement clocks follow the tooth, not the dentist. A crown from a previous office still counts.",
@@ -615,7 +685,24 @@ export const DENTAL_DENIALS: DentalDenial[] = [
     appealEvidence: {
       label:
         "how little tooth structure was left to retain the crown, and the radiograph that shows it",
-      phrases: ["tooth structure", "structure", "insufficient", "fracture", "radiograph", "x-ray", "xray", "broken"],
+      film: "a pre-operative radiograph of the tooth taken before the buildup",
+      reasons: [
+        {
+          id: "insufficient-structure",
+          text: "too little tooth structure was left to retain the crown",
+          meetsCriterion: true,
+        },
+        {
+          id: "fractured-cusp",
+          text: "a cusp had fractured and had to be rebuilt to seat the crown",
+          meetsCriterion: true,
+        },
+        {
+          id: "prep-shaping",
+          text: "the buildup was shaping the preparation for the crown",
+          meetsCriterion: false,
+        },
+      ],
     },
     patientBillable: false,
     teachingPoint: "Bundling denials are contractual. If the appeal fails, the balance is a write-off, not a patient bill.",
@@ -1119,26 +1206,56 @@ export function denialActionLabel(denial: DentalDenial): string {
 }
 
 /**
+ * What an appeal has to carry before it may be lodged
+ * (`specs/appeal-documentation-gate.md`).
+ *
+ * Two items, both required: the film the payer's criterion names, and one
+ * reason stated from the denial's short list. The student's own words are
+ * narrative only — they are never one of the required items.
+ *
+ * A lodgement that fails this is **refused before it is lodged**: nothing is
+ * recorded, and the rule and its consequence come back for the screen to show
+ * where the button was pressed.
+ */
+export function appealGateFor(denial: DentalDenial, lodgement: AppealLodgement): AppealGate {
+  const doc = denial.appealEvidence;
+  if (!doc) return { complete: true, missing: [] };
+  const reasonChosen = doc.reasons.some((r) => r.id === lodgement.reasonId);
+  const missing: ("film" | "reason")[] = [];
+  if (!lodgement.filmAttached) missing.push("film");
+  if (!reasonChosen) missing.push("reason");
+  if (missing.length === 0) return { complete: true, missing };
+
+  const rule =
+    missing.length === 2
+      ? `An appeal on ${denial.carc} is reviewed only with ${doc.film} attached and one reason stated from the plan's criterion.`
+      : missing[0] === "film"
+        ? `An appeal on ${denial.carc} is reviewed only with ${doc.film} attached.`
+        : `An appeal on ${denial.carc} is reviewed only when one reason is stated from the plan's criterion.`;
+  const consequence =
+    "Lodged without it the appeal is not reviewable and comes back denied, and the line still has to be worked to a zero balance.";
+  return { complete: false, missing, rule, consequence };
+}
+
+/**
  * The payer's answer to an appeal, from the documentation the student lodged.
  *
- * An appeal is not a button that wins: it carries only when it states the thing
- * the payer's criterion asks for (for a crown, the failure and the radiograph
- * showing it; for a buildup, how little tooth structure was left). Documentation
- * that says none of it comes back denied, and the student then has to finish the
- * line the other way — a contractual write-off, patient balance 0.
+ * An appeal is not a button that wins, and it is not a keyword either: the
+ * payer's reviewer reads the film and the stated reason. A complete appeal
+ * stating one of the plan's criteria is upheld; a complete appeal stating a
+ * true reason the plan does not cover is denied, and the student then has to
+ * finish the line the other way — a contractual write-off, patient balance 0.
+ * The narrative is never read here, so the same appeal in any wording gets the
+ * same answer.
  *
  * Returns `null` for a denial whose appeal is not one of the two-ending ones, so
  * those keep their existing behaviour. Called only after the appeal is lodged.
  */
-export function appealOutcomeFor(
-  denial: DentalDenial,
-  documentation: string,
-): DentalAppealOutcome | null {
+export function appealOutcomeFor(denial: DentalDenial, lodgement: AppealLodgement): DentalAppealOutcome | null {
   if (denial.appealResolvesTo !== "pay-or-write-off") return null;
-  const text = documentation.toLowerCase();
-  const phrases = denial.appealEvidence?.phrases ?? [];
-  if (phrases.length === 0) return "denied";
-  return phrases.some((phrase) => text.includes(phrase.toLowerCase())) ? "upheld" : "denied";
+  if (!appealGateFor(denial, lodgement).complete) return "denied";
+  const stated = denial.appealEvidence?.reasons.find((r) => r.id === lodgement.reasonId);
+  return stated?.meetsCriterion ? "upheld" : "denied";
 }
 
 /** One sentence combining the CARC, the money rule and the next action. */

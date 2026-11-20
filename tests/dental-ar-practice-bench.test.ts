@@ -39,6 +39,8 @@ const expectedDenials: Record<string, { code: string; denialId: string }[]> = {
     { code: "D2740", denialId: "DEN-TIMELY-FILING" },
     { code: "D2950", denialId: "DEN-TIMELY-FILING" },
   ],
+  "DAR-08": [{ code: "D2740", denialId: "DEN-FREQ-CROWN" }],
+  "DAR-09": [{ code: "D2950", denialId: "DEN-BUNDLE-BUILDUP" }],
 };
 
 function scenarioById(id: string): DentalARPracticeScenario {
@@ -48,8 +50,8 @@ function scenarioById(id: string): DentalARPracticeScenario {
 }
 
 describe("scenarios produce the denials they claim", () => {
-  test("seven scenarios, six distinct denial categories", () => {
-    expect(DENTAL_AR_PRACTICE_SCENARIOS.length).toBe(7);
+  test("nine scenarios, six distinct denial categories", () => {
+    expect(DENTAL_AR_PRACTICE_SCENARIOS.length).toBe(9);
     const categories = new Set(
       DENTAL_AR_PRACTICE_SCENARIOS.flatMap((s) =>
         adjudicatePracticeScenario(s).denied.map((d) => d.denial.category),

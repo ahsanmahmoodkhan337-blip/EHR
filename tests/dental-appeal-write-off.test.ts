@@ -49,7 +49,7 @@ describe("the two-step denial records", () => {
   test("other appealable denials keep their single-ending behaviour", () => {
     const denial = findDenial("DEN-MED-NEC")!;
     expect(denial.appealResolvesTo).toBeUndefined();
-    expect(appealOutcomeFor(denial, "anything")).toBeNull();
+    expect(appealOutcomeFor(denial, { filmAttached: true, reasonId: "anything" })).toBeNull();
     expect(denialActionLabel(denial)).toBe("appeal with documentation");
   });
 });
@@ -58,19 +58,16 @@ describe("the payer's answer to the appeal", () => {
   const crown = findDenial("DEN-FREQ-CROWN")!;
   const buildup = findDenial("DEN-BUNDLE-BUILDUP")!;
 
-  test("documentation that states the failure is upheld", () => {
-    expect(appealOutcomeFor(crown, "Prior crown failed from new decay under the margin; radiograph attached.")).toBe(
-      "upheld",
-    );
-    expect(appealOutcomeFor(crown, "Crown fractured at the cusp, pre-operative x-ray enclosed.")).toBe("upheld");
-    expect(appealOutcomeFor(buildup, "Insufficient tooth structure remained to retain the crown; radiograph shows it.")).toBe(
-      "upheld",
-    );
+  test("a complete appeal stating a criterion is upheld, whatever the words say", () => {
+    for (const narrative of ["", "see attached", "Please reconsider, the patient needed the crown."]) {
+      expect(appealOutcomeFor(crown, { filmAttached: true, reasonId: "crown-fractured", narrative })).toBe("upheld");
+    }
+    expect(appealOutcomeFor(buildup, { filmAttached: true, reasonId: "insufficient-structure" })).toBe("upheld");
   });
 
-  test("documentation that says none of it is denied — the second ending exists", () => {
-    expect(appealOutcomeFor(crown, "Please reconsider, the patient needed the crown.")).toBe("denied");
-    expect(appealOutcomeFor(buildup, "The dentist decided this was necessary.")).toBe("denied");
+  test("a complete appeal stating a reason the plan does not cover is denied — the second ending exists", () => {
+    expect(appealOutcomeFor(crown, { filmAttached: true, reasonId: "shade-dissatisfied" })).toBe("denied");
+    expect(appealOutcomeFor(buildup, { filmAttached: true, reasonId: "prep-shaping" })).toBe("denied");
   });
 });
 
