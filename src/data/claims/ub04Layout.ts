@@ -33,7 +33,14 @@ import {
 // ─── Coded choices ──────────────────────────────────────────────────
 
 /** The institutional code tables spell their teaching line differently. */
-const describe = (c: { code: string } & Record<string, unknown>): string =>
+type Describable = {
+  code: string;
+  teachingDescription?: string;
+  description?: string;
+  label?: string;
+  meaning?: string;
+};
+const describe = (c: Describable): string =>
   String(c.teachingDescription ?? c.description ?? c.label ?? c.meaning ?? "");
 
 /**
