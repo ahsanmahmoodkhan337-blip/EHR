@@ -43,8 +43,14 @@ const STORAGE_PREFIX = "hh_userdata_";
  * record — no payment, no adjustment and no patient balance is invented for a
  * claim that was saved before the ledger existed, and a claim status carried
  * from v4 stays exactly what it said.
+ * v6 is money cycle slice 3: every encounter gains `arItems` — what the student
+ * has done to each AR work-queue item. It starts empty, because the queue itself
+ * is derived from the posted 835 and the ledger: nothing is invented, no item is
+ * marked worked, and no money moves on a migrated record. A claim saved with a
+ * posted 835 gets its queue items the moment the record loads, because they were
+ * always in the money — they were only never shown.
  */
-const BLOB_VERSION = 5;
+const BLOB_VERSION = 6;
 
 export interface PersistedUserData {
   v: number;

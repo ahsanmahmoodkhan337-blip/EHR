@@ -16,6 +16,7 @@ import type { ClaimHold, ClaimStatus, JobRole } from "../domain/claimStatus";
 import type { StatusEvent } from "../domain/statusEvent";
 import type { Remittance835 } from "../domain/adjudication";
 import type { LedgerEntry } from "../domain/ledger";
+import type { ArItemState } from "../domain/arWorkQueue";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -192,6 +193,13 @@ export interface PipelineEncounter {
    * (`domain/ledger.ts`). The balances are summed from here, never stored.
    */
   ledger: LedgerEntry[];
+  /**
+   * What the student has done to each AR work-queue item on this claim
+   * (`domain/arWorkQueue.ts`). The queue itself is derived from the posted 835
+   * and the ledger; only the work done on an item is stored, so a resolved item
+   * can never disagree with the money. v6.
+   */
+  arItems: ArItemState[];
 }
 
 /**
@@ -277,6 +285,7 @@ export function createEncounter(patientId: string | null): PipelineEncounter {
     statusEvents: [],
     remittances: [],
     ledger: [],
+    arItems: [],
   };
 }
 
@@ -312,6 +321,10 @@ export function normalizeEncounter(
     // and the claim's status is carried forward exactly as it was stored.
     remittances: Array.isArray(raw.remittances) ? raw.remittances : [],
     ledger: Array.isArray(raw.ledger) ? raw.ledger : [],
+    // v6 (money cycle slice 3). A record saved before the AR work queue existed
+    // starts with no item worked: the queue is derived from the 835 and the
+    // ledger, so nothing is invented for it and no money moves on its own.
+    arItems: Array.isArray(raw.arItems) ? raw.arItems : [],
   };
 }
 

@@ -12,8 +12,6 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
-  UserPlus,
-  MessageSquare,
   ChevronDown,
   DollarSign,
   FileText,
@@ -23,7 +21,6 @@ import {
   Copy,
   Check,
   ThumbsUp,
-  XCircle,
   ClipboardList,
   Building2,
   Save,
@@ -49,7 +46,6 @@ export default function ARVoiceSimulator() {
   const pipeline = usePipeline();
   const {
     deniedClaims,
-    resolveDenial,
     addCallRecord,
     getClaimsByAging,
     arCalls,
@@ -462,24 +458,15 @@ export default function ARVoiceSimulator() {
                           ))}
                         </div>
 
-                        {/* Escalation buttons */}
+                        {/* Clearing a denial moves money, and money moves in the AR
+                            work queue above: rebill, appeal, transfer to the patient or
+                            write off, each one writing ledger entries. This card only
+                            reads the claim. */}
+                        <p className="mt-2 text-[9px] leading-relaxed text-slate-500">
+                          Clearing a denial moves money — do it in the AR work queue above. This card only
+                          reads the claim.
+                        </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          <button onClick={() => resolveDenial(claim.id, "resolved")}
-                            className="flex items-center gap-1 rounded bg-green-600 px-2 py-1 text-[9px] font-medium text-white hover:bg-green-500">
-                            <CheckCircle2 className="h-2.5 w-2.5" /> Resolve
-                          </button>
-                          <button onClick={() => resolveDenial(claim.id, "escalated")}
-                            className="flex items-center gap-1 rounded bg-brand-600 px-2 py-1 text-[9px] font-medium text-white hover:bg-brand-600">
-                            <UserPlus className="h-2.5 w-2.5" /> Escalate
-                          </button>
-                          <button onClick={() => resolveDenial(claim.id, "in-progress")}
-                            className="flex items-center gap-1 rounded bg-amber-600 px-2 py-1 text-[9px] font-medium text-white hover:bg-amber-500">
-                            <MessageSquare className="h-2.5 w-2.5" /> In Progress
-                          </button>
-                          <button onClick={() => resolveDenial(claim.id, "resolved")}
-                            className="flex items-center gap-1 rounded bg-slate-600 px-2 py-1 text-[9px] font-medium text-white hover:bg-slate-500">
-                            <XCircle className="h-2.5 w-2.5" /> Write Off
-                          </button>
                           {/* Read claim audio button */}
                           <button
                             onClick={() => {
