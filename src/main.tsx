@@ -12,9 +12,15 @@ import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "./router";
 import { getLoggedInPhone } from "./store/accessStore";
 import { bootstrapEhrStore } from "./store/ehrStore";
+import { removeStagePinState } from "./store/removeStagePinState";
 import "~/styles/app.css";
 
 const router = getRouter();
+
+// Stage PINs are retired (specs/task-0b-remove-pin.md): drop the two keys the
+// old gate wrote, so no saved lock state can put a student on a locked stage.
+// Every other saved key — including their progress — is left untouched.
+removeStagePinState();
 
 // Phase 0: load this student's persisted record set (patients, appointments,
 // case state) before the first screen renders.

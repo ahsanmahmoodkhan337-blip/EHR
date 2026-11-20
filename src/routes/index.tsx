@@ -73,7 +73,6 @@ import { InBasket } from "../components/TabsEpic/InBasket";
 import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
 import { ChartSearch } from "../components/TabsEpic/ChartSearch";
 import ARVoiceSimulator from "../components/ARVoiceSimulator/ARVoiceSimulator";
-import { StagePinGate } from "../components/StagePinGate";
 import { CodingQueue } from "../components/CodingQueue/CodingQueue";
 import { BillingLedger } from "../components/BillingLedger/BillingLedger";
 import PriorAuthPortal from "../components/PriorAuthPortal/PriorAuthPortal";
@@ -2032,24 +2031,16 @@ function Home() {
       {selectedPatient && currentRole !== "scribe" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
           {currentRole === "coder" && (
-            <StagePinGate role="coder" roleLabel="Medical Coder">
-              <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
-            </StagePinGate>
+            <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
           )}
           {currentRole === "biller" && (
-            <StagePinGate role="biller" roleLabel="Medical Biller">
-              <BillingLedger />
-            </StagePinGate>
+            <BillingLedger />
           )}
           {currentRole === "prior-auth" && (
-            <StagePinGate role="prior-auth" roleLabel="Prior Authorization">
-              <PriorAuthPortal />
-            </StagePinGate>
+            <PriorAuthPortal />
           )}
           {currentRole === "ar-voice" && (
-            <StagePinGate role="ar-voice" roleLabel="AR Voice Specialist">
-              <ARVoiceSimulator />
-            </StagePinGate>
+            <ARVoiceSimulator />
           )}
           {pipelineState.stage === "complete" && (
             <div className="flex flex-1 flex-col items-center justify-center p-8">

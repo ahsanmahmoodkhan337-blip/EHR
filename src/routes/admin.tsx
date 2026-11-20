@@ -23,10 +23,6 @@ import {
   Clock,
   RefreshCw,
   LogOut,
-  Key,
-  Lock,
-  Eye,
-  EyeOff,
   Save,
   UserPlus,
   Trash2,
@@ -45,13 +41,6 @@ import {
 } from "../store/accessStore";
 import { supabase } from "../store/supabase";
 import { fetchAdminSharingSummaries, MAX_DEVICE_COUNT, type AdminSharingSummary } from "../store/accountSecurity";
-import {
-  getAllPins,
-  setStagePin,
-  resetAllPins,
-  type StagePinMap,
-} from "../store/pinStore";
-import type { Role } from "../store/pipelineStore";
 import { WhatsAppFloat } from "../components/WhatsAppFloat";
 
 export const Route = createFileRoute("/admin")({
@@ -123,11 +112,6 @@ function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
 
-  const [pins, setPins] = useState<StagePinMap>({ scribe: "1111", coder: "2222", biller: "3333", "prior-auth": "4444", "ar-voice": "5555" });
-  const [editPinRole, setEditPinRole] = useState<Role | null>(null);
-  const [editPinValue, setEditPinValue] = useState("");
-  const [showPins, setShowPins] = useState(false);
-  const [pinSaved, setPinSaved] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState(getSessionTimeoutMinutes());
   const [timeoutSaved] = useState(false);
   const [durationModal, setDurationModal] = useState<{ id: string; duration: string } | null>(null);
@@ -195,13 +179,6 @@ function AdminPage() {
     };
   }, [session, approvedPage, pendingPage, activeSearch, refreshKey]);
 
-  useEffect(() => {
-    if (!session) return;
-    setPins(getAllPins());
-    setEditPinRole(null);
-    setPinSaved(false);
-  }, [session, refreshKey]);
-
   const handleSignIn = async () => {
     if (!supabase) {
       setAuthError("Sign-in is not available in this build — the server connection is not configured.");
@@ -258,16 +235,6 @@ function AdminPage() {
   const handleRevoke = (phone: string) => {
     revokeApprovedPhone(phone);
     setRefreshKey((k) => k + 1);
-  };
-
-  const handleSavePin = (role: Role) => {
-    if (editPinValue.length >= 4) {
-      setStagePin(role, editPinValue);
-      setPins(getAllPins());
-      setEditPinRole(null);
-      setPinSaved(true);
-      setTimeout(() => setPinSaved(false), 2000);
-    }
   };
 
   const pagePhonesKey = approvedRows.map((r) => r.phone).join("|");
@@ -719,102 +686,6 @@ function AdminPage() {
           </div>
         )}
 
-        </div>
-
-        {/* ─── PIN Management ─── */}
-        <div className="mt-6 rounded-xl border border-slate-700 bg-slate-800">
-          <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <Key className="h-4 w-4 text-amber-400" />
-              <h2 className="text-sm font-semibold text-white">Stage PIN Management</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowPins(!showPins)}
-                className="flex items-center gap-1 rounded-lg bg-slate-700 px-2.5 py-1 text-[10px] text-slate-300 hover:bg-slate-600"
-              >
-                {showPins ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                {showPins ? "Hide" : "Show"}
-              </button>
-              <button
-                onClick={() => {
-                  resetAllPins();
-                  setPins(getAllPins());
-                  setPinSaved(true);
-                  setTimeout(() => setPinSaved(false), 2000);
-                }}
-                className="flex items-center gap-1 rounded-lg bg-red-900/50 px-2.5 py-1 text-[10px] text-red-300 hover:bg-red-800"
-              >
-                Reset All to Defaults
-              </button>
-              {pinSaved && (
-                <span className="text-[10px] text-green-400">PIN saved!</span>
-              )}
-            </div>
-          </div>
-          <div className="divide-y divide-slate-700">
-            {(Object.entries(pins) as [Role, string][]).map(([role, pin]) => (
-              <div key={role} className="flex items-center justify-between px-4 py-2.5">
-                <div className="flex items-center gap-2">
-                  <Lock className="h-3.5 w-3.5 text-slate-500" />
-                  <span className="text-sm text-slate-200">
-                    {role === "prior-auth" ? "Prior Auth" :
-                     role === "ar-voice" ? "AR Voice" :
-                     role.charAt(0).toUpperCase() + role.slice(1)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {editPinRole === role ? (
-                    <>
-                      <input
-                        type="text"
-                        value={editPinValue}
-                        onChange={(e) => setEditPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        onKeyDown={(e) => e.key === "Enter" && handleSavePin(role)}
-                        className="w-20 rounded border border-brand-600 bg-slate-700 px-2 py-1 text-center text-xs text-white outline-none"
-                        autoFocus
-                      />
-                      {editPinValue.length > 0 && editPinValue.length < 4 && (
-                        <p className="text-[9px] text-amber-400 mt-0.5">Min 4 digits required</p>
-                      )}
-                      <button
-                        onClick={() => handleSavePin(role)}
-                        disabled={editPinValue.length < 4}
-                        className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium ${
-                          editPinValue.length >= 4
-                            ? "bg-green-600 text-white hover:bg-green-500"
-                            : "bg-slate-600 text-slate-400 cursor-not-allowed"
-                        }`}
-                      >
-                        <Save className="h-3 w-3" /> Save
-                      </button>
-                      <button
-                        onClick={() => setEditPinRole(null)}
-                        className="rounded bg-slate-600 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-500"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <span className={`font-mono text-sm ${showPins ? "text-brand-300" : "text-slate-500"}`}>
-                        {showPins ? pin : "••••"}
-                      </span>
-                      <button
-                        onClick={() => {
-                          setEditPinRole(role);
-                          setEditPinValue(pin);
-                        }}
-                        className="rounded bg-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-600 hover:text-white"
-                      >
-                        Change
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* ─── Session Timeout ─── */}
