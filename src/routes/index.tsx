@@ -58,7 +58,13 @@ import { StageNav } from "../components/shell/StageNav";
 import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
 import { StatusTimeline } from "../components/status/StatusTimeline";
 import { statusEventsFor } from "../domain/statusEvent";
-import { encounterEventId } from "../store/pipelineEncounter";
+import {
+  CHART_OPENING_STEP,
+  CHART_STEPS,
+  encounterEventId,
+  furthestChartStep,
+  resumeChartStep,
+} from "../store/pipelineEncounter";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
 import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
 import { EligibilityStage } from "../components/WorkflowAthena/EligibilityStage";
@@ -88,19 +94,14 @@ import { CommandPalette } from "../components/CommandPalette";
 const PIPELINE_ROLES: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-voice"];
 
 /**
- * The scribe's own stages, in the order a visit is documented (spec
- * `tutorial-start-and-back.md` item 3). One list drives the stage header and the
- * Back / Next controls, so the label the student reads and the stage they move
- * to can never disagree.
+ * The scribe's own stages, in the order a visit is documented. One list drives
+ * the stage header and the Back / Next controls, so the label the student reads
+ * and the stage they move to can never disagree. The list lives with the
+ * encounter shape (`store/pipelineEncounter.ts`) because a saved encounter
+ * remembers the furthest step reached, and every patient opens on the first
+ * scribing step rather than on Registration (spec `start-at-scribing.md`).
  */
-const SCRIBE_STAGES: { id: string; label: string }[] = [
-  { id: "registration", label: "Registration" },
-  { id: "intake-vitals", label: "Intake / Vitals" },
-  { id: "hpi", label: "History of Present Illness" },
-  { id: "exam-ros", label: "Review of Systems" },
-  { id: "assessment-plan", label: "Assessment & Plan" },
-  { id: "sign-lock", label: "Sign & Lock Note" },
-];
+const SCRIBE_STAGES = CHART_STEPS;
 
 /**
  * The stage before each role's screen, for the one Back control (spec item 3).
@@ -1384,7 +1385,7 @@ function Home() {
   const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, state: pipelineState } = usePipeline();
 
   // ── Right-panel financial KPIs — derived from REAL pipeline data ──
   // (was hardcoded 12500/8700/2400/32 demo figures)
@@ -1395,7 +1396,22 @@ function Home() {
   const deniedTotal = deniedClaims.reduce((sum, c) => sum + (c.amount || 0), 0);
   const hasFinancialActivity = billedTotal > 0 || deniedTotal > 0 || pipelineState.status !== "pending";
   const { addToast } = useToast();
-  const [activeStage, setActiveStage] = useState("registration");
+  /**
+   * The chart step on screen. Every patient opens on the first scribing step
+   * (spec `start-at-scribing.md` item 1): Registration is not skipped — it is
+   * one Back away — but it is not where a student lands to scribe.
+   */
+  const [activeStage, setActiveStage] = useState(CHART_OPENING_STEP);
+
+  /**
+   * Move to a chart step and remember it on the encounter, so reopening the
+   * chart returns to the furthest step reached (spec item 5). Navigation only:
+   * the step id is the single value written, and it never moves backwards.
+   */
+  const goToChartStage = (stage: string) => {
+    setActiveStage(stage);
+    rememberChartStage(stage);
+  };
 
   // A patient picked from the shell's search while another page was open lands
   // here: open that chart once, then drop the request. Declared with the other
@@ -1607,10 +1623,12 @@ function Home() {
         plan: "1. Admit to telemetry unit\n2. Serial troponins q6h x3\n3. Echocardiogram in AM\n4. Cardiology consult (Dr. Williams)\n5. Continue home medications\n6. NPO after midnight for possible cardiac catheterization\n7. Stress test if enzymes negative\n8. Discharge planning: cardiac rehab referral"
       });
       setSubmittedToCoding(false);
-      // The encounter opens at its first stage (spec `tutorial-start-and-back.md`
-      // item 1). The note above is the scribe's starting point; the student walks
-      // the stages from Registration and still signs and locks before coding.
-      setActiveStage("registration");
+      // The encounter opens at the first scribing step (spec
+      // `start-at-scribing.md` item 1). The note above is the tutorial's seeded
+      // starting point — nothing here fills the chart in; the student walks the
+      // steps from Intake / Vitals, reaches Registration in one Back, and still
+      // signs and locks before coding.
+      setActiveStage(CHART_OPENING_STEP);
       setSharedImmunizations([
         { id: "imm-d1", vaccine: "Influenza 2026-2027", dose: "0.5 mL", date: "2026-10-01", status: "Given" },
         { id: "imm-d2", vaccine: "Tdap", dose: "0.5 mL", date: "2023-05-10", status: "Given" },
@@ -1655,7 +1673,13 @@ function Home() {
     if (saved && saved._patientId === patientId) {
       setSoapNote(saved.soapNote);
       setSubmittedToCoding(saved.submittedToCoding);
-      setActiveStage(saved.activeStage);
+      // Resume at the furthest step reached — the one on screen when they left,
+      // or further if the encounter remembers more. Never rewinds (spec item 5).
+      setActiveStage(
+        resumeChartStep(
+          furthestChartStep(saved.activeStage, getEncounter(patientId)?.chartStage ?? ""),
+        ),
+      );
       setEditableVitals(saved.editableVitals);
       setEditablePatientData(saved.editablePatientData);
       setSharedImmunizations(saved.sharedImmunizations);
@@ -1705,7 +1729,9 @@ function Home() {
       );
       setSubmittedToCoding(false);
       setDisplayName(undefined);
-      setActiveStage("registration");
+      // A patient already worked reopens at the furthest step reached; a patient
+      // never worked opens at the first scribing step (spec item 5).
+      setActiveStage(resumeChartStep(getEncounter(patientId)?.chartStage));
     }
     }
   }
@@ -2028,8 +2054,8 @@ function Home() {
     if (!p) return;
     setSelectedPatientId(p.id);
     // Load this patient's own encounter — note, codes, claim and stage. Nothing
-    // is reset: a patient already worked reopens exactly where they were left,
-    // and a patient never visited starts blank at Registration.
+    // is reset: a patient already worked reopens at the furthest chart step they
+    // reached, and a patient never visited starts blank at Intake / Vitals.
     selectPatient(p.id);
     setPatientDisplayName(null);
     setDisplayName(undefined);
@@ -2175,7 +2201,7 @@ function Home() {
                 back={{
                   label: roleBack.label,
                   onClick: () => {
-                    if (roleBack.stage) setActiveStage(roleBack.stage);
+                    if (roleBack.stage) goToChartStage(roleBack.stage);
                     setRole(roleBack.role);
                   },
                 }}
@@ -2358,12 +2384,12 @@ function Home() {
                       className="mt-6 border-t border-slate-200 pt-3"
                       back={
                         scribeBack
-                          ? { label: scribeBack.label, onClick: () => setActiveStage(scribeBack.id) }
+                          ? { label: scribeBack.label, onClick: () => goToChartStage(scribeBack.id) }
                           : undefined
                       }
                       next={
                         scribeNext
-                          ? { label: scribeNext.label, onClick: () => setActiveStage(scribeNext.id) }
+                          ? { label: scribeNext.label, onClick: () => goToChartStage(scribeNext.id) }
                           : undefined
                       }
                     />
