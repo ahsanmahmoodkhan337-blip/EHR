@@ -24,7 +24,7 @@
  * 40 px minimum hit area and a visible focus ring (standing rule 5).
  */
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { PanelRightClose, PanelRightOpen, X } from "lucide-react";
 
 export interface ReferenceTab {
@@ -91,6 +91,10 @@ export function ReferenceDrawer({ tabs, accent = "blue", label = "Reference" }: 
   // extra. A student who collapses it keeps it collapsed next time.
   const [open, setOpen] = useState(() => readStored(OPEN_KEY) !== "false");
   const [mobileOpen, setMobileOpen] = useState(false);
+  // The panel itself, so a keyboard student who opens it with Alt+R lands where
+  // the change happened instead of back at the top of the page.
+  const panelRef = useRef<HTMLElement | null>(null);
+  const mobilePanelRef = useRef<HTMLElement | null>(null);
 
   // Keep the choice when the tab list changes (a case with fewer tabs).
   useEffect(() => {
@@ -116,6 +120,38 @@ export function ReferenceDrawer({ tabs, accent = "blue", label = "Reference" }: 
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
+
+  // Alt+R opens or closes the reference panel from anywhere on a working stage
+  // (spec `task-1-app-shell.md` item 8). The panel decides which presentation it
+  // is in, so the shortcut asks the same question the layout does.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (!event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key.toLowerCase() !== "r") return;
+      event.preventDefault();
+      const wide = typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+      if (wide) {
+        setOpen((value) => !value);
+        requestAnimationFrame(() => panelRef.current?.focus());
+      } else {
+        setMobileOpen((value) => !value);
+        requestAnimationFrame(() => mobilePanelRef.current?.focus());
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Escape closes the inline panel, but only when the student's focus is inside
+  // it — Escape in a claim box must not take the reference away mid-sentence.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (panelRef.current?.contains(document.activeElement)) setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   if (tabs.length === 0) return null;
 
@@ -160,8 +196,10 @@ export function ReferenceDrawer({ tabs, accent = "blue", label = "Reference" }: 
       {/* ── ≥1024 px: inline split pane ─────────────────────────────────── */}
       {open ? (
         <aside
+          ref={panelRef}
+          tabIndex={-1}
           aria-label={label}
-          className="hidden w-80 shrink-0 flex-col border-l border-slate-200 bg-white lg:flex xl:w-96 dark:border-slate-800 dark:bg-slate-900"
+          className="hidden w-80 shrink-0 flex-col border-l border-slate-200 bg-white outline-none lg:flex xl:w-96 dark:border-slate-800 dark:bg-slate-900"
         >
           <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-1.5 dark:border-slate-800">
             <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -184,8 +222,10 @@ export function ReferenceDrawer({ tabs, accent = "blue", label = "Reference" }: 
         </aside>
       ) : (
         <aside
+          ref={panelRef}
+          tabIndex={-1}
           aria-label={`${label} — collapsed`}
-          className="hidden w-12 shrink-0 flex-col items-center gap-1 border-l border-slate-200 bg-white py-2 lg:flex dark:border-slate-800 dark:bg-slate-900"
+          className="hidden w-12 shrink-0 flex-col items-center gap-1 border-l border-slate-200 bg-white py-2 outline-none lg:flex dark:border-slate-800 dark:bg-slate-900"
         >
           <button
             type="button"
@@ -238,8 +278,10 @@ export function ReferenceDrawer({ tabs, accent = "blue", label = "Reference" }: 
               className="flex-1 bg-slate-900/40"
             />
             <aside
+              ref={mobilePanelRef}
+              tabIndex={-1}
               aria-label={label}
-              className="flex h-full w-[min(92vw,22rem)] flex-col border-l border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+              className="flex h-full w-[min(92vw,22rem)] flex-col border-l border-slate-200 bg-white outline-none dark:border-slate-800 dark:bg-slate-900"
             >
               <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-1.5 dark:border-slate-800">
                 <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">

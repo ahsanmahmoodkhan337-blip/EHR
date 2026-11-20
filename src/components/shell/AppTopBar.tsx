@@ -63,6 +63,7 @@ export function AppTopBar({
   const [userOpen, setUserOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+  const userButtonRef = useRef<HTMLButtonElement>(null);
 
   // One outside-click handler for both menus.
   useEffect(() => {
@@ -74,6 +75,46 @@ export function AppTopBar({
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, []);
+
+  // The user menu behaves like a menu for a keyboard: opening it moves focus to
+  // the first item, the arrow keys walk the items, and Escape closes it and puts
+  // focus back on the button that opened it (spec item 11).
+  useEffect(() => {
+    if (!userOpen) return;
+    const itemsOf = () =>
+      Array.from(userRef.current?.querySelectorAll<HTMLElement>('[role="menu"] button, [role="menu"] a') ?? []);
+    itemsOf()[0]?.focus();
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setUserOpen(false);
+        userButtonRef.current?.focus();
+        return;
+      }
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      const items = itemsOf();
+      if (items.length === 0) return;
+      event.preventDefault();
+      const current = items.indexOf(document.activeElement as HTMLElement);
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      const next = current < 0 ? 0 : (current + step + items.length) % items.length;
+      items[next]?.focus();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [userOpen]);
+
+  // Escape closes the "More actions" panel.
+  useEffect(() => {
+    if (!overflowOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOverflowOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [overflowOpen]);
 
   const handleLogout = () => {
     logout();
@@ -172,6 +213,7 @@ export function AppTopBar({
         {/* User menu */}
         <div ref={userRef} className="relative">
           <button
+            ref={userButtonRef}
             type="button"
             onClick={() => setUserOpen((open) => !open)}
             aria-label="User menu"
@@ -232,7 +274,7 @@ export function AppTopBar({
 
         {overflowOpen && (
           <div
-            role="menu"
+            role="group"
             aria-label="More actions"
             className="absolute right-0 top-full z-50 mt-1 flex w-64 max-w-[92vw] flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-800"
           >
@@ -250,7 +292,6 @@ export function AppTopBar({
               <DarkModeToggle />
             </div>
             <a
-              role="menuitem"
               href="/settings"
               onClick={(event) => {
                 event.preventDefault();
@@ -263,7 +304,6 @@ export function AppTopBar({
             </a>
             <button
               type="button"
-              role="menuitem"
               onClick={handleLogout}
               className="flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-xs font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 dark:text-slate-200 dark:hover:bg-red-900/30"
             >

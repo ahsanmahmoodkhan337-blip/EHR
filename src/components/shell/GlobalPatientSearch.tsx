@@ -114,6 +114,25 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
     row?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, open]);
 
+  // "/" jumps to the patient search from anywhere on the page (spec
+  // `task-1-app-shell.md` item 8). It stays out of the way of a student who is
+  // typing into a field, where "/" is just a slash.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "/" || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = document.activeElement as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) return;
+      event.preventDefault();
+      setOpen(true);
+      setQuery("");
+      setActiveIndex(0);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   function openPanel() {
     setOpen(true);
     setQuery("");
@@ -168,8 +187,6 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
     }
   }
 
-  const activeId = open && matches.length > 0 ? `patient-search-row-${activeIndex}` : undefined;
-
   return (
     <div ref={containerRef} className={`relative min-w-0 ${className}`}>
       {!open ? (
@@ -190,16 +207,12 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
           <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
           <input
             ref={inputRef}
-            type="text"
+            type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={handleKeyDown}
-            role="combobox"
             aria-label="Search patients by name, date of birth, MRN or member ID"
-            aria-expanded={open}
-            aria-controls="patient-search-results"
-            aria-autocomplete="list"
-            aria-activedescendant={activeId}
+            aria-describedby="patient-search-hint"
             placeholder="Name, DOB, MRN or member ID"
             autoComplete="off"
             className="min-h-9 min-w-0 flex-1 bg-transparent text-xs text-slate-800 outline-none placeholder:text-slate-400 dark:text-white"
@@ -260,8 +273,7 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
                       data-row-index={index}
                       aria-current={isActive ? "true" : undefined}
                       onMouseEnter={() => setActiveIndex(index)}
-                      onClick={() => choose(patient)}
-                      className={`cursor-pointer border-t border-slate-100 dark:border-slate-700 ${
+                      className={`border-t border-slate-100 dark:border-slate-700 ${
                         isActive
                           ? "bg-brand-50 dark:bg-brand-900/40"
                           : "bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700"
@@ -270,10 +282,7 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
                       <td className="px-2 py-0.5">
                         <button
                           type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            choose(patient);
-                          }}
+                          onClick={() => choose(patient)}
                           aria-label={`Open chart for ${patient.firstName} ${patient.lastName}, MRN ${patient.mrn}, date of birth ${formatDob(patient.dateOfBirth)}`}
                           className="flex min-h-10 w-full min-w-0 items-center truncate rounded text-left font-medium text-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:text-white"
                         >
@@ -298,7 +307,11 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
               </tbody>
             </table>
           </div>
-          <p className="border-t border-slate-100 px-3 py-1.5 text-[10px] text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <p
+            id="patient-search-hint"
+            role="status"
+            className="border-t border-slate-100 px-3 py-1.5 text-[10px] text-slate-500 dark:border-slate-700 dark:text-slate-400"
+          >
             {totalMatches > matches.length
               ? `Showing ${matches.length} of ${totalMatches} matches — keep typing to narrow it.`
               : `${matches.length} patient${matches.length === 1 ? "" : "s"} · ↑ ↓ to move · Enter to open · Esc to close`}

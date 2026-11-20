@@ -26,7 +26,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AppSidebar } from "./shell/AppSidebar";
 import { AppTopBar } from "./shell/AppTopBar";
 import type { ShellNavId, ShellTrack } from "./shell/navItems";
-import { WhatsAppFloat } from "./WhatsAppFloat";
+import { HelpLauncher } from "./shell/HelpLauncher";
 
 const COLLAPSE_KEY = "hh_shell_sidebar_collapsed";
 
@@ -149,7 +149,9 @@ export function AppShell({
         {footer}
       </div>
 
-      <WhatsAppFloat />
+      {/* One help button, collapsed to a 44 px launcher so it never sits over a
+          form control until the student opens it (spec item 10). */}
+      <HelpLauncher />
     </div>
   );
 }

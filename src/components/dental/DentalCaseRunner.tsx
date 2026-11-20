@@ -8,7 +8,7 @@
  * owns the case-select, briefing and debrief frames plus the stage stepper.
  */
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -28,6 +28,9 @@ import {
 } from "lucide-react";
 import { DENTAL_CASE_SCENARIOS, findPlan, type DentalCaseScenario } from "../../data/dental";
 import { EncounterStepper } from "../shell/EncounterStepper";
+import { StageReviewFrame } from "../shell/StageReviewFrame";
+import { useStageShortcuts } from "../shell/useStageShortcuts";
+import { adjacentStage, isReviewingStage, isStageUnlocked } from "../shell/stageReview";
 import { useDentalTrack, type DentalStageName } from "./DentalTrackStore";
 import { DentalCodingQueue } from "./DentalCodingQueue";
 import { DentalBillingLedger } from "./DentalBillingLedger";
@@ -58,6 +61,65 @@ export const DENTAL_STAGE_LABEL: Record<DentalStageName, string> = Object.fromEn
 
 export function DentalCaseRunner() {
   const { state, activeCase, goTo } = useDentalTrack();
+  const stageIds = useMemo(() => STAGES.map((s) => s.id as string), []);
+
+  const labelOf = (id: string) => DENTAL_STAGE_LABEL[id as DentalStageName] ?? id;
+
+  // Item 11: a finished stage opens for reading, not editing. The case picker is
+  // exempt so a student can always start a different case.
+  const [reopenedStage, setReopenedStage] = useState<string | null>(null);
+  useEffect(() => {
+    setReopenedStage(null);
+  }, [state.stage]);
+  const reviewing =
+    reopenedStage !== state.stage &&
+    isReviewingStage({
+      stageIds,
+      currentId: state.stage,
+      furthestId: state.furthestStage,
+      exemptIds: ["case-select"],
+    });
+
+  // Item 8: the same Alt+→ / Alt+← spine keys as the medical runner.
+  const { announcement, announce } = useStageShortcuts({
+    onNext: () => {
+      const next = adjacentStage(stageIds, state.stage, "next");
+      if (!next) {
+        announce("You are on the last stage of this case.");
+        return;
+      }
+      if (!isStageUnlocked(stageIds, next, state.furthestStage)) {
+        announce(`${labelOf(next)} is locked until you reach it. Use the stage button on your current stage.`);
+        return;
+      }
+      goTo(next as DentalStageName);
+      announce(`Moved to ${labelOf(next)}.`);
+    },
+    onPrevious: () => {
+      const previous = adjacentStage(stageIds, state.stage, "previous");
+      if (!previous) {
+        announce("You are on the first stage of this case.");
+        return;
+      }
+      goTo(previous as DentalStageName);
+      announce(`Moved to ${labelOf(previous)}.`);
+    },
+  });
+
+  const stageBody = (
+    <>
+      {state.stage === "case-select" && <CaseSelect />}
+      {state.stage === "briefing" && <Briefing />}
+      {state.stage === "planning" && <DentalTreatmentPlan />}
+      {state.stage === "predetermination" && <DentalPredetermination />}
+      {state.stage === "coding" && <DentalCodingQueue />}
+      {state.stage === "claim" && <DentalBillingLedger />}
+      {state.stage === "claims" && <DentalClaimQueue />}
+      {state.stage === "ar" && <DentalAR />}
+      {state.stage === "ledger" && <DentalPatientLedger />}
+      {state.stage === "debrief" && <Debrief />}
+    </>
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -78,18 +140,26 @@ export function DentalCaseRunner() {
         }
       />
 
+      {/* What the keyboard shortcuts just did, spoken by a screen reader. */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
+
       {/* ── stage body ────────────────────────────────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-hidden">
-        {state.stage === "case-select" && <CaseSelect />}
-        {state.stage === "briefing" && <Briefing />}
-        {state.stage === "planning" && <DentalTreatmentPlan />}
-        {state.stage === "predetermination" && <DentalPredetermination />}
-        {state.stage === "coding" && <DentalCodingQueue />}
-        {state.stage === "claim" && <DentalBillingLedger />}
-        {state.stage === "claims" && <DentalClaimQueue />}
-        {state.stage === "ar" && <DentalAR />}
-        {state.stage === "ledger" && <DentalPatientLedger />}
-        {state.stage === "debrief" && <Debrief />}
+        {reviewing ? (
+          <StageReviewFrame
+            stageLabel={labelOf(state.stage)}
+            currentLabel={labelOf(state.furthestStage)}
+            accent="teal"
+            onBackToCurrent={() => goTo(state.furthestStage)}
+            onReopen={() => setReopenedStage(state.stage)}
+          >
+            {stageBody}
+          </StageReviewFrame>
+        ) : (
+          stageBody
+        )}
       </div>
     </div>
   );

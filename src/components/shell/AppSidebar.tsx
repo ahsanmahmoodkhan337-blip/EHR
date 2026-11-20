@@ -87,7 +87,7 @@ export function AppSidebar({
                   <span
                     aria-disabled="true"
                     title={`${item.label} — ${target.reason}`}
-                    className={`${baseClass} cursor-not-allowed text-slate-400 dark:text-slate-600`}
+                    className={`${baseClass} cursor-not-allowed text-slate-500 dark:text-slate-400`}
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                     {iconOnly ? (

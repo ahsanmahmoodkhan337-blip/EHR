@@ -52,7 +52,7 @@ export function TrackSwitcher({ track, onTrackChange, compact }: TrackSwitcherPr
       className={`flex items-center gap-1 rounded-xl border border-slate-300 bg-white p-1 shadow-md ${
         compact ? "w-fit" : "w-full"
       }`}
-      role="tablist"
+      role="group"
       aria-label="RCM track"
     >
       {options.map((opt) => {
@@ -60,14 +60,19 @@ export function TrackSwitcher({ track, onTrackChange, compact }: TrackSwitcherPr
         return (
           <button
             key={opt.id}
-            role="tab"
-            aria-selected={active}
+            type="button"
+            // A two-option switch, not a tab strip: there is no tab panel behind
+            // it, so `aria-pressed` states which track is on (item 11).
+            aria-pressed={active}
+            aria-label={`${opt.label} track — ${opt.hint}`}
             onClick={() => onTrackChange(opt.id)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors sm:px-4 sm:text-sm ${
+            className={`flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 sm:px-4 sm:text-sm ${
               active ? opt.activeClass : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             }`}
           >
-            {opt.icon}
+            <span aria-hidden="true" className="shrink-0">
+              {opt.icon}
+            </span>
             {opt.label}
             {!compact && <span className="hidden font-medium opacity-80 md:inline">{opt.hint}</span>}
           </button>
