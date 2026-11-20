@@ -26,8 +26,18 @@ import { ClaimFormShell } from "../claims/ClaimFormShell";
 import { CMS1500Form } from "./CMS1500Form";
 import { CMS1500_LAYOUT } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
-import { buildClaimForm, blankServiceLine } from "../../utils/claimAutoFill";
+import { buildClaimForm, blankServiceLine, patientIdentityBoxes } from "../../utils/claimAutoFill";
 import { validateCMS1500, type ClaimIssue } from "../../utils/claimValidation";
+import {
+  useEncounterPatientId,
+  useEncounterPlaceOfService,
+} from "../../utils/encounterPatient";
+import {
+  CLAIM_TYPE_OPTIONS,
+  CLAIM_TYPE_PAPER,
+  suggestClaimType,
+  type ClaimType,
+} from "../../data/claims/claimType";
 import { toast } from "sonner";
 
 type BillingTab = "form" | "scrubber" | "denials" | "references";
@@ -48,9 +58,13 @@ export function BillingLedger() {
   const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm } = usePipeline();
   const claimForm = state.claimForm;
   const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
-  const patientId = state.patientId || "";
-  const patient = getPatientById(patientId);
-  const cs = caseStates[patientId];
+  // The encounter knows its patient even when the pipeline's nullable
+  // `patientId` does not — a restored session or the Coder's "Skip to Billing"
+  // path can reach this screen with it unset, which left boxes 1a, 2, 3, 4, 5,
+  // 6 and 7 blank on the paper.
+  const patientId = useEncounterPatientId(state.patientId) || "";
+  const patient = patientId ? getPatientById(patientId) : undefined;
+  const cs = patientId ? caseStates[patientId] : undefined;
 
   const [payer, setPayer] = useState("Medicare");
   const [posCode, setPosCode] = useState("11");
@@ -61,11 +75,11 @@ export function BillingLedger() {
 
   // Auto-check the PA checkbox when PA records exist for this patient
   useEffect(() => {
-    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || ""));
+    const patientPaRecords = paRecords.filter((r) => r.patientId === patientId);
     if (patientPaRecords.length > 0) {
       setNeedsPriorAuth(true);
     }
-  }, [paRecords, state.patientId]);
+  }, [paRecords, patientId]);
   const [showRoutingModal, setShowRoutingModal] = useState(false);
   const [routingMemo, setRoutingMemo] = useState("");
   const [isTransmitting, setIsTransmitting] = useState(false);
@@ -75,7 +89,27 @@ export function BillingLedger() {
   // Claim scrubber state
   const [scrubResults, setScrubResults] = useState<{ check: string; pass: boolean; note: string }[] | null>(null);
 
-  // ── Structured CMS-1500 record ───────────────────────────────────
+  // ── Claim type — which paper this claim is submitted on ──────────
+  // Suggested from the encounter: the first service line's place of service
+  // (the biller can edit it), then the encounter's registered POS, then the
+  // scrubber's field. The biller can override; the choice is stored on the
+  // claim, so reopening it shows the same paper.
+  const encounterPos = useEncounterPlaceOfService(patientId || null);
+  const primaryPos =
+    claimForm?.serviceLines?.[0]?.placeOfService || encounterPos || posCode || "11";
+  const suggestion = suggestClaimType({
+    placeOfService: primaryPos,
+    posDescription: POS_CODES.find((p) => p.code === primaryPos)?.description,
+    track: patient?.track,
+  });
+  const claimType: ClaimType = claimForm?.claimType ?? suggestion.claimType;
+
+  const setClaimType = (next: ClaimType) => {
+    if (!claimForm) return;
+    setClaimForm({ ...claimForm, claimType: next });
+  };
+
+  // ── Structured claim record ──────────────────────────────────────
   // Seeded once from the encounter (demographics, codes, PA number, provider
   // profile). After that the record is the student's: it is persisted with the
   // pipeline, so edits survive a reload.
@@ -83,22 +117,35 @@ export function BillingLedger() {
   // The paper is drawn even when the pipeline carries no patient id — a student
   // who reaches Billing without an attached chart (tutorial prefill, or a
   // coder hand-off from a session with no patient selected) still gets the form
-  // filled from the coded encounter and the provider profile. The demographic
-  // boxes are then theirs to complete.
+  // filled from the coded encounter and the provider profile. The patient is
+  // then resolved from the encounter (`resolveEncounterPatientId`), so boxes
+  // 1a–7 fill from the chart the banner above is showing.
   useEffect(() => {
-    if (claimForm) return;
-    const paNumber = patientId
-      ? paRecords.filter((r) => r.patientId === patientId).slice(-1)[0]?.id
-      : undefined;
-    setClaimForm(
-      buildClaimForm({
-        patient: patient ?? null,
-        displayName: state.displayName,
-        pipeline: state,
-        paNumber,
-      }),
-    );
-  }, [patientId, claimForm, patient, state, paRecords, setClaimForm]);
+    if (!claimForm) {
+      const paNumber = patientId
+        ? paRecords.filter((r) => r.patientId === patientId).slice(-1)[0]?.id
+        : undefined;
+      setClaimForm(
+        buildClaimForm({
+          patient: patient ?? null,
+          displayName: state.displayName,
+          pipeline: state,
+          paNumber,
+          claimType: suggestion.claimType,
+        }),
+      );
+      return;
+    }
+    // A claim opened before its patient was known — or before claim types
+    // existed — gets the identity boxes and the type filled in place. Codes,
+    // charges and anything the student edited are left alone.
+    const patch: Partial<ClaimFormData> = {};
+    if (!claimForm.claimType) patch.claimType = suggestion.claimType;
+    if (!claimForm.patientName) {
+      Object.assign(patch, patientIdentityBoxes(patient, state.displayName));
+    }
+    if (Object.keys(patch).length > 0) setClaimForm({ ...claimForm, ...patch });
+  }, [patientId, claimForm, patient, state, paRecords, setClaimForm, suggestion.claimType]);
 
   const claimValues = useMemo(() => {
     if (!claimForm) return {};
@@ -330,7 +377,7 @@ export function BillingLedger() {
             {/* Tab navigation */}
             <div className="flex gap-1 border-b border-slate-200 pb-2 mb-4">
               {[
-                { key: "form" as BillingTab, label: "CMS-1500 Form" },
+                { key: "form" as BillingTab, label: "Claim Form" },
                 { key: "scrubber" as BillingTab, label: "Claim Scrubber" },
                 { key: "denials" as BillingTab, label: "Denial Codes" },
                 { key: "references" as BillingTab, label: "References" },
@@ -349,38 +396,134 @@ export function BillingLedger() {
               ))}
             </div>
 
-            {/* CMS-1500 Form */}
+            {/* Claim type + the paper it picks */}
             {activeTab === "form" && (
               <div className="space-y-4">
-                {claimForm ? (
-                  <ClaimFormShell
-                    formCode="CMS-1500 (02/12)"
-                    formTitle="Health Insurance Claim Form"
-                    statusLabel={
-                      transmitResult === "paid"
-                        ? "Accepted — paid"
-                        : transmitResult === "denied"
-                          ? "Rejected — CO-16"
-                          : "Draft"
-                    }
-                    history={(cs?.auditLogs ?? []).map((l) => ({ at: l.timestamp, message: l.message }))}
-                    values={claimValues}
-                    lines={claimLines}
-                    emptyLine={blankServiceLine() as unknown as Record<string, unknown>}
-                    maxLines={CMS1500_LAYOUT.maxLines}
-                    resetKey={patientId}
-                    validate={validate}
-                    onCommit={commitClaim}
-                    onSubmit={handleSubmitClaim}
-                    onDownload={downloadPdf}
-                    submitting={isTransmitting}
-                  >
-                    {(api) => <CMS1500Form {...api} />}
-                  </ClaimFormShell>
-                ) : (
-                  <div className="empty-state">
-                    <p className="empty-title">Preparing the claim form…</p>
-                    <p className="empty-hint">The paper is filled from the coded encounter.</p>
+                {/* ─── Claim type ─── */}
+                <div className="clinical-card">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs font-semibold text-slate-700">Claim type</p>
+                    <div className="flex overflow-hidden rounded-lg border border-slate-200">
+                      {CLAIM_TYPE_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setClaimType(opt.value)}
+                          disabled={!claimForm}
+                          title={`${opt.hint} Prints on ${opt.paper}.`}
+                          className={`px-2.5 py-1 text-[10px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                            claimType === opt.value
+                              ? "bg-brand-600 text-white"
+                              : "bg-white text-slate-500 hover:bg-slate-50"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="ml-auto text-[10px] font-medium text-slate-500">
+                      Paper: <strong className="text-slate-700">{CLAIM_TYPE_PAPER[claimType]}</strong>
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-[10px] text-slate-500">
+                    {claimType === suggestion.claimType
+                      ? `Suggested from the encounter — ${suggestion.reason}.`
+                      : `Set by hand — the encounter suggests ${CLAIM_TYPE_PAPER[suggestion.claimType]} (${suggestion.reason}).`}
+                    {claimType !== suggestion.claimType && (
+                      <button
+                        onClick={() => setClaimType(suggestion.claimType)}
+                        className="ml-1 font-medium text-brand-600 underline"
+                      >
+                        Use the suggestion
+                      </button>
+                    )}
+                  </p>
+                </div>
+
+                {/* ─── Professional → CMS-1500 ─── */}
+                {claimType === "professional" &&
+                  (claimForm ? (
+                    <ClaimFormShell
+                      formCode="CMS-1500 (02/12)"
+                      formTitle="Health Insurance Claim Form"
+                      statusLabel={
+                        transmitResult === "paid"
+                          ? "Accepted — paid"
+                          : transmitResult === "denied"
+                            ? "Rejected — CO-16"
+                            : "Draft"
+                      }
+                      history={(cs?.auditLogs ?? []).map((l) => ({ at: l.timestamp, message: l.message }))}
+                      values={claimValues}
+                      lines={claimLines}
+                      emptyLine={blankServiceLine() as unknown as Record<string, unknown>}
+                      maxLines={CMS1500_LAYOUT.maxLines}
+                      resetKey={patientId}
+                      validate={validate}
+                      onCommit={commitClaim}
+                      onSubmit={handleSubmitClaim}
+                      onDownload={downloadPdf}
+                      submitting={isTransmitting}
+                    >
+                      {(api) => <CMS1500Form {...api} />}
+                    </ClaimFormShell>
+                  ) : (
+                    <div className="empty-state">
+                      <p className="empty-title">Preparing the claim form…</p>
+                      <p className="empty-hint">The paper is filled from the coded encounter.</p>
+                    </div>
+                  ))}
+
+                {/* ─── Institutional → UB-04 (paper still to come) ─── */}
+                {claimType === "institutional" && (
+                  <div className="clinical-card">
+                    <p className="text-xs font-semibold text-slate-700">
+                      UB-04 (CMS-1450) — institutional claim
+                    </p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+                      {suggestion.reason}. The claim record already carries the type, the patient,
+                      the service dates and the charges, so this claim will print on the UB-04 as
+                      soon as that paper lands. Nothing here is lost — switch back to Professional
+                      to work it on the CMS-1500 in the meantime.
+                    </p>
+                    {claimForm && (
+                      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                        <div>
+                          <dt className="text-slate-400">Patient</dt>
+                          <dd className="font-medium text-slate-700">{claimForm.patientName || "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-400">Account / MRN</dt>
+                          <dd className="font-medium text-slate-700">{claimForm.patientAccountNumber || "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-400">Service dates</dt>
+                          <dd className="font-medium text-slate-700">
+                            {claimForm.serviceLines[0]?.dateOfService || "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-400">Total charges</dt>
+                          <dd className="font-medium text-slate-700 tabular-nums">
+                            ${(claimForm.totalCharge || 0).toFixed(2)}
+                          </dd>
+                        </div>
+                      </dl>
+                    )}
+                  </div>
+                )}
+
+                {/* ─── Dental → ADA claim (worked in the dental track) ─── */}
+                {claimType === "dental" && (
+                  <div className="clinical-card">
+                    <p className="text-xs font-semibold text-slate-700">
+                      ADA Dental Claim (J430D) — dental claim
+                    </p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+                      Dental services bill on the ADA dental claim, with CDT codes, tooth, surface
+                      and quadrant. That paper is worked in the Dental track's billing ledger,
+                      where the CDT lines live; this medical encounter carries no dental codes to
+                      print. Switch to Professional or Institutional to use this claim.
+                    </p>
                   </div>
                 )}
 

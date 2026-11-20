@@ -28,6 +28,7 @@ import {
   type ProviderProfile,
 } from "../data/claims/providerProfile";
 import { emptyADAForm, type ADAFormData, type ADAServiceLine } from "../data/claims/adaLayout";
+import type { ClaimType } from "../data/claims/claimType";
 
 const today = (): string => new Date().toISOString().slice(0, 10);
 
@@ -39,6 +40,7 @@ const OFFICE_EM = new Set([
 /** A completely blank paper — the starting point before anything is known. */
 export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROFILE): ClaimFormData {
   return {
+    claimType: "professional",
     insuranceType: "",
     insuredId: "",
     patientName: "",
@@ -138,31 +140,31 @@ export interface AutoFillArgs {
   /** Authorisation number captured by the Prior Auth stage, if any. */
   paNumber?: string;
   provider?: ProviderProfile;
+  /** Claim type suggested from the encounter (POS / track). */
+  claimType?: ClaimType;
 }
 
-/** Build the claim record from the encounter. */
-export function buildClaimForm({
-  patient,
-  displayName,
-  pipeline,
-  paNumber,
-  provider = MEDICAL_PROVIDER_PROFILE,
-}: AutoFillArgs): ClaimFormData {
-  const base = blankClaimForm(provider);
-  const name =
-    displayName ||
-    (patient ? `${patient.lastName}, ${patient.firstName}` : "") ||
-    "";
+/**
+ * The identity boxes — 1, 1a, 2, 3, 4, 5, 6, 7, 11, 11a, 11c, 26 — from the
+ * patient record. Split out so a claim that was opened before its patient was
+ * known can have exactly these boxes filled in later, without touching the
+ * codes, charges or edits the student already made.
+ */
+export function patientIdentityBoxes(
+  patient: Patient | null | undefined,
+  displayName?: string | null,
+): Partial<ClaimFormData> {
+  if (!patient && !displayName) return {};
 
+  const name =
+    displayName || (patient ? `${patient.lastName}, ${patient.firstName}` : "") || "";
   const insurance = (patient?.insurance ?? "").trim();
   const memberId = patient?.mrn ? `INS-${patient.mrn}` : "";
-  const groupNumber = patient?.mrn ? `GRP-${patient.mrn.replace(/[^0-9]/g, "") || "0000"}` : "";
-
-  const serviceLines = buildServiceLines(pipeline, provider);
-  const totalCharge = serviceLines.reduce((sum, l) => sum + (l.charge || 0), 0);
+  const groupNumber = patient?.mrn
+    ? `GRP-${patient.mrn.replace(/[^0-9]/g, "") || "0000"}`
+    : "";
 
   return {
-    ...base,
     insuranceType: insurance || "Group Health Plan",
     insuredId: memberId,
     patientName: name,
@@ -175,10 +177,31 @@ export function buildClaimForm({
     insuredPolicyGroup: groupNumber,
     insuredDob: patient?.dateOfBirth ?? "",
     insuredPlanName: insurance,
+    patientAccountNumber: patient?.mrn ?? "",
+  };
+}
+
+/** Build the claim record from the encounter. */
+export function buildClaimForm({
+  patient,
+  displayName,
+  pipeline,
+  paNumber,
+  provider = MEDICAL_PROVIDER_PROFILE,
+  claimType = "professional",
+}: AutoFillArgs): ClaimFormData {
+  const base = blankClaimForm(provider);
+
+  const serviceLines = buildServiceLines(pipeline, provider);
+  const totalCharge = serviceLines.reduce((sum, l) => sum + (l.charge || 0), 0);
+
+  return {
+    ...base,
+    claimType,
+    ...patientIdentityBoxes(patient, displayName),
     diagnosisCodes: (pipeline.icdCodes ?? []).slice(0, 12),
     priorAuthNumber: paNumber ?? "",
     serviceLines,
-    patientAccountNumber: patient?.mrn ?? "",
     totalCharge,
     balanceDue: totalCharge,
   };

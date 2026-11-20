@@ -13,6 +13,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { getLoggedInPhone } from "./accessStore";
 import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persistence";
+import type { ClaimType } from "../data/claims/claimType";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -40,6 +41,13 @@ export interface ClaimServiceLine {
  * nothing that reads that map breaks.
  */
 export interface ClaimFormData {
+  /**
+   * Which paper this claim is submitted on — professional (CMS-1500),
+   * institutional (UB-04) or dental (ADA). Suggested from the encounter's place
+   * of service and persisted with the claim, so reopening it shows the same
+   * paper. See `src/data/claims/claimType.ts`.
+   */
+  claimType: ClaimType;
   insuranceType: string;        // 1
   insuredId: string;            // 1a
   patientName: string;          // 2
