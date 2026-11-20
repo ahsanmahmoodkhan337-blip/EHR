@@ -35,17 +35,21 @@ export function DarkModeToggle() {
 
   return (
     <button
+      type="button"
       onClick={toggle}
-      className="relative flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-slate-200 transition-colors"
+      aria-pressed={dark}
+      className="relative flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
       aria-label="Toggle dark mode"
     >
       <Sun
+        aria-hidden="true"
         className={`h-4 w-4 absolute transition-all duration-300 ${
           dark ? "opacity-0 rotate-90 scale-0" : "opacity-100 rotate-0 scale-100"
         }`}
       />
       <Moon
+        aria-hidden="true"
         className={`h-4 w-4 absolute transition-all duration-300 ${
           dark ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-0"
         }`}

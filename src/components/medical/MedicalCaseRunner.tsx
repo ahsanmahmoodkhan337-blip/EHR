@@ -12,8 +12,11 @@
  * briefing and debrief frames mirror the dental runner.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { EncounterStepper } from "../shell/EncounterStepper";
+import { StageReviewFrame } from "../shell/StageReviewFrame";
+import { useStageShortcuts } from "../shell/useStageShortcuts";
+import { adjacentStage, isReviewingStage, isStageUnlocked } from "../shell/stageReview";
 import {
   ArrowLeft,
   ArrowRight,
@@ -175,6 +178,67 @@ export function MedicalCaseRunner() {
     const rcm = RCM_STAGES.filter((s) => !(s.id === "prior-auth" && !paTriggered));
     return [...FRAME_STAGES, ...rcm, DEBRIEF_STAGE];
   }, [paTriggered]);
+  const stageIds = useMemo(() => stages.map((s) => s.id as string), [stages]);
+
+  const labelOf = (id: string) => MEDICAL_STAGE_LABEL[id as MedicalCaseStageName] ?? id;
+
+  // Item 11: a stage behind the furthest one reached opens for reading, not for
+  // editing. The case picker is exempt — locking it would trap a student inside
+  // the case they already started.
+  const [reopenedStage, setReopenedStage] = useState<string | null>(null);
+  useEffect(() => {
+    setReopenedStage(null);
+  }, [state.stage]);
+  const reviewing =
+    reopenedStage !== state.stage &&
+    isReviewingStage({
+      stageIds,
+      currentId: state.stage,
+      furthestId: state.furthestStage,
+      exemptIds: ["case-select"],
+    });
+
+  // Item 8: Alt+→ / Alt+← move through the spine. A locked stage is refused out
+  // loud rather than silently, so a keyboard student knows the key worked.
+  const { announcement, announce } = useStageShortcuts({
+    onNext: () => {
+      const next = adjacentStage(stageIds, state.stage, "next");
+      if (!next) {
+        announce("You are on the last stage of this case.");
+        return;
+      }
+      if (!isStageUnlocked(stageIds, next, state.furthestStage)) {
+        announce(`${labelOf(next)} is locked until you reach it. Use Continue on your current stage.`);
+        return;
+      }
+      goTo(next as MedicalCaseStageName);
+      announce(`Moved to ${labelOf(next)}.`);
+    },
+    onPrevious: () => {
+      const previous = adjacentStage(stageIds, state.stage, "previous");
+      if (!previous) {
+        announce("You are on the first stage of this case.");
+        return;
+      }
+      goTo(previous as MedicalCaseStageName);
+      announce(`Moved to ${labelOf(previous)}.`);
+    },
+  });
+
+  const stageBody = (
+    <>
+      {state.stage === "case-select" && <CaseSelect />}
+      {state.stage === "briefing" && <Briefing />}
+      {state.stage === "registration" && <RegistrationStage />}
+      {state.stage === "eligibility" && <EligibilityStage />}
+      {state.stage === "clinical" && <ClinicalStage />}
+      {state.stage === "coding" && <CodingStage />}
+      {state.stage === "prior-auth" && <PriorAuthStage />}
+      {state.stage === "claim" && <ClaimStage />}
+      {state.stage === "ar-follow-up" && <ARStage />}
+      {state.stage === "debrief" && <Debrief />}
+    </>
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -195,18 +259,26 @@ export function MedicalCaseRunner() {
         }
       />
 
+      {/* What the keyboard shortcuts just did, spoken by a screen reader. */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
+
       {/* ── stage body ─────────────────────────────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-hidden">
-        {state.stage === "case-select" && <CaseSelect />}
-        {state.stage === "briefing" && <Briefing />}
-        {state.stage === "registration" && <RegistrationStage />}
-        {state.stage === "eligibility" && <EligibilityStage />}
-        {state.stage === "clinical" && <ClinicalStage />}
-        {state.stage === "coding" && <CodingStage />}
-        {state.stage === "prior-auth" && <PriorAuthStage />}
-        {state.stage === "claim" && <ClaimStage />}
-        {state.stage === "ar-follow-up" && <ARStage />}
-        {state.stage === "debrief" && <Debrief />}
+        {reviewing ? (
+          <StageReviewFrame
+            stageLabel={labelOf(state.stage)}
+            currentLabel={labelOf(state.furthestStage)}
+            accent="blue"
+            onBackToCurrent={() => goTo(state.furthestStage)}
+            onReopen={() => setReopenedStage(state.stage)}
+          >
+            {stageBody}
+          </StageReviewFrame>
+        ) : (
+          stageBody
+        )}
       </div>
     </div>
   );

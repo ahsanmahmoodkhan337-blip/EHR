@@ -166,7 +166,7 @@ export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBann
                 <span className="text-emerald-300">No Known Allergies</span>
               ) : (
                 <span
-                  className="text-slate-400"
+                  className="text-slate-300"
                   title="This record carries no allergy list — nothing has been charted either way."
                 >
                   Allergies: —
@@ -199,7 +199,7 @@ export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBann
         </Chip>
 
         <span title="No copay is recorded for this visit — the front desk collects it (TASK 2).">
-          Copay: <span className="text-slate-400">—</span>
+          Copay: <span className="text-slate-300">—</span>
         </span>
 
         <span
@@ -210,7 +210,7 @@ export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBann
           }
         >
           Balance:{" "}
-          <span className={balanceDue && balanceDue > 0 ? "font-semibold text-amber-200" : "text-slate-400"}>
+          <span className={balanceDue && balanceDue > 0 ? "font-semibold text-amber-200" : "text-slate-300"}>
             {balanceDue === undefined ? "—" : formatMoney(balanceDue)}
           </span>
         </span>
@@ -220,7 +220,7 @@ export function PatientBanner({ patient, fallbackName, balanceDue }: PatientBann
           <span className="min-w-0 break-words">PCP: {patient?.primaryCareProvider || "—"}</span>
         </span>
 
-        <span className="ml-auto flex items-center gap-1 text-slate-400">
+        <span className="ml-auto flex items-center gap-1 text-slate-300">
           <CalendarDays className="h-3 w-3 shrink-0" aria-hidden="true" />
           Service {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </span>

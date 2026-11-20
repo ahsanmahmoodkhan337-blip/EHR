@@ -86,12 +86,15 @@ export function WorkspaceTabs({
             return (
               <button
                 key={tab.id}
+                id={`workspace-tab-${tab.id}`}
+                type="button"
                 role="tab"
                 aria-selected={isActive}
                 aria-controls={`workspace-panel-${tab.id}`}
+                aria-label={tab.label}
                 onClick={() => onTabChange(tab.id)}
                 className={`
-                  group relative flex items-center gap-2 px-4 py-3 text-sm font-medium
+                  group relative flex min-h-10 items-center gap-2 px-4 py-3 text-sm font-medium
                   transition-colors duration-150
                   ${
                     isActive
@@ -102,10 +105,11 @@ export function WorkspaceTabs({
               >
                 {/* Active indicator bar */}
                 {isActive && (
-                  <span className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-600" />
+                  <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-600" />
                 )}
 
                 <span
+                  aria-hidden="true"
                   className={`${
                     isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-500"
                   }`}
