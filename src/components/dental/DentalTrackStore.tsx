@@ -43,6 +43,33 @@ export type DentalStageName =
   | "ledger"
   | "debrief";
 
+/**
+ * Every stage a dental case URL may name, in order. The stepper and the URL
+ * both rank stages against this list.
+ */
+export const DENTAL_STAGE_ORDER: DentalStageName[] = [
+  "case-select",
+  "briefing",
+  "planning",
+  "predetermination",
+  "coding",
+  "claim",
+  "claims",
+  "ar",
+  "ledger",
+  "debrief",
+];
+
+function stageRank(stage: DentalStageName): number {
+  const i = DENTAL_STAGE_ORDER.indexOf(stage);
+  return i < 0 ? 0 : i;
+}
+
+/** The later of two stages — how "furthest reached" is advanced, never reset backwards. */
+function furthestOf(a: DentalStageName, b: DentalStageName): DentalStageName {
+  return stageRank(b) > stageRank(a) ? b : a;
+}
+
 /** A single CDT line the student is building in the coding stage. */
 export interface DentalClaimLine {
   id: string;
@@ -126,11 +153,16 @@ export interface DentalAdjustment {
 }
 
 export interface DentalTrackState {
-  /** v2 added the structured ADA claim form (`adaForm`). */
-  version: 2;
+  /** v2 added the structured ADA claim form (`adaForm`); v3 added `furthestStage`. */
+  version: 3;
   /** null = no case loaded (case-select screen). */
   caseId: string | null;
   stage: DentalStageName;
+  /**
+   * The furthest stage this student has reached for this case. The stepper reads
+   * "done" and "locked" from it, so both survive a reload and a step backwards.
+   */
+  furthestStage: DentalStageName;
   startedAt: string | null;
   completedAt: string | null;
   lines: DentalClaimLine[];
@@ -161,9 +193,10 @@ const STORAGE_PREFIX = "hh_dental_track_";
 
 function freshState(): DentalTrackState {
   return {
-    version: 2,
+    version: 3,
     caseId: null,
     stage: "case-select",
+    furthestStage: "case-select",
     startedAt: null,
     completedAt: null,
     lines: [],
@@ -192,10 +225,19 @@ function loadState(phone: string | null): DentalTrackState {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return freshState();
-    const parsed = JSON.parse(raw) as DentalTrackState;
+    const parsed = JSON.parse(raw) as DentalTrackState & { version?: number };
     // v1 → v2: the ADA claim record was added; older tracks simply have none.
-    if ((parsed as { version?: number }).version !== 1 && parsed.version !== 2) return freshState();
-    return { ...freshState(), ...parsed, version: 2 };
+    // v2 → v3: the stepper now remembers how far the student got. A v2 record
+    // only knows the stage it stopped on, so that stage is carried forward as
+    // the furthest reached — nothing is invented, and no work is dropped.
+    const version = (parsed as { version?: number }).version;
+    if (version !== 1 && version !== 2 && version !== 3) return freshState();
+    return {
+      ...freshState(),
+      ...parsed,
+      version: 3,
+      furthestStage: parsed.furthestStage ?? parsed.stage ?? "case-select",
+    };
   } catch {
     return freshState();
   }
@@ -377,16 +419,38 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     };
   }, [state, phone]);
 
+  // The provider unmounts when the student moves between the case-picker route
+  // and a stage route, and the save above is debounced. Flush the latest state
+  // on unmount so a route change can never reload an older copy of the record.
+  const latestState = useRef(state);
+  latestState.current = state;
+  useEffect(() => {
+    return () => {
+      const key = keyFor(phoneRef.current);
+      if (!key) return;
+      try {
+        localStorage.setItem(key, JSON.stringify(latestState.current));
+      } catch {
+        /* storage full / private mode — nothing more can be done here */
+      }
+    };
+  }, []);
+
   const activeCase = useMemo(() => (state.caseId ? findCase(state.caseId) : undefined), [state.caseId]);
   const planId = activeCase?.planId ?? "PLAN-CASCADIA-PPO";
 
   const goTo = useCallback((stage: DentalStageName) => {
-    setState((s) => ({ ...s, stage }));
+    setState((s) => ({ ...s, stage, furthestStage: furthestOf(s.furthestStage, stage) }));
   }, []);
 
   /** Record a requested predetermination scenario and jump to that stage. */
   const requestPredetermination = useCallback((scenarioId: string) => {
-    setState((s) => ({ ...s, predeterminationScenarioId: scenarioId, stage: "predetermination" }));
+    setState((s) => ({
+      ...s,
+      predeterminationScenarioId: scenarioId,
+      stage: "predetermination",
+      furthestStage: furthestOf(s.furthestStage, "predetermination"),
+    }));
   }, []);
 
   /** Request a predetermination of benefits for the current treatment plan. */
@@ -397,9 +461,11 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
   const selectCase = useCallback((caseId: string | null) => {
     const found = caseId ? findCase(caseId) : undefined;
     if (caseId && !found) return;
+    const openingStage: DentalStageName = found ? "briefing" : "case-select";
     setState({
       ...freshState(),
-      stage: found ? "briefing" : "case-select",
+      stage: openingStage,
+      furthestStage: openingStage,
       caseId,
     });
   }, []);
@@ -409,6 +475,7 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
       ...s,
       startedAt: new Date().toISOString(),
       stage: "planning",
+      furthestStage: furthestOf(s.furthestStage, "planning"),
       lines: [],
       claimSubmitted: false,
       predeterminationScenarioId: null,

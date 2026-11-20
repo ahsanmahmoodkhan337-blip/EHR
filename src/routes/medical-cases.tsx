@@ -5,37 +5,87 @@
  * independently accessible at /medical-cases and never imports from the
  * free-form medical pipeline store — it runs its own graded case spine on the
  * MEDICAL_CASE_SCENARIOS data. It wraps the medical case store and runner.
+ *
+ * Every stage has its own address (spec `task-1-app-shell.md` item 4):
+ *   /medical-cases                       the case picker
+ *   /medical-cases/MCASE-001/coding      one case, one stage
+ * so a refresh, a bookmark or the browser's back button lands the student on the
+ * stage they were working in. Both addresses render this same page; the params
+ * are handed to the shared URL ⇄ store sync.
  */
 
+import { useCallback } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Stethoscope } from "lucide-react";
 import { isLoggedIn } from "../store/accessStore";
 import { PatientProvider } from "../store/patientStore";
-import { MedicalCaseProvider, useMedicalCase } from "../components/medical/MedicalCaseStore";
-import { MedicalCaseRunner } from "../components/medical/MedicalCaseRunner";
+import {
+  MedicalCaseProvider,
+  MEDICAL_STAGE_ORDER,
+  useMedicalCase,
+  type MedicalCaseStageName,
+} from "../components/medical/MedicalCaseStore";
+import { MedicalCaseRunner, MEDICAL_STAGE_LABEL } from "../components/medical/MedicalCaseRunner";
 import { AppShell } from "../components/AppShell";
 import { PatientBanner, type BannerPatient } from "../components/shell/PatientBanner";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
+import { LockedStageNotice, useStageUrlSync } from "../components/shell/useStageUrlSync";
 
 export const Route = createFileRoute("/medical-cases")({
-  component: MedicalCasesPage,
+  component: () => <MedicalCasesPage />,
 });
 
-function MedicalCasesPage() {
+/** URL params when the page is rendered by the per-stage route. */
+export interface CaseStageParams {
+  caseId?: string;
+  stage?: string;
+}
+
+export function MedicalCasesPage({ caseId, stage }: CaseStageParams = {}) {
   return (
     <PatientProvider>
       <MedicalCaseProvider>
-        <MedicalCasesShell />
+        <MedicalCasesShell urlCaseId={caseId} urlStage={stage} />
       </MedicalCaseProvider>
     </PatientProvider>
   );
 }
 
-function MedicalCasesShell() {
+function MedicalCasesShell({ urlCaseId, urlStage }: { urlCaseId?: string; urlStage?: string }) {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
   // The graded case's own patient record — the patient this runner is working.
-  const { activeCase, plan } = useMedicalCase();
+  const { state, activeCase, plan, selectCase, goTo } = useMedicalCase();
+
+  const goToStage = useCallback(
+    (caseId: string, stage: string, replace = false) => {
+      void navigate({
+        to: "/medical-cases/$caseId/$stage",
+        params: { caseId, stage },
+        replace,
+      });
+    },
+    [navigate],
+  );
+  const goToBase = useCallback(() => {
+    void navigate({ to: "/medical-cases", replace: true });
+  }, [navigate]);
+
+  // Keep the address and the case record in step (refresh, back/forward, and a
+  // stage the student has not unlocked yet).
+  const { blockedStage, dismissBlocked } = useStageUrlSync({
+    urlCaseId,
+    urlStage,
+    caseId: state.caseId,
+    stage: state.stage,
+    furthestStage: state.furthestStage,
+    stageIds: MEDICAL_STAGE_ORDER,
+    freshCaseStage: "briefing",
+    selectCase,
+    goTo: (next) => goTo(next as MedicalCaseStageName),
+    goToStage,
+    goToBase,
+  });
 
   if (!loggedIn) {
     return (
@@ -84,6 +134,12 @@ function MedicalCasesShell() {
         void navigate({ to: "/" });
       }}
     >
+      {blockedStage && (
+        <LockedStageNotice
+          stageLabel={MEDICAL_STAGE_LABEL[blockedStage as keyof typeof MEDICAL_STAGE_LABEL] ?? blockedStage}
+          onDismiss={dismissBlocked}
+        />
+      )}
       <div className="min-h-0 flex-1 overflow-hidden">
         <MedicalCaseRunner />
       </div>
