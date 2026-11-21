@@ -86,6 +86,14 @@ export interface PersistedUserData {
   arCalls?: ARCallRecord[];
   paRecords?: PARecordStore[];
   security?: AccountSecurityState;
+  /**
+   * The highest claim-number sequence this student has ever minted, shared by
+   * both tracks (`store/claimSequence.ts`). Optional and additive: a record
+   * saved before it existed simply has none, and the sequence reads the claim
+   * numbers still on the record instead. Nothing is invented, and no claim
+   * number already saved is changed by its absence.
+   */
+  claimSequence?: number;
 }
 
 /** localStorage key for a given phone. */

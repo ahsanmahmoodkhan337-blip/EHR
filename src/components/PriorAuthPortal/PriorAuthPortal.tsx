@@ -151,7 +151,6 @@ export default function PriorAuthPortal() {
 
   // Form state
   const [procedure, setProcedure] = useState<ProcedureKey | "">("");
-  const [payer, setPayer] = useState("Medicare");
   const [clinicalJustification, setClinicalJustification] = useState("");
   const [icdCodes, setIcdCodes] = useState(state.icdCodes?.join(", ") || "");
   const [cptCodes, setCptCodes] = useState(state.cptCodes?.join(", ") || "");
@@ -199,8 +198,16 @@ export default function PriorAuthPortal() {
   // Current PA timeline simulation
   const [timelineStep, setTimelineStep] = useState(0);
 
-  // Payer-specific requirements
-  const payerInfo = PAYER_REQUIREMENTS[payer] || PAYER_REQUIREMENTS["Medicare"];
+  // The payer is the patient's own coverage record (`domain/patientCard.ts`),
+  // never a screen default. A panel that starts on "Medicare" asks a payer the
+  // patient's card does not name, and the request that goes out says the wrong
+  // plan. With no payer on file the panel says so instead of guessing.
+  const payer = card.payerName;
+  const payerLabel = payer || NOT_ON_FILE;
+
+  // Payer-specific requirements — only for a payer the panel actually has rules
+  // for. No fallback: another payer's rules are not this payer's rules.
+  const payerInfo = PAYER_REQUIREMENTS[payer] ?? null;
 
   const isLocked = state.status !== "coded" && state.status !== "billed" && !submitted;
 
@@ -296,7 +303,7 @@ export default function PriorAuthPortal() {
       // and the chart above it name the same patient.
       patientId,
       procedure: procedure ? PA_PROCEDURES[procedure as ProcedureKey]?.label || procedure : "General consultation",
-      insuranceName: patient?.insurance || payer,
+      insuranceName: payer,
       paProcessor: "",
       authStartDate: authStartDate,
       authEndDate: authEndDate,
@@ -724,7 +731,7 @@ export default function PriorAuthPortal() {
               <div className="mb-4 rounded-lg border border-brand-100 bg-brand-50 p-3">
                 <p className="text-[10px] font-semibold text-brand-700 mb-2">Patient Insurance Information</p>
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
-                  <div><span className="text-slate-400">Payer:</span><p className="font-medium text-slate-700">{payer}</p></div>
+                  <div><span className="text-slate-400">Payer:</span><p className="font-medium text-slate-700">{payerLabel}</p></div>
                   <div><span className="text-slate-400">Member ID:</span><p className="font-medium text-slate-700">{memberIdOnFile(card)}</p></div>
                   <div><span className="text-slate-400">Group #:</span><p className="font-medium text-slate-700">{card.groupNumber || NOT_ON_FILE}</p></div>
                   <div><span className="text-slate-400">Patient:</span><p className="font-medium text-slate-700">{patient ? `${patient.firstName} ${patient.lastName}` : "���"}</p></div>
@@ -757,7 +764,7 @@ export default function PriorAuthPortal() {
                 }`}
               >
                 {verifyingInsurance ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Verifying with {payer}...</>
+                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Verifying with {payerLabel}...</>
                 ) : insuranceVerified ? (
                   <><CheckCircle2 className="h-3.5 w-3.5" /> Re-verify Insurance</>
                 ) : (
@@ -828,7 +835,7 @@ export default function PriorAuthPortal() {
                       </div>
                       <div>
                         <span className="text-slate-400">Insurance:</span>
-                        <p className="font-medium text-slate-700">{patient?.insurance || "—"}</p>
+                        <p className="font-medium text-slate-700">{payerLabel}</p>
                       </div>
                       <div>
                         <span className="text-slate-400">PCP:</span>
@@ -858,41 +865,42 @@ export default function PriorAuthPortal() {
                       </select>
                     </div>
 
-                    {/* Payer */}
+                    {/* Payer — read from the patient's coverage record */}
                     <div>
                       <label className="mb-1 block text-[10px] font-medium text-slate-500">
-                        Payer <span className="text-red-400">*</span>
+                        Payer
                       </label>
-                      <select
-                        value={payer}
-                        onChange={(e) => setPayer(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-800"
-                      >
-                        {Object.keys(PAYER_REQUIREMENTS).map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </select>
+                      <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                        {payerLabel}
+                      </p>
+                      <p className="mt-0.5 text-[9px] text-slate-400">From the patient&rsquo;s coverage record</p>
                     </div>
 
                     {/* Payer-specific requirements */}
                     <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
                       <p className="text-[9px] font-semibold text-amber-700 flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" />
-                        {payer} Requirements
+                        {payerLabel} Requirements
                       </p>
-                      <p className="text-[9px] text-amber-600 mt-0.5">
-                        Turnaround: {payerInfo.turnaroundTime} | Requirements:
-                      </p>
-                      <ul className="mt-1 space-y-0.5">
-                        {payerInfo.requirements.map((req, i) => (
-                          <li key={i} className="flex items-center gap-1 text-[9px] text-amber-600">
-                            <CheckCircle2 className="h-2.5 w-2.5 text-amber-400" />
-                            {req}
-                          </li>
-                        ))}
-                      </ul>
+                      {payerInfo ? (
+                        <>
+                          <p className="text-[9px] text-amber-600 mt-0.5">
+                            Turnaround: {payerInfo.turnaroundTime} | Requirements:
+                          </p>
+                          <ul className="mt-1 space-y-0.5">
+                            {payerInfo.requirements.map((req, i) => (
+                              <li key={i} className="flex items-center gap-1 text-[9px] text-amber-600">
+                                <CheckCircle2 className="h-2.5 w-2.5 text-amber-400" />
+                                {req}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : (
+                        <p className="text-[9px] text-amber-600 mt-0.5">
+                          No requirements on file for this payer.
+                        </p>
+                      )}
                     </div>
 
                     {/* ── Insurance Verification ── */}
@@ -941,7 +949,7 @@ export default function PriorAuthPortal() {
                       {verifyingInsurance && (
                         <div className="mt-2 flex items-center gap-1.5 text-[10px] text-brand-600">
                           <Loader2 className="h-3 w-3 animate-spin" />
-                          Checking {payer} eligibility...
+                          Checking {payerLabel} eligibility...
                         </div>
                       )}
                       {verificationResult && (
@@ -1049,7 +1057,7 @@ export default function PriorAuthPortal() {
                           <CheckCircle2 className="mr-1 inline h-3 w-3" />
                           Estimated auto-auth threshold:{" "}
                           <span className="font-semibold">${procedureData.autoAuthThreshold.toLocaleString()}</span>{" "}
-                          — procedures under this amount may be auto-approved by {payer}.
+                          — procedures under this amount may be auto-approved by {payerLabel}.
                         </p>
                       </div>
                     )}
@@ -1070,7 +1078,7 @@ export default function PriorAuthPortal() {
                   }`}
                 >
                   <Upload className="h-3.5 w-3.5" />
-                  Submit e-PA Request to {payer}
+                  Submit e-PA Request to {payerLabel}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
                 <button
@@ -1133,7 +1141,7 @@ export default function PriorAuthPortal() {
                       </li>
                       <li className="flex items-center gap-1.5">
                         <CheckCircle2 className="h-3 w-3 text-slate-400" />
-                        Review {payer}-specific requirements above
+                        Review {payerLabel}-specific requirements above
                       </li>
                     </ul>
                   </div>
@@ -1146,7 +1154,7 @@ export default function PriorAuthPortal() {
                 </div>
                 <p className="mt-3 text-sm font-medium text-green-700">e-PA Submitted Successfully!</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {procedure ? PA_PROCEDURES[procedure as ProcedureKey]?.label || procedure : "Procedure"} — {payer}
+                  {procedure ? PA_PROCEDURES[procedure as ProcedureKey]?.label || procedure : "Procedure"} — {payerLabel}
                 </p>
                 <p className="mt-0.5 text-[10px] text-slate-400">
                   Patient: {patient ? `${patient.firstName} ${patient.lastName}` : "—"} | Submitted at {new Date().toLocaleTimeString()}
@@ -1223,7 +1231,8 @@ export default function PriorAuthPortal() {
                     Estimated Payer Response
                   </p>
                   <p className="mt-1 text-[10px] text-brand-600">
-                    {payer} typically responds within <strong>{payerInfo.turnaroundTime}</strong>.
+                    {payerLabel} {payerInfo ? "typically responds within" : "has no turnaround on file."}{" "}
+                    {payerInfo ? <strong>{payerInfo.turnaroundTime}</strong> : null}
                     Use the timeline above to simulate the review process. Check the queue dashboard for status updates.
                   </p>
                 </div>
@@ -1735,7 +1744,7 @@ export default function PriorAuthPortal() {
                       {PA_PROCEDURES[procedure]?.cptCodes.join(", ")}
                     </p>
                     <p className="mb-1">
-                      <strong>Payer:</strong> {payer}
+                      <strong>Payer:</strong> {payerLabel}
                     </p>
                     <hr className="my-2 border-slate-200" />
                     <p className="mb-1 font-semibold text-brand-700">Sections to Include:</p>

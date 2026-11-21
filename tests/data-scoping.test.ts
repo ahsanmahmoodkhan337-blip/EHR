@@ -108,8 +108,11 @@ describe("a claim or a PA needs a patient and an encounter", () => {
     const store = read("src/store/pipelineStore.tsx");
     const setClaimForm = store.slice(store.indexOf("const setClaimForm"));
     expect(setClaimForm.slice(0, 1200)).toContain("scopingRefusal");
-    // The refusal happens before a claim number is minted.
-    expect(setClaimForm.indexOf("scopingRefusal")).toBeLessThan(setClaimForm.indexOf("nextClaimNumber"));
+    // The refusal happens before a claim number is minted. The mint is the
+    // student's shared sequence (`store/claimSequence.ts`), not the track's own.
+    expect(setClaimForm.indexOf("scopingRefusal")).toBeLessThan(
+      setClaimForm.indexOf("mintNextClaimNumber"),
+    );
 
     const addPA = store.slice(store.indexOf("const addPARecord"));
     expect(addPA.slice(0, 600)).toContain("scopingRefusal");
