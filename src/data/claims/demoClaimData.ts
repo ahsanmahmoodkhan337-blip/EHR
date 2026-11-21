@@ -48,11 +48,6 @@ export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {
     value: "MCB-4471",
     stage: "Registration & eligibility (group number)",
   },
-  insuredEmployer: {
-    box: "9c",
-    value: "RETIREE — MEDFORD CITY SCHOOLS",
-    stage: "Registration & eligibility (employer)",
-  },
   insuredPlanName: {
     box: "11c",
     value: "MEDICARE PART B",
@@ -70,35 +65,59 @@ export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {
     value: "2026-07-08",
     stage: "Scribe / provider (date of first symptoms)",
   },
-  unableToWorkFrom: {
-    box: "16",
-    value: "2026-07-09",
-    stage: "Scribe / provider (work status)",
-  },
-  unableToWorkTo: {
-    box: "16",
-    value: "2026-07-13",
-    stage: "Scribe / provider (work status)",
-  },
-  referringProvider: {
-    box: "17",
-    value: "CHEN, SARAH, MD",
-    stage: "Registration / front desk (referring provider)",
-  },
-  referringNpi: {
-    box: "17b",
-    value: "1932847563",
-    stage: "Registration / front desk (referring provider NPI)",
-  },
   additionalInfo: {
     box: "19",
     value: "DEMO — TRAINING CLAIM, NOT A REAL ENCOUNTER",
     stage: "Scribe / provider (additional claim information)",
   },
+};
+
+/**
+ * Boxes that are **left blank** when nothing was captured, with the stage that
+ * should supply them — never a value.
+ *
+ * Owner audit, 2026-11-21 (spec `slice-i-patient-record.md` item 3): boxes 9c,
+ * 16, 17, 17b and 23 each printed another patient's world — a retired school
+ * district's employer line, someone else's return-to-work dates, a referring
+ * physician this practice never saw, and a prior authorisation number for a
+ * different encounter. None of that can be derived from the patient on screen,
+ * so it is removed rather than replaced: the box stays empty and says which
+ * stage fills it. A blank box teaches "this was never captured"; a borrowed
+ * value teaches that inventing one is fine.
+ *
+ * The provenance is printed in the claim's own grey strip (`ClaimFormShell`), so
+ * the student sees the stage without a value ever being printed on the paper.
+ */
+export const UNFILLED_BOX_SOURCES: Record<string, DemoClaimValue> = {
+  insuredEmployer: {
+    box: "9c",
+    value: "",
+    stage: "Registration & eligibility (the employer on the coverage record)",
+  },
+  unableToWorkFrom: {
+    box: "16",
+    value: "",
+    stage: "Scribe / provider (the dates the patient was unable to work)",
+  },
+  unableToWorkTo: {
+    box: "16",
+    value: "",
+    stage: "Scribe / provider (the dates the patient was unable to work)",
+  },
+  referringProvider: {
+    box: "17",
+    value: "",
+    stage: "Registration / front desk (the referring provider's name)",
+  },
+  referringNpi: {
+    box: "17b",
+    value: "",
+    stage: "Registration / front desk (the referring provider's NPI)",
+  },
   priorAuthNumber: {
     box: "23",
-    value: "PA-2026-004418",
-    stage: "Prior authorization (authorisation number)",
+    value: "",
+    stage: "Prior authorization (this encounter's own authorisation number)",
   },
 };
 

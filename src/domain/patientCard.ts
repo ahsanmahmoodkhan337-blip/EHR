@@ -198,6 +198,24 @@ export function patientCard(patient: CardHolder | null | undefined): PatientCard
   };
 }
 
+/**
+ * The payer a claim bills, and the payer the 277CA and the 835 name: the
+ * patient's own coverage record first (`patientCard`), the claim's own captured
+ * payer second.
+ *
+ * Before 2026-11-21 the Biller's screen kept a local default of "Medicare", so a
+ * payer saved at Registration reached the banner, eligibility and the printed
+ * paper but never the acknowledgement or the remittance — the student changed
+ * the card and the money still came from a different plan. One reader, so the
+ * four screens cannot disagree.
+ */
+export function claimPayer(
+  patient: CardHolder | null | undefined,
+  claimPayerName?: string | null,
+): string {
+  return patientCard(patient).payerName || (claimPayerName ?? "").trim();
+}
+
 /** What a screen prints for a card field: the value, or "Not on file". */
 export function onFileOr(value: string | undefined | null): string {
   return (value ?? "").trim() || NOT_ON_FILE;

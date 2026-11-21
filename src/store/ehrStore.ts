@@ -1074,6 +1074,13 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
 
     const now = new Date().toISOString();
     const record: PatientInsurance = { ...insurance, updatedAt: now };
+    // The patient's free-text payer label is the same fact as the record's payer
+    // name, and a dozen older screens still print it (the patient list's Payer
+    // column, the chart header, the prior-auth panel). Writing one and not the
+    // other is how Registration saved "Cascadia Health Plan" while the list still
+    // read "Medicare Part B" (spec `slice-i-patient-record.md` item 2: one write,
+    // one place).
+    const payerLabel = record.primary.payerName?.trim() || existing.insurance;
     const entry: ActivityEntry = {
       time: now,
       role: "front-desk",
@@ -1095,8 +1102,13 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
     set((s) => {
       const inUser = s.user.patients.some((p) => p.id === patientId);
       const patients = inUser
-        ? s.user.patients.map((p) => (p.id === patientId ? { ...p, insuranceRecord: record } : p))
-        : [...s.user.patients, { ...existing, isSeed: false, insuranceRecord: record }];
+        ? s.user.patients.map((p) =>
+            p.id === patientId ? { ...p, insurance: payerLabel, insuranceRecord: record } : p,
+          )
+        : [
+            ...s.user.patients,
+            { ...existing, isSeed: false, insurance: payerLabel, insuranceRecord: record },
+          ];
       return {
         user: { ...s.user, patients, activity: appendActivity(s.user.activity, entry) },
       };
