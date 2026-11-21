@@ -167,7 +167,12 @@ describe("Coding — a signed note with no codes, and nothing else", () => {
     const rows = buildCodingRows({ encounters, nameForPatient });
     expect(rows).toHaveLength(1);
     expect(rows[0].title).toBe("Amara Okafor");
-    expect(rows[0].target).toEqual({ kind: "medical", patientId: "MPT-2001", role: "coder" });
+    expect(rows[0].target).toEqual({
+      kind: "medical",
+      patientId: "MPT-2001",
+      role: "coder",
+      stage: "coding",
+    });
   });
 
   test("the row prints the signature time from the encounter's own timeline", () => {

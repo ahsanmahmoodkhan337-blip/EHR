@@ -135,15 +135,29 @@ export function RailRowList({
               {row.title}
             </p>
             {target.kind === "medical" ? (
-              <button
-                type="button"
-                onClick={() => onOpenMedical(target.patientId, target.role)}
-                className={actionClass}
-                aria-label={`${row.action} — ${row.title}`}
-              >
-                {row.action}
-                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </button>
+              target.stage && target.patientId ? (
+                // A target that names a stage is the encounter's own address, so
+                // a pasted or refreshed link lands on the same screen.
+                <Link
+                  to="/encounter/$encounterId/$stage"
+                  params={{ encounterId: target.patientId, stage: target.stage }}
+                  className={actionClass}
+                  aria-label={`${row.action} — ${row.title}`}
+                >
+                  {row.action}
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenMedical(target.patientId, target.role)}
+                  className={actionClass}
+                  aria-label={`${row.action} — ${row.title}`}
+                >
+                  {row.action}
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              )
             ) : (
               <Link
                 to="/cases/$track/$caseId/$stage"
