@@ -341,7 +341,7 @@ export default function PriorAuthPortal() {
   return (
     <div className="flex flex-1 flex-col h-full">
       {/* ── CoverMyMeds-style Header ── */}
-      <div className={`flex items-center gap-2 px-4 py-2.5 border-b ${CMM_BORDER} bg-white`}>
+      <div className={`flex flex-wrap items-center gap-2 px-4 py-2.5 border-b ${CMM_BORDER} bg-white`}>
         <Shield className="h-4 w-4 text-brand-800" />
         <h2 className="text-sm font-bold text-brand-800">Prior Authorization Hub</h2>
         <span className="rounded-full bg-brand-800 px-2 py-0.5 text-[10px] font-medium text-white ml-1">
