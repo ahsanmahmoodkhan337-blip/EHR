@@ -197,28 +197,72 @@ export function updateStageScore(
 
 // ─── Scoring Logic Helpers ──────────────────────────────────────────
 
+/** What the student transcribed at Registration. */
+export interface RegistrationAnswers {
+  firstName: string;
+  lastName: string;
+  /** MM/DD/YYYY as typed. */
+  dob: string;
+  subscriberId: string;
+  groupNumber: string;
+  payerId: string;
+}
+
+/**
+ * What the patient on screen actually holds — read from that patient's own
+ * record (`domain/patientCard.ts`), never from a hardcoded card. A field the
+ * chart does not hold is "" and is scored on being filled, not on matching.
+ */
+export interface RegistrationExpected {
+  firstName: string;
+  lastName: string;
+  /** MM/DD/YYYY. */
+  dob: string;
+  memberId: string;
+  groupNumber: string;
+  payerId: string;
+  /** The name the insurance card prints — the case's one deliberate mismatch. */
+  nameOnCard: string;
+}
+
+/** The typed value against the patient's own value; a blank expectation scores on being filled. */
+function matchesRecord(typed: string, expected: string): boolean {
+  const value = typed.trim();
+  if (!expected.trim()) return value !== "";
+  return value.toLowerCase() === expected.trim().toLowerCase();
+}
+
+/**
+ * Registration's 10 points, scored against the patient on screen.
+ *
+ * Until 2026-11-21 this compared every answer to one hardcoded card
+ * (XYZ987654321 / GRP-4477 / NWIND01) and one hardcoded misspelling
+ * ("jonathon"), so every patient but that one scored zero and the mismatch
+ * trap could not move to another case. It now reads the patient's own card, and
+ * the blind-copy penalty follows the card's spelling for that patient.
+ */
 export function scoreRegistration(
-  firstName: string,
-  lastName: string,
-  dob: string,
-  subscriberId: string,
-  groupNumber: string,
-  payerId: string
+  answer: RegistrationAnswers,
+  expected: RegistrationExpected,
 ): number {
   let score = 0;
 
-  // Check if fields are filled
-  if (firstName.trim()) score += 2;
-  if (lastName.trim()) score += 2;
-  if (dob.trim() && /^\d{2}\/\d{2}\/\d{4}$/.test(dob.trim())) score += 2;
-  if (subscriberId.trim() === "XYZ987654321") score += 2;
-  if (groupNumber.trim() === "GRP-4477") score += 1;
-  if (payerId.trim() === "NWIND01") score += 1;
-
-  // Penalty: name mismatch trap — if student blindly copied "Jonathon" from insurance card
-  if (firstName.toLowerCase() === "jonathon") {
-    score -= 5;
+  if (matchesRecord(answer.firstName, expected.firstName)) score += 2;
+  if (matchesRecord(answer.lastName, expected.lastName)) score += 2;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(answer.dob.trim())) {
+    const typed = answer.dob.trim();
+    if (!expected.dob.trim() || typed === expected.dob.trim()) score += 2;
   }
+  if (matchesRecord(answer.subscriberId, expected.memberId)) score += 2;
+  if (matchesRecord(answer.groupNumber, expected.groupNumber)) score += 1;
+  if (matchesRecord(answer.payerId, expected.payerId)) score += 1;
+
+  // The trap: the insurance card spells the name differently from the
+  // government ID. Copying the card's spelling — or copying it onto the chart —
+  // is the error this stage exists to catch.
+  const typedName = `${answer.firstName} ${answer.lastName}`.replace(/\s+/g, " ").trim().toLowerCase();
+  const cardName = expected.nameOnCard.replace(/\s+/g, " ").trim().toLowerCase();
+  if (cardName && typedName === cardName) score -= 5;
 
   return Math.max(0, Math.min(10, score));
 }

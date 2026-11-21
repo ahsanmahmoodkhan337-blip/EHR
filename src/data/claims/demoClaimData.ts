@@ -8,116 +8,62 @@
  * stage that should really supply the box, is listed separately in the claim's
  * validation panel, and is **never** written back onto the claim record.
  *
- * One source only: this file. The builder that reads it lives in
- * `src/utils/demoClaimFill.ts`. Values are seeded from the tutorial case
- * (patient "DEMO", MRN TUTORIAL-001, Medicare Part B) so the paper agrees with
- * the patient banner above it.
+ * Owner work order 2026-11-21 (`specs/slice-i-patient-record.md` § 3): a demo
+ * value may only be **derived from the patient on screen, or removed**. Boxes
+ * 23, 9c, 16, 17 and 17b used to print another patient's world — a prior
+ * authorisation number, a retiree's employer, work-status dates and a referring
+ * provider who was never on this encounter. They are gone: box 23 now carries
+ * only a prior authorisation belonging to this encounter's own coded
+ * procedures, and every other box stays empty with its provenance naming the
+ * stage that should have filled it.
+ *
+ * What is left is the training marker in box 19, built from the patient on
+ * screen, so a demo value can never be another patient's data.
  *
  * Keyed by the claim field each value fills (see `ClaimFormData` in
  * `src/store/pipelineStore.tsx`), not by box number, because the box number is
  * printed by the layout and can differ between papers.
  *
- * ⚠ DEMO DATA ONLY — invented teaching values. The referring NPI is built to
- * pass the NPI check-digit test (as the provider profile's are) so the demo
- * value does not itself raise a validation error.
+ * ⚠ DEMO DATA ONLY — invented teaching values.
  */
+
+/** The patient on screen, as much of them as a demo value may be built from. */
+export interface DemoClaimContext {
+  mrn?: string;
+  firstName?: string;
+  lastName?: string;
+}
 
 export interface DemoClaimValue {
   /** Printed box this value lands in on the CMS-1500 (02/12). */
   box: string;
-  /** The demo value itself. */
-  value: string;
+  /** The demo value, or a value built from the patient on screen. */
+  value: string | ((patient: DemoClaimContext) => string);
   /** The stage that should really supply this box — printed in the tooltip. */
   stage: string;
 }
 
 /** Demo value per claim field. Order here is the order the panel lists them. */
 export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {
-  insuredId: {
-    box: "1a",
-    value: "1EG4-TE5-MK72",
-    stage: "Registration & eligibility (the patient's insurance record)",
-  },
-  otherInsuranceName: {
-    box: "9",
-    value: "NONE — NO OTHER COVERAGE ON FILE",
-    stage: "Registration & eligibility (other coverage)",
-  },
-  insuredPolicyGroup: {
-    box: "11",
-    value: "MCB-4471",
-    stage: "Registration & eligibility (group number)",
-  },
-  insuredEmployer: {
-    box: "9c",
-    value: "RETIREE — MEDFORD CITY SCHOOLS",
-    stage: "Registration & eligibility (employer)",
-  },
-  insuredPlanName: {
-    box: "11c",
-    value: "MEDICARE PART B",
-    stage: "Registration & eligibility (plan name)",
-  },
-  similarIllnessQualifier: {
-    box: "15",
-    // A date with no qualifier is invalid on a real claim, so the demo shows
-    // the pair as it must be sent — the qualifier is not optional in practice.
-    value: "431",
-    stage: "Scribe / provider — qualifier for the other date",
-  },
-  similarIllnessDate: {
-    box: "15",
-    value: "2026-07-08",
-    stage: "Scribe / provider (date of first symptoms)",
-  },
-  unableToWorkFrom: {
-    box: "16",
-    value: "2026-07-09",
-    stage: "Scribe / provider (work status)",
-  },
-  unableToWorkTo: {
-    box: "16",
-    value: "2026-07-13",
-    stage: "Scribe / provider (work status)",
-  },
-  referringProvider: {
-    box: "17",
-    value: "CHEN, SARAH, MD",
-    stage: "Registration / front desk (referring provider)",
-  },
-  referringNpi: {
-    box: "17b",
-    value: "1932847563",
-    stage: "Registration / front desk (referring provider NPI)",
-  },
   additionalInfo: {
     box: "19",
-    value: "DEMO — TRAINING CLAIM, NOT A REAL ENCOUNTER",
+    // Built from the patient on screen — never a fixed string about a case the
+    // student is not working.
+    value: (patient) =>
+      `DEMO — TRAINING CLAIM${patient.mrn ? ` FOR ${patient.mrn}` : ""}, NOT A REAL ENCOUNTER`,
     stage: "Scribe / provider (additional claim information)",
-  },
-  priorAuthNumber: {
-    box: "23",
-    value: "PA-2026-004418",
-    stage: "Prior authorization (authorisation number)",
   },
 };
 
 /**
- * Demo values for a **service line** (box 24A–24J), applied per line by
- * `applyLineDemoFill` rather than to the claim's own values map.
+ * Demo values for a **service line** (box 24A–24J).
  *
- * Box 24A is here because the date of service used to be printed as `today()`
- * whenever the Coder handed over no per-line dates — a date nobody captured. The
- * claim now reads the encounter's date of service, and only when the encounter
- * has none either does the line show this tagged demo date.
+ * Empty by decision: 24A's demo date was a fixed 2026-07-09 that belonged to no
+ * encounter on screen. The line's date of service now comes from the Coder's
+ * per-line data or the encounter's own date, and a line with neither stays
+ * blank and is flagged in box 24A.
  */
-export const DEMO_LINE_DATA: Record<string, DemoClaimValue> = {
-  dateOfService: {
-    box: "24A",
-    value: "2026-07-09",
-    stage: "Coder (per-line date of service)",
-  },
-};
+export const DEMO_LINE_DATA: Record<string, DemoClaimValue> = {};
 
 /** One line printed under the paper so a demo value is never mistaken for real. */
 export const DEMO_FILL_NOTE =

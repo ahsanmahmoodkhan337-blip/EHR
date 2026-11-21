@@ -266,6 +266,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
           onSubmit={handleSubmitClaim}
           onDownload={downloadPdf}
           accent="accent"
+          demoPatient={activeCase?.patient ?? null}
         >
           {(api) => <ADAForm {...api} />}
         </ClaimFormShell>

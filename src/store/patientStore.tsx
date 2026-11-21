@@ -186,6 +186,14 @@ export interface Patient {
   phone: string;
   email: string;
   address: string;
+  /**
+   * The licence number the government ID prints (`domain/patientCard.ts`).
+   * Absent on a patient no one has captured one for — the licence card then
+   * reads "Not on file" rather than borrowing another patient's number.
+   */
+  licenseNumber?: string;
+  /** State that issued the licence; falls back to the state in `address`. */
+  licenseState?: string;
   emergencyContact: { name: string; phone: string; relation: string };
   primaryCareProvider: string;
   /** Free-text payer label, kept for display. The claim reads `insuranceRecord`. */
@@ -228,6 +236,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0101",
     email: "tutorial@demo.health",
     address: "1 Training Lane, Medford, NY 11763",
+    licenseNumber: "D45170137",
+    licenseState: "NY",
     emergencyContact: { name: "Demo Support", phone: "(555) 555-0102", relation: "Instructor" },
     primaryCareProvider: "Dr. Demo Instructor, MD",
     insurance: "Medicare Part B",
@@ -264,6 +274,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0103",
     email: "jane.doe@email.com",
     address: "123 Main St, Springfield, IL 62701",
+    licenseNumber: "D45170274",
+    licenseState: "IL",
     emergencyContact: {
       name: "John Doe",
       phone: "(555) 555-0104",
@@ -417,6 +429,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0105",
     email: "john.smith@email.com",
     address: "456 Oak Ave, Springfield, IL 62702",
+    licenseNumber: "D45170411",
+    licenseState: "IL",
     emergencyContact: {
       name: "Mary Smith",
       phone: "(555) 555-0106",
@@ -542,6 +556,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0107",
     email: "emily.chen@email.com",
     address: "789 Pine Rd, Springfield, IL 62703",
+    licenseNumber: "D45170548",
+    licenseState: "IL",
     emergencyContact: {
       name: "David Chen",
       phone: "(555) 555-0108",
@@ -664,6 +680,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0109",
     email: "robert.johnson@email.com",
     address: "321 Elm St, Springfield, IL 62704",
+    licenseNumber: "D45170685",
+    licenseState: "IL",
     emergencyContact: {
       name: "Patricia Johnson",
       phone: "(555) 555-0110",
@@ -791,6 +809,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0111",
     email: "maria.garcia@email.com",
     address: "654 Maple Dr, Springfield, IL 62705",
+    licenseNumber: "D45170822",
+    licenseState: "IL",
     emergencyContact: {
       name: "Carlos Garcia",
       phone: "(555) 555-0112",
@@ -916,6 +936,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0113",
     email: "olivia.chen@email.com",
     address: "100 Maple St, Springfield, IL 62701",
+    licenseNumber: "D45170959",
+    licenseState: "IL",
     emergencyContact: { name: "Mark Chen", phone: "(555) 555-0114", relation: "Father" },
     primaryCareProvider: "Dr. Lisa Wong, MD",
     insurance: "Meridian Health Plan PPO",
@@ -938,6 +960,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0115",
     email: "robert.martinez@email.com",
     address: "200 Oak Ave, Springfield, IL 62702",
+    licenseNumber: "D45171096",
+    licenseState: "IL",
     emergencyContact: { name: "Linda Martinez", phone: "(555) 555-0116", relation: "Spouse" },
     primaryCareProvider: "Dr. Sarah Chen, MD",
     insurance: "Northwind Health Plan HMO",
@@ -963,6 +987,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0117",
     email: "harold.thompson@email.com",
     address: "300 Pine Rd, Springfield, IL 62703",
+    licenseNumber: "D45171233",
+    licenseState: "IL",
     emergencyContact: { name: "Betty Thompson", phone: "(555) 555-0118", relation: "Spouse" },
     primaryCareProvider: "Dr. Michael Patel, MD",
     insurance: "Medicare Part B + Supplemental",
@@ -991,6 +1017,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0119",
     email: "parent.mia@email.com",
     address: "400 Birch Ln, Springfield, IL 62704",
+    licenseNumber: "D45171370",
+    licenseState: "IL",
     emergencyContact: { name: "Sofia Rodriguez", phone: "(555) 555-0120", relation: "Mother" },
     primaryCareProvider: "Dr. Karen Thompson, MD",
     insurance: "Ridgeline Health Plan PPO",
@@ -1015,6 +1043,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0121",
     email: "eleanor.hayes@email.com",
     address: "500 Walnut St, Springfield, IL 62705",
+    licenseNumber: "D45171507",
+    licenseState: "IL",
     emergencyContact: { name: "Thomas Hayes", phone: "(555) 555-0122", relation: "Son" },
     primaryCareProvider: "Dr. Sarah Chen, MD",
     insurance: "Medicare Advantage",
@@ -1045,6 +1075,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0123",
     email: "james.kowalski@email.com",
     address: "600 Cedar Dr, Springfield, IL 62706",
+    licenseNumber: "D45171644",
+    licenseState: "IL",
     emergencyContact: { name: "Anna Kowalski", phone: "(555) 555-0124", relation: "Spouse" },
     primaryCareProvider: "Dr. Michael Patel, MD",
     insurance: "Cascadia Health Plan PPO",
@@ -1070,6 +1102,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0125",
     email: "alex.rivera@email.com",
     address: "700 Elm St, Springfield, IL 62707",
+    licenseNumber: "D45171781",
+    licenseState: "IL",
     emergencyContact: { name: "Maria Rivera", phone: "(555) 555-0126", relation: "Mother" },
     primaryCareProvider: "Dr. Karen Thompson, MD",
     insurance: "Meridian Health Plan HMO",
@@ -1094,6 +1128,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0127",
     email: "beatrice.okafor@email.com",
     address: "800 Spruce Ave, Springfield, IL 62708",
+    licenseNumber: "D45171918",
+    licenseState: "IL",
     emergencyContact: { name: "Chinwe Okafor", phone: "(555) 555-0128", relation: "Daughter" },
     primaryCareProvider: "Dr. James Wilson, MD",
     insurance: "Medicare Part B + Northwind Supplemental",
@@ -1123,6 +1159,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0124",
     email: "david.kim@email.com",
     address: "900 Maple Dr, Springfield, IL 62709",
+    licenseNumber: "D45172055",
+    licenseState: "IL",
     emergencyContact: { name: "Eunice Kim", phone: "(555) 555-0129", relation: "Sister" },
     primaryCareProvider: "Dr. Lisa Wong, MD",
     insurance: "Ridgeline Health Plan HMO",
@@ -1148,6 +1186,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0130",
     email: "fatima.al-rashid@email.com",
     address: "1000 Willow Ct, Springfield, IL 62710",
+    licenseNumber: "D45172192",
+    licenseState: "IL",
     emergencyContact: { name: "Hassan Al-Rashid", phone: "(555) 555-0131", relation: "Spouse" },
     primaryCareProvider: "Dr. Karen Thompson, MD",
     insurance: "Cascadia Health Plan PPO",
@@ -1173,6 +1213,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0105",
     email: "george.h@email.com",
     address: "456 Oak Ave, Chicago, IL 60601",
+    licenseNumber: "D45172329",
+    licenseState: "IL",
     emergencyContact: { name: "Martha Harrison", phone: "(555) 555-0132", relation: "Spouse" },
     primaryCareProvider: "Dr. James Wilson, MD",
     insurance: "Medicare Part B",
@@ -1207,6 +1249,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0107",
     email: "samantha.g@email.com",
     address: "789 Pine St, Denver, CO 80201",
+    licenseNumber: "D45172466",
+    licenseState: "CO",
     emergencyContact: { name: "Michael Green", phone: "(555) 555-0133", relation: "Brother" },
     primaryCareProvider: "Dr. Lisa Park, MD",
     insurance: "Ridgeline Health Plan PPO",
@@ -1236,6 +1280,8 @@ const mockPatients: Patient[] = [
     phone: "(555) 555-0109",
     email: "robert.w@email.com",
     address: "321 Elm St, Portland, OR 97201",
+    licenseNumber: "D45172603",
+    licenseState: "OR",
     emergencyContact: { name: "Susan Williams", phone: "(555) 555-0134", relation: "Spouse" },
     primaryCareProvider: "Dr. Mark Taylor, MD",
     insurance: "Meridian Health Plan PPO",

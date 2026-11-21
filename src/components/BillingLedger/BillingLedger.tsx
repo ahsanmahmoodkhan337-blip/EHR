@@ -810,6 +810,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
                       onDownload={downloadPdf}
                       submitting={isTransmitting}
                       demoFillEnabled={demoFillEnabled}
+                      demoPatient={patient ?? null}
                     >
                       {(api) => <CMS1500Form {...api} />}
                     </ClaimFormShell>
@@ -857,6 +858,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
                       onDownload={downloadUb04Pdf}
                       submitting={isTransmitting}
                       demoFillEnabled={demoFillEnabled}
+                      demoPatient={patient ?? null}
                     >
                       {(api) => <Ub04Form {...api} />}
                     </ClaimFormShell>

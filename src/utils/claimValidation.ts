@@ -83,7 +83,14 @@ export function validateCMS1500(form: ClaimFormData, context: ValidationContext 
   const warn = (box: string, message: string) => issues.push({ box, message, severity: "warn" });
 
   if (blank(form.insuranceType)) err("1", "Box 1: select the type of insurance.");
-  if (blank(form.insuredId)) err("1a", "Box 1a: insured's I.D. number is required.");
+  if (blank(form.insuredId)) {
+    // No demo value stands in for an identifier: the box names the stage that
+    // captures it rather than showing an invented member ID.
+    err(
+      "1a",
+      "Box 1a: insured's I.D. number is required — Registration & eligibility captures it from the patient's insurance card.",
+    );
+  }
   if (blank(form.patientName)) err("2", "Box 2: patient name is required.");
   if (blank(form.patientDob)) err("3", "Box 3: patient date of birth is required.");
   else if (!ISO_DATE_RE.test(form.patientDob)) err("3", "Box 3: patient date of birth must be a date.");
@@ -92,7 +99,12 @@ export function validateCMS1500(form: ClaimFormData, context: ValidationContext 
   if (blank(form.patientAddress)) err("5", "Box 5: patient address is required.");
   if (blank(form.patientRelationship)) err("6", "Box 6: patient relationship to insured is required.");
   if (blank(form.insuredAddress)) err("7", "Box 7: insured's address is required.");
-  if (blank(form.insuredPolicyGroup)) err("11", "Box 11: insured's policy / group number is required.");
+  if (blank(form.insuredPolicyGroup)) {
+    err(
+      "11",
+      "Box 11: insured's policy / group number is required — Registration & eligibility captures it from the patient's insurance card.",
+    );
+  }
   if (blank(form.insuredSex)) warn("11a", "Box 11a: insured's sex is blank.");
   if (!form.patientSignature && !form.insuredSignature) {
     err("12", "Box 12 or 13: the claim needs a patient or insured signature on file.");
@@ -205,7 +217,13 @@ export function validateCMS1500(form: ClaimFormData, context: ValidationContext 
     err("17b", "Box 17b: referring provider NPI must be 10 digits and pass the check digit test.");
   }
   if (blank(form.priorAuthNumber)) {
-    warn("23", "Box 23: no prior authorization number — leave blank only if the payer does not require one.");
+    // Box 23 carries only an authorisation that belongs to THIS encounter's
+    // coded procedures (Prior Authorization stage). It is never filled from
+    // another case's number, so a blank box names the stage that supplies it.
+    warn(
+      "23",
+      "Box 23: no prior authorization number. It is supplied by the Prior Authorization stage when the payer requires one for these procedures — leave it blank only if none is required.",
+    );
   }
   // Box 15 — a date with no QUAL. qualifier is invalid on a real claim.
   if (!blank(form.similarIllnessDate) && blank(form.similarIllnessQualifier)) {

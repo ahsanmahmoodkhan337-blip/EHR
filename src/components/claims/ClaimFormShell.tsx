@@ -27,7 +27,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, FileDown, Info, Loader2, Printer, Save, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import type { ClaimIssue } from "../../utils/claimValidation";
-import { applyDemoFill, applyLineDemoFill, demoFillSummary, type DemoFilledBox } from "../../utils/demoClaimFill";
+import {
+  applyDemoFill,
+  applyLineDemoFill,
+  demoFillSummary,
+  type DemoClaimContext,
+  type DemoFilledBox,
+} from "../../utils/demoClaimFill";
 
 export interface ClaimPaperApi {
   values: Record<string, unknown>;
@@ -72,6 +78,11 @@ export interface ClaimFormShellProps {
    * assessment, so the paper shows only what the student captured.
    */
   demoFillEnabled?: boolean;
+  /**
+   * The patient on screen. A demo value is only ever built from this patient,
+   * never from a fixed string about another case (`data/claims/demoClaimData.ts`).
+   */
+  demoPatient?: DemoClaimContext | null;
   children: (api: ClaimPaperApi) => ReactNode;
 }
 
@@ -95,6 +106,7 @@ export function ClaimFormShell({
   accent = "brand",
   note,
   demoFillEnabled = true,
+  demoPatient = null,
   children,
 }: ClaimFormShellProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(values);
@@ -203,16 +215,16 @@ export function ClaimFormShell({
   // Real value first, demo value second. The rendered copy carries the demo
   // values; `draft` (and therefore the commit) keeps only what was captured.
   const demo = useMemo(
-    () => applyDemoFill(draft, { enabled: demoFillEnabled }),
-    [draft, demoFillEnabled],
+    () => applyDemoFill(draft, { enabled: demoFillEnabled, patient: demoPatient }),
+    [draft, demoFillEnabled, demoPatient],
   );
 
   // The same rule for the box-24 lines (24A date of service). A blank line date
   // shows the tagged demo date, so the paper never prints a date the record does
   // not hold — and the draft keeps the line blank.
   const demoLines = useMemo(
-    () => applyLineDemoFill(draftLines, { enabled: demoFillEnabled }),
-    [draftLines, demoFillEnabled],
+    () => applyLineDemoFill(draftLines, { enabled: demoFillEnabled, patient: demoPatient }),
+    [draftLines, demoFillEnabled, demoPatient],
   );
 
   const demoBoxCount = demo.boxes.length + demoLines.boxes.length;

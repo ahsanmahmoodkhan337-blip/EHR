@@ -3,12 +3,19 @@
  *
  * Inspiration: Front-desk check-in terminal UI concept (athenahealth-style
  * registration, with the insurance card transcribed into the coverage record).
- * Displays mock Driver's License and Insurance Card,
+ * Displays the selected patient's own Driver's License and Insurance Card,
  * then challenges the student to transcribe fields correctly.
- * Educational twist: Insurance card says "Jonathon" but
- * Driver's License says "Jonathan" — blind copying is the trap. The student
- * answers "do the two names agree?" before Verify, and the mismatch and its
+ * Educational twist: the insurance card spells the patient's name one letter
+ * differently from the government ID — blind copying is the trap. The student
+ * answers the identity question before Verify, and the mismatch and its
  * consequence at the payer are only printed after they commit (standing rule 6).
+ *
+ * Both cards come from `domain/patientCard.ts` and therefore from the patient
+ * on screen: the name, date of birth, sex, address, licence number and state,
+ * payer, plan, member ID, group, payer ID and relationship are that patient's
+ * own, and a field the chart does not hold reads "Not on file" rather than
+ * another patient's value. Until 2026-11-21 both cards were two literal blocks
+ * of "Jonathan/Jonathon Doe" markup printed for every patient.
  *
  * What it saves: on Verify, the insurance fields the student transcribed —
  * payer name and EDI payer ID, subscriber ID, group number, relationship to the
@@ -34,7 +41,13 @@ import {
   SUBSCRIBER_RELATIONSHIPS,
   buildInsuranceRecord,
 } from "../../utils/insuranceRecord";
-import { registrationCardFor } from "../../domain/patientCard";
+import {
+  cardMemberName,
+  onFileValue,
+  patientCard,
+  patientCardMismatch,
+  registrationCardFor,
+} from "../../domain/patientCard";
 
 /**
  * Turn the form's MM/DD/YYYY date of birth into the ISO `YYYY-MM-DD` the chart
@@ -68,11 +81,15 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
   const updatePatientIdentity = useEhrStore((s) => s.updatePatientIdentity);
   const patient = patientId ? getPatientById(patientId) : undefined;
 
+  // The patient's own two cards, built once per render from their record.
+  const card = patientCard(patient);
+  const mismatch = patientCardMismatch(patient);
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     dob: "",
-    payerName: "Northwind Health Plan",
+    payerName: "",
     subscriberId: "",
     groupNumber: "",
     payerId: "",
@@ -178,13 +195,25 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
 
   const handleSubmit = () => {
     if (validate()) {
+      // Scored against this patient's own card, never a hardcoded one.
       const score = scoreRegistration(
-        form.firstName,
-        form.lastName,
-        form.dob,
-        form.subscriberId,
-        form.groupNumber,
-        form.payerId
+        {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          dob: form.dob,
+          subscriberId: form.subscriberId,
+          groupNumber: form.groupNumber,
+          payerId: form.payerId,
+        },
+        {
+          firstName: card.firstName,
+          lastName: card.lastName,
+          dob: card.dateOfBirth,
+          memberId: card.memberId,
+          groupNumber: card.groupNumber,
+          payerId: card.payerId,
+          nameOnCard: mismatch?.cardValue ?? "",
+        },
       );
       setRegistrationScore(score);
       updateStageScore(getStudentName(), "registration", score);
@@ -252,33 +281,35 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
         )}
       </div>
 
-      {/* ─── Mock Driver's License ─── */}
+      {/* ─── The patient's own Driver's License ─── */}
       <div className="rounded-xl border-2 border-yellow-400 bg-yellow-50 p-4 shadow-sm">
-        <div className="flex items-center gap-2 border-b border-yellow-200 pb-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-yellow-200 pb-2">
           <IdCard className="h-5 w-5 text-yellow-700" />
           <span className="text-sm font-bold uppercase tracking-wider text-yellow-800">Driver's License</span>
-          <span className="ml-auto text-[10px] text-yellow-600">State of California</span>
+          <span className="ml-auto text-[10px] text-yellow-600">State of {onFileValue(card.licenseState)}</span>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Name</span><br /><span className="font-medium text-slate-800">Jonathan Doe</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">DOB</span><br /><span className="font-medium text-slate-800">04/15/1988</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Address</span><br /><span className="font-medium text-slate-800">1234 Oak St, Sacramento, CA 95814</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">License #</span><br /><span className="font-medium text-slate-800">D45178239</span></p>
+        <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Name</span><br /><span className="font-medium text-slate-800">{onFileValue(card.fullName)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">DOB</span><br /><span className="font-medium text-slate-800">{onFileValue(card.dateOfBirth)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Sex</span><br /><span className="font-medium text-slate-800">{onFileValue(card.sex)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">License #</span><br /><span className="font-medium text-slate-800">{onFileValue(card.licenseNumber)}</span></p>
+          <p className="sm:col-span-2"><span className="text-[10px] font-semibold uppercase text-yellow-700">Address</span><br /><span className="font-medium text-slate-800">{onFileValue(card.address)}</span></p>
         </div>
       </div>
 
-      {/* ─── Mock Insurance Card (Front) ─── */}
+      {/* ─── The patient's own Insurance Card (Front) ─── */}
       <div className="rounded-xl border-2 border-blue-300 bg-blue-50 p-4 shadow-sm">
-        <div className="flex items-center gap-2 border-b border-blue-200 pb-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-blue-200 pb-2">
           <CreditCard className="h-5 w-5 text-blue-700" />
           <span className="text-sm font-bold uppercase tracking-wider text-blue-800">Insurance Card — Front</span>
-          <span className="ml-auto rounded bg-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800">Northwind Health Plan</span>
+          <span className="ml-auto rounded bg-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800">{onFileValue(card.payerName)}</span>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Member Name</span><br /><span className="font-medium text-slate-800">Jonathon Doe</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">XYZ987654321</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Group Number</span><br /><span className="font-medium text-slate-800">GRP-4477</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Payer ID</span><br /><span className="font-medium text-slate-800">NWIND01</span></p>
+        <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Member Name</span><br /><span className="font-medium text-slate-800">{onFileValue(cardMemberName(patient))}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">{onFileValue(card.memberId)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Group Number</span><br /><span className="font-medium text-slate-800">{onFileValue(card.groupNumber)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Payer ID</span><br /><span className="font-medium text-slate-800">{onFileValue(card.payerId)}</span></p>
+          <p className="sm:col-span-2"><span className="text-[10px] font-semibold uppercase text-blue-700">Plan</span><br /><span className="font-medium text-slate-800">{onFileValue(card.planName)}</span></p>
         </div>
       </div>
 
@@ -298,43 +329,43 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
           <div>
             <label className="text-[11px] font-medium text-slate-500">First Name</label>
             <input type="text" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. Jonathan" />
+              className="mt-1 input-field" />
             {errors.firstName && <p className="mt-0.5 text-[10px] text-red-500">{errors.firstName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Last Name</label>
             <input type="text" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. Doe" />
+              className="mt-1 input-field" />
             {errors.lastName && <p className="mt-0.5 text-[10px] text-red-500">{errors.lastName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Date of Birth (MM/DD/YYYY)</label>
             <input type="text" value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. 04/15/1988" />
+              className="mt-1 input-field" />
             {errors.dob && <p className="mt-0.5 text-[10px] text-red-500">{errors.dob}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Payer Name</label>
             <input type="text" value={form.payerName} onChange={e => setForm({ ...form, payerName: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. Northwind Health Plan" />
+              className="mt-1 input-field" />
             {errors.payerName && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Subscriber ID</label>
             <input type="text" value={form.subscriberId} onChange={e => setForm({ ...form, subscriberId: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. XYZ987654321" />
+              className="mt-1 input-field" />
             {errors.subscriberId && <p className="mt-0.5 text-[10px] text-red-500">{errors.subscriberId}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Group Number</label>
             <input type="text" value={form.groupNumber} onChange={e => setForm({ ...form, groupNumber: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. GRP-4477" />
+              className="mt-1 input-field" />
             {errors.groupNumber && <p className="mt-0.5 text-[10px] text-red-500">{errors.groupNumber}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Payer ID (EDI)</label>
             <input type="text" value={form.payerId} onChange={e => setForm({ ...form, payerId: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. NWIND01" />
+              className="mt-1 input-field" />
             {errors.payerId && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerId}</p>}
           </div>
           <div>
@@ -356,22 +387,22 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
             <div>
               <label className="text-[11px] font-medium text-slate-500">Secondary Payer Name</label>
               <input type="text" value={form.secondaryPayerName} onChange={e => setForm({ ...form, secondaryPayerName: e.target.value })}
-                className="mt-1 input-field" placeholder="e.g. Medicare Part B" />
+                className="mt-1 input-field" />
             </div>
             <div>
               <label className="text-[11px] font-medium text-slate-500">Secondary Payer ID (EDI)</label>
               <input type="text" value={form.secondaryPayerId} onChange={e => setForm({ ...form, secondaryPayerId: e.target.value })}
-                className="mt-1 input-field" placeholder="e.g. MCARE01" />
+                className="mt-1 input-field" />
             </div>
             <div>
               <label className="text-[11px] font-medium text-slate-500">Secondary Subscriber ID</label>
               <input type="text" value={form.secondarySubscriberId} onChange={e => setForm({ ...form, secondarySubscriberId: e.target.value })}
-                className="mt-1 input-field" placeholder="e.g. MC123456789" />
+                className="mt-1 input-field" />
             </div>
             <div>
               <label className="text-[11px] font-medium text-slate-500">Secondary Group Number</label>
               <input type="text" value={form.secondaryGroupNumber} onChange={e => setForm({ ...form, secondaryGroupNumber: e.target.value })}
-                className="mt-1 input-field" placeholder="e.g. MCB-4471" />
+                className="mt-1 input-field" />
             </div>
           </div>
         </div>
@@ -418,10 +449,16 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
             </div>
             {/* Revealed only after Verify: the student answered first. */}
             <div className="rounded bg-white/60 p-2 text-slate-700">
-              <span className="font-semibold">Identity check</span> — card: "Jonathon" · government ID:
-              "Jonathan". A subscriber name that differs from the payer's file fails eligibility at the
-              payer (name mismatch); the chart carries the ID spelling.
-              {form.nameAgrees === "yes" && (
+              <span className="font-semibold">Identity check</span> —{' '}
+              {mismatch ? (
+                <>
+                  card: "{mismatch.cardValue}" · government ID: "{mismatch.recordValue}".{" "}
+                  {mismatch.consequence}
+                </>
+              ) : (
+                <>the two documents on this chart agree — nothing to reconcile.</>
+              )}
+              {form.nameAgrees === "yes" && mismatch && (
                 <span className="mt-1 block text-amber-700">
                   You answered that the two names agree — compare the two cards again before the next
                   patient.

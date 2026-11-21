@@ -22,7 +22,24 @@
  * a placeholder the biller can see through, never a value silently invented.
  */
 
-import { DEMO_CLAIM_DATA, DEMO_LINE_DATA } from "../data/claims/demoClaimData";
+import {
+  DEMO_CLAIM_DATA,
+  DEMO_LINE_DATA,
+  type DemoClaimContext,
+  type DemoClaimValue,
+} from "../data/claims/demoClaimData";
+
+/** The patient on screen — the only thing a demo value may be built from. */
+export type { DemoClaimContext };
+
+/** Resolve a demo value: a fixed string, or one built from the patient on screen. */
+function resolveDemoValue(
+  demo: DemoClaimValue,
+  patient: DemoClaimContext | null | undefined,
+): string {
+  const raw = typeof demo.value === "function" ? demo.value(patient ?? {}) : demo.value;
+  return String(raw ?? "").trim();
+}
 
 /** A box currently showing a demo value rather than captured data. */
 export interface DemoFilledBox {
@@ -62,7 +79,10 @@ export function isMissingValue(value: unknown): boolean {
  */
 export function applyDemoFill(
   values: Record<string, unknown>,
-  { enabled = true }: { enabled?: boolean } = {},
+  {
+    enabled = true,
+    patient = null,
+  }: { enabled?: boolean; patient?: DemoClaimContext | null } = {},
 ): DemoFillResult {
   const byField: Record<string, DemoFilledBox> = {};
   const boxes: DemoFilledBox[] = [];
@@ -71,14 +91,16 @@ export function applyDemoFill(
   if (enabled) {
     for (const [field, demo] of Object.entries(DEMO_CLAIM_DATA)) {
       if (!isMissingValue(values[field])) continue; // the real value wins
+      const value = resolveDemoValue(demo, patient);
+      if (!value) continue; // nothing to derive it from — the box stays blank
       const filled: DemoFilledBox = {
         field,
         box: demo.box,
         label: `Box ${demo.box}`,
-        value: demo.value,
+        value,
         stage: demo.stage,
       };
-      rendered[field] = demo.value;
+      rendered[field] = value;
       byField[field] = filled;
       boxes.push(filled);
     }
@@ -103,7 +125,10 @@ export function demoFillSummary(count: number): string {
  */
 export function applyLineDemoFill(
   lines: Record<string, unknown>[],
-  { enabled = true }: { enabled?: boolean } = {},
+  {
+    enabled = true,
+    patient = null,
+  }: { enabled?: boolean; patient?: DemoClaimContext | null } = {},
 ): { lines: Record<string, unknown>[]; byField: Record<string, DemoFilledBox>; boxes: DemoFilledBox[] } {
   const byField: Record<string, DemoFilledBox> = {};
   const boxes: DemoFilledBox[] = [];
@@ -113,12 +138,14 @@ export function applyLineDemoFill(
     let next: Record<string, unknown> | null = null;
     for (const [field, demo] of Object.entries(DEMO_LINE_DATA)) {
       if (!isMissingValue(line[field])) continue; // the real value wins
-      next = { ...(next ?? line), [field]: demo.value };
+      const value = resolveDemoValue(demo, patient);
+      if (!value) continue;
+      next = { ...(next ?? line), [field]: value };
       const filled: DemoFilledBox = {
         field,
         box: demo.box,
         label: `Box ${demo.box}`,
-        value: demo.value,
+        value,
         stage: demo.stage,
       };
       // One entry per field: every blank line shows the same demo date.
