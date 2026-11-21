@@ -109,11 +109,14 @@ describe("Home always takes you home", () => {
     expect(INDEX).toContain("onHomeClick={handleHomeClick}");
   });
 
-  test("Home closes the workspace and leaves saved work alone", () => {
+  test("Home flushes the draft and leaves saved work alone", () => {
+    // Spec `slice-navigation.md` item 2: Home and the logo open `/dashboard`,
+    // and only Resume opens the encounter — so Home no longer closes the chart
+    // either. What it still does is flush the note on the way out.
     const handler = functionBody(INDEX, "handleHomeClick");
     expect(handler).toContain("saveNoteDraftNow();");
     expect(handler).toContain("saveCurrentSession();");
-    expect(handler).toContain('setSelectedPatientId("");');
+    expect(handler).not.toContain('setSelectedPatientId("");');
     // Navigation only: nothing is reset, cleared or rewritten.
     expect(handler).not.toContain("resetEncounter");
     expect(handler).not.toContain("delete ");
@@ -123,7 +126,10 @@ describe("Home always takes you home", () => {
 
   test("Home is marked current on Home and the label is still visible", () => {
     expect(INDEX).toContain('const shellActiveNav: ShellNavId = "home";');
-    expect(SIDEBAR).toContain('aria-label="Home"');
+    // The house icon keeps its label, its 40 px hit area, and now opens the
+    // dashboard (spec `slice-navigation.md` item 2).
+    expect(SIDEBAR).toContain('aria-label="Home — go to the dashboard"');
+    expect(SIDEBAR).toContain('to="/dashboard"');
     expect(SIDEBAR).toContain("h-10 w-10");
   });
 });

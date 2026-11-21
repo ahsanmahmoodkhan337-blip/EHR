@@ -170,12 +170,17 @@ describe("every destination survives the rail's removal", () => {
     expect(shell).not.toContain("app-shell-row");
   });
 
-  test("the 19 November header bar is the navigation: Home, Dashboard, Settings, track switch", () => {
+  test("the 19 November header bar is the navigation: logo + Home, four labelled links, track switch", () => {
     // The `.header-nav` class is the 19 November bar's own class, from app.css.
     expect(header).toContain('className="header-nav');
-    expect(header).toContain('to="/"');
-    expect(header).toContain('to="/dashboard"');
-    expect(header).toContain('to="/settings"');
+    // Spec `slice-navigation.md` items 1 and 2: the logo and the Home icon open
+    // the dashboard, and the destinations are labelled links. The Home icon no
+    // longer opens the encounter — only Resume does.
+    expect(header.match(/to="\/dashboard"/g)).toHaveLength(2);
+    for (const label of ["Dashboard", "Schedule", "Patients", "Settings"]) {
+      expect(header).toContain(`label: "${label}"`);
+    }
+    expect(header).not.toContain('to="/"');
     expect(header).toContain("<TrackSwitcher");
   });
 

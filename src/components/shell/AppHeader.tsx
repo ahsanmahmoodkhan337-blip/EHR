@@ -1,5 +1,5 @@
 /**
- * AppHeader — the 19 November navy header bar, restored
+ * AppHeader — the 19 November navy header bar, with labelled links
  *
  * Inspiration: Epic Hyperspace's global header — a dark navy bar with the brand
  * at the left, the working context in the middle and the account at the right.
@@ -7,28 +7,31 @@
  * This is the bar the 19 November build (`f8fd8681`, `TabsEpic/Header.tsx`) drew
  * with the `.header-nav` class from `src/styles/app.css`. The class names,
  * spacing and control styling below are taken from that build, not approximated;
- * the only thing that changed is where the destinations live, because the owner
- * removed the left rail (spec `nov19-style-restore.md` §1):
+ * what changed is what the bar carries:
  *
- *   Home        — the house icon at the far left (a destination, so it also
- *                 tells the page it was clicked, which closes an open chart)
- *   Dashboard   — the track cards and every practice area, one click away, so
- *                 no page the rail used to hold is stranded
- *   Settings    — the gear beside it
- *   Track switch— Medical / Dental, beside the logo
- *   Save status — the one autosave indicator
- *   Summary     — the right-pane toggle, when the route passes one
- *   Account     — dark mode and log out
+ *   Logo + Home icon — both open `/dashboard` (spec `slice-navigation.md` item
+ *                      2). The Home icon no longer drops the student into the
+ *                      encounter: **only Resume opens the encounter.**
+ *   Dashboard · Schedule · Patients · Settings
+ *                    — the four labelled destinations (item 1). The current one
+ *                      is highlighted (item 4).
+ *   Track switch     — Medical / Dental, beside the logo
+ *   Save status      — the one autosave indicator
+ *   Summary          — the right-pane toggle, when the route passes one
+ *   Account          — dark mode and log out
  *
- * Every control is at least 40 px in its smallest dimension, carries a visible
- * label or an `aria-label`, and keeps a keyboard focus ring. The bar wraps at
- * narrow widths instead of pushing the page sideways (STANDING-RULES 4).
+ * The bar is one row from 1100 px up; below that the four links take a row of
+ * their own rather than being squeezed out, and the bar wraps — it never pushes
+ * the page sideways (STANDING-RULES 4). Every control is at least 40 px in its
+ * smallest dimension, carries a visible label or an `aria-label`, and keeps a
+ * keyboard focus ring.
  */
 
 import type { ReactNode } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { Building2, Home, LayoutDashboard, LogOut, PanelRightClose, Settings, Timer, Users } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Building2, Home, LogOut, PanelRightClose, Timer, Users } from "lucide-react";
 import { logout } from "../../store/accessStore";
+import { headerNavForPath } from "../../domain/breadcrumb";
 import { DarkModeToggle } from "../DarkModeToggle";
 import { TrackSwitcher } from "../dental/TrackSwitcher";
 import { AutosaveIndicator } from "./AutosaveIndicator";
@@ -38,7 +41,10 @@ import type { ShellTrack } from "./navItems";
 
 interface AppHeaderProps {
   track: ShellTrack;
-  /** Clicking Home is a destination even on Home: the page closes its chart. */
+  /**
+   * Called when the Home control is clicked, before the dashboard opens: the
+   * page gets to flush what it holds (the note draft) instead of losing it.
+   */
   onHomeClick?: () => void;
   selectedPatientId?: string;
   /** Opens a patient. When absent the patient search is not drawn. */
@@ -51,6 +57,18 @@ interface AppHeaderProps {
   /** Route-specific controls, drawn in the bar (for example the summary toggle). */
   extras?: ReactNode;
 }
+
+/**
+ * The four labelled destinations the bar carries (spec `slice-navigation.md`
+ * item 1). Everything else the app can reach lives on the dashboard's Practice
+ * areas card and in the encounter's stepper, so no page is stranded.
+ */
+const HEADER_LINKS = [
+  { id: "dashboard", label: "Dashboard", to: "/dashboard" },
+  { id: "schedule", label: "Schedule", to: "/schedule" },
+  { id: "patients", label: "Patients", to: "/patients" },
+  { id: "settings", label: "Settings", to: "/settings" },
+] as const;
 
 function formatClock(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -70,49 +88,41 @@ export function AppHeader({
   extras,
 }: AppHeaderProps) {
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeLink = headerNavForPath(pathname);
   const examUrgent = examTimeRemaining !== undefined && examTimeRemaining < 120;
 
   return (
-    <header className="header-nav sticky top-0 z-30 flex flex-wrap items-center justify-between gap-2 px-3 py-2 shadow-lg sm:gap-4 sm:px-4">
-      {/* ─── Left: Home, Settings, brand, track switch ─── */}
-      <div className="flex min-w-0 items-center gap-1 sm:gap-3">
-        <Link
-          to="/"
-          onClick={() => onHomeClick?.()}
-          aria-label="Home"
-          title="Home"
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-        >
-          <Home className="h-4 w-4" aria-hidden="true" />
-        </Link>
+    <header className="header-nav sticky top-0 z-30 flex flex-wrap items-center justify-between gap-2 px-3 py-2 shadow-lg sm:gap-3 sm:px-4">
+      {/* ─── Left: logo, Home, the four labelled links, track switch ─── */}
+      <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+        {/* The 19 November mark on a white chip so it stays legible on the navy
+            bar (the artwork is dark-on-light). It is a link to the dashboard,
+            as the Home icon is; hidden below xl so the four labels and the
+            working controls stay on one row at 1100 px. */}
         <Link
           to="/dashboard"
-          aria-label="Dashboard — your tracks and every practice area"
-          title="Dashboard — your tracks and every practice area"
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          onClick={() => onHomeClick?.()}
+          aria-label="Healthcare Hustlers — go to the dashboard"
+          title="Go to the dashboard"
+          className="mr-1 hidden shrink-0 items-center rounded-lg bg-white px-2 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white xl:flex"
         >
-          <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
-        </Link>
-        <Link
-          to="/settings"
-          aria-label="Settings — reset, export or import your practice data"
-          title="Settings — reset, export or import your practice data"
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-        >
-          <Settings className="h-4 w-4" aria-hidden="true" />
-        </Link>
-        {/* Logo: the 19 November mark on a white chip so it stays legible on
-            the navy bar (the artwork is dark-on-light), with breathing room on
-            both sides so it never crowds the Medical/Dental switch. Hidden
-            below sm, where the header keeps its single row for controls. */}
-        <span className="ml-1 mr-2 hidden shrink-0 items-center rounded-lg bg-white px-2 py-1 sm:flex">
           <img
             src="/healthcarehustlers-logo.png"
             alt="Healthcare Hustlers"
             className="h-8 w-auto"
             style={{ maxWidth: "150px" }}
           />
-        </span>
+        </Link>
+        <Link
+          to="/dashboard"
+          onClick={() => onHomeClick?.()}
+          aria-label="Home — go to the dashboard"
+          title="Home — dashboard"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          <Home className="h-4 w-4" aria-hidden="true" />
+        </Link>
         <TrackSwitcher
           track={track}
           compact
@@ -125,21 +135,47 @@ export function AppHeader({
         />
       </div>
 
+      {/* ─── The four labelled destinations ───
+          One row with everything else from 1100 px up; a row of its own below
+          that, so a label is never clipped and the bar never scrolls the page. */}
+      <nav
+        aria-label="Main"
+        className="order-last flex w-full flex-wrap items-center gap-0.5 border-t border-white/10 pt-1.5 min-[1100px]:order-none min-[1100px]:w-auto min-[1100px]:flex-1 min-[1100px]:justify-center min-[1100px]:border-0 min-[1100px]:pt-0"
+      >
+        {HEADER_LINKS.map(({ id, label, to }) => {
+          const active = activeLink === id;
+          return (
+            <Link
+              key={id}
+              to={to}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-10 items-center rounded-lg px-2.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+                active
+                  ? "bg-white/15 text-white"
+                  : "text-slate-300 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+
       {/* ─── Center: the role the encounter is working in ─── */}
       {roleLabel && (
-        <div className="hidden min-w-0 items-center gap-2 rounded-lg bg-slate-800 px-3 py-1.5 md:flex">
+        <div className="hidden min-w-0 items-center gap-2 rounded-lg bg-slate-800 px-3 py-1.5 min-[1400px]:flex">
           <Users className="h-4 w-4 shrink-0 text-blue-400" aria-hidden="true" />
           <span className="truncate text-xs font-medium text-white">{roleLabel}</span>
         </div>
       )}
 
       {/* ─── Right: patient search, route controls, save status, account ─── */}
-      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 sm:gap-3">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 sm:gap-3 min-[1100px]:flex-none">
         {onPatientSelect && (
           // The one patient finder. On a narrow screen it takes a row of its
           // own under the bar instead of being squeezed out — without it there
           // is no way to open a patient at 360 px (the Inbox list starts at lg).
-          <div className="order-last w-full min-w-0 md:order-first md:w-40 lg:w-56">
+          <div className="order-last w-full min-w-0 md:order-first md:w-40 min-[1100px]:w-40 xl:w-56">
             <GlobalPatientSearch selectedId={selectedPatientId} onSelect={onPatientSelect} />
           </div>
         )}
@@ -162,7 +198,7 @@ export function AppHeader({
             onClick={onToggleExamMode}
             aria-label={examMode ? "Exit exam mode" : "Start exam mode (30 min)"}
             title={examMode ? "Exit exam mode" : "Start exam mode (30 min)"}
-            className={`hidden min-h-10 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-medium transition-colors sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+            className={`hidden min-h-10 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-medium transition-colors sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white xl:inline-flex ${
               examMode
                 ? examUrgent
                   ? "bg-red-600 text-white"
