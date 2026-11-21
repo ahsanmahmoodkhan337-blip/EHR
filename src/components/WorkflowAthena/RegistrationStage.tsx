@@ -3,12 +3,19 @@
  *
  * Inspiration: Front-desk check-in terminal UI concept (athenahealth-style
  * registration, with the insurance card transcribed into the coverage record).
- * Displays mock Driver's License and Insurance Card,
+ * Displays the selected patient's own Driver's License and Insurance Card,
  * then challenges the student to transcribe fields correctly.
- * Educational twist: Insurance card says "Jonathon" but
- * Driver's License says "Jonathan" — blind copying is the trap. The student
- * answers "do the two names agree?" before Verify, and the mismatch and its
- * consequence at the payer are only printed after they commit (standing rule 6).
+ * Educational twist: this case's insurance card carries one deliberate
+ * misspelling that the government ID does not — blind copying is the trap. The
+ * student answers "do the two names agree?" before Verify, and the mismatch and
+ * its consequence at the payer are only printed after they commit (standing
+ * rule 6).
+ *
+ * Both cards are built by `domain/patientCard.ts` from the selected patient's
+ * own demographics and `insuranceRecord` — before 2026-11-21 they were two
+ * literal blocks printing "Jonathan/Jonathon Doe" for every patient, and the
+ * payer box started at a hardcoded "Northwind Health Plan". A field the chart
+ * does not hold prints "Not on file"; nothing is borrowed from another patient.
  *
  * What it saves: on Verify, the insurance fields the student transcribed —
  * payer name and EDI payer ID, subscriber ID, group number, relationship to the
@@ -34,7 +41,13 @@ import {
   SUBSCRIBER_RELATIONSHIPS,
   buildInsuranceRecord,
 } from "../../utils/insuranceRecord";
-import { registrationCardFor } from "../../domain/patientCard";
+import {
+  caseMismatch,
+  onFileOr,
+  patientCard,
+  registrationCardFor,
+  registrationExpectations,
+} from "../../domain/patientCard";
 
 /**
  * Turn the form's MM/DD/YYYY date of birth into the ISO `YYYY-MM-DD` the chart
@@ -68,11 +81,16 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
   const updatePatientIdentity = useEhrStore((s) => s.updatePatientIdentity);
   const patient = patientId ? getPatientById(patientId) : undefined;
 
+  // The two documents on screen, both built from this patient's own record.
+  const card = patientCard(patient);
+  const mismatch = caseMismatch(patient);
+  const expectations = registrationExpectations(patient);
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     dob: "",
-    payerName: "Northwind Health Plan",
+    payerName: "",
     subscriberId: "",
     groupNumber: "",
     payerId: "",
@@ -147,9 +165,11 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
     }));
   }, [patient?.id, patient?.insuranceRecord]);
 
-  // The insurance card says "Jonathon" and the government ID says "Jonathan".
-  // The cards are both on screen, so the student makes that comparison and
-  // answers for it; the app prints nothing about it until they have (rule 6).
+  // The insurance card carries this case's one deliberate misspelling and the
+  // government ID does not. Both documents are on screen, so the student makes
+  // that comparison and answers for it; the app prints nothing about it until
+  // they have (rule 6). A patient with no card on file has nothing to compare,
+  // so the question is not asked.
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -163,7 +183,7 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
       else if (new Date(iso).getTime() > Date.now())
         errs.dob = "A date of birth cannot be in the future";
     }
-    if (!form.nameAgrees) errs.nameAgrees = "Answer the identity question before verifying";
+    if (mismatch && !form.nameAgrees) errs.nameAgrees = "Answer the identity question before verifying";
     if (!selfPay) {
       if (!form.payerName.trim()) errs.payerName = "Payer name is required";
       if (!form.subscriberId.trim()) errs.subscriberId = "Subscriber ID is required";
@@ -179,12 +199,15 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
   const handleSubmit = () => {
     if (validate()) {
       const score = scoreRegistration(
-        form.firstName,
-        form.lastName,
-        form.dob,
-        form.subscriberId,
-        form.groupNumber,
-        form.payerId
+        {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          dob: form.dob,
+          subscriberId: form.subscriberId,
+          groupNumber: form.groupNumber,
+          payerId: form.payerId,
+        },
+        expectations,
       );
       setRegistrationScore(score);
       updateStageScore(getStudentName(), "registration", score);
@@ -252,33 +275,37 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
         )}
       </div>
 
-      {/* ─── Mock Driver's License ─── */}
+      {/* ─── The patient's own Driver's License ─── */}
       <div className="rounded-xl border-2 border-yellow-400 bg-yellow-50 p-4 shadow-sm">
-        <div className="flex items-center gap-2 border-b border-yellow-200 pb-2">
-          <IdCard className="h-5 w-5 text-yellow-700" />
+        <div className="flex flex-wrap items-center gap-2 border-b border-yellow-200 pb-2">
+          <IdCard className="h-5 w-5 shrink-0 text-yellow-700" />
           <span className="text-sm font-bold uppercase tracking-wider text-yellow-800">Driver's License</span>
-          <span className="ml-auto text-[10px] text-yellow-600">State of California</span>
+          <span className="ml-auto text-[10px] text-yellow-600">State of {onFileOr(card.licenceState)}</span>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Name</span><br /><span className="font-medium text-slate-800">Jonathan Doe</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">DOB</span><br /><span className="font-medium text-slate-800">04/15/1988</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Address</span><br /><span className="font-medium text-slate-800">1234 Oak St, Sacramento, CA 95814</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">License #</span><br /><span className="font-medium text-slate-800">D45178239</span></p>
+        <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Name</span><br /><span className="font-medium text-slate-800">{onFileOr(card.fullName)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">DOB</span><br /><span className="font-medium text-slate-800">{onFileOr(card.dateOfBirth)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Sex</span><br /><span className="font-medium text-slate-800">{onFileOr(card.sex)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">License #</span><br /><span className="font-medium text-slate-800">{onFileOr(card.licenceNumber)}</span></p>
+          <p className="sm:col-span-2"><span className="text-[10px] font-semibold uppercase text-yellow-700">Address</span><br /><span className="font-medium text-slate-800">{onFileOr(card.address)}</span></p>
         </div>
       </div>
 
-      {/* ─── Mock Insurance Card (Front) ─── */}
+      {/* ─── The patient's own Insurance Card (Front) ─── */}
       <div className="rounded-xl border-2 border-blue-300 bg-blue-50 p-4 shadow-sm">
-        <div className="flex items-center gap-2 border-b border-blue-200 pb-2">
-          <CreditCard className="h-5 w-5 text-blue-700" />
+        <div className="flex flex-wrap items-center gap-2 border-b border-blue-200 pb-2">
+          <CreditCard className="h-5 w-5 shrink-0 text-blue-700" />
           <span className="text-sm font-bold uppercase tracking-wider text-blue-800">Insurance Card — Front</span>
-          <span className="ml-auto rounded bg-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800">Northwind Health Plan</span>
+          <span className="ml-auto max-w-full truncate rounded bg-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800">{onFileOr(card.payerName)}</span>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Member Name</span><br /><span className="font-medium text-slate-800">Jonathon Doe</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">XYZ987654321</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Group Number</span><br /><span className="font-medium text-slate-800">GRP-4477</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Payer ID</span><br /><span className="font-medium text-slate-800">NWIND01</span></p>
+        <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          {/* What the card prints — the case's one deliberate misspelling lives here. */}
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Member Name</span><br /><span className="font-medium text-slate-800">{onFileOr(mismatch ? mismatch.onCard : card.fullName)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.memberId)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Group Number</span><br /><span className="font-medium text-slate-800">{onFileOr(card.groupNumber)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Payer ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.payerId)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Plan</span><br /><span className="font-medium text-slate-800">{onFileOr(card.planName)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Relationship</span><br /><span className="font-medium text-slate-800">{onFileOr(card.relationship)}</span></p>
         </div>
       </div>
 
@@ -298,43 +325,43 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
           <div>
             <label className="text-[11px] font-medium text-slate-500">First Name</label>
             <input type="text" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. Jonathan" />
+              className="mt-1 input-field" placeholder="As printed on the ID" />
             {errors.firstName && <p className="mt-0.5 text-[10px] text-red-500">{errors.firstName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Last Name</label>
             <input type="text" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. Doe" />
+              className="mt-1 input-field" placeholder="As printed on the ID" />
             {errors.lastName && <p className="mt-0.5 text-[10px] text-red-500">{errors.lastName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Date of Birth (MM/DD/YYYY)</label>
             <input type="text" value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. 04/15/1988" />
+              className="mt-1 input-field" placeholder="MM/DD/YYYY" />
             {errors.dob && <p className="mt-0.5 text-[10px] text-red-500">{errors.dob}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Payer Name</label>
             <input type="text" value={form.payerName} onChange={e => setForm({ ...form, payerName: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. Northwind Health Plan" />
+              className="mt-1 input-field" placeholder="As printed on the card" />
             {errors.payerName && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Subscriber ID</label>
             <input type="text" value={form.subscriberId} onChange={e => setForm({ ...form, subscriberId: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. XYZ987654321" />
+              className="mt-1 input-field" placeholder="As printed on the card" />
             {errors.subscriberId && <p className="mt-0.5 text-[10px] text-red-500">{errors.subscriberId}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Group Number</label>
             <input type="text" value={form.groupNumber} onChange={e => setForm({ ...form, groupNumber: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. GRP-4477" />
+              className="mt-1 input-field" placeholder="As printed on the card" />
             {errors.groupNumber && <p className="mt-0.5 text-[10px] text-red-500">{errors.groupNumber}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Payer ID (EDI)</label>
             <input type="text" value={form.payerId} onChange={e => setForm({ ...form, payerId: e.target.value })}
-              className="mt-1 input-field" placeholder="e.g. NWIND01" />
+              className="mt-1 input-field" placeholder="As printed on the card" />
             {errors.payerId && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerId}</p>}
           </div>
           <div>
@@ -376,6 +403,7 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
           </div>
         </div>
         {/* ─── Identity question — answered before Verify (standing rule 6) ─── */}
+        {mismatch && (
         <fieldset className="mt-4 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
           <legend className="px-1 text-[11px] font-semibold text-slate-600">
             Do the name on the card and the name on the government ID agree?
@@ -405,6 +433,7 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
             <p className="mt-1 text-[10px] text-red-500">{errors.nameAgrees}</p>
           )}
         </fieldset>
+        )}
         <div className="mt-4 flex justify-end">
           <button onClick={handleSubmit} className="btn-primary">
             {isComplete ? "Re-verify" : "Verify Identity & Insurance"}
@@ -417,17 +446,24 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
               Patient identity and insurance verified successfully.
             </div>
             {/* Revealed only after Verify: the student answered first. */}
-            <div className="rounded bg-white/60 p-2 text-slate-700">
-              <span className="font-semibold">Identity check</span> — card: "Jonathon" · government ID:
-              "Jonathan". A subscriber name that differs from the payer's file fails eligibility at the
-              payer (name mismatch); the chart carries the ID spelling.
-              {form.nameAgrees === "yes" && (
-                <span className="mt-1 block text-amber-700">
-                  You answered that the two names agree — compare the two cards again before the next
-                  patient.
-                </span>
-              )}
-            </div>
+            {mismatch ? (
+              <div className="rounded bg-white/60 p-2 text-slate-700">
+                <span className="font-semibold">Identity check — {mismatch.field}</span> · insurance card:
+                “{mismatch.onCard}” · government ID: “{mismatch.onLicence}”. {mismatch.consequence}
+                {form.nameAgrees === "yes" && (
+                  <span className="mt-1 block text-amber-700">
+                    You answered that the two names agree — compare the two cards again before the next
+                    patient.
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="rounded bg-white/60 p-2 text-slate-700">
+                <span className="font-semibold">Identity check</span> — no insurance card is on file for
+                this patient, so there is nothing to compare the government ID against. The identity
+                question is asked again once a card is on file.
+              </div>
+            )}
             {savedToChart && (
               <div className="text-green-700/80">
                 Insurance record saved to the chart — payer, member ID, group, relationship

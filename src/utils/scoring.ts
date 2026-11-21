@@ -24,6 +24,7 @@ import {
   readStudentItem,
   writeStudentItem,
 } from "../store/studentScope";
+import type { RegistrationExpectations } from "../domain/patientCard";
 
 export interface StageScores {
   registration: number;
@@ -197,26 +198,52 @@ export function updateStageScore(
 
 // ─── Scoring Logic Helpers ──────────────────────────────────────────
 
+/**
+ * Registration, scored against the selected patient's own card.
+ *
+ * The expected values come from `domain/patientCard.ts` — the patient's own
+ * demographics and coverage record — never from a hardcoded set. Until
+ * 2026-11-21 this compared every patient against XYZ987654321 / GRP-4477 /
+ * NWIND01 and penalised the literal "jonathon", so a correct transcription of
+ * any other patient scored nothing.
+ *
+ * A field the chart has no value for is not scored against a phantom: the student
+ * is credited for filling it in, as before. A field the chart does hold must
+ * match it. Copying the insurance card's deliberate misspelling of the member
+ * name still costs the mismatch penalty — the government ID, and so the chart,
+ * carries the correct spelling.
+ */
 export function scoreRegistration(
-  firstName: string,
-  lastName: string,
-  dob: string,
-  subscriberId: string,
-  groupNumber: string,
-  payerId: string
+  entry: {
+    firstName: string;
+    lastName: string;
+    dob: string;
+    subscriberId: string;
+    groupNumber: string;
+    payerId: string;
+  },
+  expected: RegistrationExpectations,
 ): number {
   let score = 0;
 
-  // Check if fields are filled
-  if (firstName.trim()) score += 2;
-  if (lastName.trim()) score += 2;
-  if (dob.trim() && /^\d{2}\/\d{2}\/\d{4}$/.test(dob.trim())) score += 2;
-  if (subscriberId.trim() === "XYZ987654321") score += 2;
-  if (groupNumber.trim() === "GRP-4477") score += 1;
-  if (payerId.trim() === "NWIND01") score += 1;
+  const same = (typed: string, onChart: string) =>
+    typed.trim().toLowerCase() === onChart.trim().toLowerCase();
 
-  // Penalty: name mismatch trap — if student blindly copied "Jonathon" from insurance card
-  if (firstName.toLowerCase() === "jonathon") {
+  // Identity — the government ID's spelling wins.
+  if (expected.firstName ? same(entry.firstName, expected.firstName) : entry.firstName.trim()) score += 2;
+  if (expected.lastName ? same(entry.lastName, expected.lastName) : entry.lastName.trim()) score += 2;
+  if (entry.dob.trim() && /^\d{2}\/\d{2}\/\d{4}$/.test(entry.dob.trim())) {
+    if (expected.dateOfBirth ? entry.dob.trim() === expected.dateOfBirth : true) score += 2;
+  }
+
+  // Coverage — the card is the only document that carries it.
+  if (expected.memberId ? same(entry.subscriberId, expected.memberId) : entry.subscriberId.trim()) score += 2;
+  if (expected.groupNumber ? same(entry.groupNumber, expected.groupNumber) : entry.groupNumber.trim()) score += 1;
+  if (expected.payerId ? same(entry.payerId, expected.payerId) : entry.payerId.trim()) score += 1;
+
+  // The trap: the member name was copied from the card instead of the ID.
+  const typedName = `${entry.firstName} ${entry.lastName}`.trim().toLowerCase();
+  if (expected.cardMemberName && typedName === expected.cardMemberName.trim().toLowerCase()) {
     score -= 5;
   }
 
