@@ -32,6 +32,7 @@ import {
 } from "./arWorkQueue";
 import { CLAIM_STATUS_LABELS, type ClaimStatus } from "./claimStatus";
 import { buildCodingQueue } from "./codingQueue";
+import { claimRowTitle, isOrphanClaim, ORPHAN_CLAIM_LABEL } from "./dataScoping";
 import { formatWhen, usd } from "./homeWorkQueues";
 import type { PipelineEncounter, Role } from "../store/pipelineEncounter";
 
@@ -173,20 +174,34 @@ export function buildClaimRows({
     if (!enc.claimNumber) continue;
     const statusKey = enc.claimStatus;
     const billedCents = billedCentsFor(enc);
+    // A claim whose encounter names no patient is a record an earlier build wrote
+    // into the bucket for work with no chart (audit item 5: CLM-000004 and
+    // CLM-000005). It is kept — never deleted — and labelled so it can never read
+    // as a claim the student made.
+    const orphan = isOrphanClaim(enc);
     rows.push({
       id: `claim-${enc.claimNumber}`,
       claimNumber: enc.claimNumber,
-      title: `${enc.claimNumber} · ${nameForPatient(enc.patientId, enc.displayName)}`,
+      title: claimRowTitle(enc.claimNumber, nameForPatient(enc.patientId, enc.displayName), orphan),
       statusKey,
       statusLabel: statusKey ? CLAIM_STATUS_LABELS[statusKey] : "Draft",
       payer: payerFor(enc),
       dateOfService: dateOfServiceFor(enc),
       billedCents,
       fields: [
+        ...(orphan ? [{ label: "Record", value: ORPHAN_CLAIM_LABEL }] : []),
         { label: "Status", value: statusKey ? CLAIM_STATUS_LABELS[statusKey] : "Draft" },
         { label: "Payer", value: orNone(payerFor(enc)) },
         { label: "Date of service", value: orNone(dateOfServiceFor(enc)) },
-        { label: "Billed", value: billedCents > 0 ? usd(billedCents) : "no charge captured" },
+        {
+          label: "Billed",
+          value:
+            billedCents > 0
+              ? usd(billedCents)
+              : orphan
+                ? "nothing coded — no encounter to code it on"
+                : "no charge coded yet",
+        },
       ],
       action: "Open this claim",
       target: { kind: "medical", patientId: enc.patientId, role: "biller" },
@@ -219,7 +234,7 @@ export function buildDentalClaimRow(
       { label: "Status", value: statusKey ? CLAIM_STATUS_LABELS[statusKey] : "Draft" },
       { label: "Payer", value: orNone(findPlan(activeCase?.planId ?? "")?.payerName ?? "") },
       { label: "Date of service", value: orNone(dos) },
-      { label: "Billed", value: chargedCents > 0 ? usd(chargedCents) : "no charge captured" },
+      { label: "Billed", value: chargedCents > 0 ? usd(chargedCents) : "no charge coded yet" },
     ],
     action: "Open the claim stage",
     target: { kind: "dental", caseId: dental.caseId, stage: "claim" },

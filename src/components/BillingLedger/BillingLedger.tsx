@@ -53,6 +53,7 @@ import {
   type ClaimType,
 } from "../../data/claims/claimType";
 import { checkPlaceOfService, principalDiagnosisOf } from "../../domain/claimPaper";
+import { carryCodingIntoClaim, encounterIdFor, scopingRefusal } from "../../domain/dataScoping";
 import { toast } from "sonner";
 
 type BillingTab = "form" | "remittance" | "denials" | "references";
@@ -187,6 +188,9 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   // then resolved from the encounter (`resolveEncounterPatientId`), so boxes
   // 1a–7 fill from the chart the banner above is showing.
   useEffect(() => {
+    // Data scoping (audit item 5): no patient, no claim. Nothing is seeded and
+    // no claim number is minted; the desk below names what is missing.
+    if (!patientId) return;
     if (!claimForm) {
       const paNumber = patientId
         ? paRecords.filter((r) => r.patientId === patientId).slice(-1)[0]?.id
@@ -221,6 +225,17 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     // typed is never overwritten.
     Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
     Object.assign(patch, reseedIdentityBoxes(claimForm, patient, state.displayName));
+    // ── Box 24 and box 28 from the Coder's own lines (audit item 5) ──
+    // A claim opened before Coding was finished (or on a paper seeded from a
+    // blank encounter) used to read "no charge captured" while Coding held the
+    // charge. The coder's charge (24F), units (24G), place of service (24B) and
+    // modifiers (24D) are carried onto the claim here, and box 28 is summed from
+    // the lines. A value the student typed on the claim is never overwritten.
+    const carried = carryCodingIntoClaim(claimForm, state.codingLines);
+    if (carried.changed) {
+      patch.serviceLines = carried.form.serviceLines;
+      patch.totalCharge = carried.form.totalCharge;
+    }
     // Only write values that actually differ from what the claim already holds.
     // A helper that re-emits an identical (or undefined) value on every run
     // would otherwise set state, re-run this effect and loop until React
@@ -575,6 +590,38 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     const patient = allowed * 0.2;
     return { billed, allowed, paid: allowed - patient, patient, factor };
   };
+
+  // ── Data scoping (audit item 5) ──────────────────────────────────
+  // A claim needs a patient and an encounter. With neither, no claim number is
+  // minted and no paper is drawn: the desk says what is missing instead of
+  // showing a form whose claim would belong to nobody. `setClaimForm` refuses
+  // the same way, so this is the visible half of one rule.
+  const claimScope = scopingRefusal({ patientId, encounterId: encounterIdFor(patientId) });
+
+  if (claimScope) {
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="border-b border-slate-200 bg-white px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-brand-600" />
+            <h2 className="text-sm font-bold text-slate-800">Medical Billing — Enhanced Billing Ledger</h2>
+            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 5</span>
+          </div>
+        </div>
+        <div className="flex flex-1 items-center justify-center overflow-y-auto p-4">
+          <div className="max-w-lg rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
+            <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-amber-600" aria-hidden="true" />
+            <p className="text-sm font-medium text-amber-800">{claimScope.message}</p>
+            <p className="mt-1 text-xs text-amber-700">{claimScope.nextStep}</p>
+            <p className="mt-3 text-[11px] leading-relaxed text-amber-700">
+              No claim was created and no claim number was issued — a claim always belongs to the
+              patient and the encounter on screen.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">

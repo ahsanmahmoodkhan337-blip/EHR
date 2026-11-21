@@ -37,6 +37,12 @@ import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
 import { memberIdOnFile, NOT_ON_FILE, patientCard } from "../../domain/patientCard";
 import {
+  encounterIdFor,
+  otherPatientsNote,
+  scopeRecordsToPatient,
+  scopingRefusal,
+} from "../../domain/dataScoping";
+import {
   PA_PROCEDURES,
   PA_COMMON_ERRORS,
   PA_STATUS_FLOW,
@@ -97,10 +103,25 @@ export default function PriorAuthPortal() {
   const { state, submitPA, addPARecord, setRole, paRecords } = usePipeline();
   const { getPatientById } = usePatientStore();
 
+  // ── The encounter's own PA queue (audit item 5) ──────────────────
+  // Only the patient on screen's authorisations. The all-patients list belongs
+  // on a global view, so the records that belong to someone else are counted and
+  // named under the queue, never printed as this patient's.
+  const patientId = state.patientId || "";
+  const myPaRecords = useMemo(
+    () => scopeRecordsToPatient(paRecords, patientId),
+    [paRecords, patientId],
+  );
+  /** How many of the student's PAs belong to another patient. */
+  const elsewherePaNote = otherPatientsNote(paRecords.length, myPaRecords.length);
+  // A prior auth belongs to a patient and an encounter. With neither, the form
+  // refuses and says so — no authorisation is created for nobody.
+  const paScope = scopingRefusal({ patientId, encounterId: encounterIdFor(patientId) });
+
   // ── Real PA queue — derived from the student's actual submissions ──
   // (replaces the static SAMPLE_PA_QUEUE demo records)
   const queueItems = useMemo<PAQueueItem[]>(() => {
-    return paRecords.map((r) => {
+    return myPaRecords.map((r) => {
       const p = getPatientById(r.patientId);
       return {
         id: r.id,
@@ -118,10 +139,8 @@ export default function PriorAuthPortal() {
         urgency: "routine" as const,
       };
     });
-  }, [paRecords, getPatientById]);
+  }, [myPaRecords, getPatientById]);
 
-  // Get the first patient from the pipeline state or the first mock patient
-  const patientId = state.patientId || "";
   const patient = getPatientById(patientId);
   // The card this panel prints is the selected patient's own; a patient with
   // no card reads "Not on file" (`domain/patientCard.ts`).
@@ -264,10 +283,18 @@ export default function PriorAuthPortal() {
 
   // Handle submit
   const handleSubmit = () => {
-    toast("PA Submitted — tracking #PA-" + Math.random().toString(36).slice(2,8).toUpperCase());
+    // Data scoping (audit item 5): a prior auth belongs to the patient and the
+    // encounter on screen. With neither, refuse visibly rather than storing an
+    // authorisation for nobody; `addPARecord` in the store refuses the same way.
+    if (paScope) {
+      toast.error(`${paScope.message} ${paScope.nextStep}`);
+      return;
+    }
     const paRecord = {
       id: `PA-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      patientId: patient?.id || "",
+      // The encounter's patient, not a store lookup that can miss — the record
+      // and the chart above it name the same patient.
+      patientId,
       procedure: procedure ? PA_PROCEDURES[procedure as ProcedureKey]?.label || procedure : "General consultation",
       insuranceName: patient?.insurance || payer,
       paProcessor: "",
@@ -499,6 +526,26 @@ export default function PriorAuthPortal() {
                 </select>
               </div>
             </div>
+
+            {/* Data scoping (audit item 5): this queue is the encounter's own.
+                Other patients' authorisations are counted here, never listed as
+                this patient's, and a PA with no patient on screen is refused. */}
+            {(paScope || elsewherePaNote) && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                {paScope && (
+                  <p className="text-[10px] leading-snug text-amber-800">
+                    <strong>No prior authorisation can be created:</strong> {paScope.message}{" "}
+                    {paScope.nextStep}
+                  </p>
+                )}
+                {elsewherePaNote && (
+                  <p className="text-[10px] leading-snug text-slate-500">
+                    This queue lists the authorisations for the patient on screen only.{" "}
+                    {elsewherePaNote}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* CoverMyMeds-style summary cards (using 11-status flow) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5">
@@ -1012,10 +1059,12 @@ export default function PriorAuthPortal() {
                 {/* CoverMyMeds-style submit button */}
                 <div className="flex gap-2">
                 <button
-                  onClick={() => { toast("PA Submitted — tracking #PA-" + Math.random().toString(36).slice(2,8).toUpperCase()); handleSubmit(); }}
-                  disabled={!procedure}
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={!procedure || Boolean(paScope)}
+                  aria-label={paScope ? `${paScope.message} ${paScope.nextStep}` : undefined}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium text-white transition-colors ${
-                    procedure
+                    procedure && !paScope
                       ? `${CMM_PRIMARY} ${CMM_PRIMARY_HOVER}`
                       : "bg-slate-300 cursor-not-allowed"
                   }`}
