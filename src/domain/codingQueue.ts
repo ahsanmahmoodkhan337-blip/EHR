@@ -31,6 +31,7 @@
  */
 
 import { formatWhen } from "./homeWorkQueues";
+import { noteSignedAt, noteStatus } from "./noteStatus";
 import type { RailField, RailRow } from "./railPages";
 import type { PipelineEncounter } from "../store/pipelineEncounter";
 
@@ -60,14 +61,11 @@ export type NameForPatient = (
 ) => string;
 
 /**
- * When this encounter's note was signed, from its own `NOTE_SIGNED` timeline
- * entry — the event Sign & Lock writes. Null when no note was ever signed.
+ * When this encounter's note was signed — read from the one module that answers
+ * a note's status (`domain/noteStatus.ts`), so the queue and every screen agree
+ * about which notes are signed. Null when no note was ever signed.
  */
-export function noteSignedAt(enc: PipelineEncounter): string | null {
-  const signed = (enc.statusEvents ?? []).filter((event) => event.reasonCode === "NOTE_SIGNED");
-  if (signed.length === 0) return null;
-  return signed.reduce((latest, event) => (event.at > latest ? event.at : latest), signed[0].at);
-}
+export { noteSignedAt } from "./noteStatus";
 
 /** True once the coder has submitted at least one diagnosis or procedure. */
 export function hasSubmittedCodes(enc: PipelineEncounter): boolean {
@@ -84,7 +82,9 @@ export function hasClaim(enc: PipelineEncounter): boolean {
 
 /** Which list this encounter belongs in, or null when Coding is not waiting on it. */
 export function codingBucket(enc: PipelineEncounter): CodingBucketId | null {
-  if (!noteSignedAt(enc)) return null;
+  // One rule for "is this note signed" — `domain/noteStatus.ts`. An encounter
+  // whose note is a draft or empty is the scribe's work and is never listed.
+  if (noteStatus(enc) !== "signed") return null;
   if (!hasSubmittedCodes(enc)) return "signed-not-coded";
   if (hasClaim(enc)) return null;
   return "coded-not-billed";

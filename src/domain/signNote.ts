@@ -19,6 +19,7 @@
  */
 
 import { appendStatusEvent, makeStatusEvent } from "./statusEvent";
+import { compileNoteText, normalizeNoteFields, noteFieldsHaveText, type NoteFields } from "./noteStatus";
 import { encounterEventId, type PipelineEncounter } from "../store/pipelineEncounter";
 
 /** The reason sentence every signature records, shown to the student. */
@@ -28,11 +29,17 @@ export const NOTE_SIGNED_REASON =
 /**
  * The encounter as it stands after the note is signed: the note text, the
  * `NOTE_SIGNED` timeline entry, and the visit handed to the coder.
+ *
+ * `note` is the note the student signed — the four SOAP sections (a plain string
+ * from an older caller is parsed, never dropped). It is written to the same
+ * record every other screen reads, in one write, so there is no second copy to
+ * disagree with it.
  */
 export function signNote(
   enc: PipelineEncounter,
-  opts: { note: string; by: string; at?: string },
+  opts: { note: NoteFields | string; by: string; at?: string },
 ): PipelineEncounter {
+  const fields = normalizeNoteFields(opts.note);
   const event = makeStatusEvent(
     {
       entityType: "encounter",
@@ -50,7 +57,9 @@ export function signNote(
   );
   return {
     ...enc,
-    scribeNote: opts.note,
+    noteFields: fields,
+    scribeNote: noteFieldsHaveText(fields) ? compileNoteText(fields) : enc.scribeNote,
+    noteUpdatedAt: enc.noteUpdatedAt ?? opts.at ?? new Date().toISOString(),
     stage: "coder",
     status: "charted",
     statusEvents: appendStatusEvent(enc.statusEvents, event),

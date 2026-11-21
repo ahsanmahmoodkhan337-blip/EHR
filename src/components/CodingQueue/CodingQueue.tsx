@@ -19,7 +19,7 @@ import { CPT_CODES, searchCPT, type CPTCode } from "./cptData";
 import { MODIFIER_REFERENCE, POS_REFERENCE } from "./modifierPosData";
 import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
 import { scoreCoder, updateStageScore, getStudentName } from "../../utils/scoring";
-import { type SoapNoteData } from "../WorkflowAthena/AssessmentPlanStage";
+import { noteFieldsOf, noteStatus } from "../../domain/noteStatus";
 
 // ─── PA Trigger Codes & Keywords ────────────────────────────────────
 
@@ -113,11 +113,10 @@ const CONVENTIONS = [
 // ─── Component ────────────────────────────────────────────────────
 
 interface CodingQueueProps {
-  soapNote?: SoapNoteData;
   medications?: { id: string; name: string; dosage: string; frequency: string }[];
 }
 
-export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
+export function CodingQueue({ medications }: CodingQueueProps) {
   const { state, submitToBilling, setRole } = usePipeline();
 
   // Code search state
@@ -321,9 +320,11 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
       }
 
       // 3. Check Scribe note for procedure keywords
-      const scribeText = soapNote
-        ? [soapNote.subjective, soapNote.objective, soapNote.assessment, soapNote.plan].filter(Boolean).join(" ").toLowerCase()
-        : "";
+      const note = noteFieldsOf(state);
+      const scribeText = [note.subjective, note.objective, note.assessment, note.plan]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
       const matchedKeywords = PA_KEYWORDS.filter(kw => scribeText.includes(kw));
       if (matchedKeywords.length > 0) {
         paReasons.push(`Note mentions: ${matchedKeywords.slice(0, 4).join(", ")}`);
@@ -416,35 +417,38 @@ export function CodingQueue({ soapNote, medications }: CodingQueueProps) {
             <div className="space-y-3 text-xs">
               {/* Dynamic SOAP note — uses actual scribe data, not hardcoded placeholder */}
               {(() => {
-                const hasSoapData = !!(soapNote?.subjective || soapNote?.objective || soapNote?.assessment || soapNote?.plan);
+                // The note read here is the encounter's own record — the one
+                // Sign & Lock signed — never a copy handed down from a screen.
+                const note = noteFieldsOf(state);
+                const hasSoapData = !!(note.subjective || note.objective || note.assessment || note.plan);
                 const hasScribeNote = !!state.scribeNote;
 
                 if (hasSoapData) {
                   // Structured SOAP data from the scribe stage
                   return (
                     <>
-                      {soapNote?.subjective && (
+                      {note.subjective && (
                         <div className="rounded-lg bg-white p-3 shadow-sm">
                           <p className="font-medium text-brand-600">Subjective</p>
-                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.subjective}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{note.subjective}</p>
                         </div>
                       )}
-                      {soapNote?.objective && (
+                      {note.objective && (
                         <div className="rounded-lg bg-white p-3 shadow-sm">
                           <p className="font-medium text-green-600">Objective</p>
-                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.objective}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{note.objective}</p>
                         </div>
                       )}
-                      {soapNote?.assessment && (
+                      {note.assessment && (
                         <div className="rounded-lg bg-white p-3 shadow-sm">
                           <p className="font-medium text-amber-600">Assessment</p>
-                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.assessment}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{note.assessment}</p>
                         </div>
                       )}
-                      {soapNote?.plan && (
+                      {note.plan && (
                         <div className="rounded-lg bg-white p-3 shadow-sm">
                           <p className="font-medium text-brand-600">Plan</p>
-                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{soapNote.plan}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-slate-600">{note.plan}</p>
                         </div>
                       )}
                     </>

@@ -17,6 +17,14 @@ import {
   encounterStepIndex,
   furthestEncounterStep,
 } from "../domain/encounterSteps";
+import {
+  EMPTY_NOTE_FIELDS,
+  compileNoteText,
+  noteFieldsHaveText,
+  normalizeNoteFields,
+  parseNoteText,
+  type NoteFields,
+} from "../domain/noteStatus";
 import type { ClaimType } from "../data/claims/claimType";
 import type { ClaimHold, ClaimStatus, JobRole } from "../domain/claimStatus";
 import type { StatusEvent } from "../domain/statusEvent";
@@ -343,7 +351,26 @@ export interface PipelineEncounter {
    */
   chartStage: string | null;
   status: PipelineStatus;
+  /**
+   * **The note** — the one record the whole app reads. Four SOAP sections,
+   * written only by `noteStatus`-aware writers: the Progress Note stages
+   * (`writeNoteFor`), Charts (`writeNoteFor`) and Sign & Lock (`signNote`).
+   * Nothing else may hold a copy of this text.
+   *
+   * A record saved by an earlier build carries no `noteFields`; the text in
+   * `scribeNote` is parsed into these four sections on load, verbatim, and never
+   * rewritten on the way in (`normalizeEncounter`).
+   */
+  noteFields: NoteFields;
+  /**
+   * The note's text form, compiled from `noteFields`. Kept on the record because
+   * a signed note prints as one block and an older build saved only this. It is
+   * derived: `noteFields` is the source, and a migrated record's original text is
+   * carried forward unchanged until the student edits it.
+   */
   scribeNote: string;
+  /** When the note's text last changed. Null until the student types something. */
+  noteUpdatedAt: string | null;
   icdCodes: string[];
   cptCodes: string[];
   claimData: Record<string, string>;
@@ -463,7 +490,9 @@ export function createEncounter(patientId: string | null): PipelineEncounter {
     stage: "scribe",
     chartStage: null,
     status: "pending",
+    noteFields: { ...EMPTY_NOTE_FIELDS },
     scribeNote: "",
+    noteUpdatedAt: null,
     icdCodes: [],
     cptCodes: [],
     claimData: {},
@@ -486,6 +515,33 @@ export function createEncounter(patientId: string | null): PipelineEncounter {
 /** The blank encounter returned when nothing is active. */
 export const EMPTY_ENCOUNTER: PipelineEncounter = createEncounter(null);
 
+/**
+ * v7 — **one note**. A record saved before this build holds its note as text
+ * only (`scribeNote`, written by Sign & Lock or by the old note drafts); it is
+ * parsed into the four SOAP sections and its text is carried forward **verbatim**,
+ * because it is the student's own note and a migration invents nothing.
+ *
+ * A record saved with sections has its text recompiled from them, so the record
+ * can never print one thing and hold another.
+ */
+function normalizeNote(
+  raw: Partial<PipelineEncounter>,
+): { noteFields: NoteFields; scribeNote: string; noteUpdatedAt: string | null } {
+  const savedText = typeof raw.scribeNote === "string" ? raw.scribeNote : "";
+  const noteUpdatedAt = typeof raw.noteUpdatedAt === "string" ? raw.noteUpdatedAt : null;
+  const savedFields = raw.noteFields ? normalizeNoteFields(raw.noteFields) : null;
+
+  if (savedFields && noteFieldsHaveText(savedFields)) {
+    return { noteFields: savedFields, scribeNote: compileNoteText(savedFields), noteUpdatedAt };
+  }
+  if (!savedText.trim()) {
+    return { noteFields: { ...EMPTY_NOTE_FIELDS }, scribeNote: "", noteUpdatedAt };
+  }
+  // Old shape (or sections that somehow lost their text): parse what was saved,
+  // and keep the saved text exactly as it was.
+  return { noteFields: parseNoteText(savedText), scribeNote: savedText, noteUpdatedAt };
+}
+
 /** Fill in anything a stored encounter from an older build is missing. */
 export function normalizeEncounter(
   raw: Partial<PipelineEncounter> | null | undefined,
@@ -496,6 +552,7 @@ export function normalizeEncounter(
   return {
     ...base,
     ...raw,
+    ...normalizeNote(raw),
     patientId: raw.patientId ?? patientId,
     icdCodes: Array.isArray(raw.icdCodes) ? raw.icdCodes : [],
     cptCodes: Array.isArray(raw.cptCodes) ? raw.cptCodes : [],
@@ -595,6 +652,7 @@ export function normalizePipelineStore(
 export function encounterHasWork(enc: PipelineEncounter | undefined | null): boolean {
   if (!enc) return false;
   return Boolean(
+    noteFieldsHaveText(enc.noteFields) ||
     enc.scribeNote ||
     enc.icdCodes.length ||
     enc.cptCodes.length ||
