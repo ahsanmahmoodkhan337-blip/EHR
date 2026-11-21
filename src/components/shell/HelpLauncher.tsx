@@ -8,10 +8,14 @@
  * `task-1-app-shell.md` item 10).
  *
  * What changed:
- *   - It starts collapsed as a plain 44 px button in the bottom-right corner,
- *     with no animation, so it never covers a form control until it is opened.
+ *   - It is a plain 40 px button docked at the right-hand end of the shell's
+ *     footer strip, in the layout and not floating over it, so it can never be
+ *     drawn on top of a table row, a form control or the simulated-data line
+ *     (slice H: a floating corner button was measured covering the last row's
+ *     "Open patient" button on Patients at 1440 px).
  *   - Opening it gives a panel with the keyboard shortcuts (item 8), the
- *     support link and the simulated-data statement.
+ *     support link and the simulated-data statement; the panel opens upwards
+ *     out of the strip.
  *   - Escape closes it, focus goes back to the launcher, and the state is
  *     remembered (`hh_help_open`) so a student who opened it once is not
  *     re-opening it on every page.
@@ -70,12 +74,12 @@ export function HelpLauncher() {
   }, [open]);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+    <div className="relative flex shrink-0 items-center">
       {open && (
         <div
           role="dialog"
           aria-label="Help and keyboard shortcuts"
-          className="w-[min(92vw,20rem)] rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-800"
+          className="absolute bottom-full right-0 z-50 mb-2 w-[min(92vw,20rem)] rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-800"
         >
           <div className="flex items-center gap-2">
             <h2 className="text-xs font-bold text-slate-800 dark:text-slate-100">Help</h2>
@@ -129,7 +133,7 @@ export function HelpLauncher() {
         aria-expanded={open}
         aria-label={open ? "Hide help" : "Show help and keyboard shortcuts"}
         title={open ? "Hide help" : "Help and keyboard shortcuts"}
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-700 text-white shadow-md transition-colors hover:bg-slate-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:bg-slate-600 dark:hover:bg-slate-500"
+        className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-700 text-white shadow-sm transition-colors hover:bg-slate-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:bg-slate-600 dark:hover:bg-slate-500"
       >
         {open ? <X className="h-5 w-5" aria-hidden="true" /> : <HelpCircle className="h-5 w-5" aria-hidden="true" />}
       </button>

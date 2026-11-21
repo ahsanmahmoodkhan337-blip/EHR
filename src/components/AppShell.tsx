@@ -138,12 +138,16 @@ export function AppShell({
           {reference}
         </div>
 
-        {footer}
+        {/* The footer strip: the page's simulated-data line and the one help
+            button side by side, both in the layout. The launcher used to float
+            over the bottom-right corner and was measured covering the last
+            row's "Open patient" button on Patients (slice H), so it is docked
+            here where it cannot be drawn over anything. */}
+        <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white pr-2 dark:border-slate-800 dark:bg-slate-900">
+          <div className="min-w-0 flex-1 [&_footer]:border-t-0">{footer}</div>
+          <HelpLauncher />
+        </div>
       </div>
-
-      {/* One help button, collapsed to a 44 px launcher so it never sits over a
-          form control until the student opens it (spec item 10). */}
-      <HelpLauncher />
     </div>
   );
 }
