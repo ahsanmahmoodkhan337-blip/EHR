@@ -53,10 +53,25 @@ import {
   type ClaimType,
 } from "../../data/claims/claimType";
 import { checkPlaceOfService, principalDiagnosisOf } from "../../domain/claimPaper";
+import { claimPayer } from "../../domain/patientCard";
+import { priorAuthForClaim } from "../../domain/priorAuthNumber";
 import { carryCodingIntoClaim, encounterIdFor, scopingRefusal } from "../../domain/dataScoping";
 import { toast } from "sonner";
 
 type BillingTab = "form" | "remittance" | "denials" | "references";
+
+/**
+ * The payers this teaching practice contracts with. The list a student can pick
+ * from; the patient's own payer is always offered first even when it is not one
+ * of these (`domain/patientCard.ts`).
+ */
+const PAYER_OPTIONS = [
+  "Medicare",
+  "Medicaid",
+  "Northwind Health Plan",
+  "Cascadia Health Plan",
+  "Meridian Health Plan",
+];
 
 /**
  * Column spec for the box-24 table in the downloaded PDF — the same list the
@@ -92,7 +107,28 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   const patient = patientId ? getPatientById(patientId) : undefined;
   const cs = patientId ? caseStates[patientId] : undefined;
 
-  const [payer, setPayer] = useState("Medicare");
+  // ── The payer this claim bills ──────────────────────────────────
+  // Read from the patient's own coverage record (`domain/patientCard.ts`) — the
+  // same reader the banner, Registration and the paper's boxes 1 / 1a / 11 use —
+  // with the claim's own captured payer as the fallback. Until 2026-11-21 this
+  // screen started from a local "Medicare", so a payer saved at Registration
+  // reached the banner, eligibility and the printed paper but not the 277CA or
+  // the 835: the student changed the card and the money still came from another
+  // plan. One record, one payer, every screen.
+  const [payerChoice, setPayerChoice] = useState<string | null>(null);
+  const payerOnRecord = claimPayer(patient, claimForm?.payerName);
+  const payer = payerChoice ?? payerOnRecord;
+  /** What a sentence prints when the chart holds no payer at all. */
+  const payerLabel = payer || "the payer on file";
+  // A payer saved at Registration is newer information than a choice made on
+  // this screen before, so it replaces that choice.
+  const payerOnRecordRef = useRef(payerOnRecord);
+  useEffect(() => {
+    if (payerOnRecordRef.current === payerOnRecord) return;
+    payerOnRecordRef.current = payerOnRecord;
+    setPayerChoice(null);
+  }, [payerOnRecord]);
+
   const [submitted, setSubmitted] = useState(false);
   const [billingScore, setBillingScore] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<BillingTab>(openTab ?? "form");
@@ -191,16 +227,19 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     // Data scoping (audit item 5): no patient, no claim. Nothing is seeded and
     // no claim number is minted; the desk below names what is missing.
     if (!patientId) return;
+    // Box 23 carries THIS encounter's own authorisation and nothing else
+    // (`domain/priorAuthNumber.ts`). Until 2026-11-21 it printed another
+    // patient's `PA-2026-004418` as a demo value, and the seeded number was the
+    // patient's last PA whatever it authorised. With none of its own the box
+    // stays empty and the paper's provenance strip names the stage that fills it.
+    const ownPriorAuth = priorAuthForClaim({ paData: state.paData, cptCodes: state.cptCodes });
     if (!claimForm) {
-      const paNumber = patientId
-        ? paRecords.filter((r) => r.patientId === patientId).slice(-1)[0]?.id
-        : undefined;
       setClaimForm(
         buildClaimForm({
           patient: patient ?? null,
           displayName: state.displayName,
           pipeline: state,
-          paNumber,
+          paNumber: ownPriorAuth || undefined,
           claimType: paper.claimType,
           encounterDate,
           placeOfService: encounterPos,
@@ -225,6 +264,12 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     // typed is never overwritten.
     Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
     Object.assign(patch, reseedIdentityBoxes(claimForm, patient, state.displayName));
+    // Box 23 fills the moment this encounter has an authorisation of its own — a
+    // PA submitted after the claim was opened. A box the student typed is never
+    // overwritten, and a number that is not this encounter's is never put there.
+    if (ownPriorAuth && !String(claimForm.priorAuthNumber ?? "").trim()) {
+      patch.priorAuthNumber = ownPriorAuth;
+    }
     // ── Box 24 and box 28 from the Coder's own lines (audit item 5) ──
     // A claim opened before Coding was finished (or on a paper seeded from a
     // blank encounter) used to read "no charge captured" while Coding held the
@@ -396,7 +441,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
       addAuditLog(patientId, {
         timestamp: new Date().toISOString(),
         role: "biller",
-        message: `CMS-1500 submitted to ${payer} — ${lines.length} line(s), $${total.toFixed(2)}`,
+        message: `CMS-1500 submitted to ${payerLabel} — ${lines.length} line(s), $${total.toFixed(2)}`,
         status: "info",
       });
 
@@ -456,7 +501,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
           addAuditLog(patientId, {
             timestamp: new Date().toISOString(),
             role: "biller",
-            message: `837P transmitted to ${payer} — 277CA rejected, claim returned for correction`,
+            message: `837P transmitted to ${payerLabel} — 277CA rejected, claim returned for correction`,
             status: "error",
           });
           return;
@@ -468,7 +513,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
         addAuditLog(patientId, {
           timestamp: new Date().toISOString(),
           role: "biller",
-          message: `837P transmitted to ${payer} — 277CA accepted, claim with the payer for adjudication`,
+          message: `837P transmitted to ${payerLabel} — 277CA accepted, claim with the payer for adjudication`,
           status: "success",
         });
         submitClaim({ ...legacyBoxMap(values), payer, posCode: claimPos, submittedAt: new Date().toISOString() });
@@ -521,7 +566,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
       { check: "ICD-10 code present", pass: state.icdCodes.length > 0, note: state.icdCodes.length > 0 ? `${state.icdCodes.length} code(s) found` : "No diagnosis codes entered" },
       { check: "CPT code present", pass: state.cptCodes.length > 0, note: state.cptCodes.length > 0 ? `${state.cptCodes.length} code(s) found` : "No procedure codes entered" },
       { check: "Diagnosis supports procedure", pass: state.icdCodes.length > 0 && state.cptCodes.length > 0, note: "Educational: Verify ICD-10 supports medical necessity for the CPT code" },
-      { check: "Payer selected", pass: true, note: `Payer: ${payer}` },
+      { check: "Payer selected", pass: true, note: `Payer: ${payerLabel}` },
       {
         // The POS decides the paper and the price. A POS that is not the one the
         // encounter was registered at is reported with the denial it earns — the
@@ -887,10 +932,25 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
                   <p className="text-xs font-semibold text-slate-700 mb-3">Claim Submission</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] text-slate-500">Payer</label>
-                      <select value={payer} onChange={(e) => setPayer(e.target.value)} className="w-full rounded border border-slate-200 px-2 py-1.5 text-xs">
-                        <option>Medicare</option><option>Medicaid</option><option>Northwind Health Plan</option>
-                        <option>Cascadia Health Plan</option><option>Meridian Health Plan</option>
+                      <label className="text-[10px] text-slate-500" htmlFor="claim-payer">Payer</label>
+                      {/* The patient's own coverage record, and the chart's payer
+                          is the first option — so the 277CA and the 835 name the
+                          plan Registration captured. A different payer picked
+                          here is the student's own choice, and it is replaced if
+                          Registration later saves a new one. */}
+                      <select
+                        id="claim-payer"
+                        value={payer}
+                        onChange={(e) => setPayerChoice(e.target.value)}
+                        className="w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
+                      >
+                        {!payerOnRecord && <option value="">No payer on file</option>}
+                        {payerOnRecord && !PAYER_OPTIONS.includes(payerOnRecord) && (
+                          <option value={payerOnRecord}>{payerOnRecord}</option>
+                        )}
+                        {PAYER_OPTIONS.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -1125,7 +1185,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
                   <div className="clinical-card">
                     <p className="text-xs font-bold text-slate-800">Payer adjudication</p>
                     <p className="mt-1 text-[10px] leading-relaxed text-slate-600">
-                      The claim is accepted and sitting with {payer}. The payer prices every line against the
+                      The claim is accepted and sitting with {payerLabel}. The payer prices every line against the
                       plan's own rules: the contracted allowance, the deductible still to be met, the plan's
                       coinsurance, any authorisation the service required and any edit the plan applies to
                       codes billed together. What it allows becomes the payment, the patient's share and a
@@ -1281,7 +1341,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
               </div>
               <div className="rounded-lg bg-white p-3 shadow-sm">
                 <p className="text-[10px] text-slate-400">Payer Rate</p>
-                <p className="text-sm font-bold text-slate-700">{calcPayment().billed > 0 ? `${payer}: pays ${(calcPayment().allowed / calcPayment().billed * 100).toFixed(0)}% of the Medicare fee schedule` : `${payer}: — no codes yet`}</p>
+                <p className="text-sm font-bold text-slate-700">{calcPayment().billed > 0 ? `${payerLabel}: pays ${(calcPayment().allowed / calcPayment().billed * 100).toFixed(0)}% of the Medicare fee schedule` : `${payerLabel}: — no codes yet`}</p>
               </div>
               <div className="rounded-lg bg-green-50 p-3 border border-green-200">
                 <p className="text-[10px] text-green-600">Estimated Payment</p>

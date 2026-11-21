@@ -27,7 +27,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, FileDown, Info, Loader2, Printer, Save, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import type { ClaimIssue } from "../../utils/claimValidation";
-import { applyDemoFill, applyLineDemoFill, demoFillSummary, type DemoFilledBox } from "../../utils/demoClaimFill";
+import { applyDemoFill, applyLineDemoFill, demoFillSummary, unfilledBoxes, type DemoFilledBox } from "../../utils/demoClaimFill";
 
 export interface ClaimPaperApi {
   values: Record<string, unknown>;
@@ -217,6 +217,16 @@ export function ClaimFormShell({
 
   const demoBoxCount = demo.boxes.length + demoLines.boxes.length;
 
+  // Boxes left blank because nothing captured them, with the stage that supplies
+  // each (9c, 16, 17, 23 — `utils/demoClaimFill.ts`). They carry no value at all:
+  // until 2026-11-21 each printed another patient's world as a demo. The sources
+  // are CMS-1500 box numbers, so they are listed on that paper only — the UB-04
+  // and the ADA form number their boxes differently and borrow nothing.
+  const unfilled = useMemo(
+    () => (formCode.startsWith("CMS-1500") ? unfilledBoxes(draft) : []),
+    [draft, formCode],
+  );
+
   const issues = useMemo(
     () => validate(demo.values, demoLines.lines),
     [demo.values, demoLines.lines, validate],
@@ -349,6 +359,32 @@ export function ClaimFormShell({
             {[...demo.boxes, ...demoLines.boxes].map((d) => (
               <span key={d.field} className="text-[9px] italic text-slate-400" title={`${d.label} is normally supplied by ${d.stage}.`}>
                 {d.label} · {d.value}
+              </span>
+            ))}
+          </p>
+        </div>
+      )}
+
+      {/* ── Not-captured strip ───────────────────────────────────────
+          Boxes with no value at all. Each names the stage that supplies it, so
+          the student can trace the gap instead of reading a borrowed value. */}
+      {demoFillEnabled && unfilled.length > 0 && (
+        <div className="border-b border-slate-200 bg-slate-50 px-3 py-1.5">
+          <p className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-600">
+            <Info className="h-3 w-3 text-slate-400" />
+            {unfilled.length === 1 ? "1 box left blank" : `${unfilled.length} boxes left blank`}
+            <span className="font-normal text-slate-400">
+              — nothing captured for them, so nothing is printed.
+            </span>
+          </p>
+          <p className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+            {unfilled.map((d) => (
+              <span
+                key={d.field}
+                className="text-[9px] text-slate-400"
+                title={`${d.label} is supplied by ${d.stage}.`}
+              >
+                {d.label} · {d.stage}
               </span>
             ))}
           </p>

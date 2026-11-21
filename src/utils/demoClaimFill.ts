@@ -22,7 +22,11 @@
  * a placeholder the biller can see through, never a value silently invented.
  */
 
-import { DEMO_CLAIM_DATA, DEMO_LINE_DATA } from "../data/claims/demoClaimData";
+import {
+  DEMO_CLAIM_DATA,
+  DEMO_LINE_DATA,
+  UNFILLED_BOX_SOURCES,
+} from "../data/claims/demoClaimData";
 
 /** A box currently showing a demo value rather than captured data. */
 export interface DemoFilledBox {
@@ -91,6 +95,40 @@ export function applyDemoFill(
 export function demoFillSummary(count: number): string {
   if (count <= 0) return "No demo data on this claim";
   return `${count} box${count === 1 ? "" : "es"} filled with demo data`;
+}
+
+/**
+ * The boxes this claim leaves **blank**, with the stage that should have filled
+ * each one.
+ *
+ * Some boxes cannot be borrowed: box 9c is the employer on this patient's
+ * coverage record, box 16 is this encounter's work status, box 17 is the
+ * referring provider this practice was sent by, and box 23 is this encounter's
+ * own authorisation number (spec `slice-i-patient-record.md` item 3). Until
+ * 2026-11-21 each printed another patient's value as a demo. They now print
+ * nothing, and the claim's grey strip names the stage that supplies them — a
+ * blank box the student can trace, rather than a plausible value they cannot.
+ *
+ * Reads the claim's own values only (never the demo-rendered copy), so a box
+ * that has been filled — by a stage or by the student — drops off the list.
+ */
+export function unfilledBoxes(values: Record<string, unknown>): DemoFilledBox[] {
+  const boxes: DemoFilledBox[] = [];
+  const seen = new Set<string>();
+  for (const [field, source] of Object.entries(UNFILLED_BOX_SOURCES)) {
+    if (!isMissingValue(values[field])) continue; // captured — not a gap
+    // Box 16 is one printed box with two date fields: list it once.
+    if (seen.has(source.box)) continue;
+    seen.add(source.box);
+    boxes.push({
+      field,
+      box: source.box,
+      label: `Box ${source.box}`,
+      value: "",
+      stage: source.stage,
+    });
+  }
+  return boxes;
 }
 
 /**
