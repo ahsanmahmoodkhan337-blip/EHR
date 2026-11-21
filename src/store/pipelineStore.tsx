@@ -38,6 +38,7 @@ import {
 } from "./pipelineEncounter";
 import { nextClaimNumber, type ClaimStatus, type ReasonCode } from "../domain/claimStatus";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
+import { signNote } from "../domain/signNote";
 import {
   adjudicateClaim as adjudicateClaimDomain,
   planForPayerName,
@@ -497,31 +498,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // Auto-advance: Scribe → Coder
   const submitToCoding = (note: string) => {
-    updateActive((enc) => {
-      // The timeline entry is written in the same store write as the status it
-      // records — a status change never exists without its event.
-      const event = makeStatusEvent(
-        {
-          entityType: "encounter",
-          entityId: encounterEventId(enc.patientId),
-          patientId: enc.patientId,
-          from: "open",
-          to: "signed",
-          by: getLoggedInPhone() ?? "system",
-          jobRole: "scribe",
-          reasonCode: "NOTE_SIGNED",
-          reason: "The progress note was signed and locked, so the encounter is ready for coding.",
-        },
-        enc.statusEvents,
-      );
-      return {
-        ...enc,
-        scribeNote: note,
-        stage: "coder",
-        status: "charted",
-        statusEvents: appendEvent(enc.statusEvents, event),
-      };
-    });
+    // The signature itself lives in `domain/signNote.ts`, so the record the
+    // Coding queue reads is written by the same function the tests use.
+    updateActive((enc) => signNote(enc, { note, by: getLoggedInPhone() ?? "system" }));
   };
 
   // Auto-advance: Coder → Prior Auth (PA first)

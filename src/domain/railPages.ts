@@ -31,6 +31,7 @@ import {
   type ArWorkItem,
 } from "./arWorkQueue";
 import { CLAIM_STATUS_LABELS, type ClaimStatus } from "./claimStatus";
+import { buildCodingQueue } from "./codingQueue";
 import { formatWhen, usd } from "./homeWorkQueues";
 import type { PipelineEncounter, Role } from "../store/pipelineEncounter";
 
@@ -38,7 +39,17 @@ import type { PipelineEncounter, Role } from "../store/pipelineEncounter";
 
 /** Where a row's work is done. One target, so a row is never a dead end. */
 export type RailTarget =
-  | { kind: "medical"; patientId: string | null; role: Role }
+  | {
+      kind: "medical";
+      patientId: string | null;
+      role: Role;
+      /**
+       * The encounter stage the row opens, when it has one: the row becomes the
+       * address `/encounter/<patientId>/<stage>` instead of switching the chart's
+       * role. Set by the Coding queue, whose rows open that patient's Coding.
+       */
+      stage?: string;
+    }
   | { kind: "dental"; caseId: string; stage: string };
 
 export interface RailField {
@@ -83,35 +94,9 @@ export function buildCodingRows({
   encounters: PipelineEncounter[];
   nameForPatient: NameForPatient;
 }): RailRow[] {
-  const rows: (RailRow & { signedAt: string })[] = [];
-
-  for (const enc of encounters) {
-    const signed = enc.statusEvents
-      .filter((event) => event.reasonCode === "NOTE_SIGNED")
-      .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
-      .pop();
-    if (!signed) continue;
-    // Codes handed to the biller mean this encounter is past the coder.
-    if (enc.icdCodes.length > 0 || enc.cptCodes.length > 0) continue;
-
-    rows.push({
-      id: `coding-${enc.patientId ?? "unassigned"}`,
-      title: nameForPatient(enc.patientId, enc.displayName),
-      signedAt: signed.at,
-      fields: [
-        { label: "Note signed", value: formatWhen(signed.at) },
-        { label: "Diagnoses", value: "none submitted" },
-        { label: "Procedures", value: "none submitted" },
-        { label: "Waiting at", value: "Coding" },
-      ],
-      action: "Code this encounter",
-      target: { kind: "medical", patientId: enc.patientId, role: "coder" },
-    });
-  }
-
-  return rows
-    .sort((a, b) => (a.signedAt < b.signedAt ? 1 : a.signedAt > b.signedAt ? -1 : 0))
-    .map(({ signedAt: _signedAt, ...row }) => row);
+  // One rule, one module: `domain/codingQueue.ts` decides which encounters the
+  // coder is waiting on. This builder is the older, single-list view of it.
+  return buildCodingQueue({ encounters, nameForPatient }).signedNotCoded;
 }
 
 /** A dental case sitting on its Coding stage with no coded lines yet. */
