@@ -28,6 +28,7 @@ import { AppShell } from "../components/AppShell";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
 import { PipelineProvider, usePipeline, type Role } from "../store/pipelineStore";
 import { readActiveTrack } from "../components/shell/activeTrack";
+import { ActivePatientBanner } from "../components/shell/ActivePatientBanner";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { readDentalTrackRecord } from "../components/dental/DentalTrackStore";
 import {
@@ -65,7 +66,7 @@ const fieldClass =
 
 function ClaimsPage() {
   const navigate = useNavigate();
-  const { allEncounters } = usePipeline();
+  const { allEncounters, activePatientId } = usePipeline();
   const { getPatientById } = usePatientStore();
   const dental = useMemo(() => readDentalTrackRecord(), []);
   const [filters, setFilters] = useState<ClaimFilters>(EMPTY_CLAIM_FILTERS);
@@ -96,7 +97,13 @@ function ClaimsPage() {
   const asRailRows: RailRow[] = shown;
 
   return (
-    <AppShell track={readActiveTrack()} activeNav="claims" footer={railFooter}>
+    <AppShell
+      track={readActiveTrack()}
+      activeNav="claims"
+      selectedPatientId={activePatientId ?? undefined}
+      banner={<ActivePatientBanner />}
+      footer={railFooter}
+    >
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-4xl px-4 py-8">
         <RailPageHeader
