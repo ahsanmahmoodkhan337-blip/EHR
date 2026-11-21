@@ -210,8 +210,16 @@ export function contractedAllowanceCents(
   return { allowedCents: billedCents, source: "billed" };
 }
 
-/** The plan a payer name belongs to. Unknown payers price on the teaching baseline. */
-export function planForPayerName(payerName: string | null | undefined): MedicalPlan | null {
+/**
+ * The plan a payer name belongs to, or **null** when the plan table has no rule
+ * for that payer.
+ *
+ * This is the strict reading, and the one the 271 uses
+ * (`domain/eligibility.ts` → `eligibility271`): a payer nobody wrote a benefit
+ * rule for has no copay, deductible or coinsurance, and returning the teaching
+ * baseline instead would print another plan's money as this patient's.
+ */
+export function planForPayerNameStrict(payerName: string | null | undefined): MedicalPlan | null {
   const name = (payerName ?? "").toLowerCase();
   if (!name) return null;
   const byName: [string, string][] = [
@@ -224,7 +232,12 @@ export function planForPayerName(payerName: string | null | undefined): MedicalP
     ["medicare", "PLAN-MERIDIAN-ADVANTAGE"],
   ];
   const hit = byName.find(([needle]) => name.includes(needle));
-  return hit ? findPlan(hit[1]) ?? null : MEDICAL_PLANS[0] ?? null;
+  return hit ? findPlan(hit[1]) ?? null : null;
+}
+
+/** The plan a payer name belongs to. Unknown payers price on the teaching baseline. */
+export function planForPayerName(payerName: string | null | undefined): MedicalPlan | null {
+  return planForPayerNameStrict(payerName) ?? MEDICAL_PLANS[0] ?? null;
 }
 
 // ─── The balance rule ──────────────────────────────────────────────

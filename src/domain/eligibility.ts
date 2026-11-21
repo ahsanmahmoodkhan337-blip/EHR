@@ -14,6 +14,8 @@
  * whose coverage was never checked reads `not-checked`, never `active`.
  */
 
+import { planForPayerNameStrict } from "./adjudication";
+
 /** The three states a coverage's eligibility can be in. */
 export type EligibilityStatus = "active" | "inactive" | "not-checked";
 
@@ -107,6 +109,86 @@ export function runEligibility270(
     status: "active",
     checkedAt: at,
     payerResponse: `271: ${payer} — active${plan ? `, ${plan}` : ""}; member ${member} matched.`,
+  };
+}
+
+/**
+ * The benefit figures a 271 answers with, and where each one came from.
+ *
+ * Every number is read from the **same plan table that prices this patient's
+ * 835** (`data/medical/payerScenarios.ts`, resolved through
+ * `planForPayerNameStrict`), so the copay the front desk is quoted and the money
+ * the remittance moves cannot disagree. A payer the table has no rule for
+ * returns no figures at all and says so — a 271 that printed the teaching
+ * baseline's money for an unknown payer would be inventing it.
+ */
+export interface Eligibility271Benefits {
+  /** Fixed office copay in dollars, or null when this plan design has none. */
+  copayUsd: number | null;
+  /**
+   * Individual deductible still to be met, in dollars. The deductible always
+   * starts unmet in this simulator (an existing honest limit): nothing is posted
+   * against it until a claim runs through adjudication.
+   */
+  deductibleRemainingUsd: number | null;
+  /** The patient's share of the allowed amount after the deductible, as a whole percent. */
+  coinsurancePercent: number | null;
+  /** The plan the figures came from, by its name in the plan table. */
+  planName: string | null;
+  /** The plan design, e.g. "Commercial PPO". */
+  planType: string | null;
+  /** Where the figures came from — printed on the 271 so every number is traceable. */
+  source: string;
+}
+
+/** The 271's answer for a coverage that names no payer: no plan, no figures. */
+function noPlanAnswer(source: string): Eligibility271Benefits {
+  return {
+    copayUsd: null,
+    deductibleRemainingUsd: null,
+    coinsurancePercent: null,
+    planName: null,
+    planType: null,
+    source,
+  };
+}
+
+/**
+ * Run the benefit half of the 271 for one coverage: copay, deductible remaining
+ * and coinsurance, taken from that patient's own plan.
+ *
+ * `source` names the plan and the table it came from, so a student can trace
+ * every figure back to a rule rather than to a screen. No payer on file, or a
+ * payer with no plan rule, returns null figures and a source that says which.
+ */
+export function eligibility271(
+  coverage: EligibilityCoverage | null | undefined,
+): Eligibility271Benefits {
+  const payer = (coverage?.payerName ?? "").trim();
+  if (!payer) {
+    return noPlanAnswer("No payer on file — there is no plan to read a benefit from.");
+  }
+
+  const plan = planForPayerNameStrict(payer);
+  if (!plan) {
+    return noPlanAnswer(
+      `${payer} has no plan rule in this simulator's plan table, so the 271 returns no copay, ` +
+        `deductible or coinsurance rather than inventing them.`,
+    );
+  }
+
+  // `planCoinsurancePercent` is the PLAN's share, so the patient's share is the
+  // remainder. The plan table carries no fixed copay, so the 271 says there is
+  // none instead of printing a number the 835 would never apply.
+  return {
+    copayUsd: null,
+    deductibleRemainingUsd: plan.deductibleUsd,
+    coinsurancePercent: 100 - plan.planCoinsurancePercent,
+    planName: plan.name,
+    planType: plan.planType,
+    source:
+      `Plan rule: ${plan.name} (${plan.planType}) in the payer plan table — illustrative ` +
+      `teaching values, not a real payer's schedule.`,
   };
 }
 

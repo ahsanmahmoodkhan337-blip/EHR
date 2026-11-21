@@ -319,7 +319,7 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
             onChange={(e) => setSelfPay(e.target.checked)}
             className="h-3.5 w-3.5 accent-brand-600"
           />
-          Self-pay — the patient has no insurance (coverage is recorded as Self-pay)
+          Record as self-pay — no insurance to bill (coverage is saved as Self-pay)
         </label>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>

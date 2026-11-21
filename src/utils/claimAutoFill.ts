@@ -21,11 +21,11 @@
  * When the patient is a dependent, the record carries the subscriber's own name
  * and date of birth, so box 4 is the subscriber rather than the patient.
  *
- * Nothing here is invented. A box with no upstream source is left blank and is
- * filled at render time from the tagged demo values in
- * `data/claims/demoClaimData.ts`, via the rule in `utils/demoClaimFill.ts` — a
- * demo value that is grey italic, tagged, counted separately and never written
- * back onto the claim.
+ * Nothing here is invented. A box with no upstream source is left **blank**, and
+ * the claim's own grey strip names the stage that should have filled it
+ * (`UNFILLED_BOX_SOURCES` in `data/claims/demoClaimData.ts`, read by
+ * `utils/demoClaimFill.ts`). No constant stands in for a patient's member ID,
+ * group, plan or dates any more — slice J item 4b, 2026-11-21.
  *
  * Modifiers (box 24D) are one of those boxes, and the reason is teaching rather
  * than tidiness. The fallback path used to stamp `25` on every office E/M line,
@@ -327,8 +327,8 @@ export function patientIdentityBoxes(
   // printed `INS-<mrn>` in box 1a and `GRP-<mrn digits>` in box 11 — invented
   // values that read as real member and group numbers, which is how a student
   // learns to invent one. Now every identifier comes from the record, and an
-  // identifier the student never captured stays blank so the box falls through
-  // to the tagged demo value in `demoClaimData.ts`.
+  // identifier the student never captured stays blank, and the claim's grey
+  // strip names the stage that should have captured it (`demoClaimData.ts`).
   // The card is the selected patient's own (`domain/patientCard.ts`) — the same
   // reader the banner and Registration use, so the claim cannot print a card the
   // chart above it is not showing.
@@ -413,8 +413,8 @@ const FABRICATED_ID = /^(INS-|GRP-)/i;
 
 /**
  * Clear the fabricated `INS-<mrn>` / `GRP-<mrn digits>` values a claim persisted
- * by an earlier build still carries, so the boxes fall through to the tagged
- * demo values instead of showing an invented ID as captured data.
+ * by an earlier build still carries, so the boxes read blank (with their
+ * provenance) instead of showing an invented ID as captured data.
  */
 export function stripFabricatedIds(form: ClaimFormData): Partial<ClaimFormData> {
   const patch: Partial<ClaimFormData> = {};
@@ -488,7 +488,7 @@ export function reseedIdentityBoxes(
       // This patient has nothing in that box, and the value standing there is
       // one this claim last seeded from another patient's card (a member ID, a
       // plan, a group number). Clear it: a claim must never print a neighbour's
-      // card, and a cleared box falls through to the tagged demo value instead.
+      // card, and a cleared box reads blank with its provenance instead.
       if (seeded !== undefined && current === seeded) {
         (patch as Record<string, unknown>)[box] = "";
         delete values[box];
