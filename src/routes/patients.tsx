@@ -22,6 +22,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { Search, UserRound, CalendarPlus } from "lucide-react";
 import { AppShell } from "../components/AppShell";
+import { useActiveTrack } from "../components/shell/activeTrack";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
 import { rememberActivePatient } from "../store/pipelineStore";
 import { ownPatientList } from "../domain/inbox";
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/patients")({
 });
 
 function PatientsPage() {
+  const track = useActiveTrack();
   const navigate = useNavigate();
   const { patients: allPatients } = usePatientStore();
   const [query, setQuery] = useState("");
@@ -73,7 +75,7 @@ function PatientsPage() {
 
   return (
     <AppShell
-      track="medical"
+      track={track}
       activeNav="patients"
       footer={
         <footer className="border-t border-slate-200 bg-white px-4 py-2 text-center text-xs text-slate-400">

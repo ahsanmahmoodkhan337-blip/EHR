@@ -27,13 +27,13 @@ import { FileText } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
 import { PipelineProvider, usePipeline, type Role } from "../store/pipelineStore";
-import { readActiveTrack } from "../components/shell/activeTrack";
-import { ActivePatientBanner } from "../components/shell/ActivePatientBanner";
+import { useActiveTrack } from "../components/shell/activeTrack";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { readDentalTrackRecord } from "../components/dental/DentalTrackStore";
 import {
   buildClaimRows,
   buildDentalClaimRow,
+  claimRowsForTrack,
   dentalCaseLabel,
   EMPTY_CLAIM_FILTERS,
   filterClaimRows,
@@ -65,6 +65,8 @@ const fieldClass =
   "min-h-10 w-full rounded-lg border border-slate-300 bg-white px-2 text-[11px] text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200";
 
 function ClaimsPage() {
+  // The stored track, live (owner item 4): the header switch and the page agree.
+  const track = useActiveTrack();
   const navigate = useNavigate();
   const { allEncounters, activePatientId } = usePipeline();
   const { getPatientById } = usePatientStore();
@@ -80,9 +82,11 @@ function ClaimsPage() {
   const rows = useMemo<ClaimRow[]>(() => {
     const medical = buildClaimRows({ encounters: Object.values(allEncounters), nameForPatient });
     const dentalRow = buildDentalClaimRow(dental, dentalCaseLabel(dental));
-    return dentalRow ? [dentalRow, ...medical] : medical;
+    // One track at a time (owner item 4): a medical claim never sits in the
+    // dental list and the dental ADA claim never sits in the medical one.
+    return claimRowsForTrack({ track, medical, dental: dentalRow });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allEncounters, dental, getPatientById]);
+  }, [allEncounters, dental, getPatientById, track]);
 
   const shown = filterClaimRows(rows, filters);
   const payers = payerOptions(rows);
@@ -98,10 +102,9 @@ function ClaimsPage() {
 
   return (
     <AppShell
-      track={readActiveTrack()}
+      track={track}
       activeNav="claims"
       selectedPatientId={activePatientId ?? undefined}
-      banner={<ActivePatientBanner />}
       footer={railFooter}
     >
       <div className="min-h-0 flex-1 overflow-y-auto">

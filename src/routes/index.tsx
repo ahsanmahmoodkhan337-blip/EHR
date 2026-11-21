@@ -51,6 +51,9 @@ import { isSessionSuperseded } from "../store/accountSecurity";
 import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
 import { PatientBanner } from "../components/shell/PatientBanner";
+import { useActiveTrack } from "../components/shell/activeTrack";
+import { useHomeWorkQueueTotal } from "../components/status/HomeWorkQueues";
+import { hasSubmittedCodes } from "../domain/codingQueue";
 import { postedCopayForPatient } from "../domain/checkIn";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
@@ -2237,7 +2240,10 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // What the record says is finished. Read from the encounter itself, never
   // from a stored click, so a tick and the work can never disagree.
   const noteWritten = hpiDone && examDone && planGaps.length === 0;
-  const coded = pipelineState.icdCodes.length > 0 && pipelineState.cptCodes.length > 0;
+  // The SAME rule the /coding queue uses (`domain/codingQueue.ts`), so the
+  // stage bar and the coder's list can never disagree about whether this
+  // encounter has been coded.
+  const coded = hasSubmittedCodes(pipelineState);
   const claimCreated = Boolean(pipelineState.claimNumber);
   const remittancePosted = (pipelineState.remittances ?? []).some((r) => Boolean(r.postedAt));
   const arItems = pipelineState.arItems ?? [];
@@ -2367,10 +2373,14 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // Home is its own page now: the rail marks Home, and nothing on it pretends
   // to be Schedule or Patients any more.
   const shellActiveNav: ShellNavId = "home";
+  // The stored track, live (owner item 4), and the InBasket badge counted from
+  // the same rows the Work Queues panel prints — never a literal.
+  const track = useActiveTrack();
+  const inBasketCount = useHomeWorkQueueTotal();
 
   return (
     <AppShell
-      track="medical"
+      track={track}
       activeNav={shellActiveNav}
       onHomeClick={handleHomeClick}
       breadcrumb={[
@@ -2479,7 +2489,8 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       {/* ─── The workspace strip, as it was on 19 November (`f8fd8681`) ───
           Daily Schedule · Patient Chart Review · InBasket / Alert Center ·
           Active Progress Note. The window opens on Daily Schedule. */}
-      <WorkspaceTabs activeTab={activeWorkspace} onTabChange={setActiveWorkspace} />
+      <WorkspaceTabs
+                    badges={{ inbasket: inBasketCount }} activeTab={activeWorkspace} onTabChange={setActiveWorkspace} />
 
       {/* ─── Daily Schedule ─── */}
       <WorkspacePanel id="schedule" activeWorkspace={activeWorkspace}>

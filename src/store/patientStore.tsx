@@ -211,6 +211,13 @@ export interface Patient {
   track?: Track;
   /** Phone of the student who registered this patient. */
   createdBy?: string;
+  /**
+   * When this chart was last worked — stamped when the patient is booked and
+   * when their chart is opened (`ehrStore.touchPatient`). Optional: a record
+   * saved before it existed simply has none, and the Inbox prints no "last seen"
+   * figure rather than inventing one.
+   */
+  lastSeenAt?: string;
 }
 
 // ─── Mock Data ─────────────────────────────────────────────────────

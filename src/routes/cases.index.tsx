@@ -28,13 +28,12 @@
  * payer, minutes — never the trap, the expected action or the answer.
  */
 
-import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Phone, Smile, Stethoscope } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { findPlan, MEDICAL_CASE_SCENARIOS } from "../data/medical";
 import { DENTAL_CASE_SCENARIOS, findPlan as findDentalPlan } from "../data/dental";
-import { readActiveTrack, setActiveTrack } from "../components/shell/activeTrack";
+import { setActiveTrack, useActiveTrack } from "../components/shell/activeTrack";
 import type { ShellTrack } from "../components/shell/navItems";
 
 export const Route = createFileRoute("/cases/")({
@@ -50,12 +49,14 @@ function difficultyTone(difficulty: string): string {
 }
 
 function CasesListPage() {
-  const [track, setTrack] = useState<ShellTrack>(() => readActiveTrack());
+  // The one stored track, live: the header switch and this page read the same
+  // value, so neither can show a track the other is not on (owner item 4).
+  const track = useActiveTrack();
 
+  // The only writer is a click — here, or on the switch in the header.
   const switchTrack = () => {
     const next: ShellTrack = track === "dental" ? "medical" : "dental";
     setActiveTrack(next);
-    setTrack(next);
   };
 
   return (

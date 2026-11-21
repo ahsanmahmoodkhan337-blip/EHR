@@ -9,7 +9,7 @@
  * free-text exam notes.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Stethoscope, FileText, CheckCircle2, XCircle } from "lucide-react";
 import type { SoapNoteData } from "./AssessmentPlanStage";
 import { DotPhraseTextarea } from "../scribe/DotPhraseTextarea";
@@ -106,6 +106,24 @@ const ROS_SYSTEMS: RosSystem[] = [
   },
 ];
 
+/** The prefix this stage adds to the student's own exam text. */
+const ROS_PREFIX = /^(?:All systems reviewed and normal\.\s*|Abnormal ROS findings:[^.]*\.\s*)/;
+
+/** The ROS summary for the findings checked so far, with its trailing space. */
+function rosSummaryFor(state: Record<string, boolean | null>): string {
+  const abnormal = Object.entries(state)
+    .filter(([, value]) => value === false)
+    .map(([id]) => id);
+  return abnormal.length > 0
+    ? `Abnormal ROS findings: ${abnormal.join(", ")}. `
+    : "All systems reviewed and normal. ";
+}
+
+/** The student's own words, without a prefix this stage (or an old save) added. */
+export function stripRosPrefix(objective: string): string {
+  return (objective ?? "").replace(ROS_PREFIX, "");
+}
+
 // ─── Component ─────────────────────────────────────────────────────
 
 interface ExamROSStageProps {
@@ -117,26 +135,42 @@ interface ExamROSStageProps {
 
 export function ExamROSStage({ patientName, note, onNoteChange, vitals }: ExamROSStageProps) {
   const [rosState, setRosState] = useState<Record<string, boolean | null>>({});
-  const [examNotes, setExamNotes] = useState(note?.objective ?? "");
+  /**
+   * The free-text exam findings WITHOUT the ROS summary prefix.
+   *
+   * This is the dropped-keystrokes fix (spec `slice-note-behaves.md`, first
+   * section). Before: every keystroke wrote `rosSummary + newVal` into
+   * `note.objective`, the sync effect below copied `note.objective` straight back
+   * into this textarea, and the prefix therefore re-accumulated on every render
+   * while the caret jumped to the end — the student's typing looked like it was
+   * losing characters. Now:
+   *   - the textarea holds the body only, and the prefix is added once, on the
+   *     way up to the parent;
+   *   - `lastEmitted` remembers what we last sent, so our own write echoed back
+   *     through the prop is NOT re-applied (no re-render, no caret jump, no
+   *     doubling);
+   *   - a note restored from the record has its prefix stripped before it is
+   *     shown, so an old save cannot double its prefix on the next keystroke.
+   */
+  const [examNotes, setExamNotes] = useState(() => stripRosPrefix(note?.objective ?? ""));
+  const lastEmitted = useRef<string | null>(null);
 
-  // Sync local examNotes when note prop changes externally (patient switch, session restore)
+  // Sync local examNotes when the note changes for a reason of its own (patient
+  // switch, session restore) — never for the echo of what we just wrote.
   useEffect(() => {
-    if (note && note.objective !== undefined) {
-      setExamNotes(note.objective);
-    }
+    const incoming = note?.objective;
+    if (incoming === undefined) return;
+    if (incoming === lastEmitted.current) return;
+    setExamNotes(stripRosPrefix(incoming));
   }, [note?.objective]);
 
   // Commit the free-text exam findings (with a ROS summary prefix) up to the parent.
   const commitExamText = (newVal: string) => {
     setExamNotes(newVal);
     if (onNoteChange && note) {
-      const abnormalItems = Object.entries(rosState)
-        .filter(([, v]) => v === false)
-        .map(([id]) => id);
-      const rosSummary = abnormalItems.length > 0
-        ? `Abnormal ROS findings: ${abnormalItems.join(", ")}. `
-        : "All systems reviewed and normal. ";
-      onNoteChange({ ...note, objective: rosSummary + newVal });
+      const objective = rosSummaryFor(rosState) + newVal;
+      lastEmitted.current = objective;
+      onNoteChange({ ...note, objective });
     }
   };
 
@@ -148,10 +182,9 @@ export function ExamROSStage({ patientName, note, onNoteChange, vitals }: ExamRO
         const abnormalItems = Object.entries(updated)
           .filter(([, v]) => v === false)
           .map(([id]) => id);
-        const rosSummary = abnormalItems.length > 0
-          ? `Abnormal ROS findings: ${abnormalItems.join(", ")}. `
-          : "All systems reviewed and normal. ";
-        onNoteChange({ ...note, objective: rosSummary + examNotes });
+        const objective = rosSummaryFor(updated) + examNotes;
+        lastEmitted.current = objective;
+        onNoteChange({ ...note, objective });
       }
       return updated;
     });
@@ -167,7 +200,9 @@ export function ExamROSStage({ patientName, note, onNoteChange, vitals }: ExamRO
     setRosState(allNormal);
     // Push to parent
     if (onNoteChange && note) {
-      onNoteChange({ ...note, objective: "All systems reviewed and normal. " + examNotes });
+      const objective = "All systems reviewed and normal. " + examNotes;
+      lastEmitted.current = objective;
+      onNoteChange({ ...note, objective });
     }
   };
 

@@ -59,10 +59,14 @@ export interface HomeWorkQueuesProps {
   onOpenMedicalStage: (patientId: string | null, role: Role) => void;
 }
 
-export function HomeWorkQueues({ onOpenMedicalStage }: HomeWorkQueuesProps) {
+/**
+ * The queues' own rows, from the student's saved records — the ONE derivation the
+ * Work Queues panel and the InBasket badge both count (lead walk, 2026-11-21).
+ * Nothing is stored and nothing is written.
+ */
+export function useHomeWorkQueues(): { medicalRows: QueueRow[]; dentalRows: QueueRow[] } {
   const { allEncounters, arWorkItems, getRoleLabel } = usePipeline();
   const { getPatientById } = usePatientStore();
-  const [openState, setOpenState] = useState<boolean | null>(null);
 
   // Read the dental record once, on mount. Dental work happens on the dental
   // track; the queues here reflect what that track last saved.
@@ -99,6 +103,18 @@ export function HomeWorkQueues({ onOpenMedicalStage }: HomeWorkQueuesProps) {
   // ── Dental: the dental track record, its claim and its denied lines ──
   const dentalRows = useMemo<QueueRow[]>(() => buildDentalQueueRows(dental), [dental]);
 
+  return { medicalRows, dentalRows };
+}
+
+/** The one total: every entry in every queue, medical and dental. */
+export function useHomeWorkQueueTotal(): number {
+  const { medicalRows, dentalRows } = useHomeWorkQueues();
+  return [...medicalRows, ...dentalRows].reduce((sum, row) => sum + row.entries.length, 0);
+}
+
+export function HomeWorkQueues({ onOpenMedicalStage }: HomeWorkQueuesProps) {
+  const { medicalRows, dentalRows } = useHomeWorkQueues();
+  const [openState, setOpenState] = useState<boolean | null>(null);
   const total = [...medicalRows, ...dentalRows].reduce((sum, row) => sum + row.entries.length, 0);
   // Collapsed by default (owner's audit, 2026-11-20, item 1): the queues used to
   // open themselves whenever they held anything, which pushed the encounter's

@@ -28,7 +28,7 @@ import { BarChart3 } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { PatientProvider } from "../store/patientStore";
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
-import { readActiveTrack } from "../components/shell/activeTrack";
+import { useActiveTrack } from "../components/shell/activeTrack";
 import { readDentalTrackRecord } from "../components/dental/DentalTrackStore";
 import { buildDentalReportTotals, buildReportTotals } from "../domain/railPages";
 import { usd } from "../domain/homeWorkQueues";
@@ -52,6 +52,8 @@ export const Route = createFileRoute("/reports")({
 });
 
 function ReportsPage() {
+  // The stored track, live (owner item 4): the header switch and the page agree.
+  const track = useActiveTrack();
   const { allEncounters, arWorkItems } = usePipeline();
   const dental = useMemo(() => readDentalTrackRecord(), []);
 
@@ -64,7 +66,7 @@ function ReportsPage() {
   const dentalLedgerCents = dentalTotals.ledger.reduce((sum, row) => sum + row.cents, 0);
 
   return (
-    <AppShell track={readActiveTrack()} activeNav="reports" footer={railFooter}>
+    <AppShell track={track} activeNav="reports" footer={railFooter}>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-4xl px-4 py-8">
         <RailPageHeader

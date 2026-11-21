@@ -160,7 +160,16 @@ export function currentFlowStage(input: {
 export function completedFlowStages(
   flags: Partial<Record<EncounterFlowStageId, boolean>>,
 ): EncounterFlowStageId[] {
-  return ENCOUNTER_FLOW_STAGES.filter((stage) => flags[stage.id] === true).map(
-    (stage) => stage.id,
-  );
+  // The owner's rule (student-experience work order, 2026-11-21, item 4): "a
+  // later stage cannot be marked done while an earlier stage is still current."
+  // So the finished stages are the LEADING run of finished stages, and the first
+  // unfinished one stops the tick there. A record that somehow carries a later
+  // stage's flag without the earlier ones (an old save, a stage that skipped
+  // ahead) can therefore never print "Billing ✓" while Coding is still open.
+  const done: EncounterFlowStageId[] = [];
+  for (const stage of ENCOUNTER_FLOW_STAGES) {
+    if (flags[stage.id] !== true) break;
+    done.push(stage.id);
+  }
+  return done;
 }

@@ -794,6 +794,12 @@ interface EhrState {
 
   registerPatient: (input: NewPatientInput) => Patient;
   /**
+   * Stamp a patient's own chart as just worked (`lastSeenAt`). Called when the
+   * chart is opened; a seed chart is skipped, because the demo records are
+   * read-only and never copied just to carry a timestamp.
+   */
+  touchPatient: (patientId: string, at?: string) => void;
+  /**
    * Write the insurance record Registration & eligibility captured onto the
    * patient. A seed patient edited this way is copied into the user namespace
    * first, so the read-only demo record is never mutated in place (section 2).
@@ -1040,6 +1046,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
       isSeed: false,
       track: input.track ?? "medical",
       createdBy: state.phone ?? undefined,
+      lastSeenAt: now,
     };
     const entry: ActivityEntry = {
       time: now,
@@ -1063,6 +1070,20 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
     // drop the appointment before it ever reached the disk.
     flushEhrStore();
     return patient;
+  },
+
+  touchPatient: (patientId, at) => {
+    const state = get();
+    const existing = state.user.patients.find((p) => p.id === patientId);
+    if (!existing) return;
+    const stamp = at ?? new Date().toISOString();
+    if (existing.lastSeenAt && existing.lastSeenAt >= stamp) return;
+    set((s) => ({
+      user: {
+        ...s.user,
+        patients: s.user.patients.map((p) => (p.id === patientId ? { ...p, lastSeenAt: stamp } : p)),
+      },
+    }));
   },
 
   updatePatientInsurance: (patientId, insurance) => {

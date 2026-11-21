@@ -16,12 +16,10 @@
  * address is not a dead one.
  */
 
-import { useEffect } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { MedicalCasesPage } from "./medical-cases";
 import { DentalTrackPage } from "./dental";
 import { normalizeDentalStageId } from "../components/dental/DentalTrackStore";
-import { setActiveTrack } from "../components/shell/activeTrack";
 
 export type CaseTrack = "medical" | "dental";
 
@@ -39,11 +37,10 @@ export const Route = createFileRoute("/cases/$track/$caseId/$stage")({
 function CaseStageRoute() {
   const { track, caseId, stage } = Route.useParams();
 
-  // Opening a case is also choosing its track: the case list the student comes
-  // back to is the one this case belongs to, not whichever track was last used.
-  useEffect(() => {
-    if (track === "medical" || track === "dental") setActiveTrack(track);
-  }, [track]);
+  // Opening a case does NOT change the student's track (owner item 4: the track
+  // must change only when they click the toggle). The runner below draws its own
+  // track, because the case is that track's work; the stored choice is untouched
+  // and every shared page keeps showing what the student picked.
 
   if (track === "dental") {
     return <DentalTrackPage caseId={caseId} stage={normalizeDentalStageId(stage)} />;

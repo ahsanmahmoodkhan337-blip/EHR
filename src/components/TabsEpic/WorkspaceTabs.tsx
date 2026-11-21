@@ -49,7 +49,6 @@ const WORKSPACE_TABS: WorkspaceTab[] = [
     id: "inbasket",
     label: "InBasket / Alert Center",
     icon: <Inbox className="h-4 w-4" />,
-    badge: 3,
   },
   {
     id: "note",
@@ -66,6 +65,14 @@ interface WorkspaceTabsProps {
   className?: string;
   /** Optional chart search bar to render on the right side (shown during chart review) */
   chartSearch?: ReactNode;
+  /**
+   * Real counts, keyed by tab id. The InBasket badge used to be the literal `3`
+   * in the module-level tab list, so it read `3` on an empty practice while the
+   * same page's Work Queues panel said "nothing waiting" (lead walk, 2026-11-21).
+   * The caller now passes the count it already derived from the student's saved
+   * records, and a tab with nothing waiting draws no badge at all.
+   */
+  badges?: Partial<Record<string, number>>;
 }
 
 // ─── Component ─────────────────────────────────────────────────────
@@ -75,6 +82,7 @@ export function WorkspaceTabs({
   onTabChange,
   className = "",
   chartSearch,
+  badges,
 }: WorkspaceTabsProps) {
   return (
     <div className={`border-b border-slate-200 bg-white ${className}`}>
@@ -83,6 +91,7 @@ export function WorkspaceTabs({
         <nav className="flex" role="tablist" aria-label="Clinical workspace">
           {WORKSPACE_TABS.map((tab) => {
             const isActive = tab.id === activeTab;
+            const badge = badges?.[tab.id];
             return (
               <button
                 key={tab.id}
@@ -124,9 +133,12 @@ export function WorkspaceTabs({
                   {tab.id === "note" && "Note"}
                 </span>
 
-                {tab.badge !== undefined && (
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold leading-none text-white">
-                    {tab.badge}
+                {badge !== undefined && badge > 0 && (
+                  <span
+                    aria-label={`${badge} items waiting`}
+                    className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold leading-none text-white"
+                  >
+                    {badge}
                   </span>
                 )}
               </button>
