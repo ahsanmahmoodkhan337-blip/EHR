@@ -101,7 +101,12 @@ import { ExamROSStage } from "../components/WorkflowAthena/ExamROSStage";
 import { AssessmentPlanStage, type SoapNoteData } from "../components/WorkflowAthena/AssessmentPlanStage";
 import { SignLockStage } from "../components/WorkflowAthena/SignLockStage";
 import { AppShell } from "../components/AppShell";
-import { WorkspacePanel } from "../components/TabsEpic/WorkspaceTabs";
+import {
+  WorkspaceTabs,
+  WorkspacePanel,
+  useWorkspaceTabs,
+} from "../components/TabsEpic/WorkspaceTabs";
+import { DailySchedule } from "../components/TabsEpic/DailySchedule";
 import ARVoiceSimulator from "../components/ARVoiceSimulator/ARVoiceSimulator";
 import { ArWorkQueuePanel } from "../components/status/ArWorkQueuePanel";
 import { HomeWorkQueues } from "../components/status/HomeWorkQueues";
@@ -1426,14 +1431,13 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   const { patients, caseStates } = usePatientStore();
   const { activeTab, setActiveTab } = useTabsEpic("summary");
   /**
-   * Home is one page now (spec `phase-1-navigation.md` item 5). The workspace tab
-   * strip that switched between Schedule, Chart, InBox and Note is gone:
-   * Schedule, Patients and the case list are pages of their own, and the inbox
-   * "Workflow" list is gone with the strip. What is left on Home is the work
-   * queues and the open patient's chart.
+   * The workspace strip is back, as it was on 19 November (`f8fd8681`): owner,
+   * 2026-11-21 — "i can not see scheduling appointment and calender i window
+   * inside keep it there as well". The window opens on Daily Schedule; the chart
+   * is the next tab of the same window, so the stepper, the patient banner and
+   * Back / "Continue to…" stay inside the chart panel where they were.
    */
-  const activeWorkspace = "chart";
-  const setActiveWorkspace = (_workspace: string) => {};
+  const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("schedule");
   const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
   /**
    * The patient the chart opens on (owner's audit, 2026-11-20, item 4 — "patient
@@ -1462,6 +1466,14 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   });
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // An address that names an encounter opens the chart, not the schedule: a
+  // refresh on `/encounter/:encounterId/:stage` keeps the student on the chart.
+  useEffect(() => {
+    if (!encounterIdFromRoute) return;
+    setActiveWorkspace("chart");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [encounterIdFromRoute]);
 
   // ── Right-panel financial KPIs — derived from REAL pipeline data ──
   // (was hardcoded 12500/8700/2400/32 demo figures)
@@ -1651,7 +1663,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // log-out/log-in cannot lose a registered patient or their appointment.
   const appointments = useAllAppointments();
 
-  const [selectedScheduleDate] = useState<string>(() => {
+  // The date the Daily Schedule tab is showing. The Inbox list beside it reads
+  // the same date, so the calendar and the visit list never disagree.
+  const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(() => {
     const today = new Date().toISOString().slice(0, 10);
     if (appointments.some((a) => a.date === today)) return today;
     const dates = [...new Set(appointments.map((a) => a.date))].sort();
@@ -2294,6 +2308,27 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     toast(p.firstName + " " + p.lastName + " loaded");
   };
 
+  /**
+   * Picking an appointment is the same pick as the Patients list (owner,
+   * 2026-11-21): the appointment's own patient goes through the shared pipeline
+   * patient, so the banner, the stepper, every stage and a refresh all agree.
+   * A legacy row with no patient record behind it says so rather than opening
+   * somebody else's chart.
+   */
+  const handleSchedulePatientSelect = (patientId: string | null, name: string) => {
+    const byId = patientId ? patients.find((p) => p.id === patientId) : undefined;
+    const wanted = name.trim().toLowerCase();
+    const byName = patients.find(
+      (p) => `${p.firstName} ${p.lastName}`.trim().toLowerCase() === wanted,
+    );
+    const match = byId ?? byName;
+    if (!match) {
+      toast(`${name} has no patient record yet — register them with New Appointment first.`);
+      return;
+    }
+    handlePatientSelect(match.id);
+  };
+
   // ── Home work queues (TASK 1): open the stage that holds the work ──
   // Home's stages are workspace views rather than URLs, so a queue entry
   // navigates the way the patient list does: load that patient's own
@@ -2428,6 +2463,21 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       {/* Work Queues live on Home and nowhere else (spec item 5). */}
       <HomeWorkQueues onOpenMedicalStage={openMedicalStage} />
 
+      {/* ─── The workspace strip, as it was on 19 November (`f8fd8681`) ───
+          Daily Schedule · Patient Chart Review · InBasket / Alert Center ·
+          Active Progress Note. The window opens on Daily Schedule. */}
+      <WorkspaceTabs activeTab={activeWorkspace} onTabChange={setActiveWorkspace} />
+
+      {/* ─── Daily Schedule ─── */}
+      <WorkspacePanel id="schedule" activeWorkspace={activeWorkspace}>
+        <DailySchedule
+          onDateChange={setSelectedScheduleDate}
+          onSelectPatient={handleSchedulePatientSelect}
+        />
+      </WorkspacePanel>
+
+      {/* ─── Patient Chart Review ─── */}
+      <WorkspacePanel id="chart" activeWorkspace={activeWorkspace}>
       {/* ─── The encounter's seven stages, in the owner's order ───
           Owner's audit, 2026-11-20, item 1: one persistent stepper at the top of
           the encounter — every stage, the current one highlighted, the finished
@@ -2539,8 +2589,8 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
           </div>
         ) : (
           <>
-            {/* ─── Patient Chart Review ─── */}
-            <WorkspacePanel id="chart" activeWorkspace={activeWorkspace}>
+            {/* ─── Patient Chart Review content ─── */}
+            <div className="flex flex-1 flex-col overflow-hidden">
               {!selectedPatient ? (
                 <div className="flex flex-1 items-center justify-center p-4">
                   <div className="text-center">
@@ -3090,13 +3140,14 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                   </div>
                 </>
               )}
-            </WorkspacePanel>
+            </div>
 
           </>
         )}
       </FadeTransition>
       </>
     )}
+      </WorkspacePanel>
       {/* ─── Activity Log Stream ─── */}
       {selectedPatient && (
         <div className="border-t border-slate-200 bg-white/80 backdrop-blur-sm">
