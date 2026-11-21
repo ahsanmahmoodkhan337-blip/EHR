@@ -38,7 +38,8 @@ import {
   type PipelineStoreState,
   type Role,
 } from "./pipelineEncounter";
-import { nextClaimNumber, type ClaimStatus, type ReasonCode } from "../domain/claimStatus";
+import { type ClaimStatus, type ReasonCode } from "../domain/claimStatus";
+import { mintNextClaimNumber } from "./claimSequence";
 import { encounterIdFor, scopingRefusal } from "../domain/dataScoping";
 import { resolveEncounterPatientId } from "../utils/encounterPatient";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
@@ -648,7 +649,12 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
           encounters: { ...prev.encounters, [key]: { ...enc, claimForm: form } },
         };
       }
-      const claimNumber = nextClaimNumber(Object.values(prev.encounters).map((e) => e.claimNumber));
+      // One sequence for the whole student (`store/claimSequence.ts`): the
+      // dental track mints from the same mark, so a medical claim and a dental
+      // claim can never carry the same number.
+      const claimNumber = mintNextClaimNumber(
+        Object.values(prev.encounters).map((e) => e.claimNumber),
+      );
       const event = makeStatusEvent(
         {
           entityType: "claim",

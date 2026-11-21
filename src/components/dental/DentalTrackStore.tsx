@@ -35,7 +35,13 @@ import { getLoggedInPhone } from "../../store/accessStore";
 import { writeAutosaved } from "../../store/autosave";
 import { registerResetHandler } from "../../store/resetData";
 import type { ADAFormData } from "../../data/claims/adaLayout";
-import { mintClaimNumber, nextClaimNumber, type ClaimStatus } from "../../domain/claimStatus";
+import { claimNumberSequence, type ClaimStatus } from "../../domain/claimStatus";
+import {
+  dentalTrackStorageKey,
+  medicalClaimNumbers,
+  mintNextClaimNumber,
+  renumberedClaimNumber,
+} from "../../store/claimSequence";
 import { buildSubmissionEvents, type ClaimTrack } from "../../domain/clearinghouse";
 import { appendStatusEvent, makeStatusEvent, type StatusEvent } from "../../domain/statusEvent";
 import { appendLedgerEntries, type LedgerEntry } from "../../domain/ledger";
@@ -400,7 +406,6 @@ export interface DentalTrackState {
   practiceBenchOpen: boolean;
 }
 
-const STORAGE_PREFIX = "hh_dental_track_";
 
 function freshState(): DentalTrackState {
   return {
@@ -442,7 +447,7 @@ function freshCase(state: DentalTrackState): DentalTrackState {
 }
 
 function keyFor(phone: string | null): string | null {
-  return phone ? `${STORAGE_PREFIX}${phone}` : null;
+  return phone ? dentalTrackStorageKey(phone) : null;
 }
 
 /**
@@ -495,7 +500,9 @@ function loadState(phone: string | null): DentalTrackState {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return freshState();
-    return migrateDentalTrackState(JSON.parse(raw));
+    // The medical claim numbers are passed in so a legacy dental `CLM-000001`
+    // that a medical claim already holds is re-minted, not left colliding.
+    return migrateDentalTrackState(JSON.parse(raw), medicalClaimNumbers(phone));
   } catch {
     return freshState();
   }
@@ -550,7 +557,10 @@ export function readDentalTrackRecord(phone: string | null = getLoggedInPhone())
  * and defaults to empty, so an older record loads with every resolution it had
  * and no appeal outcomes — nothing is invented, and no money moves.
  */
-export function migrateDentalTrackState(raw: unknown): DentalTrackState {
+export function migrateDentalTrackState(
+  raw: unknown,
+  takenClaimNumbers: string[] = [],
+): DentalTrackState {
   const parsed = (raw ?? {}) as DentalTrackState & { version?: number };
   if (typeof parsed !== "object") return freshState();
   const version: number | undefined = (parsed as { version?: number }).version;
@@ -580,7 +590,7 @@ export function migrateDentalTrackState(raw: unknown): DentalTrackState {
     const next = normalizeDentalStageId(id ?? fallback);
     return (DENTAL_STAGE_ORDER as string[]).includes(next) ? (next as DentalStageName) : fallback;
   };
-  const migrated: DentalTrackState = {
+  let migrated: DentalTrackState = {
     ...freshState(),
     ...rest,
     version: 7,
@@ -609,7 +619,9 @@ export function migrateDentalTrackState(raw: unknown): DentalTrackState {
     ];
   }
   if (version < 4 && migrated.claimSubmitted && !migrated.claimNumber) {
-    const claimNumber = mintClaimNumber(1);
+    // Above every number the student already holds — never a bare CLM-000001,
+    // which a medical claim may already carry (`store/claimSequence.ts`).
+    const claimNumber = renumberedClaimNumber(takenClaimNumbers, null);
     const patientId = migrated.caseId ? findCase(migrated.caseId)?.patient?.id ?? null : null;
     const event = makeStatusEvent(
       {
@@ -628,14 +640,82 @@ export function migrateDentalTrackState(raw: unknown): DentalTrackState {
       },
       [],
     );
-    return {
+    migrated = {
       ...migrated,
       claimNumber,
       claimStatus: "submitted",
       statusEvents: appendStatusEvent([], event),
     };
   }
-  return migrated;
+  return renumberCollidingClaim(migrated, takenClaimNumbers);
+}
+
+/**
+ * A dental claim number that a medical claim already holds gets re-minted.
+ *
+ * Every dental case used to mint `CLM-000001` from a one-element array, so a
+ * student with a medical claim could hold two claims under one number — and the
+ * number is quoted in the timeline, the ledger ids and the remittance control
+ * number, which is how two claims could not be told apart.
+ *
+ * The re-mint happens only when the number genuinely collides, and it carries
+ * the claim's own references with it: the timeline's `claimNumber` and
+ * `entityId`, and the ledger entries' `claimNumber` and id. Nothing else about
+ * the claim changes — no money, no status, no code — and the timeline says what
+ * happened in its own MIGRATED entry.
+ */
+function renumberCollidingClaim(
+  state: DentalTrackState,
+  takenClaimNumbers: string[],
+): DentalTrackState {
+  const own = state.claimNumber;
+  const ownSequence = claimNumberSequence(own);
+  if (!own || ownSequence === 0) return state;
+  const collides = takenClaimNumbers.some((number) => claimNumberSequence(number) === ownSequence);
+  if (!collides) return state;
+
+  const claimNumber = renumberedClaimNumber(takenClaimNumbers, own);
+  const statusEvents = state.statusEvents.map((event) =>
+    event.claimNumber === own || event.entityId === own
+      ? {
+          ...event,
+          ...(event.claimNumber === own ? { claimNumber } : {}),
+          ...(event.entityId === own ? { entityId: claimNumber } : {}),
+        }
+      : event,
+  );
+  const ledger = state.ledger.map((entry) =>
+    entry.claimNumber === own || entry.id.includes(own)
+      ? {
+          ...entry,
+          ...(entry.claimNumber === own ? { claimNumber } : {}),
+          id: entry.id.split(own).join(claimNumber),
+        }
+      : entry,
+  );
+  const patientId = state.caseId ? findCase(state.caseId)?.patient?.id ?? null : null;
+  const event = makeStatusEvent(
+    {
+      entityType: "claim",
+      entityId: claimNumber,
+      patientId,
+      claimNumber,
+      from: null,
+      to: state.claimStatus ?? "submitted",
+      by: "system",
+      jobRole: "system",
+      reasonCode: "MIGRATED",
+      reason: `This dental claim was saved as ${own}. An earlier build gave every dental case that number, and a medical claim on this account already holds it, so the claim is now ${claimNumber}. The claim, its ledger entries and its timeline are carried forward unchanged — nothing was re-priced and no status moved.`,
+      ...(state.startedAt ? { at: state.startedAt } : {}),
+    },
+    statusEvents,
+  );
+  return {
+    ...state,
+    claimNumber,
+    ledger,
+    statusEvents: appendStatusEvent(statusEvents, event),
+  };
 }
 
 /**
@@ -1099,7 +1179,10 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
 
   const submitClaim = useCallback((facts: DentalSubmissionFacts) => {
     setState((s) => {
-      const claimNumber = s.claimNumber ?? nextClaimNumber([s.claimNumber]);
+      // One sequence for the whole student (`store/claimSequence.ts`): the
+      // medical track mints from the same mark, so a dental claim can never be
+      // handed a number a medical claim already holds.
+      const claimNumber = s.claimNumber ?? mintNextClaimNumber([s.claimNumber]);
       const patientId = s.caseId ? findCase(s.caseId)?.patient?.id ?? null : null;
       const { events, ack } = buildSubmissionEvents({
         facts: {
