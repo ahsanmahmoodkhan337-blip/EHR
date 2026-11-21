@@ -37,7 +37,7 @@ import { PerioChart } from "./PerioChart";
 import { DentalClaimScrub } from "./DentalClaimScrub";
 
 const style = {
-  card: "rounded-xl border border-slate-200 bg-white shadow-sm",
+  card: "clinical-card",
   label: "text-[10px] font-semibold uppercase tracking-wider text-slate-500",
   input:
     "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
@@ -217,7 +217,7 @@ export function DentalCodingQueue() {
   return (
     <div className="flex h-full gap-3 overflow-hidden p-3">
       {/* ── Left: CDT repository ─────────────────────────────────────────── */}
-      <div className="flex w-[340px] shrink-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex w-[340px] shrink-0 flex-col overflow-hidden clinical-card">
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="border-b border-slate-200 p-3">
             <div className="relative">

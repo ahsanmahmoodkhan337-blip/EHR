@@ -97,7 +97,8 @@ function ClaimsPage() {
 
   return (
     <AppShell track={readActiveTrack()} activeNav="claims" footer={railFooter}>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-4xl px-4 py-8">
         <RailPageHeader
           icon={FileText}
           title="Claims"
@@ -170,7 +171,7 @@ function ClaimsPage() {
         {rows.length === 0 ? (
           <RailEmptyState nextStep="open a patient, code the encounter and build the claim in the Claim stage. It appears here with its status." />
         ) : shown.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+          <div className="empty-state">
             <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">
               No claim matches these filters.
             </p>
@@ -191,6 +192,7 @@ function ClaimsPage() {
             ? "Filtered list. Every figure on a row comes from that claim's own record."
             : "Every claim here was built by your own work: the Claim stage mints the number, and its status is what the claim's own timeline last recorded."}
         </RailNote>
+        </div>
       </div>
     </AppShell>
   );

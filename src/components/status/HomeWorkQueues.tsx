@@ -191,34 +191,34 @@ function TrackPanel({
       >
         {icon}
         <h3 className="text-[11px] font-bold uppercase tracking-wide">{title}</h3>
-        {count === 0 && <span className="text-[10px] font-medium opacity-80">No data yet — nothing waiting</span>}
+        {count === 0 && <span className="text-[11px] font-medium opacity-80">No data yet — nothing waiting</span>}
       </div>
-      <div className="space-y-1.5 p-2">
+      <div className="space-y-1.5 p-3">
         {rows.map((row) => {
           const Icon = ROW_ICONS[row.id] ?? ClipboardList;
           return (
-            <div key={row.id} className="rounded-lg border border-slate-200">
+            <div key={row.id} className="clinical-card p-0">
               <div className="flex items-start gap-2 px-2 py-1.5">
                 <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-semibold text-slate-700">{row.title}</p>
-                  <p className="text-[10px] leading-snug text-slate-500">{row.purpose}</p>
+                  <p className="text-[11px] leading-snug text-slate-500">{row.purpose}</p>
                 </div>
                 {row.entries.length > 0 ? (
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
                       tone === "brand" ? "bg-brand-100 text-brand-800" : "bg-accent-100 text-accent-800"
                     }`}
                   >
                     {row.entries.length}
                   </span>
                 ) : (
-                  <span className="shrink-0 text-[10px] font-medium text-slate-400">Nothing waiting</span>
+                  <span className="shrink-0 text-[11px] font-medium text-slate-400">Nothing waiting</span>
                 )}
               </div>
 
               {row.entries.length === 0 ? (
-                <p className="border-t border-slate-100 px-2 py-1.5 text-[10px] leading-snug text-slate-500">
+                <p className="border-t border-slate-100 px-2 py-1.5 text-[11px] leading-snug text-slate-500">
                   No data yet — next: {row.emptyNextStep}
                 </p>
               ) : (
@@ -228,7 +228,7 @@ function TrackPanel({
                       <p className="truncate text-[11px] font-medium text-slate-700" title={entry.label}>
                         {entry.label}
                       </p>
-                      <p className="text-[10px] leading-snug text-slate-500">{entry.detail}</p>
+                      <p className="text-[11px] leading-snug text-slate-500">{entry.detail}</p>
                       <EntryLink
                         track={track}
                         entry={entry}
@@ -259,7 +259,7 @@ function EntryLink({
   tone: "brand" | "accent";
   onOpenMedicalStage: (patientId: string | null, role: Role) => void;
 }) {
-  const className = `inline-flex min-h-10 items-center gap-1 rounded text-[10px] font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+  const className = `inline-flex min-h-10 items-center gap-1 rounded text-[11px] font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 ${
     tone === "brand" ? "text-brand-700 focus-visible:outline-brand-600" : "text-accent-700 focus-visible:outline-accent-600"
   }`;
   const label = (text: string) => (

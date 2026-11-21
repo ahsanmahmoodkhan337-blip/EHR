@@ -84,7 +84,7 @@ export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = 
       </div>
 
       {/* lifecycle stepper */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="clinical-card p-4">
         <div className="flex items-center">
           {STEPS.map((s, i) => {
             const reached = i <= stageIdx;
@@ -125,7 +125,7 @@ export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = 
           const st = lineStatus(res, denied, payable);
           const denial = l.denial ? findDenial(l.denial.id) : undefined;
           return (
-            <div key={l.lineId} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div key={l.lineId} className="clinical-card p-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-slate-800">

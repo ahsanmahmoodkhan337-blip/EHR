@@ -118,9 +118,9 @@ export function EncounterStepper({
     <div className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       <nav
         aria-label={label}
-        className="flex flex-wrap items-center gap-1 px-3 py-2"
+        className="stage-stepper flex-wrap px-3 py-2"
       >
-        <ol className="flex min-w-0 flex-wrap items-center gap-1">
+        <ol className="stage-stepper min-w-0 flex-wrap">
           {steps.map((step, i) => {
             const current = step.id === currentId;
             // A record that knows what is finished decides the tick; otherwise
@@ -182,7 +182,7 @@ export function EncounterStepper({
 
       {/* The role, derived from the current stage and printed once for the case. */}
       {role && (
-        <p className="px-3 pb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+        <p className="section-header px-3 pb-1.5">
           Role: <span className="text-slate-600 dark:text-slate-300">{role}</span>
         </p>
       )}

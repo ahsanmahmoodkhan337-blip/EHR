@@ -53,10 +53,10 @@ export function RailPageHeader({
     <div className="mb-3">
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-        <h1 className="text-sm font-bold text-slate-800 dark:text-slate-100">{title}</h1>
+        <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">{title}</h1>
       </div>
-      <p className="mt-0.5 text-[11px] leading-snug text-slate-500 dark:text-slate-400">{purpose}</p>
-      <p className="mt-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{purpose}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
         <span className="tabular-nums">{count}</span> {countLabel}
       </p>
     </div>
@@ -66,11 +66,9 @@ export function RailPageHeader({
 /** A page or a section with no records: it names the stage that fills it. */
 export function RailEmptyState({ nextStep }: { nextStep: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-      <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">
-        No data yet — nothing here.
-      </p>
-      <p className="mt-1 text-[11px] leading-snug text-slate-600 dark:text-slate-400">Next: {nextStep}</p>
+    <div className="empty-state">
+      <p className="empty-title">No data yet — nothing here.</p>
+      <p className="empty-hint">Next: {nextStep}</p>
     </div>
   );
 }
@@ -78,7 +76,7 @@ export function RailEmptyState({ nextStep }: { nextStep: string }) {
 /** One plain sentence about what a page can and cannot show. */
 export function RailNote({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-3 text-[10px] leading-snug text-slate-500 dark:text-slate-400">{children}</p>
+    <p className="mt-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{children}</p>
   );
 }
 
@@ -94,11 +92,11 @@ export function RailSection({
   return (
     <section className="mt-4 first:mt-0" aria-label={title}>
       <div className="mb-1.5 flex items-center gap-2">
-        <h2 className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+        <h2 className="section-header mb-0">
           {title}
         </h2>
         {typeof count === "number" && (
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          <span className="status-badge is-info tabular-nums">
             {count}
           </span>
         )}
@@ -130,10 +128,10 @@ export function RailRowList({
         return (
         <li
           key={row.id}
-          className="rounded-xl border border-slate-200 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900"
+          className="clinical-card p-3"
         >
           <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
-            <p className="min-w-0 flex-1 break-words text-[12px] font-semibold text-slate-800 dark:text-slate-100">
+            <p className="min-w-0 flex-1 break-words text-sm font-semibold text-slate-800 dark:text-slate-100">
               {row.title}
             </p>
             {target.kind === "medical" ? (
@@ -162,10 +160,10 @@ export function RailRowList({
           <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-3 lg:grid-cols-4">
             {row.fields.map((field) => (
               <div key={field.label} className="min-w-0">
-                <dt className="text-[9px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <dt className="clinical-label text-[10px] text-slate-400 dark:text-slate-500">
                   {field.label}
                 </dt>
-                <dd className="break-words text-[11px] text-slate-700 dark:text-slate-300">{field.value}</dd>
+                <dd className="clinical-value break-words text-slate-700 dark:text-slate-300">{field.value}</dd>
               </div>
             ))}
           </dl>
@@ -187,11 +185,11 @@ export function RailFigure({
   source: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+    <div className="clinical-card p-3">
+      <p className="clinical-label text-[10px] text-slate-400 dark:text-slate-500">
         {label}
       </p>
-      <p className="mt-0.5 break-words text-sm font-bold tabular-nums text-slate-800 dark:text-slate-100">
+      <p className="mt-0.5 break-words text-base font-bold tabular-nums text-slate-800 dark:text-slate-100">
         {value}
       </p>
       <p className="mt-0.5 text-[10px] leading-snug text-slate-500 dark:text-slate-400">{source}</p>

@@ -87,7 +87,8 @@ function CodingPage() {
 
   return (
     <AppShell track={readActiveTrack()} activeNav="coding" footer={railFooter}>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-4xl px-4 py-8">
         <RailPageHeader
           icon={ClipboardList}
           title="Coding"
@@ -106,6 +107,7 @@ function CodingPage() {
           Every row is one of your own saved encounters: its note is signed and locked, and the coder has not
           submitted diagnoses or procedures for it yet.
         </RailNote>
+        </div>
       </div>
     </AppShell>
   );

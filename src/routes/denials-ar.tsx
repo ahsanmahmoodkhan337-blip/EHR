@@ -102,7 +102,8 @@ function DenialsAndArPage() {
 
   return (
     <AppShell track={readActiveTrack()} activeNav="denials-ar" footer={railFooter}>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-4xl px-4 py-8">
         <RailPageHeader
           icon={AlertTriangle}
           title="Denials and AR"
@@ -179,6 +180,7 @@ function DenialsAndArPage() {
           from the ledger. Clearing one moves money — it never just changes a label. The dental track stops at the
           ledger, so its denials come from that case's adjudication, not from an 835.
         </RailNote>
+        </div>
       </div>
     </AppShell>
   );

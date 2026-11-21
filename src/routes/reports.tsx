@@ -65,7 +65,8 @@ function ReportsPage() {
 
   return (
     <AppShell track={readActiveTrack()} activeNav="reports" footer={railFooter}>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-4xl px-4 py-8">
         <RailPageHeader
           icon={BarChart3}
           title="Reports"
@@ -138,7 +139,7 @@ function ReportsPage() {
               {totals.denialsByCode.map((row) => (
                 <li
                   key={row.code}
-                  className="rounded-xl border border-slate-200 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900"
+                  className="clinical-card p-3"
                 >
                   <div className="flex flex-wrap items-baseline gap-x-2">
                     <p className="text-[12px] font-bold tabular-nums text-slate-800 dark:text-slate-100">
@@ -230,6 +231,7 @@ function ReportsPage() {
           and the AR queue those postings created. No sample numbers, no trend line, and nothing is estimated: a
           figure appears only once the record behind it exists.
         </RailNote>
+        </div>
       </div>
     </AppShell>
   );

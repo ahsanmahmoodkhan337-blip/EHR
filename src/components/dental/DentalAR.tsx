@@ -337,7 +337,7 @@ export function DentalAR() {
           });
 
           return (
-            <div key={lineId} className="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div key={lineId} className="clinical-card">
               {/* denial summary row — the facts on the remittance, no answer */}
               <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
                 <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">{code}</code>

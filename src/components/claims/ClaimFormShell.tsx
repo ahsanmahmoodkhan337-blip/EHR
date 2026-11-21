@@ -272,7 +272,7 @@ export function ClaimFormShell({
     "inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50";
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="clinical-card">
       {/* ── Status + history strip ───────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
         <div className="min-w-0">
