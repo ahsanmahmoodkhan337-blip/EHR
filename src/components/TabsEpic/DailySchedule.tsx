@@ -712,10 +712,18 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                 <CalendarDays className="mb-2 h-8 w-8 text-slate-300" />
                 <p className="text-xs text-slate-400">No appointments for this date</p>
                 <button
+                  type="button"
                   onClick={() => openNewAppointment(selectedDate)}
-                  className="mt-2 flex items-center gap-1 rounded-lg bg-brand-50 px-3 py-1.5 text-[10px] font-medium text-brand-600 transition-colors hover:bg-brand-100"
+                  disabled={showModal}
+                  aria-label="Create an appointment for this date"
+                  title={
+                    showModal
+                      ? "The New Appointment form is already open"
+                      : "Create an appointment for this date"
+                  }
+                  className="mt-2 flex min-h-10 items-center gap-1 rounded-lg bg-brand-50 px-3 py-1.5 text-[10px] font-medium text-brand-600 transition-colors hover:bg-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:hover:bg-slate-100"
                 >
-                  <Plus className="h-3 w-3" /> Create Appointment
+                  <Plus className="h-3 w-3" aria-hidden="true" /> Create Appointment
                 </button>
               </div>
             ) : (

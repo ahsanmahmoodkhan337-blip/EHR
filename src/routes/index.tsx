@@ -1428,14 +1428,34 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    */
   const activeWorkspace = "chart";
   const setActiveWorkspace = (_workspace: string) => {};
-  const [selectedPatientId, setSelectedPatientId] = useState(() =>
-    // A pasted link names its patient, and that wins over the remembered pick.
-    (encounterIdFromRoute && patients.some((p) => p.id === encounterIdFromRoute)
-      ? encounterIdFromRoute
-      : "") || sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
+  const { currentRole, submitToCoding, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
+  /**
+   * The patient the chart opens on (owner's audit, 2026-11-20, item 4 — "patient
+   * and track context persist across navigation and reload").
+   *
+   *   1. an address that names its patient — a pasted link, Start Visit, a refresh
+   *      on `/encounter/:encounterId/:stage` — always wins;
+   *   2. then the patient this tab last showed;
+   *   3. then **the patient the encounter store still has open**: `activePatientId`
+   *      is written to the student's own record (`hh_userdata_<phone>`) every time a
+   *      patient is picked, so a reload, a Back from a money-cycle page or a fresh
+   *      tab reopens the same patient instead of the first one in the list.
+   *
+   * The list is only the last resort, for a student who has never opened anyone.
+   * Picking it first is what used to drop a working student back to the Tutorial
+   * Patient, and the effect below then wrote that pick onto the encounter store.
+   */
+  const [selectedPatientId, setSelectedPatientId] = useState(() => {
+    const remembered =
+      (encounterIdFromRoute && patients.some((p) => p.id === encounterIdFromRoute)
+        ? encounterIdFromRoute
+        : "") ||
+      sessionStorage.getItem("hh_selected_patient") ||
+      (activePatientId && patients.some((p) => p.id === activePatientId) ? activePatientId : "");
+    return remembered || patients[0]?.id || "";
+  });
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { currentRole, submitToCoding, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
 
   // ── Right-panel financial KPIs — derived from REAL pipeline data ──
   // (was hardcoded 12500/8700/2400/32 demo figures)
@@ -1847,6 +1867,8 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
 
   // When selected patient changes, load that patient's session data
   useEffect(() => {
+    // Remember this tab's patient, so a reload reopens the same one.
+    if (selectedPatientId) sessionStorage.setItem("hh_selected_patient", selectedPatientId);
     console.log("useEffect[selectedPatientId] FIRED for:", selectedPatientId);
     const p = patients.find(pp => pp.id === selectedPatientId);
     console.log("  patient found in useEffect:", p?.firstName, p?.lastName);

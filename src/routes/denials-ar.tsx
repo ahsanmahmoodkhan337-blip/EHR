@@ -31,6 +31,7 @@ import { AppShell } from "../components/AppShell";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
 import { PipelineProvider, usePipeline, type Role } from "../store/pipelineStore";
 import { readActiveTrack } from "../components/shell/activeTrack";
+import { ActivePatientBanner } from "../components/shell/ActivePatientBanner";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { readDentalTrackRecord } from "../components/dental/DentalTrackStore";
 import {
@@ -64,7 +65,7 @@ export const Route = createFileRoute("/denials-ar")({
 
 function DenialsAndArPage() {
   const navigate = useNavigate();
-  const { allEncounters, arWorkItems } = usePipeline();
+  const { allEncounters, arWorkItems, activePatientId } = usePipeline();
   const { getPatientById } = usePatientStore();
   const dental = useMemo(() => readDentalTrackRecord(), []);
 
@@ -101,7 +102,13 @@ function DenialsAndArPage() {
   };
 
   return (
-    <AppShell track={readActiveTrack()} activeNav="denials-ar" footer={railFooter}>
+    <AppShell
+      track={readActiveTrack()}
+      activeNav="denials-ar"
+      selectedPatientId={activePatientId ?? undefined}
+      banner={<ActivePatientBanner />}
+      footer={railFooter}
+    >
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-4xl px-4 py-8">
         <RailPageHeader
