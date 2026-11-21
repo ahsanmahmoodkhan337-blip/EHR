@@ -82,8 +82,10 @@ import {
 import {
   ENCOUNTER_ROUTE_PREFIX,
   encounterPath,
+  openingStageId,
   writeEncounterAddress,
 } from "../domain/encounterRoute";
+import { inboxPatients } from "../domain/inbox";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
 import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
 import { EligibilityStage } from "../components/WorkflowAthena/EligibilityStage";
@@ -1504,12 +1506,24 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     setActiveStage("");
   };
 
+  /**
+   * Set when a patient was picked on purpose — a handoff from the search, the
+   * schedule's Start Visit or a money-cycle row. The saved session restores only
+   * when nobody chose (audit item 3: "session restore never overrides an explicit
+   * pick").
+   */
+  const explicitPick = useRef(false);
+
   // A patient picked from the shell's search while another page was open lands
   // here: open that chart once, then drop the request. Declared with the other
   // hooks, above every early return, so the hook order never changes.
   useEffect(() => {
     const requested = consumeRequestedPatient();
     if (!requested) return;
+    // Somebody picked a patient on purpose — the search, the schedule's Start
+    // Visit, a money-cycle row. The saved session must not undo that choice
+    // (audit item 3), so the restore below stands down for this mount.
+    explicitPick.current = true;
     const match = requested.patientId
       ? patients.find((p) => p.id === requested.patientId)
       : undefined;
@@ -1546,6 +1560,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       setSharedOrders([]);
       setSharedImaging([]);
       setSubmittedToCoding(false);
+      // A visit that starts here starts at the Progress Note, not on whatever
+      // screen the previous patient was left on.
+      openFlowStage(openingStageId());
     }
     // Mount only — the handoff is consumed exactly once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1853,6 +1870,27 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   }, [selectedPatientId]);
 
   /**
+   * An explicit address names its patient, and it keeps winning.
+   *
+   * Start Visit, a pasted link and a refresh all arrive at
+   * `/encounter/:encounterId/:stage`. On a fresh load the student's own patients
+   * are not in the list until the store has hydrated, so the first render can
+   * fall back to the remembered patient. When the named patient does appear, the
+   * address takes over — a saved session never overrides an explicit pick.
+   */
+  useEffect(() => {
+    if (!encounterIdFromRoute) return;
+    if (selectedPatientId === encounterIdFromRoute) return;
+    if (!patients.some((p) => p.id === encounterIdFromRoute)) return;
+    explicitPick.current = true;
+    setSelectedPatientId(encounterIdFromRoute);
+    selectPatient(encounterIdFromRoute);
+    setPatientDisplayName(null);
+    setDisplayName(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [encounterIdFromRoute, selectedPatientId, patients]);
+
+  /**
    * A stage named in the address opens once, after the patient's own session has
    * loaded — an address beats whatever screen the session remembered (audit item
    * 2: "a real route per encounter and stage, so refresh and deep links work").
@@ -1922,6 +1960,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     // the saved session does not put a different patient in front of it
     // (audit item 3: "session restore never overrides an explicit pick").
     if (encounterIdFromRoute) return;
+    // So is a patient picked on purpose — from the search, from Start Visit, or
+    // from a money-cycle row.
+    if (explicitPick.current) return;
     const ctx = useEhrStore.getState().user.context;
     if (!ctx.patientId) return;
     const p = patients.find((pp) => pp.id === ctx.patientId);
@@ -2308,7 +2349,14 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       leftPanel={
         <div className="flex h-full flex-col">
           <div className="border-b border-slate-100 px-4 py-3">
-            <WorklistPanel patients={(() => { const filtered = patients.filter(p => appointments.some(a => a.date === selectedScheduleDate && (a.patientId === p.id || (a.patientName.toLowerCase().includes(p.firstName.toLowerCase()) && a.patientName.toLowerCase().includes(p.lastName.toLowerCase()))))); const demo = patients.find(p => p.id === "DEMO"); const result = filtered.length > 0 ? filtered : patients; if (demo && !result.some(p => p.id === "DEMO")) result.unshift(demo); return result; })()} selectedPatientId={selectedPatientId} onPatientSelect={handlePatientSelect} />
+            {/* The day's visits first, then every other patient — a patient
+                registered through New Appointment is never missing from this
+                list, whichever date the visit was booked for (audit item 3). */}
+            <WorklistPanel
+              patients={inboxPatients(patients, appointments, selectedScheduleDate)}
+              selectedPatientId={selectedPatientId}
+              onPatientSelect={handlePatientSelect}
+            />
           </div>
           {selectedPatient && currentRole === "scribe" && (
             <div className="flex-1 overflow-y-auto p-4">
