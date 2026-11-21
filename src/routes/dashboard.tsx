@@ -18,6 +18,7 @@ import { getLoggedInPhone, getSubscriptionStatus, isLoggedIn } from "../store/ac
 import { loadUserData } from "../store/persistence";
 import { PatientProvider } from "../store/patientStore";
 import { AppShell } from "../components/AppShell";
+import { useActiveTrack } from "../components/shell/activeTrack";
 import { SHELL_NAV_ITEMS } from "../components/shell/navItems";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { getSharingSignal, MAX_DEVICE_COUNT, resetOtherSessions } from "../store/accountSecurity";
@@ -78,6 +79,9 @@ function readDentalState(phone: string | null): DentalTrackState | null {
 }
 
 function DashboardPage() {
+  // The one stored track, live: the header toggle and this page cannot disagree,
+  // and moving between pages never changes it (owner item 4).
+  const track = useActiveTrack();
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
   const phone = getLoggedInPhone();
@@ -141,7 +145,7 @@ function DashboardPage() {
 
   return (
     <AppShell
-      track="medical"
+      track={track}
       activeNav="home"
       onPatientSelect={(patientId) => {
         // The dashboard has no patient workspace: open the chart at "/".

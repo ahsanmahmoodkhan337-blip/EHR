@@ -15,6 +15,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { BadgeDollarSign, BookMarked } from "lucide-react";
 import { AppShell } from "../components/AppShell";
+import { useActiveTrack } from "../components/shell/activeTrack";
 import { CodeLookup } from "../components/shell/referenceTabs";
 import { CARC_CODES, CARC_GROUP_MEANINGS, type CarcGroup } from "../data/claims/carc";
 
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/reference")({
 const GROUPS: CarcGroup[] = ["CO", "PR", "OA", "PI"];
 
 function ReferencePage() {
+  const track = useActiveTrack();
   const [scope, setScope] = useState<"medical" | "dental">("medical");
   const [group, setGroup] = useState<CarcGroup | "all">("all");
 
@@ -32,7 +34,7 @@ function ReferencePage() {
 
   return (
     <AppShell
-      track="medical"
+      track={track}
       activeNav="reference"
       footer={
         <footer className="border-t border-slate-200 bg-white px-4 py-2 text-center text-xs text-slate-400">

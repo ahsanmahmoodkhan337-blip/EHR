@@ -26,6 +26,7 @@ import {
 import { getLoggedInPhone, isLoggedIn } from "../store/accessStore";
 import { PatientProvider } from "../store/patientStore";
 import { AppShell } from "../components/AppShell";
+import { useActiveTrack } from "../components/shell/activeTrack";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import {
   SCHEMA_VERSION,
@@ -49,6 +50,7 @@ export const Route = createFileRoute("/settings")({
 type Status = { tone: "ok" | "error"; message: string } | null;
 
 function SettingsPage() {
+  const track = useActiveTrack();
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
   const phone = getLoggedInPhone();
@@ -185,7 +187,7 @@ function SettingsPage() {
   return (
     <>
     <AppShell
-      track="medical"
+      track={track}
       activeNav="settings"
       onPatientSelect={(patientId) => {
         // Settings has no patient workspace: open the chart at "/".

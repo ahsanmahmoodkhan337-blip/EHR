@@ -31,7 +31,6 @@ import { ReferenceDrawer } from "../components/shell/ReferenceDrawer";
 import { dentalReferenceTabs } from "../components/shell/referenceTabs";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { LockedStageNotice, useStageUrlSync } from "../components/shell/useStageUrlSync";
-import { setActiveTrack } from "../components/shell/activeTrack";
 import type { CaseStageParams } from "./medical-cases";
 
 /**
@@ -39,13 +38,13 @@ import type { CaseStageParams } from "./medical-cases";
  * `phase-1-navigation.md` item 6). This address redirects so no bookmarked URL
  * dies; the dental runner keeps its own per-stage addresses below it.
  *
- * The redirect also records that the student chose the dental track, so the case
- * list it lands on is the dental one — the switch used to come through here and
- * change nothing.
+ * It writes nothing: opening an address is not the student choosing a track
+ * (owner item 4 — the toggle is the only thing that changes it). The switch in
+ * the header sets the track and then opens `/cases`, so the list it lands on is
+ * the dental one without this redirect having to change the choice.
  */
 export const Route = createFileRoute("/dental")({
   beforeLoad: () => {
-    setActiveTrack("dental");
     throw redirect({ to: "/cases", replace: true });
   },
 });

@@ -15,6 +15,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CalendarDays } from "lucide-react";
 import { AppShell } from "../components/AppShell";
+import { useActiveTrack } from "../components/shell/activeTrack";
 import { PatientProvider } from "../store/patientStore";
 import { DailySchedule } from "../components/TabsEpic/DailySchedule";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
@@ -29,11 +30,12 @@ export const Route = createFileRoute("/schedule")({
 });
 
 function SchedulePage() {
+  const track = useActiveTrack();
   const navigate = useNavigate();
 
   return (
     <AppShell
-      track="medical"
+      track={track}
       activeNav="schedule"
       footer={
         <footer className="border-t border-slate-200 bg-white px-4 py-2 text-center text-xs text-slate-400">

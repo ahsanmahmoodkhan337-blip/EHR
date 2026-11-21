@@ -13,6 +13,7 @@
  * ──────────────────────────────────────────────────────────────────────
  */
 
+import { initialsFromName } from "../../domain/patientDisplay";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -97,12 +98,9 @@ function isToday(dateStr: string): boolean {
     d.getDate() === today.getDate();
 }
 
-/** Derive 1–2 uppercase initials from a free-text name. */
+/** 1–2 uppercase initials from a name — one helper, shared with the Inbox. */
 function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return initialsFromName(name);
 }
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -742,7 +740,10 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
             ) : (
               filteredAppointments.map((apt, idx) => {
                 const meta = STATUS_META[apt.status];
-                const initials = getInitials(apt.provider || apt.patientName);
+                // The patient's own initials (lead walk, 2026-11-21): the card
+                // read `DL` for Dr. Sarah Lee while the Inbox read `AO` for the
+                // same appointment.
+                const initials = getInitials(apt.patientName);
                 return (
                   <motion.div
                     key={apt.id}

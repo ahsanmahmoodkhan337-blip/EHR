@@ -32,7 +32,7 @@ import {
 } from "./arWorkQueue";
 import { CLAIM_STATUS_LABELS, type ClaimStatus } from "./claimStatus";
 import { buildCodingQueue } from "./codingQueue";
-import { claimRowTitle, isOrphanClaim, ORPHAN_CLAIM_LABEL } from "./dataScoping";
+import { claimRowTitle, isOrphanClaim } from "./dataScoping";
 import { formatWhen, usd } from "./homeWorkQueues";
 import type { PipelineEncounter, Role } from "../store/pipelineEncounter";
 
@@ -157,10 +157,25 @@ function billedCentsFor(enc: PipelineEncounter): number {
   return cents > 0 ? cents : 0;
 }
 
+/** What a claim row says when the patient it names has no chart to open. */
+const MISSING_CHART_LABEL = "patient record missing — this claim has no chart to open";
+
 /**
  * Every claim the student has — one row per claim number, with the status the
  * claim's own timeline last recorded. A claim with no status yet reads as
  * **Draft**, which is what a claim record with no recorded transition is.
+ *
+ * TWO ROWS THE PAGE NO LONGER PRINTS (owner's student-experience work order,
+ * 2026-11-21, item 4: "fix or remove claims showing 'No patient attached'"):
+ *
+ *  - a **claim with no patient** — a record an earlier build wrote into the
+ *    bucket for work with no chart (audit item 5). It cannot be billed, coded,
+ *    opened or traced to anything, so it is not listed as a claim of the
+ *    student's. The record itself is **kept in the store, never deleted**; only
+ *    the list leaves it out.
+ *  - a claim whose patient id names **no chart on file** is still listed, because
+ *    the claim is real work, but it says `patient record missing` instead of
+ *    pretending a name. It never prints "No patient attached".
  */
 export function buildClaimRows({
   encounters,
@@ -172,35 +187,28 @@ export function buildClaimRows({
   const rows: ClaimRow[] = [];
   for (const enc of encounters) {
     if (!enc.claimNumber) continue;
+    // No patient, no claim on this page. Kept in the record, not printed here.
+    if (isOrphanClaim(enc)) continue;
     const statusKey = enc.claimStatus;
     const billedCents = billedCentsFor(enc);
-    // A claim whose encounter names no patient is a record an earlier build wrote
-    // into the bucket for work with no chart (audit item 5: CLM-000004 and
-    // CLM-000005). It is kept — never deleted — and labelled so it can never read
-    // as a claim the student made.
-    const orphan = isOrphanClaim(enc);
+    const named = nameForPatient(enc.patientId, enc.displayName).trim();
+    const patientLabel = named.length > 0 && named !== "No patient attached" ? named : MISSING_CHART_LABEL;
     rows.push({
       id: `claim-${enc.claimNumber}`,
       claimNumber: enc.claimNumber,
-      title: claimRowTitle(enc.claimNumber, nameForPatient(enc.patientId, enc.displayName), orphan),
+      title: claimRowTitle(enc.claimNumber, patientLabel, false),
       statusKey,
       statusLabel: statusKey ? CLAIM_STATUS_LABELS[statusKey] : "Draft",
       payer: payerFor(enc),
       dateOfService: dateOfServiceFor(enc),
       billedCents,
       fields: [
-        ...(orphan ? [{ label: "Record", value: ORPHAN_CLAIM_LABEL }] : []),
         { label: "Status", value: statusKey ? CLAIM_STATUS_LABELS[statusKey] : "Draft" },
         { label: "Payer", value: orNone(payerFor(enc)) },
         { label: "Date of service", value: orNone(dateOfServiceFor(enc)) },
         {
           label: "Billed",
-          value:
-            billedCents > 0
-              ? usd(billedCents)
-              : orphan
-                ? "nothing coded — no encounter to code it on"
-                : "no charge coded yet",
+          value: billedCents > 0 ? usd(billedCents) : "no charge coded yet",
         },
       ],
       action: "Open this claim",
@@ -208,6 +216,26 @@ export function buildClaimRows({
     });
   }
   return rows.sort((a, b) => (a.claimNumber < b.claimNumber ? 1 : -1));
+}
+
+/**
+ * The claims list for the track the student is working in (owner item 4:
+ * "/claims: filter claims by the active track"). A medical claim never appears
+ * under the dental track and the dental case's ADA claim never appears under the
+ * medical one — the two use different code sets and different claim papers, so a
+ * mixed list taught the wrong thing.
+ */
+export function claimRowsForTrack({
+  track,
+  medical,
+  dental,
+}: {
+  track: "medical" | "dental";
+  medical: ClaimRow[];
+  dental: ClaimRow | null;
+}): ClaimRow[] {
+  if (track === "dental") return dental ? [dental] : [];
+  return medical;
 }
 
 /** A dental case's own ADA claim, when it has transmitted one. */

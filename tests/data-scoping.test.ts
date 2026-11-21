@@ -201,20 +201,22 @@ describe("CLM-000004 and CLM-000005 are flagged demo orphans", () => {
     expect(claimRowTitle("CLM-000006", "Amara Okafor", false)).toBe("CLM-000006 · Amara Okafor");
   });
 
-  test("the Claims list flags it, keeps it, and does not print a charge", () => {
+  test("the Claims list leaves it out — the record is kept, the row is not printed", () => {
+    // Owner's student-experience work order, 2026-11-21, item 4: "fix or remove
+    // claims showing 'No patient attached'". A claim with no patient cannot be
+    // billed, coded or opened, so /claims no longer lists it; the encounter record
+    // itself is untouched (nothing here deletes it).
     const rows = buildClaimRows({
       encounters: [orphan, encounterWith("MPT-2001", { claimNumber: "CLM-000006" })],
       nameForPatient,
     });
-    const orphanRow = rows.find((row) => row.claimNumber === "CLM-000004");
-    expect(orphanRow).toBeDefined();
-    expect(orphanRow!.title).toContain("demo orphan");
-    expect(orphanRow!.fields.some((f) => f.label === "Record" && f.value === ORPHAN_CLAIM_LABEL)).toBe(true);
-    expect(orphanRow!.billedCents).toBe(0);
-    // The real claim carries no orphan marking.
+    expect(rows.find((row) => row.claimNumber === "CLM-000004")).toBeUndefined();
     const real = rows.find((row) => row.claimNumber === "CLM-000006")!;
     expect(real.title).not.toContain("demo orphan");
+    expect(real.title).not.toContain("No patient attached");
     expect(real.fields.some((f) => f.label === "Record")).toBe(false);
+    // The record that produced it is still an orphan in the store.
+    expect(isOrphanClaim(orphan)).toBe(true);
   });
 
   test("Home's claim queues label it too, and still list it", () => {

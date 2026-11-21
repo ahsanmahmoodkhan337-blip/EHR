@@ -30,8 +30,7 @@ import { AlertTriangle, ChevronRight } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
 import { PipelineProvider, usePipeline, type Role } from "../store/pipelineStore";
-import { readActiveTrack } from "../components/shell/activeTrack";
-import { ActivePatientBanner } from "../components/shell/ActivePatientBanner";
+import { useActiveTrack } from "../components/shell/activeTrack";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { readDentalTrackRecord } from "../components/dental/DentalTrackStore";
 import {
@@ -64,6 +63,8 @@ export const Route = createFileRoute("/denials-ar")({
 });
 
 function DenialsAndArPage() {
+  // The stored track, live (owner item 4): the header switch and the page agree.
+  const track = useActiveTrack();
   const navigate = useNavigate();
   const { allEncounters, arWorkItems, activePatientId } = usePipeline();
   const { getPatientById } = usePatientStore();
@@ -103,10 +104,9 @@ function DenialsAndArPage() {
 
   return (
     <AppShell
-      track={readActiveTrack()}
+      track={track}
       activeNav="denials-ar"
       selectedPatientId={activePatientId ?? undefined}
-      banner={<ActivePatientBanner />}
       footer={railFooter}
     >
       <div className="min-h-0 flex-1 overflow-y-auto">

@@ -26,34 +26,36 @@ const RAIL_PAGES = [
   ["src/routes/denials-ar.tsx", "denials-ar"],
 ] as const;
 
-describe("the banner on a money-cycle page is the encounter's own patient", () => {
-  test("the shared banner reads the pipeline's active patient and never picks one", () => {
-    const source = read("src/components/shell/ActivePatientBanner.tsx");
-    expect(source).toContain("usePipeline()");
-    expect(source).toContain("activePatientId");
-    expect(source).toContain("getPatientById");
-    expect(source).toContain("<PatientBanner patient={banner} />");
-    // Reading only: no patient is selected and no encounter is created by opening
-    // a list page (spec `encounter-continuity.md` item 6).
-    expect(source).not.toContain("selectPatient");
-    expect(source).not.toContain("resetEncounter");
-    expect(source).not.toContain("setStore");
-  });
-
-  for (const [path, navId] of RAIL_PAGES) {
-    test(`${path} draws that banner and names the same patient to the header`, () => {
+describe("the patient banner belongs to patient pages, not list pages", () => {
+  // Owner's student-experience work order, 2026-11-21, item 4: "The patient banner
+  // (name, MRN, allergies) must show only on patient-specific pages (encounter,
+  // charts). Hide it on list pages such as /coding, /claims, /payments,
+  // /denials-ar, /reports, /cases." This replaces the earlier rule that put the
+  // banner on the four money-cycle list pages.
+  for (const path of [
+    "src/routes/coding.tsx",
+    "src/routes/claims.tsx",
+    "src/routes/payments.tsx",
+    "src/routes/denials-ar.tsx",
+    "src/routes/reports.tsx",
+    "src/routes/cases.index.tsx",
+  ]) {
+    test(`${path} draws no patient banner`, () => {
       const source = read(path);
-      expect(source).toContain('import { ActivePatientBanner } from "../components/shell/ActivePatientBanner";');
-      expect(source).toContain("activePatientId");
-      expect(source).toContain("banner={<ActivePatientBanner />}");
-      expect(source).toContain("selectedPatientId={activePatientId ?? undefined}");
-      expect(source).toContain(`activeNav="${navId}"`);
-      // The track comes from the one persisted key, so the header does not flip.
-      expect(source).toContain("track={readActiveTrack()}");
-      // Still the pipeline store's encounters — the same encounter the chart has.
-      expect(source).toContain("usePipeline()");
+      expect(source).not.toContain("ActivePatientBanner");
+      expect(source).not.toContain("banner={");
     });
   }
+
+  for (const path of ["src/routes/index.tsx", "src/routes/charts.tsx", "src/routes/patients.$id.tsx"]) {
+    test(`${path} still draws the patient's own banner`, () => {
+      expect(read(path)).toContain("PatientBanner");
+    });
+  }
+
+  test("the shared banner component is gone, so nothing can put it back on a list", () => {
+    expect(() => read("src/components/shell/ActivePatientBanner.tsx")).toThrow();
+  });
 });
 
 describe("Home reopens the patient the encounter store still has open", () => {

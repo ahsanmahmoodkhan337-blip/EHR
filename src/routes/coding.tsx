@@ -30,8 +30,7 @@ import { ClipboardList } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
 import { PipelineProvider, usePipeline, type Role } from "../store/pipelineStore";
-import { readActiveTrack } from "../components/shell/activeTrack";
-import { ActivePatientBanner } from "../components/shell/ActivePatientBanner";
+import { useActiveTrack } from "../components/shell/activeTrack";
 import { readDentalTrackRecord } from "../components/dental/DentalTrackStore";
 import { buildCodingQueue, type NameForPatient } from "../domain/codingQueue";
 import { buildDentalCodingRow, dentalCaseLabel, type RailRow } from "../domain/railPages";
@@ -55,6 +54,8 @@ export const Route = createFileRoute("/coding")({
 });
 
 function CodingPage() {
+  // The stored track, live (owner item 4): the header switch and the page agree.
+  const track = useActiveTrack();
   // `activePatientId` is the patient the pipeline store has open (persisted per
   // student), so the banner and the header chip show the same patient here as on
   // the encounter — a refresh or a Back never drops to the Tutorial Patient.
@@ -88,10 +89,9 @@ function CodingPage() {
 
   return (
     <AppShell
-      track={readActiveTrack()}
+      track={track}
       activeNav="coding"
       selectedPatientId={activePatientId ?? undefined}
-      banner={<ActivePatientBanner />}
       footer={railFooter}
     >
       <div className="min-h-0 flex-1 overflow-y-auto">

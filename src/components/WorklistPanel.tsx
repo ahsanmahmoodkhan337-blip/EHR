@@ -17,6 +17,7 @@
 import { Link } from "@tanstack/react-router";
 import { Clock, Circle, Pin, AlertTriangle, CalendarPlus } from "lucide-react";
 import type { Patient } from "../store/patientStore";
+import { lastSeenLabel, patientInitials } from "../domain/patientDisplay";
 
 interface WorklistPanelProps {
   patients: Patient[];
@@ -24,10 +25,8 @@ interface WorklistPanelProps {
   onPatientSelect: (id: string) => void;
 }
 
-const IDLE_DAYS = [2, 3, 1, 4, 5, 2, 3, 0, 1, 2, 4, 3, 7, 2, 1];
-
 function getInitials(p: Patient): string {
-  return `${p.firstName.charAt(0)}${p.lastName.charAt(0)}`.toUpperCase();
+  return patientInitials(p.firstName, p.lastName);
 }
 
 /**
@@ -39,16 +38,6 @@ function hasDob(p: Patient): boolean {
   const raw = (p.dateOfBirth || "").trim();
   if (!raw) return false;
   return !Number.isNaN(new Date(raw).getTime());
-}
-
-function getIdleDays(index: number): number {
-  return IDLE_DAYS[index % IDLE_DAYS.length];
-}
-
-function getPriorityColor(days: number): string {
-  if (days >= 5) return "text-rose-500";
-  if (days >= 3) return "text-amber-500";
-  return "text-emerald-500";
 }
 
 export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: WorklistPanelProps) {
@@ -129,8 +118,11 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
         )}
 
         {/* Regular patients */}
-        {regularPatients.map((p, i) => {
-          const idleDays = getIdleDays(i);
+        {regularPatients.map((p) => {
+          // A real last-seen only: the record carries `lastSeenAt` when the patient
+          // was booked or their chart was opened, and a record without one shows
+          // no figure rather than a made-up "2d idle".
+          const seen = lastSeenLabel(p.lastSeenAt);
           const isSelected = p.id === selectedPatientId;
           return (
             <div
@@ -160,10 +152,12 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
                   </span>
                 )}
               </div>
-              <div className="flex shrink-0 flex-col items-end gap-0.5">
-                <Circle className={`h-2 w-2 fill-current ${getPriorityColor(idleDays)}`} />
-                <span className="whitespace-nowrap text-[9px] text-slate-400">{idleDays}d idle</span>
-              </div>
+              {seen && (
+                <div className="flex shrink-0 flex-col items-end gap-0.5">
+                  <Circle className={`h-2 w-2 fill-current ${seen.tone}`} />
+                  <span className="whitespace-nowrap text-[9px] text-slate-400">{seen.label}</span>
+                </div>
+              )}
             </div>
           );
         })}
