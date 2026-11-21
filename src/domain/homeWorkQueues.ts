@@ -23,6 +23,7 @@ import {
   type ClaimStatus,
 } from "./claimStatus";
 import { statusEventsFor } from "./statusEvent";
+import { isOrphanClaim, ORPHAN_CLAIM_LABEL } from "./dataScoping";
 import type { ArWorkItem } from "./arWorkQueue";
 import {
   encounterHasWork,
@@ -128,7 +129,12 @@ export function buildMedicalQueueRows({
   const mid: QueueEntry[] = [];
 
   for (const enc of encounters) {
-    const who = nameForPatient(enc.patientId, enc.displayName);
+    // A claim whose encounter names no patient is a record an earlier build left
+    // with no chart (audit item 5). It stays in the queue — nothing is deleted —
+    // but it is labelled a demo orphan, never shown as the student's own work.
+    const who = isOrphanClaim(enc)
+      ? ORPHAN_CLAIM_LABEL
+      : nameForPatient(enc.patientId, enc.displayName);
 
     if (enc.claimNumber && isAwaitingPayer(enc.claimStatus)) {
       const timeline = statusEventsFor(enc.statusEvents, "claim", enc.claimNumber);

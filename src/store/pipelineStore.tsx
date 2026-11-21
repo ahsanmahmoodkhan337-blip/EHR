@@ -23,8 +23,10 @@ import { registerResetHandler } from "./resetData";
 import {
   createEncounter,
   encounterEventId,
+  encounterHasWork,
   encounterKey,
   EMPTY_ENCOUNTER,
+  UNASSIGNED_ENCOUNTER_KEY,
   furthestChartStep,
   jobRoleFor,
   normalizePipelineStore,
@@ -37,6 +39,8 @@ import {
   type Role,
 } from "./pipelineEncounter";
 import { nextClaimNumber, type ClaimStatus, type ReasonCode } from "../domain/claimStatus";
+import { encounterIdFor, scopingRefusal } from "../domain/dataScoping";
+import { resolveEncounterPatientId } from "../utils/encounterPatient";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
 import { signNote } from "../domain/signNote";
 import {
@@ -547,16 +551,53 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   // ── Structured CMS-1500 record ──────────────────────────────────
   const setClaimForm = (form: ClaimFormData | null) => {
     setStore((prev) => {
-      const key = encounterKey(prev.activePatientId);
-      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
+      // ── Data scoping (audit item 5) ────────────────────────────────
+      // A claim belongs to the patient and the encounter on screen. The
+      // pipeline's own id can be unset on two real paths (a restored session and
+      // the Coder's skip-to-billing) while the chart knows the patient, so the
+      // patient is resolved the same way the banner resolves it. With no patient
+      // anywhere, nothing is written: **no claim number is minted for a claim
+      // that belongs to nobody** — that bucket is where the "No patient attached"
+      // rows came from.
+      const patientId = prev.activePatientId ?? resolveEncounterPatientId(null);
+      if (!patientId) return prev;
+      if (scopingRefusal({ patientId, encounterId: encounterIdFor(patientId) })) return prev;
+
+      const key = encounterKey(patientId);
+      const own = prev.encounters[key];
+      // Work entered while no patient was attached belongs to the patient on
+      // screen now: its coded lines are what this claim bills. Adopted only when
+      // the patient's own encounter holds no work of its own, and only the
+      // charted fields — never a claim, ledger or remittance record, so two
+      // encounters can never share one claim number.
+      const unassigned = prev.encounters[UNASSIGNED_ENCOUNTER_KEY];
+      let enc = own ?? createEncounter(patientId);
+      if (!prev.activePatientId && !encounterHasWork(own) && encounterHasWork(unassigned)) {
+        enc = {
+          ...enc,
+          scribeNote: enc.scribeNote || unassigned.scribeNote,
+          icdCodes: enc.icdCodes.length > 0 ? enc.icdCodes : unassigned.icdCodes,
+          cptCodes: enc.cptCodes.length > 0 ? enc.cptCodes : unassigned.cptCodes,
+          codingLines: enc.codingLines.length > 0 ? enc.codingLines : unassigned.codingLines,
+        };
+      }
+
       if (!form) {
-        return { ...prev, encounters: { ...prev.encounters, [key]: { ...enc, claimForm: null } } };
+        return {
+          ...prev,
+          activePatientId: patientId,
+          encounters: { ...prev.encounters, [key]: { ...enc, claimForm: null } },
+        };
       }
       // The claim exists from the first time its paper is opened. Its number is
       // minted once and recorded with its creation event in the same write — a
       // second open never mints a second number or a second event.
       if (enc.claimNumber) {
-        return { ...prev, encounters: { ...prev.encounters, [key]: { ...enc, claimForm: form } } };
+        return {
+          ...prev,
+          activePatientId: patientId,
+          encounters: { ...prev.encounters, [key]: { ...enc, claimForm: form } },
+        };
       }
       const claimNumber = nextClaimNumber(Object.values(prev.encounters).map((e) => e.claimNumber));
       const event = makeStatusEvent(
@@ -576,6 +617,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       );
       return {
         ...prev,
+        activePatientId: patientId,
         encounters: {
           ...prev.encounters,
           [key]: {
@@ -858,6 +900,12 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // PA submission — don't change status; claim isn't submitted yet
   const submitPA = (paData: Record<string, string>) => {
+    // Data scoping (audit item 5): a prior auth belongs to a patient and an
+    // encounter. With none, nothing is written — the PA screen names what is
+    // missing instead of storing an authorisation for nobody.
+    if (scopingRefusal({ patientId: store.activePatientId, encounterId: encounterIdFor(store.activePatientId) })) {
+      return;
+    }
     updateActive((enc) => ({
       ...enc,
       paData,
@@ -869,6 +917,14 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // Auto-advance: Biller submits claim → AR Voice
   const submitClaim = (claimData: Record<string, string>) => {
+    // Data scoping (audit item 5): only a claim that belongs to a patient and an
+    // encounter, and that already exists, can be submitted. A submission with no
+    // claim number would put a claim on the payer's desk that this practice
+    // never created.
+    if (scopingRefusal({ patientId: store.activePatientId, encounterId: encounterIdFor(store.activePatientId) })) {
+      return;
+    }
+    if (!activeEncounter.claimNumber) return;
     updateActive((enc) => ({
       ...enc,
       claimData,
@@ -1117,6 +1173,12 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // PA lifecycle functions
   const addPARecord = (record: PARecordStore) => {
+    // Data scoping (audit item 5): a prior auth belongs to a patient. A record
+    // with no patient is not stored — it would show in every patient's queue as
+    // an authorisation nobody owns. The PA screen refuses first and says why.
+    if (scopingRefusal({ patientId: record.patientId, encounterId: encounterIdFor(record.patientId) })) {
+      return;
+    }
     setPaRecords((prev) => {
       // Replace existing record for same patient/procedure, or add new
       const existing = prev.findIndex((r) => r.patientId === record.patientId && r.id === record.id);
