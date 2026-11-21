@@ -2149,6 +2149,21 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     };
   }, []);
 
+  // The stored track, live (owner item 4), and the InBasket badge counted from
+  // the same rows the Work Queues panel prints — never a literal.
+  //
+  // BOTH HOOKS SIT ABOVE THE AUTH EARLY RETURNS ON PURPOSE. `checkingAuth`
+  // starts true and `!isLoggedIn()` can return the landing page, so a hook
+  // called after those returns is skipped on the first render and called on
+  // the second — React error #310 ("rendered more hooks than during the
+  // previous render"), which took the whole encounter page down to
+  // "Something went wrong!". Every hook in this component must be called
+  // before the first `return`.
+  const track = useActiveTrack();
+  // The tab badge and the InBasket panel are the same derivation, so they can
+  // never disagree (build 5, the two blank tabs).
+  const inBasketCount = inboxCount(useInboxItems());
+
   // Show public landing page while checking or if not logged in
   if (checkingAuth) {
     return (
@@ -2375,13 +2390,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // Home is its own page now: the rail marks Home, and nothing on it pretends
   // to be Schedule or Patients any more.
   const shellActiveNav: ShellNavId = "home";
-  // The stored track, live (owner item 4), and the InBasket badge counted from
-  // the same rows the Work Queues panel prints — never a literal.
-  const track = useActiveTrack();
-  // The tab badge and the InBasket panel are the same derivation, so they can
-  // never disagree (build 5, the two blank tabs).
-  const inBasketCount = inboxCount(useInboxItems());
-
   return (
     <AppShell
       track={track}
