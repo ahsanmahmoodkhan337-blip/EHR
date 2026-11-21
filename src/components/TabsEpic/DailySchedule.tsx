@@ -28,6 +28,7 @@ import {
   type EhrAppointmentStatus,
 } from "../../store/ehrStore";
 import { SEED_PATIENTS } from "../../store/patientStore";
+import { studentPatientList } from "../../domain/inbox";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -140,7 +141,12 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
   // Patients and appointments come from the central persisted store, merged
   // seed + user. Nothing here keeps its own copy of either list.
   const appointments = useAllAppointments();
-  const patients = useAllPatients();
+  // The picker offers the student's own patients plus the pinned Tutorial
+  // Patient — the 18 demo charts belong to Practice Cases, and a patient booked
+  // from here is the one that appears in their Inbox
+  // (`specs/slice-inbox-patients.md`).
+  const allPatients = useAllPatients();
+  const patients = useMemo(() => studentPatientList(allPatients), [allPatients]);
   const createAppointment = useEhrStore((s) => s.createAppointment);
   const updateAppointment = useEhrStore((s) => s.updateAppointment);
   const setAppointmentStatus = useEhrStore((s) => s.setAppointmentStatus);
@@ -218,14 +224,11 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
   // Open new appointment modal
   const openNewAppointment = (dateStr?: string) => {
     setEditAppointment(null);
-    // The patient already open in the encounter is the one being scheduled, so
-    // seed the picker with them. Without this the dialog showed their name (the
-    // encounter patient) while modalPatientId stayed null, which left Create
-    // Appointment disabled with nothing on screen saying why.
-    setModalPatientId(selectedPatient ? selectedPatient.id : null);
-    setPatientQuery(
-      selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : "",
-    );
+    // The dialog starts empty every time. It used to reopen with whatever
+    // patient the previous booking picked, so Create Appointment looked ready
+    // when nothing on screen had been chosen this time.
+    setModalPatientId(null);
+    setPatientQuery("");
     setShowRegister(false);
     setNewFirst("");
     setNewLast("");
@@ -284,6 +287,16 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
     newLast.trim().length > 0 &&
     newDob.trim().length > 0 &&
     newPhone.trim().length > 0;
+
+  /** What the register panel is still missing, named — never a silent disabled button. */
+  const missingRegisterFields = [
+    !newFirst.trim() && "first name",
+    !newLast.trim() && "last name",
+    !newDob.trim() && "date of birth",
+    !newPhone.trim() && "phone",
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   // Save appointment — registering the patient inline when there is no match.
   //
@@ -974,7 +987,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                         <input
                           value={newPhone}
                           onChange={(e) => setNewPhone(e.target.value)}
-                          placeholder="Phone (optional)"
+                          placeholder="Phone (required)"
                           className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
                         />
                       </div>
@@ -1073,10 +1086,11 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                   <span>{saveError}</span>
                 </p>
               )}
-              {!editAppointment && !modalPatientId && !canRegister && (
+              {!editAppointment && !modalPatientId && (
                 <p className="mb-2 text-[10px] leading-snug text-slate-500">
-                  Create Appointment stays disabled until a patient is chosen above — pick one from the
-                  search, or type a first and last name in the register panel to add a new patient.
+                  {showRegister && !canRegister
+                    ? `To register a new patient, fill in ${missingRegisterFields} — Create Appointment needs the whole record.`
+                    : "Pick a patient from the search above, or register a new one. Create Appointment will say what is still missing."}
                 </p>
               )}
               <div className="flex items-center justify-end gap-2">
@@ -1088,7 +1102,6 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               </button>
               <button
                 onClick={saveAppointment}
-                disabled={!editAppointment && !modalPatientId && !canRegister}
                 className="flex items-center gap-1 rounded-xl bg-brand-600 px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Save className="h-3 w-3" />

@@ -19,6 +19,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { usePatientStore, type Patient } from "../../store/patientStore";
+import { studentPatientList } from "../../domain/inbox";
 
 interface GlobalPatientSearchProps {
   /** Patient currently open, shown as a hint on the closed trigger. */
@@ -78,17 +79,23 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
 
   const selected = patients.find((p) => p.id === selectedId);
 
+  // Only the student's own charts (plus the pinned Tutorial Patient) are
+  // searchable here — the 18 demo charts are teaching material and live in
+  // Practice Cases (`specs/slice-inbox-patients.md`). The lookup above still
+  // sees every chart, so an open demo chart still names itself.
+  const searchable = useMemo(() => studentPatientList(patients), [patients]);
+
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return patients.slice(0, MAX_RESULTS);
-    return patients.filter((p) => haystack(p).includes(q)).slice(0, MAX_RESULTS);
-  }, [patients, query]);
+    if (!q) return searchable.slice(0, MAX_RESULTS);
+    return searchable.filter((p) => haystack(p).includes(q)).slice(0, MAX_RESULTS);
+  }, [searchable, query]);
 
   const totalMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return patients.length;
-    return patients.filter((p) => haystack(p).includes(q)).length;
-  }, [patients, query]);
+    if (!q) return searchable.length;
+    return searchable.filter((p) => haystack(p).includes(q)).length;
+  }, [searchable, query]);
 
   // Reset the cursor whenever the result set changes.
   useEffect(() => {

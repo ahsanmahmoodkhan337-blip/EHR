@@ -28,7 +28,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { openingStageId, encounterPath } from "../src/domain/encounterRoute";
 import { ENCOUNTER_FLOW_OPENING_STAGE } from "../src/domain/encounterFlow";
-import { inboxPatients, TUTORIAL_PATIENT_ID } from "../src/domain/inbox";
+import { inboxPatients, ownPatientList, studentPatientList, TUTORIAL_PATIENT_ID } from "../src/domain/inbox";
 import { selectPatients, type EhrAppointment } from "../src/store/ehrStore";
 
 const root = join(import.meta.dir, "..");
@@ -175,8 +175,8 @@ describe("a patient created through New Appointment appears in the Inbox", () =>
 describe("a patient created through New Appointment appears in the Patients list", () => {
   test("a registered patient is in the merged list the Patients page reads", () => {
     // `registerPatient` writes the new patient into the student's own record
-    // set; the Patients page reads seed + user merged on read (one list, not a
-    // second copy), so a patient registered through New Appointment is there.
+    // set; the page reads that set through the one ownership rule, so a patient
+    // registered through New Appointment is there.
     type EhrState = Parameters<typeof selectPatients>[0];
     const registered = { id: "PAT-NEW-1", firstName: "Ayesha", lastName: "Malik" };
     const listed = selectPatients({
@@ -185,6 +185,33 @@ describe("a patient created through New Appointment appears in the Patients list
     } as unknown as EhrState);
     expect(listed.map((p) => p.id)).toContain("PAT-NEW-1");
     expect(listed.map((p) => p.id)).toContain(TUTORIAL_PATIENT_ID);
-    expect(PATIENTS_PAGE).toContain("const { patients } = usePatientStore();");
+    // The page filters that merged list down to the student's own charts
+    // (`specs/slice-inbox-patients.md`), so a demo chart is never a row.
+    expect(PATIENTS_PAGE).toContain("ownPatientList(allPatients)");
+  });
+});
+
+// ─── 4. The demo charts are never live inbox work ─────────────────────
+
+describe("only the student's own charts are listed", () => {
+  const DEMO_CHART = { id: "P003", firstName: "Maria", lastName: "Garcia", isSeed: true };
+  const TUTORIAL = { id: TUTORIAL_PATIENT_ID, firstName: "Tutorial", lastName: "Patient", isSeed: true };
+
+  test("a built-in demo chart is dropped from the Inbox", () => {
+    const listed = inboxPatients([TUTORIAL, DEMO_CHART, REGISTERED], APPOINTMENTS, "2026-11-24");
+    expect(listed.map((p) => p.id)).toEqual([TUTORIAL_PATIENT_ID, REGISTERED.id]);
+  });
+
+  test("the badge count and /patients count the same own charts", () => {
+    const all = [TUTORIAL, DEMO_CHART, REGISTERED];
+    expect(ownPatientList(all).map((p) => p.id)).toEqual([REGISTERED.id]);
+    // The Inbox lists the pinned Tutorial Patient on top of those, once.
+    expect(inboxPatients(all, [], "2026-11-24")).toHaveLength(2);
+  });
+
+  test("the search and the appointment picker offer own charts plus the Tutorial Patient", () => {
+    const offered = studentPatientList([TUTORIAL, DEMO_CHART, REGISTERED]).map((p) => p.id);
+    expect(offered).toEqual([TUTORIAL_PATIENT_ID, REGISTERED.id]);
+    expect(SCHEDULE_DAY).toContain("studentPatientList(allPatients)");
   });
 });
