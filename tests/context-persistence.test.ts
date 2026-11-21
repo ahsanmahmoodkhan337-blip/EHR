@@ -86,6 +86,43 @@ describe("Home reopens the patient the encounter store still has open", () => {
   });
 });
 
+describe("choosing a patient makes them the one active patient", () => {
+  const store = read("src/store/pipelineStore.tsx");
+
+  test("the store writes the pick through, before the next page reads it", () => {
+    expect(store).toContain("export function rememberActivePatient(patientId: string | null): void {");
+    const pick = store.slice(
+      store.indexOf("export function rememberActivePatient"),
+      store.indexOf("// ─── Provider"),
+    );
+    // The one field the pick changes is saved straight away.
+    expect(pick).toContain("saveUserData(phone, { pipeline: { ...saved, activePatientId: patientId } })");
+    expect(pick).toContain("loadUserData(phone)");
+    // A pick is not a note, a code, a claim or money.
+    expect(pick).not.toContain("createEncounter");
+    expect(pick).not.toContain("ledger");
+    // The provider's own selectPatient writes through too, so every screen that
+    // picks a patient agrees with the pages that read the banner.
+    expect(store).toContain("rememberActivePatient(patientId);");
+  });
+
+  test("the Patients directory sets the pick before it navigates", () => {
+    const source = read("src/routes/patients.tsx");
+    expect(source).toContain('import { rememberActivePatient } from "../store/pipelineStore";');
+    const open = source.slice(source.indexOf("const openPatient = (patientId: string) => {"));
+    expect(open.indexOf("rememberActivePatient(patientId);")).toBeLessThan(open.indexOf("void navigate("));
+  });
+
+  test("a chart opened by its own address becomes the active patient", () => {
+    const source = read("src/routes/patients.$id.tsx");
+    expect(source).toContain("selectPatient");
+    expect(source).toContain("activePatientId");
+    const effect = source.slice(source.indexOf("useEffect(() => {"), source.indexOf("const copayUsd"));
+    expect(effect).toContain("if (activePatientId === id) return;");
+    expect(effect).toContain("selectPatient(id);");
+  });
+});
+
 describe("the empty-state Create Appointment button behind the dialog is disabled", () => {
   const source = read("src/components/TabsEpic/DailySchedule.tsx");
   const button = source.slice(

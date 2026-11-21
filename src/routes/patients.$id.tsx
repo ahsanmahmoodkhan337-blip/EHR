@@ -16,7 +16,7 @@
  * roles and moves with the arrow keys, Home/End and `[` / `]`.
  */
 
-import { useMemo, type KeyboardEvent } from "react";
+import { useEffect, useMemo, type KeyboardEvent } from "react";
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, UserRound } from "lucide-react";
 import { AppShell } from "../components/AppShell";
@@ -48,9 +48,25 @@ const footer = (
 function PatientHubLayout() {
   const { id } = Route.useParams();
   const { getPatientById } = usePatientStore();
-  const { getEncounter } = usePipeline();
+  const { getEncounter, selectPatient, activePatientId } = usePipeline();
   const appointments = useAllAppointments();
   const patient = getPatientById(id);
+
+  /**
+   * The chart on screen is the active patient everywhere else.
+   *
+   * The address names the patient (`/patients/P001/demographics`), so a row
+   * picked in Patients, a pasted link, a refresh and Back all make the same pick
+   * the money-cycle pages read (audit item 4). `selectPatient` is the one action
+   * that makes that pick and writes it through; it creates only the blank
+   * encounter the chart would open anyway, never a note, a code or a claim.
+   */
+  useEffect(() => {
+    if (!id) return;
+    if (activePatientId === id) return;
+    selectPatient(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, activePatientId]);
 
   // The copay the desk collected and the balance the ledger holds are read back
   // off the records that wrote them, so the banner cannot drift from the tabs.

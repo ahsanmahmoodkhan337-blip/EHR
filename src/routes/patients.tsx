@@ -17,6 +17,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Search, UserRound } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
+import { rememberActivePatient } from "../store/pipelineStore";
 import { DEFAULT_HUB_TAB } from "../components/patients/PatientHubTabs";
 
 export const Route = createFileRoute("/patients")({
@@ -51,7 +52,12 @@ function PatientsPage() {
 
   // The hub is what Patients opens (`specs/patient-hub.md`): one patient, six
   // tabs, at their own address. No new rail item was added for it.
+  //
+  // The pick is also made the one active patient every page reads, and written
+  // through before the route changes, so Coding, Claims, Payments and Denials &
+  // AR open on this patient instead of the Tutorial Patient (audit item 4).
   const openPatient = (patientId: string) => {
+    rememberActivePatient(patientId);
     void navigate({ to: "/patients/$id/$tab", params: { id: patientId, tab: DEFAULT_HUB_TAB } });
   };
 
