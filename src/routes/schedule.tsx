@@ -18,6 +18,7 @@ import { AppShell } from "../components/AppShell";
 import { PatientProvider } from "../store/patientStore";
 import { DailySchedule } from "../components/TabsEpic/DailySchedule";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
+import { openingStageId } from "../domain/encounterRoute";
 
 export const Route = createFileRoute("/schedule")({
   component: () => (
@@ -51,9 +52,21 @@ function SchedulePage() {
         </div>
         <DailySchedule
           onSelectPatient={(patientId, name) => {
-            // A booked patient opens in the medical workspace, which is where a
-            // chart lives. The workspace reads this request once on mount.
+            // Start Visit is an explicit pick: the appointment's own patient, at
+            // the Progress Note stage of their encounter (audit item 3). Naming
+            // the patient in the address is what keeps a saved session from
+            // putting yesterday's patient back in front of it — the workspace
+            // treats `/encounter/:encounterId/:stage` as the pick that wins.
             requestPatientOpen(patientId, name);
+            if (patientId) {
+              void navigate({
+                to: "/encounter/$encounterId/$stage",
+                params: { encounterId: patientId, stage: openingStageId() },
+              });
+              return;
+            }
+            // An appointment with no patient record behind it (a legacy row):
+            // the workspace opens a blank encounter under the booked name.
             void navigate({ to: "/" });
           }}
         />
