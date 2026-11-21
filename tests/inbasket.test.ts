@@ -296,3 +296,56 @@ describe("the InBasket's rows", () => {
     expect(items[items.length - 1].priority).toBe("low");
   });
 });
+
+/** Source of a file in the repo, read as text. */
+function read(path: string): string {
+  return require("node:fs").readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+}
+
+/**
+ * The same source with its comments removed — what the browser actually draws.
+ * A header comment may name the placeholder it replaced; the code may not
+ * still contain one.
+ */
+function readCode(path: string): string {
+  return read(path)
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+}
+
+describe("the two tabs are not blank and not fake", () => {
+  test("the InBasket panel has no invented alert, no literal count and no SOON label", () => {
+    const source = readCode("src/components/TabsEpic/InBasket.tsx");
+    expect(source).not.toContain("PLACEHOLDER_ALERTS");
+    expect(source).not.toContain("coming soon");
+    expect(source).not.toContain("Robert Johnson");
+    expect(source).not.toContain("2 min ago");
+    // The count in the header is the same function the tab badge uses.
+    expect(source).toContain("inboxCount(items)");
+    // Every row's control is a real control with a label.
+    expect(source).toContain("aria-label={`Open ${item.patient}");
+    expect(source).toContain("min-h-10");
+  });
+
+  test("the Active Progress Note holds no note of its own", () => {
+    const source = readCode("src/components/TabsEpic/ActiveProgressNote.tsx");
+    expect(source).not.toContain("Dr. Resident");
+    expect(source).not.toContain("savedNotes");
+    expect(source).not.toContain("Free-Text");
+    // One record, one status, one lock, one signer — from the domain, not here.
+    expect(source).toContain("writeNoteFor");
+    expect(source).toContain("noteStatus(encounter)");
+    expect(source).toContain("noteReadOnly(encounter)");
+    expect(source).toContain("NOTE_STATUS_LABEL[status]");
+    expect(source).toContain("noteSignedBy(encounter)");
+    expect(source).toContain("NOTE_SIGNED");
+  });
+
+  test("the home workspace draws both panels", () => {
+    const source = read("src/routes/index.tsx");
+    expect(source).toContain('<WorkspacePanel id="inbasket"');
+    expect(source).toContain("<InBasket onOpenMedicalStage={openMedicalStage} />");
+    expect(source).toContain('<WorkspacePanel id="note"');
+    expect(source).toContain("<ActiveProgressNote patient={selectedPatient ?? null} />");
+  });
+});

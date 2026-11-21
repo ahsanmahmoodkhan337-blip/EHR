@@ -52,7 +52,9 @@ import { PA_PROCEDURES } from "../components/PriorAuthPortal/paData";
 import { TabsEpic, TabPanel, useTabsEpic } from "../components/TabsEpic/TabsEpic";
 import { PatientBanner } from "../components/shell/PatientBanner";
 import { useActiveTrack } from "../components/shell/activeTrack";
-import { useHomeWorkQueueTotal } from "../components/status/HomeWorkQueues";
+import { InBasket, useInboxItems } from "../components/TabsEpic/InBasket";
+import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
+import { inboxCount } from "../domain/inbasket";
 import { hasSubmittedCodes } from "../domain/codingQueue";
 import { postedCopayForPatient } from "../domain/checkIn";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
@@ -2376,7 +2378,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // The stored track, live (owner item 4), and the InBasket badge counted from
   // the same rows the Work Queues panel prints — never a literal.
   const track = useActiveTrack();
-  const inBasketCount = useHomeWorkQueueTotal();
+  // The tab badge and the InBasket panel are the same derivation, so they can
+  // never disagree (build 5, the two blank tabs).
+  const inBasketCount = inboxCount(useInboxItems());
 
   return (
     <AppShell
@@ -3172,6 +3176,17 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       </>
     )}
       </WorkspacePanel>
+
+      {/* ─── InBasket / Alert Center — the student's own outstanding work ─── */}
+      <WorkspacePanel id="inbasket" activeWorkspace={activeWorkspace}>
+        <InBasket onOpenMedicalStage={openMedicalStage} />
+      </WorkspacePanel>
+
+      {/* ─── Active Progress Note — the encounter's one note record ─── */}
+      <WorkspacePanel id="note" activeWorkspace={activeWorkspace}>
+        <ActiveProgressNote patient={selectedPatient ?? null} />
+      </WorkspacePanel>
+
       {/* ─── Activity Log Stream ─── */}
       {selectedPatient && (
         <div className="border-t border-slate-200 bg-white/80 backdrop-blur-sm">
