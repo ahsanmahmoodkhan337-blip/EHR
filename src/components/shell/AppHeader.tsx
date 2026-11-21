@@ -101,14 +101,15 @@ export function AppHeader({
         >
           <Settings className="h-4 w-4" aria-hidden="true" />
         </Link>
-        {/* Logo: the 19 November mark (h-7 / 140 px) one step larger, with its
-            own breathing room so it never crowds the Medical/Dental switch.
-            Hidden below sm, where the header keeps its single row for controls. */}
+        {/* Logo: the 19 November mark (h-7 / 140 px) taken up to the height of
+            the header controls (h-10), with its own breathing room on both
+            sides so it never crowds the Medical/Dental switch. Hidden below
+            sm, where the header keeps its single row for controls. */}
         <img
           src="/healthcarehustlers-logo.png"
           alt="Healthcare Hustlers"
-          className="mx-1 hidden h-8 w-auto shrink-0 sm:block lg:h-9"
-          style={{ maxWidth: "160px" }}
+          className="ml-1 mr-2 hidden h-10 w-auto shrink-0 sm:block"
+          style={{ maxWidth: "200px" }}
         />
         <TrackSwitcher
           track={track}
