@@ -62,10 +62,11 @@ describe("the rail — eleven pages, no SOON", () => {
     expect(read("src/components/shell/navItems.ts")).not.toContain('"soon"');
   });
 
-  test("the sidebar has no not-built-yet branch to render", () => {
-    const sidebar = read("src/components/shell/AppSidebar.tsx");
-    expect(sidebar).not.toContain('"soon"');
-    expect(sidebar).not.toContain("Soon");
+  test("no destination says Soon, and none is a placeholder", () => {
+    const navItems = read("src/components/shell/navItems.ts");
+    const header = read("src/components/shell/AppHeader.tsx");
+    expect(navItems).not.toContain('"soon"');
+    expect(header).not.toContain("Soon");
   });
 });
 

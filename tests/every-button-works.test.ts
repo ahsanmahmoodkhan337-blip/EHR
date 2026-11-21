@@ -23,7 +23,7 @@
  * the encounter's own tests, not by this one.
  */
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = join(import.meta.dir, "..");
@@ -59,8 +59,7 @@ const PAGE_FILES = [
   "src/routes/cases.index.tsx",
   "src/routes/settings.tsx",
   "src/components/AppShell.tsx",
-  "src/components/shell/AppSidebar.tsx",
-  "src/components/shell/AppTopBar.tsx",
+  "src/components/shell/AppHeader.tsx",
   "src/components/shell/PatientBanner.tsx",
   "src/components/shell/HelpLauncher.tsx",
   "src/components/shell/AutosaveIndicator.tsx",
@@ -152,29 +151,51 @@ describe("every control on the eleven rail pages does something or says why not"
   }
 });
 
-describe("the rail never lies about where the student is", () => {
-  const sidebar = read("src/components/shell/AppSidebar.tsx");
+/**
+ * Owner's style correction, 2026-11-21 (spec `nov19-style-restore.md` §1): the
+ * eleven-button left rail is gone. The destinations it held are not — this
+ * block holds the build to that, and to the 19 November header being the bar
+ * that carries the navigation again.
+ */
+describe("every destination survives the rail's removal", () => {
+  const header = read("src/components/shell/AppHeader.tsx");
+  const shell = read("src/components/AppShell.tsx");
+  const dashboard = read("src/routes/dashboard.tsx");
   const navItems = read("src/components/shell/navItems.ts");
 
-  test("exactly one rail entry is marked aria-current, and only the active one", () => {
-    const current = sidebar.match(/aria-current=\{/g) ?? [];
-    expect(current.length).toBe(1);
-    expect(sidebar).toContain('aria-current={isActive ? "page" : undefined}');
-    expect(sidebar).toContain("const isActive = activeNav === item.id;");
+  test("the rail is gone, and nothing draws it", () => {
+    expect(existsSync(join(root, "src/components/shell/AppSidebar.tsx"))).toBe(false);
+    expect(existsSync(join(root, "src/components/shell/AppTopBar.tsx"))).toBe(false);
+    expect(shell).not.toContain("AppSidebar");
+    expect(shell).not.toContain("app-shell-row");
   });
 
-  test("each of the eleven rail entries opens its own page", () => {
+  test("the 19 November header bar is the navigation: Home, Dashboard, Settings, track switch", () => {
+    // The `.header-nav` class is the 19 November bar's own class, from app.css.
+    expect(header).toContain('className="header-nav');
+    expect(header).toContain('to="/"');
+    expect(header).toContain('to="/dashboard"');
+    expect(header).toContain('to="/settings"');
+    expect(header).toContain("<TrackSwitcher");
+  });
+
+  test("the dashboard carries a card for every destination except the header's two", () => {
+    // The cards are built from the same list, so a page cannot fall out of both.
+    expect(dashboard).toContain("const PRACTICE_AREAS = SHELL_NAV_ITEMS.filter(");
+    expect(dashboard).toContain('item.id !== "home"');
+    expect(dashboard).toContain('item.id !== "settings"');
+    expect(dashboard).toContain("PRACTICE_AREAS.map(");
     const targets = [...navItems.matchAll(/to: "([^"]+)"/g)].map((m) => m[1]);
     expect(targets).toEqual(RAIL_PAGES.map((page) => page.path));
     expect(targets).toHaveLength(11);
+    expect(targets.filter((t) => t !== "/" && t !== "/settings")).toHaveLength(9);
   });
 
-  test("no rail entry says Soon, and none is a placeholder", () => {
+  test("no destination says Soon, and none is a placeholder", () => {
     // No item carries a "soon" flag or a "soon" target — every one is a page.
     expect(navItems).not.toMatch(/\bsoon\s*:/);
     expect(navItems).not.toContain('"soon"');
-    expect(sidebar).not.toContain("Soon");
-    // Every label is a real destination, never a "coming soon" marker.
+    expect(header).not.toContain("Soon");
     const labels = [...navItems.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]);
     expect(labels).toEqual([
       "Home",
@@ -191,26 +212,11 @@ describe("the rail never lies about where the student is", () => {
     ]);
   });
 
-  test("every rail page names itself to the rail", () => {
-    const expected: Record<string, string> = {
-      "src/routes/schedule.tsx": 'activeNav="schedule"',
-      "src/routes/coding.tsx": 'activeNav="coding"',
-      "src/routes/claims.tsx": 'activeNav="claims"',
-      "src/routes/payments.tsx": 'activeNav="payments"',
-      "src/routes/denials-ar.tsx": 'activeNav="denials-ar"',
-      "src/routes/reports.tsx": 'activeNav="reports"',
-      "src/routes/patients.tsx": 'activeNav="patients"',
-      "src/routes/charts.tsx": 'activeNav="charts"',
-      "src/routes/cases.index.tsx": 'activeNav="practice-cases"',
-      "src/routes/settings.tsx": 'activeNav="settings"',
-    };
-    for (const [file, marker] of Object.entries(expected)) {
-      expect(read(file)).toContain(marker);
-    }
-    // Home's rail marker is a named constant, because `/` also draws a chart.
-    const home = read("src/routes/index.tsx");
-    expect(home).toContain("const shellActiveNav: ShellNavId = \"home\";");
-    expect(home).toContain("activeNav={shellActiveNav}");
+  test("the encounter's stepper still opens the money-cycle stages", () => {
+    const encounter = read("src/routes/index.tsx");
+    expect(encounter).toContain("<EncounterStepper");
+    expect(encounter).toContain("ENCOUNTER_FLOW_STAGES");
+    expect(encounter).toContain("onSelect={openFlowStage}");
   });
 });
 
