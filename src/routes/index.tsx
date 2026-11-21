@@ -80,6 +80,7 @@ import {
   completedFlowStages,
   currentFlowStage,
   flowStageIndex,
+  flowStageLabel,
   stageOpenTarget,
   lastFlowStageId,
   nextFlowStage,
@@ -2355,10 +2356,12 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * stage, codes, claim and postings, so reopening the patient returns to them.
    */
   const handleHomeClick = () => {
+    // Home and the logo open the dashboard now (spec `slice-navigation.md` item
+    // 2), so this no longer closes the chart: the encounter stays exactly where
+    // the student left it — only Resume reopens it — and the note draft is
+    // flushed on the way out so nothing typed is lost.
     saveNoteDraftNow();
     saveCurrentSession();
-    setSelectedPatientId("");
-    setActiveStage("");
   };
 
   // Home is its own page now: the rail marks Home, and nothing on it pretends
@@ -2370,6 +2373,16 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       track="medical"
       activeNav={shellActiveNav}
       onHomeClick={handleHomeClick}
+      breadcrumb={[
+        // On an encounter page the trail names the patient and the stage, not
+        // the address (spec item 3).
+        {
+          label: selectedPatient
+            ? `${selectedPatient.firstName} ${selectedPatient.lastName}`
+            : displayName || "No patient open",
+        },
+        { label: flowStageLabel(flowStageId) },
+      ]}
       selectedPatientId={selectedPatientId}
       onPatientSelect={handlePatientSelect}
       roleLabel={getRoleLabel(currentRole)}

@@ -95,6 +95,9 @@ function PatientHubLayout() {
     <AppShell
       track={patient?.track === "dental" ? "dental" : "medical"}
       activeNav="patients"
+      // The trail names the patient on screen, not the id in the address
+      // (spec `slice-navigation.md` item 3).
+      breadcrumb={[{ label: patient ? `${patient.firstName} ${patient.lastName}` : "Patient hub" }]}
       banner={<PatientBanner patient={banner} copayUsd={copayUsd} patientBalance={patientBalance} />}
       footer={footer}
     >

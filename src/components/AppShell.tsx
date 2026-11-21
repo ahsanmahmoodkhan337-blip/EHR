@@ -31,8 +31,11 @@
  */
 
 import type { ReactNode } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { AppHeader } from "./shell/AppHeader";
 import { HelpLauncher } from "./shell/HelpLauncher";
+import { PageBreadcrumb } from "./shell/PageBreadcrumb";
+import { breadcrumbForPath, type Crumb } from "../domain/breadcrumb";
 import type { ShellNavId, ShellTrack } from "./shell/navItems";
 
 interface AppShellProps {
@@ -46,9 +49,10 @@ interface AppShellProps {
    */
   activeNav?: ShellNavId | null;
   /**
-   * Called when the header's Home control is clicked. Home is a destination even
-   * when the page is already Home (spec `home-button-returns-home.md`), so the
-   * page gets to close whatever workspace is open in front of it.
+   * Called when the header's Home control or the logo is clicked, before the
+   * dashboard opens. Both now open `/dashboard` (spec `slice-navigation.md`
+   * item 2 — only Resume opens the encounter); this is where the page flushes
+   * what it holds, so a note draft is written on the way out rather than lost.
    */
   onHomeClick?: () => void;
 
@@ -60,6 +64,15 @@ interface AppShellProps {
   onToggleExamMode?: () => void;
   /** Route-specific header controls (for example the summary toggle). */
   topBarExtras?: ReactNode;
+
+  /**
+   * What this page knows and its address does not — the patient's name and the
+   * stage on screen in the encounter, the claim number on Claims. It replaces
+   * everything after the Dashboard crumb in the trail (spec
+   * `slice-navigation.md` item 3). Pages that pass nothing get the trail their
+   * pathname names.
+   */
+  breadcrumb?: Crumb[] | null;
 
   /** Full-width strip rendered directly below the header (patient banner). */
   banner?: ReactNode;
@@ -87,6 +100,7 @@ export function AppShell({
   examTimeRemaining,
   onToggleExamMode,
   topBarExtras,
+  breadcrumb,
   banner,
   leftPanel,
   rightPanel,
@@ -95,9 +109,15 @@ export function AppShell({
   footer,
   children,
 }: AppShellProps) {
+  // The page the router is drawing — the trail and the highlighted link are
+  // read from it, so neither can drift from the screen (spec item 3 and 4).
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const trail = breadcrumbForPath(pathname, breadcrumb);
+
   return (
     <div className="app-shell">
-      {/* Navy bar + banner: full width, stuck to the top (19 Nov build). */}
+      {/* Navy bar, the breadcrumb row, then the banner: full width, stuck to
+          the top (19 Nov build + spec `slice-navigation.md` item 3). */}
       <div className="app-shell-header sticky top-0 z-40 shrink-0">
         <AppHeader
           track={track}
@@ -110,6 +130,8 @@ export function AppShell({
           onToggleExamMode={onToggleExamMode}
           extras={topBarExtras}
         />
+        {/* Every page but the dashboard: Back + the trail. */}
+        {trail && <PageBreadcrumb trail={trail} />}
         {banner}
       </div>
 
