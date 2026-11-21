@@ -15,7 +15,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
@@ -72,14 +72,18 @@ import {
   ENCOUNTER_FLOW_STAGES,
   completedFlowStages,
   currentFlowStage,
-  flowStage,
   flowStageIndex,
+  stageOpenTarget,
   lastFlowStageId,
   nextFlowStage,
   previousFlowStage,
   type BillingDeskTab,
-  type EncounterFlowStageId,
 } from "../domain/encounterFlow";
+import {
+  ENCOUNTER_ROUTE_PREFIX,
+  encounterPath,
+  writeEncounterAddress,
+} from "../domain/encounterRoute";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
 import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
 import { EligibilityStage } from "../components/WorkflowAthena/EligibilityStage";
@@ -165,6 +169,24 @@ export const Route = createFileRoute("/")({
     </ToastProvider>
   ),
 });
+
+/**
+ * The medical encounter workspace, exported because it is one screen with two
+ * addresses: Home (`/`) and the encounter's own stage address
+ * (`/encounter/:encounterId/:stage`, `encounter.$encounterId.$stage.tsx`). The
+ * encounter route hands it the patient and the stage the address names; Home
+ * passes neither and the workspace opens whatever the student had open.
+ *
+ * One component in both places on purpose: the stepper, the patient banner and
+ * the Medical track cannot differ between a screen the student walked to and a
+ * link they pasted.
+ */
+export interface HomeProps {
+  /** The encounter the address names — in this build, the patient's id. */
+  encounterIdFromRoute?: string;
+  /** The stage the address names, from `domain/encounterFlow.ts`. */
+  stageFromRoute?: string;
+}
 
 // ─── Per-Patient Session Data Store ──────────────────────────────
 // Preserves each patient's scribe/vitals/shared data when switching
@@ -1391,7 +1413,8 @@ function PublicLandingPage() {
 
 // ─── Main Layout ───────────────────────────────────────────────────
 
-function Home() {
+export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
+  const router = useRouter();
   const { patients, caseStates } = usePatientStore();
   const { activeTab, setActiveTab } = useTabsEpic("summary");
   /**
@@ -1403,7 +1426,11 @@ function Home() {
    */
   const activeWorkspace = "chart";
   const setActiveWorkspace = (_workspace: string) => {};
-  const [selectedPatientId, setSelectedPatientId] = useState(() => sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
+  const [selectedPatientId, setSelectedPatientId] = useState(() =>
+    // A pasted link names its patient, and that wins over the remembered pick.
+    (encounterIdFromRoute && patients.some((p) => p.id === encounterIdFromRoute)
+      ? encounterIdFromRoute
+      : "") || sessionStorage.getItem("hh_selected_patient") || patients[0]?.id || "");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const { currentRole, submitToCoding, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
@@ -1441,6 +1468,40 @@ function Home() {
   const goToChartStage = (stage: string) => {
     setActiveStage(stage);
     rememberChartStage(stage);
+  };
+
+  // ── The encounter's seven stages, in the owner's order ──────────────────
+  // (owner's audit, 2026-11-20, item 1 — `domain/encounterFlow.ts`). The stage
+  // on screen comes from the role and the screen in front of the student, so the
+  // stepper's highlight and the workspace cannot disagree.
+  const flowStageId = currentFlowStage({
+    role: currentRole,
+    chartStage: activeStage,
+    billingTab,
+  });
+
+  /**
+   * Open one stage of the encounter. Navigation only — nothing is written.
+   * The stepper, Back / Continue, the work-queue rows and a pasted address all
+   * come through here, so a stage opens on the same screen however it was
+   * reached (`stageOpenTarget`).
+   */
+  const openFlowStage = (id: string) => {
+    const target = stageOpenTarget(id);
+    if (!target) return;
+    if (target.role === "scribe") {
+      setRole("scribe");
+      if (target.chartStage) goToChartStage(target.chartStage);
+      return;
+    }
+    if (target.role === "biller") {
+      setRole("biller");
+      setBillingTab(target.billingTab);
+      setActiveStage("");
+      return;
+    }
+    setRole(target.role);
+    setActiveStage("");
   };
 
   // A patient picked from the shell's search while another page was open lands
@@ -1791,6 +1852,48 @@ function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPatientId]);
 
+  /**
+   * A stage named in the address opens once, after the patient's own session has
+   * loaded — an address beats whatever screen the session remembered (audit item
+   * 2: "a real route per encounter and stage, so refresh and deep links work").
+   * It is the same `openFlowStage` the stepper calls, so a pasted link lands on
+   * the screen the stepper would have shown. Nothing is written to the record.
+   */
+  const routeStageApplied = useRef(false);
+  useEffect(() => {
+    if (!stageFromRoute || routeStageApplied.current) return;
+    // Wait until the chart is showing the patient the address names.
+    if (!selectedPatientId) return;
+    if (encounterIdFromRoute && selectedPatientId !== encounterIdFromRoute) return;
+    if (!stageOpenTarget(stageFromRoute)) return;
+    routeStageApplied.current = true;
+    openFlowStage(stageFromRoute);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageFromRoute, encounterIdFromRoute, selectedPatientId]);
+
+  /**
+   * Keep the address naming the encounter and the stage on screen. The write is
+   * shallow: the router is not asked to re-render, so moving between stages
+   * keeps the note, the vitals and the exam timer in memory, while a refresh or
+   * a pasted link is a real load of `/encounter/:encounterId/:stage`.
+   */
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+    // Let a pasted address open its own stage before the address is rewritten.
+    if (stageFromRoute && !routeStageApplied.current) return;
+    const href = selectedPatientId
+      ? encounterPath(selectedPatientId, flowStageId)
+      : window.location.pathname.startsWith(ENCOUNTER_ROUTE_PREFIX)
+        ? "/"
+        : null;
+    if (!href) return;
+    writeEncounterAddress(href, {
+      history: router.history,
+      browserHistory: window.history,
+      pathname: window.location.pathname,
+    });
+  }, [selectedPatientId, flowStageId, stageFromRoute, router]);
+
   // Note autosave: every 5 s, on blur (focusout anywhere) and on page hide.
   // Nothing here depends on the student pressing Save (section 5).
   useEffect(() => {
@@ -1815,6 +1918,10 @@ function Home() {
   useEffect(() => {
     if (!ehrHydrated || contextRestored.current) return;
     contextRestored.current = true;
+    // A pasted link is an explicit pick: it names its patient and its stage, so
+    // the saved session does not put a different patient in front of it
+    // (audit item 3: "session restore never overrides an explicit pick").
+    if (encounterIdFromRoute) return;
     const ctx = useEhrStore.getState().user.context;
     if (!ctx.patientId) return;
     const p = patients.find((pp) => pp.id === ctx.patientId);
@@ -2047,16 +2154,6 @@ function Home() {
     "sign-lock": noteSigned,
   });
 
-  // ── The encounter's seven stages, in the owner's order ──────────────────
-  // (owner's audit, 2026-11-20, item 1 — `domain/encounterFlow.ts`). The stage
-  // on screen comes from the role and the screen in front of the student, so the
-  // stepper's highlight and the workspace cannot disagree.
-  const flowStageId = currentFlowStage({
-    role: currentRole,
-    chartStage: activeStage,
-    billingTab,
-  });
-
   // What the record says is finished. Read from the encounter itself, never
   // from a stored click, so a tick and the work can never disagree.
   const noteWritten = hpiDone && examDone && planGaps.length === 0;
@@ -2076,25 +2173,6 @@ function Home() {
     payments: remittancePosted,
     "denials-ar": arCleared,
   });
-
-  /** Open one stage of the encounter. Navigation only — nothing is written. */
-  const openFlowStage = (id: string) => {
-    const stage = flowStage(id);
-    if (!stage) return;
-    if (stage.role === "scribe") {
-      setRole("scribe");
-      if (stage.chartStage) goToChartStage(stage.chartStage);
-      return;
-    }
-    if (stage.role === "biller") {
-      setRole("biller");
-      setBillingTab(stage.billingTab ?? "form");
-      setActiveStage("");
-      return;
-    }
-    setRole(stage.role);
-    setActiveStage("");
-  };
 
   const flowNext = nextFlowStage(flowStageId);
   const flowPrevious = previousFlowStage(flowStageId);
