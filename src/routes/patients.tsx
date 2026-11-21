@@ -10,14 +10,21 @@
  * Every row opens that patient's chart in the medical workspace — the only
  * place a chart lives. Nothing is written here: opening a patient loads their
  * own saved encounter, it does not reset it.
+ *
+ * Only the student's own charts are listed (`specs/slice-inbox-patients.md`):
+ * the patients they registered and the ones they booked on the Schedule. The 18
+ * built-in demo charts are teaching material and live in Practice Cases, so a
+ * new student sees the empty state and a way to their first appointment. The
+ * full lookup by id is untouched, so a claim on a demo chart still names it.
  */
 
 import { useMemo, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Search, UserRound } from "lucide-react";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { Search, UserRound, CalendarPlus } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
 import { rememberActivePatient } from "../store/pipelineStore";
+import { ownPatientList } from "../domain/inbox";
 import { DEFAULT_HUB_TAB } from "../components/patients/PatientHubTabs";
 
 export const Route = createFileRoute("/patients")({
@@ -30,8 +37,11 @@ export const Route = createFileRoute("/patients")({
 
 function PatientsPage() {
   const navigate = useNavigate();
-  const { patients } = usePatientStore();
+  const { patients: allPatients } = usePatientStore();
   const [query, setQuery] = useState("");
+
+  // The student's own charts only — never the built-in demo charts.
+  const patients = useMemo(() => ownPatientList(allPatients), [allPatients]);
 
   const trimmed = query.trim().toLowerCase();
   const matches = useMemo(() => {
@@ -98,9 +108,26 @@ function PatientsPage() {
         </div>
 
         {matches.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-slate-200 p-4 text-xs text-slate-500">
-            No patient on file matches “{query.trim()}”. Clear the search to see every chart.
-          </p>
+          patients.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+              <p className="text-xs font-semibold text-slate-700">No patients yet.</p>
+              <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                Book an appointment on the Schedule to start your first visit.
+              </p>
+              <Link
+                to="/schedule"
+                aria-label="Open the Schedule to book your first appointment"
+                className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              >
+                <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                Open the Schedule
+              </Link>
+            </div>
+          ) : (
+            <p className="rounded-lg border border-dashed border-slate-200 p-4 text-xs text-slate-500">
+              No patient on file matches “{query.trim()}”. Clear the search to see every chart.
+            </p>
+          )
         ) : (
           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="data-table min-w-[640px]">

@@ -15,9 +15,10 @@
  * - Closes on blur/click-outside
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Search, ChevronDown, X } from "lucide-react";
 import { usePatientStore } from "../../store/patientStore";
+import { studentPatientList } from "../../domain/inbox";
 
 interface GlobalPatientSearchProps {
   selectedId: string;
@@ -38,9 +39,14 @@ export function GlobalPatientSearch({
 
   const selected = patients.find((p) => p.id === selectedId);
 
+  // The student's own charts plus the pinned Tutorial Patient — the 18 demo
+  // charts belong to Practice Cases (`specs/slice-inbox-patients.md`). The
+  // lookup above keeps every chart so an open demo chart still names itself.
+  const searchable = useMemo(() => studentPatientList(patients), [patients]);
+
   // Filter patients based on search query
   const filtered = query.trim()
-    ? patients.filter((p) => {
+    ? searchable.filter((p) => {
         const q = query.toLowerCase();
         return (
           p.firstName.toLowerCase().includes(q) ||
@@ -50,7 +56,7 @@ export function GlobalPatientSearch({
           `${p.firstName} ${p.lastName}`.toLowerCase().includes(q)
         );
       })
-    : patients;
+    : searchable;
 
   // Close on click outside
   useEffect(() => {

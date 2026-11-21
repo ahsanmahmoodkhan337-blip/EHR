@@ -226,8 +226,9 @@ function SettingsPage() {
           <p className="mt-1 text-[11px] text-slate-500">
             Your patients, appointments and per-patient workflow state are saved automatically to
             this browser. The autosave indicator in the top bar shows when the last save happened,
-            and says so if a save fails. The built-in demo patients are separate and always
-            available.
+            and says so if a save fails. The built-in demo patients are teaching charts, not yours:
+            they stay out of your Inbox and patient list, and you open them from Practice Cases.
+            The Tutorial Patient is the one chart always pinned in your Inbox.
           </p>
           {!hydrated ? (
             <p className="mt-3 text-xs italic text-slate-400">Loading your saved data…</p>

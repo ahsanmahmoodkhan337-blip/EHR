@@ -1,12 +1,21 @@
 /**
  * WorklistPanel — Left Panel "Digital Mailbox"
  *
+ * Inspired by: eClinicalWorks' Inbox and Epic's Patient Lists activity.
+ *
  * Scrollable list of pending patient files showing mini
  * avatar, patient name, idle status, priority pulse indicator.
- * Demo/Tutorial patient is always pinned at the top.
+ * The Tutorial patient is always pinned at the top.
+ *
+ * The badge counts the student's own charts only — the pinned Tutorial Patient
+ * is practice, not waiting work — so it agrees with "charts on file" on
+ * `/patients` (`specs/slice-inbox-patients.md`). With nothing booked or
+ * registered yet, the panel says so and points at the Schedule instead of
+ * showing a bare list.
  */
 
-import { Clock, Circle, Pin, AlertTriangle } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Clock, Circle, Pin, AlertTriangle, CalendarPlus } from "lucide-react";
 import type { Patient } from "../store/patientStore";
 
 interface WorklistPanelProps {
@@ -51,8 +60,11 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
       <div className="mb-2 flex items-center gap-2 border-b border-slate-100 pb-2">
         <Clock className="h-4 w-4 text-slate-500" />
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Inbox</span>
-        <span className="ml-auto rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-          {patients.length}
+        <span
+          className="ml-auto rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600"
+          aria-label={`${regularPatients.length} of your own patients in the Inbox`}
+        >
+          {regularPatients.length}
         </span>
       </div>
       <div className="max-h-[calc(100vh-12rem)] space-y-1 overflow-y-auto">
@@ -95,6 +107,24 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
             <div className="h-px flex-1 bg-slate-200" />
             <span className="text-[9px] font-medium uppercase tracking-wider text-slate-400">Patients</span>
             <div className="h-px flex-1 bg-slate-200" />
+          </div>
+        )}
+
+        {/* Nothing of the student's own yet — say so, and where a first patient comes from. */}
+        {regularPatients.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
+            <p className="text-[11px] font-semibold text-slate-700">No patients yet.</p>
+            <p className="mt-0.5 text-[10px] leading-snug text-slate-500">
+              Book an appointment on the Schedule to start your first visit.
+            </p>
+            <Link
+              to="/schedule"
+              aria-label="Open the Schedule to book your first appointment"
+              className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-brand-600 px-2.5 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            >
+              <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
+              Open the Schedule
+            </Link>
           </div>
         )}
 

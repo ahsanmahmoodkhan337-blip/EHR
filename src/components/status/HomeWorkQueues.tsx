@@ -48,6 +48,7 @@ import {
   type QueueEntry,
   type QueueRow,
 } from "../../domain/homeWorkQueues";
+import { isOwnPatient } from "../../domain/inbox";
 
 export interface HomeWorkQueuesProps {
   /**
@@ -82,6 +83,14 @@ export function HomeWorkQueues({ onOpenMedicalStage }: HomeWorkQueuesProps) {
         arWorkItems,
         nameForPatient,
         roleLabel: getRoleLabel,
+        // Only the student's own charts count as waiting work; the 18 demo
+        // charts and the Tutorial Patient are practice (`slice-inbox-patients`).
+        // A record with no patient is still counted — it is labelled an orphan.
+        isOwnPatient: (patientId) => {
+          if (!patientId) return true;
+          const patient = getPatientById(patientId);
+          return patient ? isOwnPatient(patient) : true;
+        },
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allEncounters, arWorkItems, getPatientById, getRoleLabel],

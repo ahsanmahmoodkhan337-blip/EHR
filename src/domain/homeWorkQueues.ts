@@ -116,6 +116,16 @@ export interface MedicalQueueInput {
   nameForPatient: (patientId: string | null | undefined, fallback?: string | null) => string;
   /** Human label for a role, e.g. "Medical Biller". */
   roleLabel: (role: Role) => string;
+  /**
+   * Whether the patient behind an encounter is the student's own chart
+   * (`specs/slice-inbox-patients.md`, item 3). Work recorded on one of the 18
+   * built-in demo charts is teaching practice, so it is not counted as
+   * "waiting" in the student's queues. A record with no patient at all is still
+   * counted — it is labelled a demo orphan instead. Defaults to counting
+   * everything, so a caller that does not know the patient list keeps the old
+   * behaviour.
+   */
+  isOwnPatient?: (patientId: string | null | undefined) => boolean;
 }
 
 export function buildMedicalQueueRows({
@@ -123,7 +133,9 @@ export function buildMedicalQueueRows({
   arWorkItems,
   nameForPatient,
   roleLabel,
+  isOwnPatient,
 }: MedicalQueueInput): QueueRow[] {
+  const owns = isOwnPatient ?? (() => true);
   const awaiting: QueueEntry[] = [];
   const ready: QueueEntry[] = [];
   const mid: QueueEntry[] = [];
@@ -135,6 +147,9 @@ export function buildMedicalQueueRows({
     const who = isOrphanClaim(enc)
       ? ORPHAN_CLAIM_LABEL
       : nameForPatient(enc.patientId, enc.displayName);
+
+    // A demo chart's work is not the student's own: it never counts here.
+    if (!owns(enc.patientId)) continue;
 
     if (enc.claimNumber && isAwaitingPayer(enc.claimStatus)) {
       const timeline = statusEventsFor(enc.statusEvents, "claim", enc.claimNumber);
@@ -173,8 +188,9 @@ export function buildMedicalQueueRows({
   }
 
   // One item per unpaid or denied line of a posted 835 (`domain/arWorkQueue`).
+  // A line on a demo chart is teaching practice, so it is not the student's AR.
   const ar: QueueEntry[] = arWorkItems
-    .filter((item) => item.status !== "resolved")
+    .filter((item) => item.status !== "resolved" && owns(item.patientId))
     .map((item) => ({
       id: item.id,
       label: `${item.claimNumber} · ${nameForPatient(item.patientId, item.patientName)}`,
