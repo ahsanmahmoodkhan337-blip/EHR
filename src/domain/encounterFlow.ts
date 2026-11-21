@@ -84,6 +84,25 @@ export function flowStage(id: string | null | undefined): EncounterFlowStage | u
   return ENCOUNTER_FLOW_STAGES.find((stage) => stage.id === id);
 }
 
+/**
+ * How a stage opens: the role whose screen draws it, the chart step it lands on
+ * (the two scribe stages) and the biller's tab. The stepper, Back / Continue and
+ * the address `/encounter/:encounterId/:stage` all open a stage through this one
+ * function, so a stage cannot open on one screen from the stepper and another
+ * from a pasted link.
+ */
+export function stageOpenTarget(id: string | null | undefined):
+  | { role: EncounterFlowRole; chartStage?: string; billingTab: BillingDeskTab }
+  | undefined {
+  const stage = flowStage(id);
+  if (!stage) return undefined;
+  return {
+    role: stage.role,
+    ...(stage.chartStage ? { chartStage: stage.chartStage } : {}),
+    billingTab: stage.billingTab ?? "form",
+  };
+}
+
 /** The stage's name, or "" for an id this build does not know. */
 export function flowStageLabel(id: string | null | undefined): string {
   return flowStage(id)?.label ?? "";

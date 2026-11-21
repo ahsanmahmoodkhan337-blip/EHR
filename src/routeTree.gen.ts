@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EncounterEncounterIdRouteImport } from './routes/encounter.$encounterId'
+import { Route as EncounterEncounterIdStageRouteImport } from './routes/encounter.$encounterId.$stage'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CasesRouteImport } from './routes/cases'
@@ -41,6 +43,11 @@ import { Route as PatientsIdIndexRouteImport } from './routes/patients.$id.index
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EncounterEncounterIdRoute = EncounterEncounterIdRouteImport.update({
+  id: '/encounter/$encounterId',
+  path: '/encounter/$encounterId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccessRoute = AccessRouteImport.update({
@@ -163,6 +170,12 @@ const CasesTrackCaseIdStageRoute = CasesTrackCaseIdStageRouteImport.update({
   path: '/$track/$caseId/$stage',
   getParentRoute: () => CasesRoute,
 } as any)
+const EncounterEncounterIdStageRoute =
+  EncounterEncounterIdStageRouteImport.update({
+    id: '/$stage',
+    path: '/$stage',
+    getParentRoute: () => EncounterEncounterIdRoute,
+  } as any)
 const PatientsIdTabRoute = PatientsIdTabRouteImport.update({
   id: '/$tab',
   path: '/$tab',
@@ -204,6 +217,8 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
+  '/encounter/$encounterId': typeof EncounterEncounterIdRouteWithChildren
+  '/encounter/$encounterId/$stage': typeof EncounterEncounterIdStageRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
   '/cases/$track/$caseId/$stage': typeof CasesTrackCaseIdStageRoute
@@ -234,6 +249,8 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
+  '/encounter/$encounterId': typeof EncounterEncounterIdRouteWithChildren
+  '/encounter/$encounterId/$stage': typeof EncounterEncounterIdStageRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
   '/cases/$track/$caseId/$stage': typeof CasesTrackCaseIdStageRoute
@@ -265,6 +282,8 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
+  '/encounter/$encounterId': typeof EncounterEncounterIdRouteWithChildren
+  '/encounter/$encounterId/$stage': typeof EncounterEncounterIdStageRoute
   '/dental/$caseId/$stage': typeof DentalCaseIdStageRoute
   '/medical-cases/$caseId/$stage': typeof MedicalCasesCaseIdStageRoute
   '/cases/$track/$caseId/$stage': typeof CasesTrackCaseIdStageRoute
@@ -301,6 +320,8 @@ export interface FileRouteTypes {
     | '/medical-cases/$caseId/$stage'
     | '/cases/$track/$caseId/$stage'
     | '/patients/$id/$tab'
+    | '/encounter/$encounterId'
+    | '/encounter/$encounterId/$stage'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -331,6 +352,8 @@ export interface FileRouteTypes {
     | '/medical-cases/$caseId/$stage'
     | '/cases/$track/$caseId/$stage'
     | '/patients/$id/$tab'
+    | '/encounter/$encounterId'
+    | '/encounter/$encounterId/$stage'
   id:
     | '__root__'
     | '/'
@@ -361,6 +384,8 @@ export interface FileRouteTypes {
     | '/medical-cases/$caseId/$stage'
     | '/cases/$track/$caseId/$stage'
     | '/patients/$id/$tab'
+    | '/encounter/$encounterId'
+    | '/encounter/$encounterId/$stage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -385,6 +410,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
+  EncounterEncounterIdRoute: typeof EncounterEncounterIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -536,6 +562,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/encounter/$encounterId': {
+      id: '/encounter/$encounterId'
+      path: '/encounter/$encounterId'
+      fullPath: '/encounter/$encounterId'
+      preLoaderRoute: typeof EncounterEncounterIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/encounter/$encounterId/$stage': {
+      id: '/encounter/$encounterId/$stage'
+      path: '/$stage'
+      fullPath: '/encounter/$encounterId/$stage'
+      preLoaderRoute: typeof EncounterEncounterIdStageRouteImport
+      parentRoute: typeof EncounterEncounterIdRoute
+    }
     '/dental/$caseId/$stage': {
       id: '/dental/$caseId/$stage'
       path: '/$caseId/$stage'
@@ -587,6 +627,19 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface EncounterEncounterIdRouteChildren {
+  EncounterEncounterIdStageRoute: typeof EncounterEncounterIdStageRoute
+}
+
+const EncounterEncounterIdRouteChildren: EncounterEncounterIdRouteChildren = {
+  EncounterEncounterIdStageRoute: EncounterEncounterIdStageRoute,
+}
+
+const EncounterEncounterIdRouteWithChildren =
+  EncounterEncounterIdRoute._addFileChildren(
+    EncounterEncounterIdRouteChildren,
+  )
 
 interface PatientsIdRouteChildren {
   PatientsIdTabRoute: typeof PatientsIdTabRoute
@@ -660,6 +713,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
+  EncounterEncounterIdRoute: EncounterEncounterIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
