@@ -323,6 +323,32 @@ function initialState(): PipelineStoreState {
   return normalizePipelineStore(local?.pipeline, local?.currentRole ?? "scribe");
 }
 
+/**
+ * Make `patientId` the one active patient, and write that pick through at once.
+ *
+ * Every route mounts its own `PipelineProvider` and reads the saved record when
+ * it mounts, so a pick held only in memory reaches the next page after the 400 ms
+ * debounce — and a student who picks a patient in Patients and opens Coding
+ * immediately outruns it, leaving Coding on the Tutorial Patient (audit item 4,
+ * "patient and track context persist across navigation"). This writes the one
+ * field the pick changes into the blob the next page reads, before the screen
+ * changes.
+ *
+ * It writes no encounter, no note, no code, no claim and no money: the encounter
+ * map is carried forward exactly as saved, and only `activePatientId` moves.
+ * A patient picked before their own encounter exists gets the blank encounter
+ * `selectPatient` would have made the moment their chart opens — never a filled
+ * one.
+ */
+export function rememberActivePatient(patientId: string | null): void {
+  const phone = getLoggedInPhone();
+  if (!phone) return;
+  const local = loadUserData(phone);
+  const saved = normalizePipelineStore(local?.pipeline, local?.currentRole ?? "scribe");
+  if (saved.activePatientId === patientId) return;
+  saveUserData(phone, { pipeline: { ...saved, activePatientId: patientId } });
+}
+
 // ─── Provider ──────────────────────────────────────────────────────
 
 export function PipelineProvider({ children }: { children: ReactNode }) {
@@ -426,6 +452,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         currentRole: restoredRole,
       };
     });
+    // Write the pick through before the screen changes, so the page the student
+    // opens next reads the same patient this one is showing.
+    rememberActivePatient(patientId);
   };
 
   const setRole = (role: Role) => {
