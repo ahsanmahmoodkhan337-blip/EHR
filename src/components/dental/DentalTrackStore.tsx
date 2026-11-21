@@ -182,6 +182,41 @@ export function unfinishedDentalStages(
   return pending;
 }
 
+/**
+ * Accepting a treatment plan is a stage move like every other one: the planned
+ * items become the claim's lines, the plan items are marked accepted, and the
+ * case advances to Coding **and records that it reached Coding**. Writing
+ * `stage` alone was not enough — the stepper and the URL guard read
+ * `furthestStage`, so the student was sent to Coding, found it locked, and was
+ * bounced back to Planning with no way forward.
+ *
+ * Pure, so the store and the test read the same rule. `furthestStage` never
+ * moves backwards: accepting more treatment on a case already at Claim leaves
+ * Claim reached.
+ */
+export function acceptDentalTreatmentPlan(state: DentalTrackState): DentalTrackState {
+  const planned = state.txPlan.filter((p) => p.status === "planned");
+  const lines: DentalClaimLine[] = planned.map((p) => ({
+    id: p.id,
+    code: p.code,
+    tooth: p.tooth,
+    surfaces: p.surfaces,
+    quadrant: p.quadrant,
+    dateOfService: p.dateOfService,
+    feeUsd: p.feeUsd,
+    predeterminationOnFile: false,
+    attachments: p.attachments ?? [],
+    note: p.note,
+  }));
+  return {
+    ...state,
+    lines,
+    txPlan: state.txPlan.map((p) => (p.status === "planned" ? { ...p, status: "accepted" as const } : p)),
+    stage: "coding",
+    furthestStage: furthestOf(state.furthestStage, "coding"),
+  };
+}
+
 /** A single CDT line the student is building in the coding stage. */
 export interface DentalClaimLine {
   id: string;
@@ -1173,29 +1208,13 @@ export function DentalTrackProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, txPlan: s.txPlan.filter((p) => p.id !== id) }));
   }, []);
 
-  /** Move every planned item onto the claim (seeds coding) and mark them accepted. */
+  /**
+   * Move every planned item onto the claim (seeds coding), mark them accepted,
+   * and advance to Coding the way every other stage moves — stage **and**
+   * furthestStage, so the stepper unlocks Coding and ticks Chart.
+   */
   const acceptPlan = useCallback(() => {
-    setState((s) => {
-      const planned = s.txPlan.filter((p) => p.status === "planned");
-      const lines: DentalClaimLine[] = planned.map((p) => ({
-        id: p.id,
-        code: p.code,
-        tooth: p.tooth,
-        surfaces: p.surfaces,
-        quadrant: p.quadrant,
-        dateOfService: p.dateOfService,
-        feeUsd: p.feeUsd,
-        predeterminationOnFile: false,
-        attachments: p.attachments ?? [],
-        note: p.note,
-      }));
-      return {
-        ...s,
-        lines,
-        txPlan: s.txPlan.map((p) => (p.status === "planned" ? { ...p, status: "accepted" as const } : p)),
-        stage: "coding",
-      };
-    });
+    setState((s) => acceptDentalTreatmentPlan(s));
   }, []);
 
   // ── ledger ───────────────────────────────────────────────────────────
