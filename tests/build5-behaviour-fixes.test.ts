@@ -192,12 +192,14 @@ describe("the InBox badge is a real count", () => {
     expect(source).toContain("badge > 0");
   });
 
-  test("the encounter page feeds it from the Work Queues count", () => {
+  test("the encounter page feeds it from the InBasket's own count", () => {
     const source = read("src/routes/index.tsx");
-    expect(source).toContain("useHomeWorkQueueTotal()");
+    // Build 5, the two blank tabs: the badge is the InBasket panel's own count,
+    // so the number on the tab and the number in the panel are one derivation.
+    expect(source).toContain("inboxCount(useInboxItems())");
     expect(source).toContain("badges={{ inbasket: inBasketCount }}");
-    // One derivation, shared with the panel that prints the same total.
-    expect(read("src/components/status/HomeWorkQueues.tsx")).toContain("export function useHomeWorkQueueTotal()");
+    expect(source).not.toContain("useHomeWorkQueueTotal()");
+    expect(read("src/domain/inbasket.ts")).toContain("export function inboxCount(");
   });
 });
 

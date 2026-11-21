@@ -1,308 +1,278 @@
 /**
- * ActiveProgressNote — Functional Progress Note Editor
+ * ActiveProgressNote — the encounter's one note record, on the home workspace
  *
- * Inspiration: Epic Hyperspace progress note editor.
- * Epic's note editor allows clinicians to write structured
- * clinical notes (SOAP, H&P, Progress Note) directly within
- * the chart. This component provides a fully functional SOAP
- * note editor with state management, save, preview, and
- * history features.
+ * Inspiration: Epic Hyperspace's note editor, opened from the chart.
+ *
+ * The 19 November build kept its own copy of the note: a component-local
+ * `savedNotes` array, a hardcoded author "Dr. Resident", today's date stamped on
+ * a note that might have been signed weeks ago, a status pill it computed itself
+ * and so could never know the note was signed, and a Free-Text box held outside
+ * `SoapNoteData` so nothing typed in it was ever saved.
+ *
+ * This panel holds no note of its own. It reads and writes the same record the
+ * Progress Note stages, Sign & Lock and `/charts` use (`writeNoteFor`), takes its
+ * status from `noteStatus` (`NOTE_STATUS_LABEL`), locks with `noteReadOnly` the
+ * moment the note is signed, dates it from the encounter's own date of service,
+ * names the signer the store stamped on the `NOTE_SIGNED` event, and lists that
+ * event's timeline so the history survives a refresh.
  */
 
-import { useState } from "react";
-import { FileEdit, Save, Eye, History, CheckCircle2 } from "lucide-react";
-import { type SoapNoteData } from "../WorkflowAthena/AssessmentPlanStage";
+import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, Eye, FileEdit, History } from "lucide-react";
 
-interface ActiveProgressNoteProps {
-  patientName?: string;
-  soapNote?: SoapNoteData;
-  onNoteChange?: (note: SoapNoteData) => void;
+import { usePipeline } from "../../store/pipelineStore";
+import {
+  NOTE_STATUS_LABEL,
+  noteFieldsOf,
+  noteReadOnly,
+  noteSignedBy,
+  noteStatus,
+  type NoteFields,
+} from "../../domain/noteStatus";
+import { formatWhen } from "../../domain/homeWorkQueues";
+import { useEncounterDateOfService } from "../../utils/encounterPatient";
+
+export interface ActiveProgressNoteProps {
+  /** The patient whose chart is open, or null when nobody is. */
+  patient: { id: string; firstName: string; lastName: string } | null;
 }
 
-interface SavedNote {
-  id: string;
-  date: string;
-  patientName: string;
-  subjective: string;
-  objective: string;
-  assessment: string;
-  plan: string;
-  freeText: string;
-}
+export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
+  const { getEncounter, writeNoteFor } = usePipeline();
+  const patientId = patient?.id ?? null;
+  const encounter = patientId ? getEncounter(patientId) : undefined;
 
-export function ActiveProgressNote({ patientName, soapNote, onNoteChange }: ActiveProgressNoteProps) {
-  const [localSubjective, setLocalSubjective] = useState("");
-  const [localObjective, setLocalObjective] = useState("");
-  const [localAssessment, setLocalAssessment] = useState("");
-  const [localPlan, setLocalPlan] = useState("");
-  const [freeText, setFreeText] = useState("");
+  const status = noteStatus(encounter);
+  const readOnly = noteReadOnly(encounter);
+  const savedAt = encounter?.noteUpdatedAt ?? null;
+  const signer = noteSignedBy(encounter);
+  const dateOfService = useEncounterDateOfService(patientId);
+  const signedEvents = (encounter?.statusEvents ?? []).filter(
+    (event) => event.reasonCode === "NOTE_SIGNED",
+  );
 
-  // Use controlled props if provided, otherwise local state
-  const subjective = soapNote?.subjective ?? localSubjective;
-  const objective = soapNote?.objective ?? localObjective;
-  const assessment = soapNote?.assessment ?? localAssessment;
-  const plan = soapNote?.plan ?? localPlan;
-
-  const setSubjective = (v: string) => {
-    if (soapNote && onNoteChange) {
-      onNoteChange({ ...soapNote, subjective: v });
-    } else {
-      setLocalSubjective(v);
-    }
-  };
-  const setObjective = (v: string) => {
-    if (soapNote && onNoteChange) {
-      onNoteChange({ ...soapNote, objective: v });
-    } else {
-      setLocalObjective(v);
-    }
-  };
-  const setAssessment = (v: string) => {
-    if (soapNote && onNoteChange) {
-      onNoteChange({ ...soapNote, assessment: v });
-    } else {
-      setLocalAssessment(v);
-    }
-  };
-  const setPlan = (v: string) => {
-    if (soapNote && onNoteChange) {
-      onNoteChange({ ...soapNote, plan: v });
-    } else {
-      setLocalPlan(v);
-    }
-  };
-
-  const [saved, setSaved] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [savedNotes, setSavedNotes] = useState<SavedNote[]>([]);
+  const [fields, setFields] = useState<NoteFields>(() => noteFieldsOf(encounter));
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [showHistory, setShowHistory] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
-  const handleSave = () => {
-    const note: SavedNote = {
-      id: `note-${Date.now()}`,
-      date: new Date().toISOString(),
-      patientName: patientName || "Unknown",
-      subjective,
-      objective,
-      assessment,
-      plan,
-      freeText,
-    };
-    setSavedNotes((prev) => [note, ...prev]);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  // Load this patient's own note when the chart changes — never on a keystroke.
+  useEffect(() => {
+    setFields(noteFieldsOf(patientId ? getEncounter(patientId) : undefined));
+    setSaveState("idle");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId]);
+
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latest = useRef(fields);
+  latest.current = fields;
+
+  const flush = () => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    if (patientId && writeNoteFor(patientId, latest.current)) setSaveState("saved");
   };
 
-  const hasContent = subjective || objective || assessment || plan || freeText;
+  const edit = (key: keyof NoteFields, value: string) => {
+    if (readOnly) return;
+    const next = { ...fields, [key]: value };
+    setFields(next);
+    latest.current = next;
+    setSaveState("saving");
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      if (patientId && writeNoteFor(patientId, next)) setSaveState("saved");
+    }, 1200);
+  };
+
+  // Never leave an unsaved keystroke behind when the panel is left.
+  useEffect(
+    () => () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        if (patientId) writeNoteFor(patientId, latest.current);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [patientId],
+  );
+
+  if (!patient || !patientId) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
+        <FileEdit className="h-10 w-10 text-slate-300" aria-hidden="true" />
+        <h2 className="mt-3 text-lg font-bold text-slate-800">Active Progress Note</h2>
+        <p className="mt-1 max-w-md text-sm text-slate-500">
+          No patient open. Pick one from the Inbox on the left, or open an encounter from Home, and
+          their note opens here.
+        </p>
+      </div>
+    );
+  }
+
+  const field = (
+    key: keyof NoteFields,
+    label: string,
+    placeholder: string,
+    tone: string,
+  ) => (
+    <div className="rounded-lg border border-slate-200 p-2">
+      <label
+        htmlFor={`active-note-${key}`}
+        className={`mb-1 block text-[10px] font-semibold uppercase tracking-wider ${tone}`}
+      >
+        {label}
+      </label>
+      <textarea
+        id={`active-note-${key}`}
+        value={fields[key]}
+        onChange={(e) => edit(key, e.target.value)}
+        onBlur={flush}
+        readOnly={readOnly}
+        aria-readonly={readOnly}
+        placeholder={readOnly ? "" : placeholder}
+        className="min-h-[90px] w-full resize-y rounded border-0 bg-transparent text-[12px] text-slate-800 placeholder:text-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 read-only:text-slate-700"
+      />
+    </div>
+  );
+
+  const iconButton =
+    "inline-flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600";
 
   return (
-    <div className="flex flex-1 flex-col p-4">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FileEdit className="h-5 w-5 text-blue-600" />
-          <div>
-            <h2 className="text-lg font-bold text-slate-800">Active Progress Note</h2>
-            <p className="text-sm text-slate-500">
-              {patientName ? `Encounter note for ${patientName}` : "No patient selected"}
-            </p>
-          </div>
+    <div className="flex flex-1 flex-col overflow-y-auto p-4">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <FileEdit className="h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold text-slate-800">Active Progress Note</h2>
+          <p className="text-sm text-slate-500">
+            Encounter note for {patient.firstName} {patient.lastName}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
+            aria-expanded={showHistory}
+            aria-controls="active-note-history"
+            aria-label={`Note history, ${signedEvents.length} signed`}
+            className={iconButton}
           >
-            <History className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">History ({savedNotes.length})</span>
+            <History className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">History ({signedEvents.length})</span>
           </button>
           <button
+            type="button"
             onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
+            aria-pressed={showPreview}
+            aria-label={showPreview ? "Edit the note" : "Preview the note"}
+            className={iconButton}
           >
-            <Eye className="h-3.5 w-3.5" />
+            <Eye className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="hidden sm:inline">{showPreview ? "Edit" : "Preview"}</span>
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!hasContent}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-              saved
-                ? "bg-green-500 text-white"
-                : hasContent
-                  ? "bg-blue-600 text-white hover:bg-blue-500"
-                  : "bg-slate-300 text-slate-100 cursor-not-allowed"
-            }`}
-          >
-            {saved ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
-            <span className="hidden sm:inline">{saved ? "Saved!" : "Save"}</span>
           </button>
         </div>
       </div>
 
-      {/* Saved success banner */}
-      {saved && (
-        <div className="mb-3 rounded-lg bg-green-50 p-2 text-xs text-green-700 border border-green-200">
-          <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" />
-          Note saved successfully!
-        </div>
-      )}
-
-      {/* History panel */}
       {showHistory && (
-        <div className="mb-4 clinical-card">
-          <p className="text-xs font-semibold text-slate-700 mb-3">Saved Notes History</p>
-          {savedNotes.length === 0 ? (
-            <p className="text-xs text-slate-400 italic">No saved notes yet.</p>
+        <div id="active-note-history" className="clinical-card mb-3">
+          <p className="mb-2 text-xs font-semibold text-slate-700">Signatures on this note</p>
+          {signedEvents.length === 0 ? (
+            <p className="text-xs text-slate-500">
+              No signed note yet — signing happens in the encounter's Sign &amp; Lock step.
+            </p>
           ) : (
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {savedNotes.map((n) => (
-                <div key={n.id} className="rounded-lg border border-slate-100 bg-slate-50 p-2 text-[10px]">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-slate-600">{n.patientName}</span>
-                    <span className="text-slate-400">{new Date(n.date).toLocaleString()}</span>
-                  </div>
-                  <p className="text-slate-500 truncate">
-                    S: {n.subjective?.slice(0, 60) || "—"} | A: {n.assessment?.slice(0, 60) || "—"}
-                  </p>
-                </div>
+            <ul className="max-h-48 space-y-1 overflow-y-auto">
+              {signedEvents.map((event) => (
+                <li key={event.id} className="text-[11px] text-slate-600">
+                  <span className="font-medium">{formatWhen(event.at)}</span>
+                  {" · signed by "}
+                  <span className="font-medium">{event.by || "the store"}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       )}
 
-      {/* Note Editor */}
-      {showPreview ? (
-        <div className="clinical-card flex flex-1 flex-col">
-          <p className="text-xs font-semibold text-slate-700 mb-3">Note Preview</p>
+      <div className="clinical-card flex flex-1 flex-col">
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-3 text-xs text-slate-500">
+          <div>
+            <span className="font-medium text-slate-600">Date:</span> {dateOfService ?? "Not on file"}
+          </div>
+          <div>
+            <span className="font-medium text-slate-600">Author:</span>{" "}
+            {signer ?? "Not signed yet"}
+          </div>
+          <div>
+            <span className="font-medium text-slate-600">Type:</span> Progress Note
+          </div>
+          <div>
+            <span className="font-medium text-slate-600">Status:</span>{" "}
+            <span
+              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                status === "signed"
+                  ? "bg-green-100 text-green-700"
+                  : status === "draft"
+                    ? "bg-amber-50 text-amber-700"
+                    : "bg-slate-100 text-slate-500"
+              }`}
+            >
+              {NOTE_STATUS_LABEL[status]}
+            </span>
+          </div>
+          <span role="status" aria-live="polite" className="ml-auto text-[10px] text-slate-500">
+            {readOnly && savedAt
+              ? `Signed ${formatWhen(savedAt)}`
+              : saveState === "saving"
+                ? "Saving…"
+                : savedAt
+                  ? `Saved ${formatWhen(savedAt)}`
+                  : "Not saved yet"}
+          </span>
+        </div>
+
+        {showPreview ? (
           <div className="space-y-3 text-sm">
-            {subjective && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 mb-1">Subjective</p>
-                <p className="text-slate-700 whitespace-pre-wrap">{subjective}</p>
+            {(["subjective", "objective", "assessment", "plan"] as const).map((key) => (
+              <div key={key}>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  {key}
+                </p>
+                <p className="whitespace-pre-wrap text-slate-700">
+                  {fields[key].trim() || "—"}
+                </p>
               </div>
-            )}
-            {objective && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-green-600 mb-1">Objective</p>
-                <p className="text-slate-700 whitespace-pre-wrap">{objective}</p>
-              </div>
-            )}
-            {assessment && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 mb-1">Assessment</p>
-                <p className="text-slate-700 whitespace-pre-wrap">{assessment}</p>
-              </div>
-            )}
-            {plan && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-purple-600 mb-1">Plan</p>
-                <p className="text-slate-700 whitespace-pre-wrap">{plan}</p>
-              </div>
-            )}
-            {freeText && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Additional Notes</p>
-                <p className="text-slate-700 whitespace-pre-wrap">{freeText}</p>
-              </div>
-            )}
-            {!hasContent && (
-              <p className="text-sm text-slate-400 italic">No content to preview. Start typing in the editor.</p>
-            )}
+            ))}
           </div>
-        </div>
-      ) : (
-        <div className="clinical-card flex flex-1 flex-col">
-          {/* Note metadata bar */}
-          <div className="mb-3 flex flex-wrap gap-4 border-b border-slate-100 pb-3 text-xs text-slate-500">
-            <div>
-              <span className="font-medium text-slate-600">Date:</span>{" "}
-              {new Date().toLocaleDateString()}
+        ) : (
+          <>
+            <div className="grid gap-2 md:grid-cols-2">
+              {field("subjective", "Subjective (S)", "Chief complaint, history of present illness, review of systems…", "text-blue-600")}
+              {field("objective", "Objective (O)", "Vital signs, exam findings, lab and imaging results…", "text-emerald-600")}
+              {field("assessment", "Assessment (A)", "Diagnoses, differentials, clinical impression…", "text-amber-600")}
+              {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-purple-600")}
             </div>
-            <div>
-              <span className="font-medium text-slate-600">Author:</span> Dr. Resident
-            </div>
-            <div>
-              <span className="font-medium text-slate-600">Type:</span> Progress Note
-            </div>
-            <div>
-              <span className="font-medium text-slate-600">Status:</span>{" "}
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">
-                {hasContent ? "Draft" : "Empty"}
-              </span>
-            </div>
-          </div>
-
-          {/* SOAP Note Template */}
-          <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {/* Subjective */}
-            <div className="rounded-lg border border-slate-200 p-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-600">
-                Subjective (S)
-              </p>
-              <textarea
-                value={subjective}
-                onChange={(e) => setSubjective(e.target.value)}
-                placeholder="Patient's chief complaint, history of present illness, review of systems..."
-                className="min-h-[100px] w-full resize-none rounded border-0 bg-transparent text-sm text-slate-700 placeholder-slate-300 outline-none"
-              />
-            </div>
-
-            {/* Objective */}
-            <div className="rounded-lg border border-slate-200 p-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-green-600">
-                Objective (O)
-              </p>
-              <textarea
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
-                placeholder="Vital signs, physical exam findings, lab/imaging results..."
-                className="min-h-[100px] w-full resize-none rounded border-0 bg-transparent text-sm text-slate-700 placeholder-slate-300 outline-none"
-              />
-            </div>
-
-            {/* Assessment */}
-            <div className="rounded-lg border border-slate-200 p-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-600">
-                Assessment (A)
-              </p>
-              <textarea
-                value={assessment}
-                onChange={(e) => setAssessment(e.target.value)}
-                placeholder="Diagnoses, differentials, clinical impression..."
-                className="min-h-[100px] w-full resize-none rounded border-0 bg-transparent text-sm text-slate-700 placeholder-slate-300 outline-none"
-              />
-            </div>
-
-            {/* Plan */}
-            <div className="rounded-lg border border-slate-200 p-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-purple-600">
-                Plan (P)
-              </p>
-              <textarea
-                value={plan}
-                onChange={(e) => setPlan(e.target.value)}
-                placeholder="Medication changes, orders, referrals, follow-up plan..."
-                className="min-h-[100px] w-full resize-none rounded border-0 bg-transparent text-sm text-slate-700 placeholder-slate-300 outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Free text area */}
-          <div className="flex-1 rounded-lg border border-slate-200 p-3">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Free-Text Notes
+            <p className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-400">
+              {readOnly ? (
+                <>
+                  <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                  This note is signed and locked. It is the record the coder, the biller and the payer
+                  read, so it is read-only here.
+                </>
+              ) : (
+                <>
+                  This is the patient&apos;s progress note — the same record the encounter autosaves.
+                  It saves as you type; signing it stays in the encounter&apos;s Sign &amp; Lock step.
+                </>
+              )}
             </p>
-            <textarea
-              value={freeText}
-              onChange={(e) => setFreeText(e.target.value)}
-              placeholder="Additional notes, instructions, follow-up details..."
-              className="min-h-[80px] w-full resize-none rounded border-0 bg-transparent text-sm text-slate-700 placeholder-slate-300 outline-none"
-            />
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
