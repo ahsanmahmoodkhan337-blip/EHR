@@ -2,24 +2,26 @@
  * Demo claim data — the teaching value a claim box carries when nothing real
  * was captured for it.
  *
- * Owner rule (2026-11-20): a box with no captured value still shows a value, so
- * the student sees a complete paper — but the demo value must always look like
- * a demo value. It is grey italic, tagged "demo", carries a tooltip naming the
- * stage that should really supply the box, is listed separately in the claim's
- * validation panel, and is **never** written back onto the claim record.
+ * Owner rule (2026-11-20): where a value has to be shown, it must look like a
+ * teaching value — grey italic, tagged "demo", carrying a tooltip that names the
+ * stage which should really supply the box, listed separately in the claim's
+ * validation panel, and **never** written back onto the claim record.
  *
  * One source only: this file. The builder that reads it lives in
- * `src/utils/demoClaimFill.ts`. Values are seeded from the tutorial case
- * (patient "DEMO", MRN TUTORIAL-001, Medicare Part B) so the paper agrees with
- * the patient banner above it.
+ * `src/utils/demoClaimFill.ts`.
+ *
+ * As of 2026-11-21 (slice J item 4b) **no claim-level box carries a constant
+ * any more**: every one that did printed the tutorial case's member ID, group,
+ * plan and dates onto other patients' papers. A box now either holds this
+ * patient's own captured value or stays blank with the stage that should have
+ * filled it. What remains here is the service-line date (24A) and that
+ * blank-box provenance map.
  *
  * Keyed by the claim field each value fills (see `ClaimFormData` in
  * `src/store/pipelineStore.tsx`), not by box number, because the box number is
  * printed by the layout and can differ between papers.
  *
- * ⚠ DEMO DATA ONLY — invented teaching values. The referring NPI is built to
- * pass the NPI check-digit test (as the provider profile's are) so the demo
- * value does not itself raise a validation error.
+ * ⚠ DEMO DATA ONLY — invented teaching values, flagged as such wherever shown.
  */
 
 export interface DemoClaimValue {
@@ -31,46 +33,22 @@ export interface DemoClaimValue {
   stage: string;
 }
 
-/** Demo value per claim field. Order here is the order the panel lists them. */
-export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {
-  insuredId: {
-    box: "1a",
-    value: "1EG4-TE5-MK72",
-    stage: "Registration & eligibility (the patient's insurance record)",
-  },
-  otherInsuranceName: {
-    box: "9",
-    value: "NONE — NO OTHER COVERAGE ON FILE",
-    stage: "Registration & eligibility (other coverage)",
-  },
-  insuredPolicyGroup: {
-    box: "11",
-    value: "MCB-4471",
-    stage: "Registration & eligibility (group number)",
-  },
-  insuredPlanName: {
-    box: "11c",
-    value: "MEDICARE PART B",
-    stage: "Registration & eligibility (plan name)",
-  },
-  similarIllnessQualifier: {
-    box: "15",
-    // A date with no qualifier is invalid on a real claim, so the demo shows
-    // the pair as it must be sent — the qualifier is not optional in practice.
-    value: "431",
-    stage: "Scribe / provider — qualifier for the other date",
-  },
-  similarIllnessDate: {
-    box: "15",
-    value: "2026-07-08",
-    stage: "Scribe / provider (date of first symptoms)",
-  },
-  additionalInfo: {
-    box: "19",
-    value: "DEMO — TRAINING CLAIM, NOT A REAL ENCOUNTER",
-    stage: "Scribe / provider (additional claim information)",
-  },
-};
+/**
+ * Demo value per claim field — **empty, deliberately**.
+ *
+ * Owner audit, 2026-11-21 (`specs/slice-j-claim-follows-record.md` item 4b and
+ * `specs/slice-i-patient-record.md` item 3): boxes 1a, 9, 11, 11c, 15 and 19 each
+ * printed a constant — the tutorial case's member ID `1EG4-TE5-MK72`, its group
+ * `MCB-4471`, its plan `MEDICARE PART B`, a symptom date and a "training claim"
+ * note — on **every** patient's paper. None of that is the patient on screen.
+ *
+ * Each of those boxes is now either read from the patient's own record by
+ * `utils/claimAutoFill.ts` (`patientIdentityBoxes`) or left blank with the stage
+ * that should have filled it, listed in `UNFILLED_BOX_SOURCES` below. The map
+ * stays, and stays the only place a claim-level demo value could live, so the
+ * panel's demo path keeps working and a future gap has somewhere honest to go.
+ */
+export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {};
 
 /**
  * Boxes that are **left blank** when nothing was captured, with the stage that
@@ -85,10 +63,53 @@ export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {
  * stage fills it. A blank box teaches "this was never captured"; a borrowed
  * value teaches that inventing one is fine.
  *
+ * Item 4b cleared the last constants the same way: 1a (member ID), 9 (other
+ * coverage), 11 (group number), 11c (plan name), 15 (the other date and its
+ * qualifier) and 19 (additional information). Every one of them is either
+ * captured on the patient's coverage record — in which case the box prints that
+ * — or blank with its provenance, never the tutorial case's card.
+ *
  * The provenance is printed in the claim's own grey strip (`ClaimFormShell`), so
  * the student sees the stage without a value ever being printed on the paper.
  */
 export const UNFILLED_BOX_SOURCES: Record<string, DemoClaimValue> = {
+  insuredId: {
+    box: "1a",
+    value: "",
+    stage: "Registration & eligibility (the member ID on the coverage record)",
+  },
+  otherInsuranceName: {
+    box: "9",
+    value: "",
+    stage: "Registration & eligibility (other coverage)",
+  },
+  insuredPolicyGroup: {
+    box: "11",
+    value: "",
+    stage: "Registration & eligibility (the group number on the coverage record)",
+  },
+  insuredPlanName: {
+    box: "11c",
+    value: "",
+    stage: "Registration & eligibility (the plan name on the coverage record)",
+  },
+  similarIllnessQualifier: {
+    box: "15",
+    // A date with no qualifier is invalid on a real claim, so both halves of the
+    // pair stay blank together until the provider supplies them.
+    value: "",
+    stage: "Scribe / provider — qualifier for the other date",
+  },
+  similarIllnessDate: {
+    box: "15",
+    value: "",
+    stage: "Scribe / provider (date of first symptoms)",
+  },
+  additionalInfo: {
+    box: "19",
+    value: "",
+    stage: "Scribe / provider (additional claim information)",
+  },
   insuredEmployer: {
     box: "9c",
     value: "",

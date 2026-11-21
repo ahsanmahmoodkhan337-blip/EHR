@@ -13,6 +13,11 @@
  * `recordEligibility`, which is the record the banner prints. Nothing is
  * invented: a patient with no card on file is told so, and a coverage nobody
  * checked reads "Not checked" rather than a made-up active.
+ *
+ * The benefit half of the 271 — copay, deductible remaining, coinsurance — is
+ * `eligibility271()` in the same module: it reads this patient's own plan from
+ * the table that prices their 835, prints the plan it came from, and returns no
+ * figures at all for a payer the table has no rule for.
  */
 
 import { useState } from "react";
@@ -22,6 +27,7 @@ import { useEhrStore } from "../../store/ehrStore";
 import { usePipeline } from "../../store/pipelineStore";
 import {
   ELIGIBILITY_LABELS,
+  eligibility271,
   eligibilityDate,
   eligibilityOf,
   runEligibility270,
@@ -41,6 +47,10 @@ export function EligibilityStage({ patientId }: { patientId?: string | null }) {
   const card = patientCard(patient);
   const stored = eligibilityOf(coverage);
   const checked = stored.status !== "not-checked";
+  // The 271's benefit half — copay, deductible and coinsurance — read from this
+  // patient's own plan (`domain/eligibility.ts` → `eligibility271`), which is
+  // the same plan table that prices their 835.
+  const benefits = eligibility271(coverage);
 
   const runInquiry = () => {
     if (!patient || !coverage) return;
@@ -120,6 +130,41 @@ export function EligibilityStage({ patientId }: { patientId?: string | null }) {
                 </p>
                 <p>{stored.payerResponse}</p>
               </div>
+
+              {/* The 271's benefit answer. Every figure names the plan it came
+                  from, so the student can trace it to a rule rather than a screen. */}
+              <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 border-t border-green-200 pt-2 text-[11px] text-slate-700 sm:grid-cols-3">
+                <div>
+                  <dt className="text-slate-500">Copay</dt>
+                  <dd className="font-medium">
+                    {benefits.copayUsd === null
+                      ? benefits.planName
+                        ? "No fixed copay — this plan pays coinsurance"
+                        : "—"
+                      : usd(benefits.copayUsd)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Deductible remaining</dt>
+                  <dd className="font-medium">
+                    {benefits.deductibleRemainingUsd === null
+                      ? "—"
+                      : `${usd(benefits.deductibleRemainingUsd)} (unmet — nothing posted against it yet)`}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Coinsurance</dt>
+                  <dd className="font-medium">
+                    {benefits.coinsurancePercent === null
+                      ? "—"
+                      : `${benefits.coinsurancePercent}% patient / ${100 - benefits.coinsurancePercent}% plan`}
+                  </dd>
+                </div>
+              </dl>
+              <p className="mt-1 text-[10px] text-slate-500">
+                {benefits.planName ? `Plan: ${benefits.planName}. ` : ""}
+                {benefits.source}
+              </p>
             </div>
           )}
 
@@ -156,4 +201,9 @@ export function EligibilityStage({ patientId }: { patientId?: string | null }) {
       )}
     </div>
   );
+}
+
+/** `$1,500.00` — the plan's own money, printed as money. */
+function usd(amount: number): string {
+  return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }

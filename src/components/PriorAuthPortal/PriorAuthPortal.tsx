@@ -36,6 +36,7 @@ import {
 import { usePipeline } from "../../store/pipelineStore";
 import { usePatientStore } from "../../store/patientStore";
 import { memberIdOnFile, NOT_ON_FILE, patientCard } from "../../domain/patientCard";
+import { eligibility271 } from "../../domain/eligibility";
 import {
   encounterIdFor,
   otherPatientsNote,
@@ -744,14 +745,28 @@ export default function PriorAuthPortal() {
                   setVerifyingInsurance(true);
                   setInsuranceVerified(null);
                   setVerificationResult("");
+                  // The 271 answers from this patient's own plan, never from a
+                  // random pick: copay, deductible and coinsurance come from the
+                  // same plan table that prices their 835, and a payer the table
+                  // has no rule for returns no figures rather than invented ones.
+                  const benefits = eligibility271(patient?.insuranceRecord?.primary);
                   setTimeout(() => {
-                    const results = [
-                      { status: "Active", detail: "Coverage effective. Deductible: $500 remaining. OOP Max: $3,000. Co-pay: $30 specialist / $20 PCP." },
-                      { status: "Active", detail: "Benefits eligible. Deductible: $1,200 remaining. OOP Max: $6,350. Co-pay: $40 specialist / $25 PCP." },
-                      { status: "Active", detail: "Prior auth required. Deductible: $0 met. OOP Max: $2,000. Co-pay: $15 specialist." },
-                    ];
-                    const result = results[Math.floor(Math.random() * results.length)];
-                    setVerificationResult(result.detail);
+                    const money = (n: number) => `$${n.toLocaleString("en-US")}`;
+                    const parts = [benefits.source];
+                    if (benefits.deductibleRemainingUsd !== null) {
+                      parts.push(
+                        `Deductible remaining: ${money(benefits.deductibleRemainingUsd)} (unmet).`,
+                      );
+                    }
+                    if (benefits.coinsurancePercent !== null) {
+                      parts.push(
+                        `Coinsurance: ${benefits.coinsurancePercent}% patient / ${100 - benefits.coinsurancePercent}% plan.`,
+                      );
+                    }
+                    if (benefits.planName) {
+                      parts.push("No fixed copay on this plan — it pays coinsurance.");
+                    }
+                    setVerificationResult(parts.join(" "));
                     setInsuranceVerified(true);
                     setVerifyingInsurance(false);
                   }, 1500);
