@@ -33,7 +33,7 @@ import { postedCopayForPatient } from "../domain/checkIn";
 import { useAllAppointments } from "../store/ehrStore";
 import { PatientProvider, usePatientStore, type Patient } from "../store/patientStore";
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
-import { useEhrStore } from "../store/ehrStore";
+import { NOTE_STATUS_LABEL, noteFieldsOf, noteReadOnly, noteStatus } from "../domain/noteStatus";
 
 export const Route = createFileRoute("/charts")({
   component: () => (
@@ -357,38 +357,34 @@ function NotesPanel({ patient }: { patient: Patient }) {
 // ─── the note being written for this visit ──────────────────────────────────
 
 /**
- * The Active Progress Note. It edits the patient's own unsigned note draft —
- * the one `/` autosaves — and writes it back through the same store action, so
- * the two screens can never hold different notes for the same patient. Nothing
- * is signed here: signing stays in the encounter's Sign & Lock step.
+ * The Active Progress Note — the encounter's one note record.
+ *
+ * It reads and writes `writeNoteFor`, the same record the Progress Note stages
+ * and Sign & Lock write, so Charts and the encounter can never hold different
+ * notes for the same patient. The status is `noteStatus`'s answer, and once the
+ * note is signed it is read-only here exactly as it is everywhere else
+ * (`domain/noteStatus.ts`).
  */
 function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
-  const saved = useEhrStore((s) => s.user.noteDrafts[patient.id]);
-  const saveNoteDraft = useEhrStore((s) => s.saveNoteDraft);
+  const { getEncounter, writeNoteFor } = usePipeline();
+  const encounter = getEncounter(patient.id);
+  const status = noteStatus(encounter);
+  const readOnly = noteReadOnly(encounter);
+  const savedAt = encounter?.noteUpdatedAt ?? null;
 
-  const [fields, setFields] = useState({
-    subjective: saved?.fields.subjective ?? "",
-    objective: saved?.fields.objective ?? "",
-    assessment: saved?.fields.assessment ?? "",
-    plan: saved?.fields.plan ?? "",
-  });
-  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [fields, setFields] = useState(() => noteFieldsOf(encounter));
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
-  // Load the patient's own draft when the chart changes.
+  // Load the patient's own note when the chart changes.
   const patientId = patient.id;
   useEffect(() => {
-    setFields({
-      subjective: saved?.fields.subjective ?? "",
-      objective: saved?.fields.objective ?? "",
-      assessment: saved?.fields.assessment ?? "",
-      plan: saved?.fields.plan ?? "",
-    });
-    setStatus("idle");
-    // Only when the patient changes — a keystroke must not overwrite the draft.
+    setFields(noteFieldsOf(getEncounter(patientId)));
+    setSaveState("idle");
+    // Only when the patient changes — a keystroke must not overwrite the note.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId]);
 
-  // Debounced autosave: the note saves itself, exactly as it does on `/`.
+  // Debounced autosave into the one record.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest = useRef(fields);
   latest.current = fields;
@@ -398,20 +394,19 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
       clearTimeout(timer.current);
       timer.current = null;
     }
-    saveNoteDraft(patient.id, latest.current, { status: saved?.status ?? "Draft" });
-    setStatus("saved");
+    if (writeNoteFor(patient.id, latest.current)) setSaveState("saved");
   };
 
   const edit = (key: keyof typeof fields, value: string) => {
+    if (readOnly) return;
     const next = { ...fields, [key]: value };
     setFields(next);
     latest.current = next;
-    setStatus("saving");
+    setSaveState("saving");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       timer.current = null;
-      saveNoteDraft(patient.id, next, { status: saved?.status ?? "Draft" });
-      setStatus("saved");
+      if (writeNoteFor(patient.id, next)) setSaveState("saved");
     }, 1200);
   };
 
@@ -420,19 +415,14 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
     () => () => {
       if (timer.current) {
         clearTimeout(timer.current);
-        saveNoteDraft(patient.id, latest.current, { status: saved?.status ?? "Draft" });
+        writeNoteFor(patient.id, latest.current);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [patient.id],
   );
 
-  const field = (
-    key: keyof typeof fields,
-    label: string,
-    placeholder: string,
-    tone: string,
-  ) => (
+  const field = (key: keyof typeof fields, label: string, placeholder: string, tone: string) => (
     <div className="rounded-lg border border-slate-200 p-2">
       <label htmlFor={`note-${key}`} className={`mb-1 block text-[10px] font-semibold uppercase tracking-wider ${tone}`}>
         {label}
@@ -442,8 +432,10 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
         value={fields[key]}
         onChange={(e) => edit(key, e.target.value)}
         onBlur={flush}
-        placeholder={placeholder}
-        className="min-h-[90px] w-full resize-y rounded border-0 bg-transparent text-[12px] text-slate-800 placeholder:text-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        readOnly={readOnly}
+        aria-readonly={readOnly}
+        placeholder={readOnly ? "" : placeholder}
+        className="min-h-[90px] w-full resize-y rounded border-0 bg-transparent text-[12px] text-slate-800 placeholder:text-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 read-only:text-slate-700"
       />
     </div>
   );
@@ -454,17 +446,25 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
         <h2 id="charts-note" className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
           Active Progress Note
         </h2>
-        <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-700">
-          {saved?.status ?? "Draft"}
+        <span
+          className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase ${
+            status === "signed"
+              ? "bg-green-100 text-green-700"
+              : status === "draft"
+                ? "bg-amber-50 text-amber-700"
+                : "bg-slate-100 text-slate-500"
+          }`}
+        >
+          {NOTE_STATUS_LABEL[status]}
         </span>
         <span className="text-[10px] text-slate-500">
           {patient.firstName} {patient.lastName}
         </span>
         <span role="status" aria-live="polite" className="ml-auto text-[10px] text-slate-500">
-          {status === "saving" && "Saving…"}
-          {status === "saved" && saved?.savedAt && `Saved ${new Date(saved.savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
-          {status === "idle" && saved?.savedAt && `Saved ${new Date(saved.savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
-          {status === "idle" && !saved?.savedAt && "Not saved yet"}
+          {readOnly && savedAt && `Signed ${new Date(savedAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`}
+          {!readOnly && saveState === "saving" && "Saving…"}
+          {!readOnly && saveState !== "saving" && savedAt && `Saved ${new Date(savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
+          {!readOnly && saveState !== "saving" && !savedAt && "Not saved yet"}
         </span>
       </div>
       <div className="grid gap-2 md:grid-cols-2">
@@ -474,8 +474,9 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
         {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-purple-600")}
       </div>
       <p className="mt-2 text-[10px] text-slate-400">
-        This is the patient's unsigned note draft — the same one the encounter autosaves. It saves as you type;
-        signing it stays in the encounter's Sign &amp; Lock step.
+        {readOnly
+          ? "This note is signed and locked. It is the record the coder, the biller and the payer read, so it is read-only here."
+          : "This is the patient's progress note — the same record the encounter autosaves. It saves as you type; signing it stays in the encounter's Sign & Lock step."}
       </p>
     </div>
   );

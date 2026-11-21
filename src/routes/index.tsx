@@ -59,6 +59,13 @@ import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
 import { StatusTimeline } from "../components/status/StatusTimeline";
 import { statusEventsFor } from "../domain/statusEvent";
 import {
+  NOTE_STATUS_LABEL,
+  noteFieldsOf,
+  noteFieldsHaveText,
+  noteReadOnly,
+  noteStatus,
+} from "../domain/noteStatus";
+import {
   CHART_OPENING_STEP,
   CHART_STEPS,
   encounterEventId,
@@ -196,7 +203,6 @@ export interface HomeProps {
 interface PatientSessionData {
   _patientId: string;
   soapNote: SoapNoteData;
-  submittedToCoding: boolean;
   editableVitals: {
     bloodPressure: string;
     heartRate: string;
@@ -1428,7 +1434,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    */
   const activeWorkspace = "chart";
   const setActiveWorkspace = (_workspace: string) => {};
-  const { currentRole, submitToCoding, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
   /**
    * The patient the chart opens on (owner's audit, 2026-11-20, item 4 — "patient
    * and track context persist across navigation and reload").
@@ -1579,7 +1585,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       setSharedReferrals([]);
       setSharedOrders([]);
       setSharedImaging([]);
-      setSubmittedToCoding(false);
       // A visit that starts here starts at the Progress Note, not on whatever
       // screen the previous patient was left on.
       openFlowStage(openingStageId());
@@ -1600,7 +1605,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     assessment: "",
     plan: "",
   });
-  const [submittedToCoding, setSubmittedToCoding] = useState(false);
+  // The note's status is read from the encounter's own record, never kept in
+  // component state — that second flag is how the same note read "signed" on one
+  // screen and "draft" on another (`domain/noteStatus.ts`).
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
 
   // Shared editable vitals state across SummaryTab, VitalsTab, and RightPaneleCW
@@ -1663,10 +1670,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // place instead of dropping the student back on the schedule.
   const ehrHydrated = useEhrStore((s) => s.hydrated);
   const setWorkingContext = useEhrStore((s) => s.setWorkingContext);
-  const saveNoteDraft = useEhrStore((s) => s.saveNoteDraft);
-  const lastNoteSavedAt = useEhrStore((s) =>
-    selectedPatientId ? s.user.noteDrafts[selectedPatientId]?.savedAt : undefined,
-  );
+  // When the one note record was last written (`writeNoteFor`), not a copy of it.
+  const lastNoteSavedAt =
+    (selectedPatientId ? getEncounter(selectedPatientId)?.noteUpdatedAt : null) ?? undefined;
   const openEncounterId = useEhrStore((s) =>
     selectedPatientId
       ? (s.user.encounters.find((e) => e.patientId === selectedPatientId && !e.locked)?.id ?? null)
@@ -1682,19 +1688,21 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   const noteSnapshot = useRef({
     patientId: selectedPatientId,
     note: soapNote,
-    signed: submittedToCoding,
-    encounterId: openEncounterId,
     saved: "",
   });
   noteSnapshot.current.patientId = selectedPatientId;
   noteSnapshot.current.note = soapNote;
-  noteSnapshot.current.signed = submittedToCoding;
-  noteSnapshot.current.encounterId = openEncounterId;
 
-  /** Write the draft if it changed since the last write. Safe to call often. */
+  /**
+   * Write the note if it changed since the last write. Safe to call often.
+   *
+   * It writes the encounter's one note record (`writeNoteFor`) — the same record
+   * Charts and Sign & Lock read. A signed note is refused by the store, so a
+   * stale tab cannot overwrite a signature.
+   */
   const saveNoteDraftNow = () => {
     const snap = noteSnapshot.current;
-    if (!snap.patientId || snap.signed) return;
+    if (!snap.patientId) return;
     const fields = {
       subjective: snap.note.subjective ?? "",
       objective: snap.note.objective ?? "",
@@ -1704,9 +1712,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     const serialized = JSON.stringify(fields);
     if (serialized === snap.saved) return;
     const blank = serialized.replace(/[^a-z0-9]/gi, "").length === 0;
-    if (blank && !useEhrStore.getState().user.noteDrafts[snap.patientId]) return;
-    const savedAt = saveNoteDraft(snap.patientId, fields, { encounterId: snap.encounterId });
-    if (savedAt) snap.saved = serialized;
+    // Nothing typed and nothing stored: there is no note to save.
+    if (blank && !noteFieldsHaveText(noteFieldsOf(getEncounter(snap.patientId)))) return;
+    if (writeNoteFor(snap.patientId, fields)) snap.saved = serialized;
   };
 
   /**
@@ -1719,7 +1727,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     patientDataStore.current[selectedPatientId] = {
       _patientId: selectedPatientId,
       soapNote: { ...soapNote },
-      submittedToCoding,
       editableVitals: { ...editableVitals },
       editablePatientData: {
         ...editablePatientData,
@@ -1753,7 +1760,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
         assessment: "1. Suspected Coronary Artery Disease (I25.10)\n2. Hypertension, uncontrolled (I10)\n3. Chest Pain, unspecified (R07.9)\n\nPlan: Admit for cardiac workup. Order serial troponins, echocardiogram, cardiology consult. Continue Lisinopril, start Atorvastatin 40mg, Aspirin 81mg daily.",
         plan: "1. Admit to telemetry unit\n2. Serial troponins q6h x3\n3. Echocardiogram in AM\n4. Cardiology consult (Dr. Williams)\n5. Continue home medications\n6. NPO after midnight for possible cardiac catheterization\n7. Stress test if enzymes negative\n8. Discharge planning: cardiac rehab referral"
       });
-      setSubmittedToCoding(false);
       // The encounter opens at the first scribing step (spec
       // `start-at-scribing.md` item 1). The note above is the tutorial's seeded
       // starting point — nothing here fills the chart in; the student walks the
@@ -1802,8 +1808,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     console.log("  patient found:", p?.firstName, p?.lastName, "| saved data:", !!saved);
 
     if (saved && saved._patientId === patientId) {
-      setSoapNote(saved.soapNote);
-      setSubmittedToCoding(saved.submittedToCoding);
+      // The note always comes from the encounter's own record, so a signed note
+      // reads signed here too (`domain/noteStatus.ts`).
+      setSoapNote({ ...noteFieldsOf(getEncounter(patientId)) });
       // The visit always opens on step 1, Registration — never wherever the
       // student last was (spec `encounter-continuity.md`). What they already did
       // is shown by the step bar's ticks, read from the record, and Next walks
@@ -1848,15 +1855,18 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       setSharedReferrals(seeded ? SEED_REFERRALS : []);
       setSharedOrders(seeded ? SEED_ORDERS : []);
       setSharedImaging(seeded ? SEED_IMAGING : []);
-      // Phase 0 section 5 — an autosaved draft survives a refresh, so the
-      // half-written note comes back with the patient.
-      const savedDraft = useEhrStore.getState().user.noteDrafts[patientId];
-      setSoapNote(
-        savedDraft
-          ? { ...savedDraft.fields }
-          : { subjective: "", objective: "", assessment: "", plan: "" },
-      );
-      setSubmittedToCoding(false);
+      // Phase 0 section 5 — the note comes back with the patient, from the
+      // encounter's own record. A draft an earlier build kept in
+      // `user.noteDrafts` is adopted into that record once and never read again:
+      // one note, one status (`domain/noteStatus.ts`).
+      const storedFields = noteFieldsOf(getEncounter(patientId));
+      const legacyDraft = useEhrStore.getState().user.noteDrafts[patientId];
+      if (!noteFieldsHaveText(storedFields) && legacyDraft && noteFieldsHaveText(legacyDraft.fields)) {
+        writeNoteFor(patientId, legacyDraft.fields);
+        setSoapNote({ ...legacyDraft.fields });
+      } else {
+        setSoapNote({ ...storedFields });
+      }
       setDisplayName(undefined);
       // A patient opens on step 1 whether or not they were worked before
       // (spec `encounter-continuity.md`); the step bar ticks what is finished.
@@ -1880,7 +1890,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       setSharedOrders([]);
       setSharedImaging([]);
       setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
-      setSubmittedToCoding(false);
       return;
     }
     // The summary panel and the workflow must be the same patient: reattach the
@@ -2136,24 +2145,15 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     return <PublicLandingPage />;
   }
 
-  // Handle sign & lock — compiles the SOAP note and submits to coding pipeline
+  // Handle sign & lock — one write: the note and its signature on the encounter
   const handleSignAndLock = () => {
     setIsSubmittingNote(true);
-    // Compile full note string from all quadrants
-    const fullNote = [
-      soapNote.subjective ? `SUBJECTIVE:\n${soapNote.subjective}` : "",
-      soapNote.objective ? `OBJECTIVE:\n${soapNote.objective}` : "",
-      soapNote.assessment ? `ASSESSMENT:\n${soapNote.assessment}` : "",
-      soapNote.plan ? `PLAN:\n${soapNote.plan}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n\n");
-
     // Simulate brief submission delay for UX
     setTimeout(() => {
-      submitToCoding(fullNote);
+      // `submitToCoding` writes the note and its signature in one store write
+      // (`domain/signNote.ts`). Every other screen reads that same record.
+      submitToCoding(soapNote);
       setIsSubmittingNote(false);
-      setSubmittedToCoding(true);
       addToast({ type: "success", title: "Note Submitted to Coding!", description: "The clinical note has been signed, locked, and sent to the coding queue." });
     }, 800);
   };
@@ -2202,9 +2202,11 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   const planGaps: string[] = [];
   if (!soapNote.assessment.trim()) planGaps.push("the assessment");
   if (!soapNote.plan.trim()) planGaps.push("the plan");
-  // The encounter's own record says whether its note was signed and locked.
-  const noteSigned =
-    pipelineState.status !== "pending" && (pipelineState.scribeNote.trim().length > 0 || submittedToCoding);
+  // The encounter's own record says whether its note was signed and locked —
+  // one function, the same one Charts and the Coding queue call.
+  const noteStatusNow = noteStatus(pipelineState);
+  const noteSigned = noteStatusNow === "signed";
+  const noteLocked = noteReadOnly(pipelineState);
 
   // The steps the record says are finished, mapped onto the one step order so
   // the step bar's ticks and the work on screen cannot disagree.
@@ -2444,14 +2446,14 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
             <div className="flex items-center gap-2">
               <span
                 className={
-                  submittedToCoding
+                  noteSigned
                     ? "rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700"
-                    : noteWritten
+                    : noteStatusNow === "draft"
                       ? "rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
                       : "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
                 }
               >
-                {submittedToCoding ? "Signed" : noteWritten ? "Draft" : "Empty"}
+                {NOTE_STATUS_LABEL[noteStatusNow]}
               </span>
               <NoteSavedIndicator savedAt={lastNoteSavedAt} />
             </div>
@@ -2463,7 +2465,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       {selectedPatient && currentRole !== "scribe" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
           {currentRole === "coder" && (
-            <CodingQueue soapNote={soapNote} medications={editablePatientData.medications} />
+            <CodingQueue medications={editablePatientData.medications} />
           )}
           {currentRole === "biller" && (
             <BillingLedger openTab={billingTab} />
@@ -2593,6 +2595,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                     {activeStage === "intake-vitals" && (
                       <IntakeVitalsStage patientId={selectedPatientId} editableVitals={editableVitals} onVitalsChange={setEditableVitals} />
                     )}
+                    {/* A signed note is read-only everywhere, so the three
+                        sections that are the note lock with it. */}
+                    <fieldset disabled={noteLocked} className="m-0 min-w-0 border-0 p-0">
                     {activeStage === "hpi" && (
                       <HPIStage
                         patientName={displayName || `${selectedPatient.firstName} ${selectedPatient.lastName}`}
@@ -2619,7 +2624,8 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         vitals={noteVitals}
                       />
                     )}
-                    {activeStage === "sign-lock" && !submittedToCoding && (
+                    </fieldset>
+                    {activeStage === "sign-lock" && !noteSigned && (
                       <SignLockStage
                         patientName={displayName || `${selectedPatient.firstName} ${selectedPatient.lastName}`}
                         note={soapNote}
@@ -2627,7 +2633,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         isSubmitting={isSubmittingNote}
                       />
                     )}
-                    {activeStage === "sign-lock" && submittedToCoding && (
+                    {activeStage === "sign-lock" && noteSigned && (
                       <div className="flex flex-col items-center justify-center py-12">
                         <div className="rounded-full bg-green-100 p-4">
                           <CheckCircle2 className="h-12 w-12 text-green-600" />
@@ -2639,10 +2645,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         </p>
                         <div className="mt-6 flex flex-wrap justify-center gap-3">
                           <button
-                            onClick={() => {
-                              setSubmittedToCoding(false);
-                              setActiveStage("");
-                            }}
+                            onClick={() => setActiveStage("")}
                             className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                           >
                             Return to Chart Review

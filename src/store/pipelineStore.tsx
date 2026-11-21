@@ -44,6 +44,13 @@ import { resolveEncounterPatientId } from "../utils/encounterPatient";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
 import { signNote } from "../domain/signNote";
 import {
+  compileNoteText,
+  normalizeNoteFields,
+  noteFieldsHaveText,
+  noteReadOnly,
+  type NoteFields,
+} from "../domain/noteStatus";
+import {
   adjudicateClaim as adjudicateClaimDomain,
   planForPayerName,
   remittanceForClaim,
@@ -154,7 +161,12 @@ interface PipelineContextValue {
    * nothing but the step id: no note, code, claim or ledger entry.
    */
   rememberChartStage: (stage: string) => void;
-  submitToCoding: (note: string) => void;
+  submitToCoding: (note: NoteFields | string) => void;
+  /**
+   * Save a patient's progress note — the four SOAP sections, the one record
+   * every screen reads. Refused once the note is signed.
+   */
+  writeNoteFor: (patientId: string | null, fields: NoteFields) => string | null;
   submitToBilling: (icdCodes: string[], cptCodes: string[], lines?: ClaimServiceLine[]) => void;
   submitClaim: (claimData: Record<string, string>) => void;
   // Structured CMS-1500 record
@@ -529,11 +541,47 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  /**
+   * Save the note's four SOAP sections — the one place a note is written.
+   *
+   * It targets the patient named rather than whoever is active, because the note
+   * is saved by an autosave timer, by a blur and by the Charts page, and any of
+   * those can fire while the chart is switching patients. A note that is already
+   * signed is refused: once signed it is read-only everywhere
+   * (`domain/noteStatus.ts`), not only where it was signed.
+   *
+   * Returns when it was saved, or null when nothing was written.
+   */
+  const writeNoteFor = (patientId: string | null, fields: NoteFields): string | null => {
+    const key = encounterKey(patientId);
+    const current = store.encounters[key];
+    if (current && noteReadOnly(current)) return null;
+    const nextFields = normalizeNoteFields(fields);
+    const text = compileNoteText(nextFields);
+    const unchanged =
+      current && text === current.scribeNote && JSON.stringify(nextFields) === JSON.stringify(current.noteFields);
+    if (unchanged) return null;
+    const at = new Date().toISOString();
+    setStore((prev) => {
+      const base = prev.encounters[key] ?? createEncounter(patientId);
+      if (noteReadOnly(base)) return prev;
+      return {
+        ...prev,
+        encounters: {
+          ...prev.encounters,
+          [key]: { ...base, noteFields: nextFields, scribeNote: text, noteUpdatedAt: at },
+        },
+      };
+    });
+    return at;
+  };
+
   // Auto-advance: Scribe → Coder
-  const submitToCoding = (note: string) => {
+  const submitToCoding = (note: NoteFields | string) => {
     // The signature itself lives in `domain/signNote.ts`, so the record the
-    // Coding queue reads is written by the same function the tests use.
-    updateActive((enc) => signNote(enc, { note, by: getLoggedInPhone() ?? "system" }));
+    // Coding queue reads is written by the same function the tests use. A note
+    // that is already signed is left exactly as it was: a note is signed once.
+    updateActive((enc) => (noteReadOnly(enc) ? enc : signNote(enc, { note, by: getLoggedInPhone() ?? "system" })));
   };
 
   // Auto-advance: Coder → Prior Auth (PA first)
@@ -575,6 +623,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       if (!prev.activePatientId && !encounterHasWork(own) && encounterHasWork(unassigned)) {
         enc = {
           ...enc,
+          noteFields: noteFieldsHaveText(enc.noteFields) ? enc.noteFields : unassigned.noteFields,
           scribeNote: enc.scribeNote || unassigned.scribeNote,
           icdCodes: enc.icdCodes.length > 0 ? enc.icdCodes : unassigned.icdCodes,
           cptCodes: enc.cptCodes.length > 0 ? enc.cptCodes : unassigned.cptCodes,
@@ -1211,6 +1260,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         setRole,
         rememberChartStage,
         submitToCoding,
+        writeNoteFor,
         submitToBilling,
         submitClaim,
         setClaimForm,
