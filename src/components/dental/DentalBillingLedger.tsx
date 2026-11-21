@@ -300,7 +300,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
         const downgrade = result.alternateBenefit;
         const resolution = state.lineResolutions[lineId];
         return (
-          <div key={lineId} className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div key={lineId} className="mt-3 overflow-hidden clinical-card">
             {/* line row */}
             <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
               <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">{code}</code>
@@ -446,7 +446,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
       <EobSummary activeCase={activeCase} plan={plan} adjudication={adjudication} eob={eob} />
 
       {/* ── totals + advance ─────────────────────────────────────────────── */}
-      <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="mt-3 flex flex-wrap items-center gap-3 clinical-card p-3">
         <p className="text-xs font-bold text-slate-700">Claim totals</p>
         <Totals k="Charged" v={fmtUsd(adjudication.totals.chargedUsd)} highlight />
         <Totals k="Allowed" v={fmtUsd(adjudication.totals.allowedUsd)} />
@@ -485,7 +485,7 @@ function EobSummary({
   const remainingBefore = activeCase?.eligibilitySnapshot.remainingAnnualMaximumUsd;
   const deductibleMetBefore = activeCase?.eligibilitySnapshot.deductibleMetUsd ?? 0;
   return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="mt-3 clinical-card p-3">
       <div className="mb-2 flex items-center gap-1.5">
         <FileText className="h-3.5 w-3.5 text-slate-400" />
         <p className="text-xs font-bold text-slate-700">Explanation of Benefits (EOB)</p>

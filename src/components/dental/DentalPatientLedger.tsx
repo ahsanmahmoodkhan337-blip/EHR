@@ -21,7 +21,7 @@ import { useDentalTrack } from "./DentalTrackStore";
 import { LEDGER_ENTRY_LABELS, ledgerBalance, type LedgerEntry } from "../../domain/ledger";
 
 const style = {
-  card: "rounded-xl border border-slate-200 bg-white shadow-sm",
+  card: "clinical-card",
   label: "text-[10px] font-semibold uppercase tracking-wider text-slate-500",
   input:
     "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500",

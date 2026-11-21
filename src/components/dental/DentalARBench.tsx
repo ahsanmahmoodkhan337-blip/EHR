@@ -90,7 +90,7 @@ function ScenarioPicker({ onBack }: { onBack?: () => void }) {
           const decided = run ? Object.keys(run.decisions).length : 0;
           const denied = deniedCounts[scenario.id] ?? 0;
           return (
-            <li key={scenario.id} className="flex flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <li key={scenario.id} className="flex flex-col clinical-card p-3">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">{scenario.id}</span>
                 <span className="text-[10px] text-slate-400">{scenario.claimNumber}</span>

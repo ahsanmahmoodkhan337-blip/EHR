@@ -84,7 +84,8 @@ function PaymentsPage() {
 
   return (
     <AppShell track={readActiveTrack()} activeNav="payments" footer={railFooter}>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-4xl px-4 py-8">
         <RailPageHeader
           icon={Wallet}
           title="Payments"
@@ -114,6 +115,7 @@ function PaymentsPage() {
           the insurance payments that ledger holds. A medical 835 disappears from this page the moment it is posted —
           its money is then on the ledger and its unpaid lines are on Denials and AR.
         </RailNote>
+        </div>
       </div>
     </AppShell>
   );
