@@ -64,9 +64,11 @@ import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
 import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
 import { statusEventsFor } from "../../domain/statusEvent";
 import { ADAForm } from "./ADAForm";
+import { CaseAdaClaimPaper } from "./CaseAdaClaimPaper";
 import { ADA_LAYOUT, ADA_LINE_COLUMNS, type ADAFormData, type ADAServiceLine } from "../../data/claims/adaLayout";
 import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
 import { buildADAForm } from "../../utils/claimAutoFill";
+import { dentalCaseClaimPaper } from "../../domain/dentalCaseClaimPaper";
 import { validateADA, type ClaimIssue } from "../../utils/claimValidation";
 import { exportClaimFormPDF } from "../../utils/claimFormPdf";
 import { toast } from "sonner";
@@ -267,7 +269,13 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
           onDownload={downloadPdf}
           accent="accent"
         >
-          {(api) => <ADAForm {...api} />}
+          {(api) =>
+            activeCase?.claimPaperFromRecord ? (
+              <CaseAdaClaimPaper paper={dentalCaseClaimPaper(activeCase, state.lines)} />
+            ) : (
+              <ADAForm {...api} />
+            )
+          }
         </ClaimFormShell>
       ) : (
         <div className="empty-state">
