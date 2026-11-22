@@ -312,7 +312,7 @@ describe("charge, units, place of service and modifiers carry from Coding into t
 
   test("the Billing desk carries the coder's lines into the claim it has open", () => {
     const biller = read("src/components/BillingLedger/BillingLedger.tsx");
-    expect(biller).toContain("carryCodingIntoClaim(claimForm, state.codingLines)");
+    expect(biller).toContain("carryCodingIntoClaim(savedClaim, state.codingLines)");
     expect(biller).toContain("patch.serviceLines = carried.form.serviceLines");
     expect(biller).toContain("patch.totalCharge = carried.form.totalCharge");
   });

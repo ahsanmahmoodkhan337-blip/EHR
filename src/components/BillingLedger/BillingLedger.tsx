@@ -41,7 +41,7 @@ import { REVENUE_CODES as UB04_REVENUE_CODES } from "../../data/claims/revenueCo
 import { CMS1500_LAYOUT, CMS1500_LINE_COLUMNS } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE, MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
 import { providerProfileFor } from "../../data/claims/renderingProviders";
-import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, reseedIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
+import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, identitySeedFor, reseedIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
 import { validateCMS1500, validateUB04, type ClaimIssue } from "../../utils/claimValidation";
 import {
   useEncounterPatientId,
@@ -82,6 +82,63 @@ const CMS1500_PDF_COLUMNS = CMS1500_LINE_COLUMNS.map((col) => ({
  */
 export interface BillingLedgerProps {
   openTab?: BillingTab;
+}
+
+/** A saved claim's service lines, whatever shape an earlier build left them in. */
+function savedLinesOf(form: ClaimFormData | null | undefined): ClaimServiceLine[] {
+  const lines = (form as { serviceLines?: unknown } | null | undefined)?.serviceLines;
+  if (!Array.isArray(lines)) return [];
+  return lines.filter((line): line is ClaimServiceLine => Boolean(line) && typeof line === "object");
+}
+
+/** A coded line's own fields, for the seeding key below. */
+function codingLineKey(lines: readonly ClaimServiceLine[] | null | undefined): string {
+  if (!Array.isArray(lines)) return "";
+  return lines
+    .map((line) =>
+      [
+        line.cpt ?? "",
+        line.charge ?? "",
+        line.units ?? "",
+        line.placeOfService ?? "",
+        Array.isArray(line.modifiers) ? line.modifiers.join(",") : String(line.modifiers ?? ""),
+        line.renderingNpi ?? "",
+      ].join("|"),
+    )
+    .join(";");
+}
+
+/**
+ * Everything one claim-seeding pass depends on: **the patient, the encounter**
+ * and the facts that pass carries onto the paper — the chart's identity boxes,
+ * this encounter's own authorisation, the Coder's lines, the place of service
+ * and the provider the visit was booked with.
+ *
+ * Two passes with the same key would compute the same patch, so the second is
+ * skipped. That is what stops this effect re-firing on every render (React
+ * error #185): a write the store refuses leaves the claim unchanged, so without
+ * the key the next render would seed again, and the one after that, forever.
+ */
+function claimSeedKey(input: {
+  patientId: string;
+  patientFingerprint: string;
+  priorAuth: string;
+  claimType: string;
+  encounterDate: string | null;
+  encounterPos: string | null;
+  encounterProvider: string | null;
+  codingLines: readonly ClaimServiceLine[] | null | undefined;
+}): string {
+  return [
+    input.patientId,
+    input.patientFingerprint,
+    input.priorAuth,
+    input.claimType,
+    input.encounterDate ?? "",
+    input.encounterPos ?? "",
+    input.encounterProvider ?? "",
+    codingLineKey(input.codingLines),
+  ].join("~");
 }
 
 export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
@@ -165,7 +222,9 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   // practice's own address and tax ID stay the practice's.
   const encounterProvider = useEncounterProvider(patientId || null);
   const claimProvider = providerProfileFor(encounterProvider);
-  const linePositions = (claimForm?.serviceLines ?? []).map((line) => line.placeOfService);
+  // `savedLinesOf` reads an old-shape record (no array, or rows that are not
+  // objects) as an empty list instead of throwing on `.map`.
+  const linePositions = savedLinesOf(claimForm).map((line) => line.placeOfService);
   const claimPos =
     linePositions.map((value) => String(value ?? "").trim()).find(Boolean) ||
     String(encounterPos ?? "").trim();
@@ -223,6 +282,17 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   // filled from the coded encounter and the provider profile. The patient is
   // then resolved from the encounter (`resolveEncounterPatientId`), so boxes
   // 1a–7 fill from the chart the banner above is showing.
+  //
+  // **Once per patient + encounter (owner report, 2026-11-22).** A chart saved
+  // before Phase 1 can reach this desk with a patient on screen that the store
+  // cannot scope the claim to — `setClaimForm` refuses (`no-patient` /
+  // `no-encounter`, `store/pipelineStore.tsx`) and returns the same state, so
+  // the claim never changes. Every later render then seeds again, and React
+  // throws "Maximum update depth exceeded" (#185). `seededFor` makes the pass
+  // run at most once for a given patient, encounter and set of inputs, whatever
+  // the store does with the write; it is a ref, so it survives re-renders and
+  // resets only when the chart or the facts being carried actually change.
+  const seededFor = useRef<string | null>(null);
   useEffect(() => {
     // Data scoping (audit item 5): no patient, no claim. Nothing is seeded and
     // no claim number is minted; the desk below names what is missing.
@@ -233,6 +303,21 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     // patient's last PA whatever it authorised. With none of its own the box
     // stays empty and the paper's provenance strip names the stage that fills it.
     const ownPriorAuth = priorAuthForClaim({ paData: state.paData, cptCodes: state.cptCodes });
+    // The pass below is skipped when nothing it reads has changed since the last
+    // one. Marked before the write, so a refused write is not retried on every
+    // render — that retry is the #185 loop.
+    const seedKey = claimSeedKey({
+      patientId,
+      patientFingerprint: identitySeedFor(patient ?? null, state.displayName),
+      priorAuth: ownPriorAuth,
+      claimType: paper.claimType,
+      encounterDate,
+      encounterPos,
+      encounterProvider,
+      codingLines: state.codingLines,
+    });
+    if (seededFor.current === seedKey) return;
+    seededFor.current = seedKey;
     if (!claimForm) {
       setClaimForm(
         buildClaimForm({
@@ -251,6 +336,12 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     // A claim opened before its patient was known — or written by a build that
     // had no patient to seed it — gets the identity boxes filled in place.
     // Codes, charges and anything the student edited are left alone.
+    //
+    // Old-shape record: a claim saved by an earlier build can arrive with no
+    // service-line array, or with rows that are not objects. Every read below
+    // goes through this normalised copy, so a stale record is carried forward
+    // and repaired instead of throwing on the first `.map`.
+    const savedClaim: ClaimFormData = { ...claimForm, serviceLines: savedLinesOf(claimForm) };
     const patch: Partial<ClaimFormData> = {};
     // The type is written from the POS every time it is read, so a claim opened
     // after its place of service changed (or written by a build that let the
@@ -258,17 +349,17 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     patch.claimType = paper.claimType;
     // A claim written by an earlier build carries an invented member ID and
     // group number; clear them so the boxes fall through to the tagged demo.
-    Object.assign(patch, stripFabricatedIds(claimForm));
+    Object.assign(patch, stripFabricatedIds(savedClaim));
     // Re-seeded per patient, not once: a patient the student registered
     // themselves gets an id, a DOB and (once Registration runs) an insurance
     // record after this claim may already have been opened. A box the student
     // typed is never overwritten.
-    Object.assign(patch, backfillIdentityBoxes(claimForm, patient, state.displayName));
-    Object.assign(patch, reseedIdentityBoxes(claimForm, patient, state.displayName));
+    Object.assign(patch, backfillIdentityBoxes(savedClaim, patient, state.displayName));
+    Object.assign(patch, reseedIdentityBoxes(savedClaim, patient, state.displayName));
     // Box 23 fills the moment this encounter has an authorisation of its own — a
     // PA submitted after the claim was opened. A box the student typed is never
     // overwritten, and a number that is not this encounter's is never put there.
-    if (ownPriorAuth && !String(claimForm.priorAuthNumber ?? "").trim()) {
+    if (ownPriorAuth && !String(savedClaim.priorAuthNumber ?? "").trim()) {
       patch.priorAuthNumber = ownPriorAuth;
     }
     // ── Box 24 and box 28 from the Coder's own lines (audit item 5) ──
@@ -277,7 +368,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     // charge. The coder's charge (24F), units (24G), place of service (24B) and
     // modifiers (24D) are carried onto the claim here, and box 28 is summed from
     // the lines. A value the student typed on the claim is never overwritten.
-    const carried = carryCodingIntoClaim(claimForm, state.codingLines);
+    const carried = carryCodingIntoClaim(savedClaim, state.codingLines);
     if (carried.changed) {
       patch.serviceLines = carried.form.serviceLines;
       patch.totalCharge = carried.form.totalCharge;
@@ -288,11 +379,11 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     // stop printing, so they are replaced with the booking provider's; a value
     // the student typed (anything else) is left exactly as typed.
     if (encounterProvider) {
-      const currentSignature = String(claimForm.providerSignature ?? "").trim();
+      const currentSignature = String(savedClaim.providerSignature ?? "").trim();
       if (!currentSignature || currentSignature === MEDICAL_PROVIDER_PROFILE.signatureName) {
         patch.providerSignature = claimProvider.signatureName;
       }
-      const currentLines = patch.serviceLines ?? claimForm.serviceLines ?? [];
+      const currentLines = patch.serviceLines ?? savedClaim.serviceLines;
       const relined = currentLines.map((line) => {
         const npi = String(line.renderingNpi ?? "").trim();
         return !npi || npi === MEDICAL_PROVIDER_PROFILE.npi
@@ -308,7 +399,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     const changed: Record<string, unknown> = {};
     for (const [box, value] of Object.entries(patch)) {
       if (value === undefined) continue;
-      const current = (claimForm as unknown as Record<string, unknown>)[box];
+      const current = (savedClaim as unknown as Record<string, unknown>)[box];
       const same =
         current === value ||
         (typeof current === "object" && typeof value === "object"
@@ -316,17 +407,17 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
           : false);
       if (!same) changed[box] = value;
     }
-    if (Object.keys(changed).length > 0) setClaimForm({ ...claimForm, ...changed });
+    if (Object.keys(changed).length > 0) setClaimForm({ ...savedClaim, ...changed });
   }, [patientId, claimForm, patient, state, paRecords, setClaimForm, paper.claimType, encounterDate, encounterPos, encounterProvider]);
 
   const claimValues = useMemo(() => {
     if (!claimForm) return {};
-    const { serviceLines: _lines, ...rest } = claimForm;
+    const { serviceLines: _lines, ...rest } = { ...claimForm, serviceLines: savedLinesOf(claimForm) };
     return rest as unknown as Record<string, unknown>;
   }, [claimForm]);
 
   const claimLines = useMemo(
-    () => (claimForm?.serviceLines ?? []) as unknown as Record<string, unknown>[],
+    () => savedLinesOf(claimForm) as unknown as Record<string, unknown>[],
     [claimForm],
   );
 
@@ -339,7 +430,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   );
   /** The CPT codes on THIS claim that the payer's PA list names. */
   const claimPaCodes = useMemo(() => {
-    const codes = (claimForm?.serviceLines ?? [])
+    const codes = savedLinesOf(claimForm)
       .map((l) => l.cpt)
       .filter(Boolean) as string[];
     return Array.from(new Set(codes.filter((c) => paCptList.has(c))));
@@ -374,7 +465,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   const legacyBoxMap = (values: Record<string, unknown>): Record<string, string> => {
     const s = (k: string) => String(values[k] ?? "");
     const codes = (values.diagnosisCodes as string[]) ?? [];
-    const lines = (values.serviceLines as unknown as ClaimServiceLine[]) ?? claimForm?.serviceLines ?? [];
+    const lines = (values.serviceLines as unknown as ClaimServiceLine[]) ?? savedLinesOf(claimForm);
     return {
       "1": s("insuranceType"),
       "2": s("patientName"),
