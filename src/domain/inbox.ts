@@ -64,11 +64,19 @@ export function studentPatientList<P extends InboxPatientLike>(patients: readonl
 }
 
 /**
- * The student's own charts only — what `/patients` lists and what the Inbox
- * badge counts. The Tutorial Patient is pinned practice, not a chart of theirs.
+ * What `/patients` lists, and what the dashboard's Patients tile counts: the
+ * Tutorial Patient pinned first, then the student's own charts.
+ *
+ * The Tutorial Patient is the standard worked-example chart (owner, 2026-11-22),
+ * so it is always on the directory — a new student's `/patients` is never empty
+ * and never says "0 charts on file" while their practice chart exists. It is
+ * pinned, so it is listed once and never sorted into their own charts. The 18
+ * built-in demo charts are still dropped here.
  */
 export function ownPatientList<P extends InboxPatientLike>(patients: readonly P[]): P[] {
-  return patients.filter(isOwnPatient);
+  const tutorial = patients.find((p) => isTutorialPatient(p));
+  const own = patients.filter((p) => isOwnPatient(p) && !isTutorialPatient(p));
+  return [...(tutorial ? [tutorial] : []), ...own];
 }
 
 /**

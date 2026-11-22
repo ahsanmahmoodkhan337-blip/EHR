@@ -110,7 +110,8 @@ describe("choosing a patient makes them the one active patient", () => {
 
   test("the Patients directory sets the pick before it navigates", () => {
     const source = read("src/routes/patients.tsx");
-    expect(source).toContain('import { rememberActivePatient } from "../store/pipelineStore";');
+    expect(source).toContain('from "../store/pipelineStore"');
+    expect(source).toContain("rememberActivePatient");
     const open = source.slice(source.indexOf("const openPatient = (patientId: string) => {"));
     expect(open.indexOf("rememberActivePatient(patientId);")).toBeLessThan(open.indexOf("void navigate("));
   });

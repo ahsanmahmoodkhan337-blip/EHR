@@ -172,7 +172,10 @@ export interface PracticeAreaCountInput {
   encounters: readonly PipelineEncounter[];
   dental: DentalTrackState | null;
   track: ShellTrack;
-  /** The charts `/patients` lists: the student's own, never the demo charts. */
+  /**
+   * The charts `/patients` lists: the pinned Tutorial Patient plus the student's
+   * own, never the 18 demo charts. Counted from the one list the page draws.
+   */
   ownPatientCount: number;
   /** Appointments booked for today, on this student's own charts. */
   appointmentsToday: number;

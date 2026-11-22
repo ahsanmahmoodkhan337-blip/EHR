@@ -371,6 +371,26 @@ export function rememberActivePatient(patientId: string | null): void {
   saveUserData(phone, { pipeline: { ...saved, activePatientId: patientId } });
 }
 
+/**
+ * The stage this patient's encounter is saved on, read straight from the
+ * student's record — the same record `PipelineProvider` mounts from.
+ *
+ * A screen that sends the student into an encounter rather than to a hub tab
+ * (`/patients` on the Tutorial Patient) names the stage in the address, and the
+ * address wins over the session's remembered screen. Reading the saved stage is
+ * what keeps that click resuming the encounter where it was left instead of
+ * restarting it at Registration. `undefined` when nothing is saved yet, or when
+ * the student is not signed in — the caller opens the encounter's first stage.
+ * Nothing is written here.
+ */
+export function savedEncounterStage(patientId: string): string | undefined {
+  const phone = getLoggedInPhone();
+  if (!phone) return undefined;
+  const local = loadUserData(phone);
+  const saved = normalizePipelineStore(local?.pipeline, local?.currentRole ?? "scribe");
+  return saved.encounters[encounterKey(patientId)]?.stage;
+}
+
 // ─── Provider ──────────────────────────────────────────────────────
 
 export function PipelineProvider({ children }: { children: ReactNode }) {
