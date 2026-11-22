@@ -25,6 +25,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { PRACTICE_AREA_TILES } from "../src/domain/practiceAreas";
 
 const root = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
@@ -184,12 +185,30 @@ describe("every destination survives the rail's removal", () => {
     expect(header).toContain("<TrackSwitcher");
   });
 
-  test("the dashboard carries a card for every destination except the header's two", () => {
-    // The cards are built from the same list, so a page cannot fall out of both.
-    expect(dashboard).toContain("const PRACTICE_AREAS = SHELL_NAV_ITEMS.filter(");
-    expect(dashboard).toContain('item.id !== "home"');
-    expect(dashboard).toContain('item.id !== "settings"');
-    expect(dashboard).toContain("PRACTICE_AREAS.map(");
+  test("the dashboard carries a tile for every destination except the header's two", () => {
+    // Owner's student-experience work order, 2026-11-21, item 6: the flat grid of
+    // nine buttons became four labelled practice areas. The groups are built from
+    // the shell's one destination list, so a page cannot fall out of both.
+    expect(dashboard).toContain("PRACTICE_AREA_GROUPS");
+    expect(dashboard).toContain("practiceAreaCounts(");
+    expect(dashboard).toContain("AREA_GROUPS.map(");
+    const navIds = PRACTICE_AREA_TILES.map((tile) => tile.nav).filter(Boolean).sort();
+    expect(navIds).toEqual([
+      "charts",
+      "claims",
+      "coding",
+      "denials-ar",
+      "patients",
+      "payments",
+      "practice-cases",
+      "reports",
+      "schedule",
+    ]);
+    // Prior Auth has no page of its own: its tile opens that patient's own stage.
+    const priorAuth = PRACTICE_AREA_TILES.find((tile) => tile.id === "prior-auth");
+    expect(priorAuth?.nav).toBeUndefined();
+    expect(priorAuth?.stage).toBe("prior-auth");
+    expect(dashboard).toContain('stage: "prior-auth"');
     const targets = [...navItems.matchAll(/to: "([^"]+)"/g)].map((m) => m[1]);
     expect(targets).toEqual(RAIL_PAGES.map((page) => page.path));
     expect(targets).toHaveLength(11);

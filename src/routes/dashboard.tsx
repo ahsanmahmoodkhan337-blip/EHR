@@ -11,18 +11,26 @@
  * never mutates it.
  */
 
-import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Stethoscope, Smile, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, Stethoscope, Smile, Sparkles } from "lucide-react";
 import { getLoggedInPhone, getSubscriptionStatus, isLoggedIn } from "../store/accessStore";
 import { loadUserData } from "../store/persistence";
-import { PatientProvider } from "../store/patientStore";
+import { PatientProvider, usePatientStore } from "../store/patientStore";
+import { useAllAppointments } from "../store/ehrStore";
 import { AppShell } from "../components/AppShell";
 import { useActiveTrack } from "../components/shell/activeTrack";
 import { SHELL_NAV_ITEMS } from "../components/shell/navItems";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
-import { getSharingSignal, MAX_DEVICE_COUNT, resetOtherSessions } from "../store/accountSecurity";
 import { encounterKey, type PipelineStoreState } from "../store/pipelineStore";
+import { ownPatientList, TUTORIAL_PATIENT_ID } from "../domain/inbox";
+import {
+  PRACTICE_AREA_GROUPS,
+  practiceAreaCounts,
+  type PracticeAreaCount,
+  type PracticeAreaTile,
+} from "../domain/practiceAreas";
+import { MEDICAL_CASE_SCENARIOS } from "../data/medical/caseScenarios";
+import { DENTAL_CASE_SCENARIOS } from "../data/dental/caseScenarios";
 import {
   ENCOUNTER_FLOW_STAGES,
   currentFlowStage,
@@ -49,12 +57,19 @@ export const Route = createFileRoute("/dashboard")({
 const MEDICAL_STAGES = ENCOUNTER_FLOW_STAGES;
 
 /**
- * The destinations the dashboard carries a card for: everything the removed
- * left rail held except Home and Settings, which are the header's own controls.
+ * The four practice-area groups the dashboard carries (owner's student
+ * experience work order, 2026-11-21, item 6): Front desk · Clinical · Billing ·
+ * Review, in the order the work moves. The groups, their tiles and the stage
+ * names they print all come from `domain/practiceAreas.ts`, so a destination
+ * cannot fall out of the dashboard and the stage names cannot drift from the
+ * encounter stepper's.
  */
-const PRACTICE_AREAS = SHELL_NAV_ITEMS.filter(
-  (item) => item.id !== "home" && item.id !== "settings",
-);
+const AREA_GROUPS = PRACTICE_AREA_GROUPS;
+
+/** The nav entry a tile opens, resolved from the shell's one list. */
+function navFor(tile: PracticeAreaTile) {
+  return tile.nav ? SHELL_NAV_ITEMS.find((item) => item.id === tile.nav) : undefined;
+}
 
 const DENTAL_STAGE_LABELS: Record<DentalStageName, string> = {
   "case-select": "Select a case",
@@ -85,19 +100,11 @@ function DashboardPage() {
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
   const phone = getLoggedInPhone();
-  const [resettingDevices, setResettingDevices] = useState(false);
-
-  // "Sign out other devices" — clears every other binding, keeps this one.
-  const handleResetOtherDevices = async () => {
-    if (!phone) return;
-    setResettingDevices(true);
-    try {
-      await resetOtherSessions(phone);
-      window.location.reload();
-    } finally {
-      setResettingDevices(false);
-    }
-  };
+  // The student's own charts and appointments — the two records the practice
+  // area counts read. Both hooks sit ABOVE the sign-in early return below, so
+  // the hook order never depends on whether the student is signed in.
+  const { patients, getPatientById } = usePatientStore();
+  const appointments = useAllAppointments();
 
   if (!loggedIn || !phone) {
     return (
@@ -124,7 +131,37 @@ function DashboardPage() {
   const dental = readDentalState(phone);
 
   const subStatus = getSubscriptionStatus(phone);
-  const signal = getSharingSignal(phone);
+
+  // ── the four practice areas and their real counts ───────────────────
+  // Every number is read from the student's own saved records through the same
+  // domain builders each page uses (`domain/practiceAreas.ts`), so a tile and
+  // the page it opens print the same figure. Nothing here is stored by hand.
+  const today = (() => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${now.getFullYear()}-${month}-${day}`;
+  })();
+  const areaCounts: Partial<Record<string, PracticeAreaCount>> = practiceAreaCounts({
+    encounters: Object.values(pipeline?.encounters ?? {}),
+    dental,
+    track,
+    ownPatientCount: ownPatientList(patients).length,
+    appointmentsToday: appointments.filter((appointment) => appointment.date === today).length,
+    paRecords: medical?.paRecords ?? [],
+    caseCount: MEDICAL_CASE_SCENARIOS.length + DENTAL_CASE_SCENARIOS.length,
+    now: new Date().toISOString(),
+    nameForPatient: (patientId, fallback) => {
+      const patient = patientId ? getPatientById(patientId) : undefined;
+      if (patient) return `${patient.firstName} ${patient.lastName}`;
+      return fallback ?? "No patient attached";
+    },
+  });
+
+  // Prior Auth has no page of its own: its tile opens that patient's own Prior
+  // Auth stage, on the patient the workspace already has open (the Tutorial
+  // Patient when nothing is open yet).
+  const priorAuthPatientId = pipeline?.activePatientId ?? TUTORIAL_PATIENT_ID;
 
   // Medical progress — the stage the encounter's own record is on, numbered in
   // the owner's order. Registration/eligibility are front-desk work, not stages.
@@ -261,27 +298,69 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Practice areas — the destinations the left rail used to hold.
-            Owner's style correction, 2026-11-21 (spec `nov19-style-restore.md`
-            §1): the rail is gone, so every destination it carried gets a 19
-            November card here instead. The list is `navItems.ts` — the same one
-            the header reads — so a page cannot fall out of both. Home and
-            Settings are the header's own two controls and are left out here. */}
+        {/* Practice areas — four groups in workflow order.
+            Owner's student-experience work order, 2026-11-21, item 6: the flat
+            grid of nine identical buttons became Front desk · Clinical ·
+            Billing · Review. The groups come from `domain/practiceAreas.ts`,
+            which reads the shell's one destination list and the pipeline's one
+            stage list, so a tile prints the same stage name the encounter's
+            stepper prints and every destination stays reachable. */}
         <div className="surface-card mt-5 p-5">
           <h2 className="text-base font-bold text-slate-800">Practice areas</h2>
           <p className="mt-0.5 text-[11px] text-slate-400">
-            Every page in the simulator, one click away.
+            The seven-stage encounter, group by group.
           </p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {PRACTICE_AREAS.map(({ id, label, icon: Icon, to }) => (
-              <Link
-                key={id}
-                to={to}
-                className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-              >
-                <Icon className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-                <span className="min-w-0 truncate">{label}</span>
-              </Link>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            {AREA_GROUPS.map((group) => (
+              <section key={group.id} aria-labelledby={`practice-area-${group.id}`}>
+                <h3 id={`practice-area-${group.id}`} className="section-header">
+                  {group.label}
+                </h3>
+                <ul className="space-y-1.5">
+                  {group.tiles.map((tile) => {
+                    const nav = navFor(tile);
+                    const Icon = nav?.icon ?? ShieldCheck;
+                    const count = areaCounts[tile.id];
+                    const className =
+                      "flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600";
+                    const body = (
+                      <>
+                        <Icon className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-baseline justify-between gap-2">
+                            <span className="text-xs font-medium text-slate-700">{tile.label}</span>
+                            {count && (
+                              <span className="shrink-0 whitespace-nowrap text-[10px] font-semibold tabular-nums text-slate-400">
+                                {count.label}
+                              </span>
+                            )}
+                          </span>
+                          <span className="block text-[11px] leading-snug text-slate-500">
+                            {tile.description}
+                          </span>
+                        </span>
+                      </>
+                    );
+                    return (
+                      <li key={tile.id}>
+                        {nav ? (
+                          <Link to={nav.to} className={className}>
+                            {body}
+                          </Link>
+                        ) : (
+                          <Link
+                            to="/encounter/$encounterId/$stage"
+                            params={{ encounterId: priorAuthPatientId, stage: "prior-auth" }}
+                            className={className}
+                          >
+                            {body}
+                          </Link>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
             ))}
           </div>
         </div>
@@ -290,33 +369,6 @@ function DashboardPage() {
           Work saves automatically to this browser as you go — the indicator in the top bar shows
           the last save, and says so if a save fails. You can switch tracks anytime.
         </p>
-
-        {/* Account activity — device-binding signal + device-management path. */}
-        <div className="mt-2 text-center text-[10px] text-slate-400">
-          {signal.distinctDeviceCount > 0 ? (
-            <span>
-              Signed in on {signal.distinctDeviceCount} device{signal.distinctDeviceCount === 1 ? "" : "s"}
-              {signal.lastLoginAt ? ` · last sign-in ${new Date(signal.lastLoginAt).toLocaleString()}` : ""}
-            </span>
-          ) : (
-            <span>First sign-in on this device</span>
-          )}
-          {signal.flagged && (
-            <span className="ml-1 text-amber-500" title="This account has been used from more than one device or had overlapping sessions.">
-              (multi-device)
-            </span>
-          )}
-          {signal.distinctDeviceCount > 1 && (
-            <button
-              onClick={handleResetOtherDevices}
-              disabled={resettingDevices}
-              className="ml-2 inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-60"
-              title={`Sign out every other device and keep only this one (device limit: ${MAX_DEVICE_COUNT}).`}
-            >
-              {resettingDevices ? "Signing out…" : "Sign out other devices"}
-            </button>
-          )}
-        </div>
         </div>
       </div>
     </AppShell>
