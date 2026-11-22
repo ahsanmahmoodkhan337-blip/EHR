@@ -365,3 +365,27 @@ export function nextClaimNumber(existing: (string | null | undefined)[]): string
   const highest = (existing ?? []).reduce((max, n) => Math.max(max, claimNumberSequence(n)), 0);
   return mintClaimNumber(highest + 1);
 }
+
+/**
+ * Where the claim stands once its 835 is posted — read from the money alone.
+ *
+ * A claim some of whose lines paid and some of whose lines were written off is
+ * partially paid; a claim nobody paid and nobody owes is a contractual
+ * write-off; a claim the plan paid nothing on but the patient owes is the
+ * patient's. A patient balance never closes a claim.
+ *
+ * Phase 1 (`specs/phase1-data-integrity.md` item 1): this rule moved here from
+ * `store/pipelineStore.tsx`, so the posting, the claim header and the end-to-end
+ * reload test all read one function, and a reload can never disagree with what
+ * the posting wrote.
+ */
+export function claimStatusForRemittance(remittance: {
+  totals: { paidCents: number; deniedCents: number; patientRespCents: number };
+}): ClaimStatus {
+  const { paidCents, deniedCents, patientRespCents } = remittance.totals;
+  if (paidCents > 0 && deniedCents > 0) return "partially_paid";
+  if (paidCents > 0) return "paid";
+  if (deniedCents > 0) return patientRespCents === 0 ? "written_off" : "denied";
+  if (patientRespCents > 0) return "patient_responsibility";
+  return "denied";
+}
