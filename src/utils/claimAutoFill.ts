@@ -234,9 +234,17 @@ function buildServiceLines(
   if (pipeline.codingLines && pipeline.codingLines.length > 0) {
     // A Coder line arrives without 24I, because the qualifier is not the
     // Coder's decision: 24J is an NPI on every path, so 24I is XX.
+    // 24J is the rendering provider's NPI, so a line the Coder handed over
+    // without one takes the provider's — the appointment's provider, once the
+    // biller's screen passes it in (Phase 1, item 4). A value already on the
+    // line is never overwritten.
     return pipeline.codingLines
       .slice(0, 6)
-      .map((l) => ({ ...l, idQualifier: l.idQualifier || "XX" }));
+      .map((l) => ({
+        ...l,
+        idQualifier: l.idQualifier || "XX",
+        renderingNpi: l.renderingNpi || provider.npi,
+      }));
   }
   const codes = pipeline.cptCodes ?? [];
   return codes.slice(0, 6).map((code, i) => {

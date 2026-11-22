@@ -77,6 +77,44 @@ export function useEncounterPlaceOfService(patientId: string | null): string | n
 }
 
 /**
+ * The provider the visit was booked with — the appointment's own provider.
+ *
+ * Phase 1 (`specs/phase1-data-integrity.md` item 4): the rendering provider on
+ * the claim is the provider on the appointment, so box 31 and box 24J follow it.
+ * The encounter links to its appointment by `appointmentId`; a legacy encounter
+ * with no link falls back to that patient's own appointment, and a patient with
+ * no appointment reads null so the paper keeps the practice profile instead of
+ * naming a clinician nobody booked.
+ */
+export function resolveEncounterProvider(patientId: string | null): string | null {
+  if (!patientId) return null;
+  const { user } = useEhrStore.getState();
+  const encounter = resolveEncounter(patientId);
+  const appointment =
+    (encounter?.appointmentId
+      ? user.appointments.find((a) => a.id === encounter.appointmentId)
+      : undefined) ?? user.appointments.find((a) => a.patientId === patientId);
+  const provider = (appointment?.provider ?? "").trim();
+  return provider || null;
+}
+
+/** Reactive form of `resolveEncounterProvider`. */
+export function useEncounterProvider(patientId: string | null): string | null {
+  return useEhrStore((s) => {
+    if (!patientId) return null;
+    const encounter =
+      s.user.encounters.find((e) => e.patientId === patientId && !e.locked) ??
+      s.user.encounters.find((e) => e.patientId === patientId);
+    const appointment =
+      (encounter?.appointmentId
+        ? s.user.appointments.find((a) => a.id === encounter.appointmentId)
+        : undefined) ?? s.user.appointments.find((a) => a.patientId === patientId);
+    const provider = (appointment?.provider ?? "").trim();
+    return provider || null;
+  });
+}
+
+/**
  * The date of service the encounter was registered at. This is what box 24A
  * reads when the Coder handed over no per-line dates — the alternative was
  * `today()`, a date nobody captured.

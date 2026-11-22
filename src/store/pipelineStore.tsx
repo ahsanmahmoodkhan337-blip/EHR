@@ -38,7 +38,11 @@ import {
   type PipelineStoreState,
   type Role,
 } from "./pipelineEncounter";
-import { type ClaimStatus, type ReasonCode } from "../domain/claimStatus";
+import {
+  claimStatusForRemittance,
+  type ClaimStatus,
+  type ReasonCode,
+} from "../domain/claimStatus";
 import { mintNextClaimNumber } from "./claimSequence";
 import { encounterIdFor, scopingRefusal } from "../domain/dataScoping";
 import { resolveEncounterPatientId } from "../utils/encounterPatient";
@@ -294,22 +298,6 @@ const ROLE_LABELS: Record<Role, string> = {
 
 function money(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
-}
-
-/**
- * Where the claim stands once its 835 is posted. Read from the money alone:
- * a claim some of whose lines paid and some of whose lines were written off is
- * partially paid; a claim nobody paid and nobody owes is a contractual
- * write-off; a claim the plan paid nothing on but the patient owes is the
- * patient's. A patient balance never closes a claim (`domain/claimStatus.ts`).
- */
-function claimStatusForRemittance(remittance: Remittance835): ClaimStatus {
-  const { paidCents, deniedCents, patientRespCents } = remittance.totals;
-  if (paidCents > 0 && deniedCents > 0) return "partially_paid";
-  if (paidCents > 0) return "paid";
-  if (deniedCents > 0) return patientRespCents === 0 ? "written_off" : "denied";
-  if (patientRespCents > 0) return "patient_responsibility";
-  return "denied";
 }
 
 /** One plain sentence for the timeline, naming the money and who carries it. */

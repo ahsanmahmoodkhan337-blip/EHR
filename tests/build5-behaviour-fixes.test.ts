@@ -96,7 +96,11 @@ describe("a later stage is never done while an earlier one is current", () => {
   });
 
   test("the stage bar and the Coding queue use the same 'coded' rule", () => {
-    expect(read("src/routes/index.tsx")).toContain("const coded = hasSubmittedCodes(pipelineState);");
+    // Phase 1 moved the rule into one pure reader both screens ask, so the
+    // stage bar cannot drift from the Coding queue: 
+    // calls , and the workspace draws that answer.
+    expect(read("src/domain/stageProgress.ts")).toContain("hasSubmittedCodes(encounter)");
+    expect(read("src/routes/index.tsx")).toContain("completedStagesOf(pipelineState)");
     const enc = { icdCodes: ["J06.9"], cptCodes: [] } as unknown as PipelineEncounter;
     // One code submitted is "coded" for the queue, and now for the stepper too.
     expect(hasSubmittedCodes(enc)).toBe(true);

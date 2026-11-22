@@ -55,7 +55,7 @@ import { useActiveTrack } from "../components/shell/activeTrack";
 import { InBasket, useInboxItems } from "../components/TabsEpic/InBasket";
 import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
 import { inboxCount } from "../domain/inbasket";
-import { hasSubmittedCodes } from "../domain/codingQueue";
+import { completedStagesOf } from "../domain/stageProgress";
 import { postedCopayForPatient } from "../domain/checkIn";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
@@ -82,7 +82,6 @@ import {
 } from "../domain/encounterSteps";
 import {
   ENCOUNTER_FLOW_STAGES,
-  completedFlowStages,
   currentFlowStage,
   flowStageIndex,
   flowStageLabel,
@@ -2232,11 +2231,18 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     .filter(([, value]) => !String(value ?? "").trim())
     .map(([label]) => label);
 
-  const hpiDone = soapNote.subjective.trim().length > 0;
-  const examDone = soapNote.objective.trim().length > 0;
+  // The note's own record first, then the editor buffer — the buffer is only
+  // what has not been written yet (the debounced writer lands it in the record).
+  // Reading the record is what makes the step bar look the same after a reload
+  // (owner's work order, `specs/phase1-data-integrity.md` item 2).
+  const noteInRecord = noteFieldsOf(pipelineState);
+  const noteSectionText = (section: keyof typeof noteInRecord): string =>
+    (noteInRecord[section] || soapNote[section] || "").trim();
+  const hpiDone = noteSectionText("subjective").length > 0;
+  const examDone = noteSectionText("objective").length > 0;
   const planGaps: string[] = [];
-  if (!soapNote.assessment.trim()) planGaps.push("the assessment");
-  if (!soapNote.plan.trim()) planGaps.push("the plan");
+  if (!noteSectionText("assessment")) planGaps.push("the assessment");
+  if (!noteSectionText("plan")) planGaps.push("the plan");
   // The encounter's own record says whether its note was signed and locked —
   // one function, the same one Charts and the Coding queue call.
   const noteStatusNow = noteStatus(pipelineState);
@@ -2254,28 +2260,10 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     "sign-lock": noteSigned,
   });
 
-  // What the record says is finished. Read from the encounter itself, never
-  // from a stored click, so a tick and the work can never disagree.
-  const noteWritten = hpiDone && examDone && planGaps.length === 0;
-  // The SAME rule the /coding queue uses (`domain/codingQueue.ts`), so the
-  // stage bar and the coder's list can never disagree about whether this
-  // encounter has been coded.
-  const coded = hasSubmittedCodes(pipelineState);
-  const claimCreated = Boolean(pipelineState.claimNumber);
-  const remittancePosted = (pipelineState.remittances ?? []).some((r) => Boolean(r.postedAt));
-  const arItems = pipelineState.arItems ?? [];
-  const arCleared = arItems.length > 0 && arItems.every((item) => item.status === "resolved");
-  const completedFlow = completedFlowStages({
-    "progress-note": noteWritten,
-    "sign-lock": noteSigned,
-    coding: coded,
-    // A claim can only be submitted once the prior-auth desk has settled its
-    // question, so a claim on the encounter is the PA stage's own answer.
-    "prior-auth": claimCreated,
-    billing: claimCreated,
-    payments: remittancePosted,
-    "denials-ar": arCleared,
-  });
+  // What the record says is finished — one pure reader (`domain/stageProgress.ts`)
+  // over the encounter's own saved state, so a tick and the work can never
+  // disagree and a reload cannot change the answer.
+  const completedFlow = completedStagesOf(pipelineState);
 
   const flowNext = nextFlowStage(flowStageId);
   const flowPrevious = previousFlowStage(flowStageId);

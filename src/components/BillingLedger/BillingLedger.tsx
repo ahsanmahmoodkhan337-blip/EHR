@@ -39,13 +39,15 @@ import { Ub04Form } from "./Ub04Form";
 import { UB04_LAYOUT, UB04_PDF_COLUMNS } from "../../data/claims/ub04Layout";
 import { REVENUE_CODES as UB04_REVENUE_CODES } from "../../data/claims/revenueCodes";
 import { CMS1500_LAYOUT, CMS1500_LINE_COLUMNS } from "../../data/claims/cms1500Layout";
-import { DEMO_PROVIDER_NOTE } from "../../data/claims/providerProfile";
+import { DEMO_PROVIDER_NOTE, MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
+import { providerProfileFor } from "../../data/claims/renderingProviders";
 import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, reseedIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
 import { validateCMS1500, validateUB04, type ClaimIssue } from "../../utils/claimValidation";
 import {
   useEncounterPatientId,
   useEncounterPlaceOfService,
   useEncounterDateOfService,
+  useEncounterProvider,
 } from "../../utils/encounterPatient";
 import {
   CLAIM_TYPE_OPTIONS,
@@ -111,7 +113,12 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   /** What a sentence prints when the chart holds no payer at all. */
   const payerLabel = payer || "the payer on file";
 
-  const [submitted, setSubmitted] = useState(false);
+  // A claim that has left draft was submitted — read from the record, never from
+  // this screen's memory, so a reload shows the same claim header and the same
+  // 277CA (owner's work order, `specs/phase1-data-integrity.md` item 1).
+  const transmitted = state.claimStatus !== null && state.claimStatus !== "draft";
+  // True while the student has asked to look at the paper again after submitting.
+  const [paperOpen, setPaperOpen] = useState(false);
   const [billingScore, setBillingScore] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<BillingTab>(openTab ?? "form");
   // The stepper's stage decides which desk screen is in front of the student.
@@ -152,6 +159,12 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   // flagged with the denial it earns — `posCheck.denial` — and left as typed.
   const encounterPos = useEncounterPlaceOfService(patientId || null);
   const encounterDate = useEncounterDateOfService(patientId || null);
+  // The provider the visit was booked with. Box 31's signature and box 24J's NPI
+  // are that provider's (owner's work order, `specs/phase1-data-integrity.md`
+  // item 4), so "Dr. Sarah Lee" books a claim signed by Dr. Sarah Lee; the
+  // practice's own address and tax ID stay the practice's.
+  const encounterProvider = useEncounterProvider(patientId || null);
+  const claimProvider = providerProfileFor(encounterProvider);
   const linePositions = (claimForm?.serviceLines ?? []).map((line) => line.placeOfService);
   const claimPos =
     linePositions.map((value) => String(value ?? "").trim()).find(Boolean) ||
@@ -230,6 +243,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
           claimType: paper.claimType,
           encounterDate,
           placeOfService: encounterPos,
+          provider: claimProvider,
         }),
       );
       return;
@@ -268,6 +282,25 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
       patch.serviceLines = carried.form.serviceLines;
       patch.totalCharge = carried.form.totalCharge;
     }
+    // ── Box 31 and box 24J: the provider on the appointment ──────────
+    // A claim written by an earlier build carries the practice profile's own
+    // signature name and NPI on every line. Those are the values this build must
+    // stop printing, so they are replaced with the booking provider's; a value
+    // the student typed (anything else) is left exactly as typed.
+    if (encounterProvider) {
+      const currentSignature = String(claimForm.providerSignature ?? "").trim();
+      if (!currentSignature || currentSignature === MEDICAL_PROVIDER_PROFILE.signatureName) {
+        patch.providerSignature = claimProvider.signatureName;
+      }
+      const currentLines = patch.serviceLines ?? claimForm.serviceLines ?? [];
+      const relined = currentLines.map((line) => {
+        const npi = String(line.renderingNpi ?? "").trim();
+        return !npi || npi === MEDICAL_PROVIDER_PROFILE.npi
+          ? { ...line, renderingNpi: claimProvider.npi }
+          : line;
+      });
+      if (relined.some((line, i) => line !== currentLines[i])) patch.serviceLines = relined;
+    }
     // Only write values that actually differ from what the claim already holds.
     // A helper that re-emits an identical (or undefined) value on every run
     // would otherwise set state, re-run this effect and loop until React
@@ -284,7 +317,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
       if (!same) changed[box] = value;
     }
     if (Object.keys(changed).length > 0) setClaimForm({ ...claimForm, ...changed });
-  }, [patientId, claimForm, patient, state, paRecords, setClaimForm, paper.claimType, encounterDate, encounterPos]);
+  }, [patientId, claimForm, patient, state, paRecords, setClaimForm, paper.claimType, encounterDate, encounterPos, encounterProvider]);
 
   const claimValues = useMemo(() => {
     if (!claimForm) return {};
@@ -504,7 +537,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
           status: "success",
         });
         submitClaim({ ...legacyBoxMap(values), payer, posCode: claimPos, submittedAt: new Date().toISOString() });
-        setSubmitted(true);
+        setPaperOpen(false);
         // The modifier-25 trap still costs the student its score; it is not a
         // clearinghouse rejection, so it is reported as an edit check, not an outcome.
         if (!missingMod25) {
@@ -672,7 +705,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
         </div>
       </div>
 
-      {submitted ? (
+      {transmitted && !paperOpen ? (
         <div className="flex flex-1 items-center justify-center p-4">
           <div className="max-w-lg rounded-xl border border-brand-200 bg-brand-50 p-6 text-center">
             <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-500" aria-hidden="true" />
@@ -698,7 +731,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
               </div>
             )}
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <button onClick={() => setSubmitted(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              <button onClick={() => setPaperOpen(true)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                 Back to Billing
               </button>
               {/* The 835 is posted on the payments stage, so this desk only offers
@@ -707,7 +740,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
               {postingStage && (
                 <button
                   onClick={() => {
-                    setSubmitted(false);
+                    setPaperOpen(true);
                     setActiveTab("remittance");
                   }}
                   className="flex min-h-[40px] items-center gap-2 rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
