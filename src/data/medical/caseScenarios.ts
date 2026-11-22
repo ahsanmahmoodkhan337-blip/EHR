@@ -70,6 +70,12 @@ export interface MedicalProcedure {
   chargedUsd: number;
   linkedDiagnosisPointer: string;
   expectedNote: string;
+  /**
+   * UB-04 locator 42 — the hospital department that earned this line, for a
+   * case whose place of service is institutional (21 / 22 / 23 / 24). Absent on
+   * every professional case: a CMS-1500 line has no revenue code.
+   */
+  revenueCode?: string;
 }
 
 export interface MedicalCaseTrap {
@@ -112,6 +118,18 @@ export interface MedicalCaseScenario {
   estimatedMinutes: number;
   planId: string;
   patient: MedicalCasePatient;
+  /**
+   * The setting the case's services happened in — the claim's place of service
+   * (CMS-1500 box 24B / UB-04's facility setting). Absent means the case bills
+   * as a physician office (11). A case that sets 21, 22, 23 or 24 bills on the
+   * UB-04, and the case runner draws that paper instead of the CMS-1500.
+   */
+  placeOfService?: string;
+  /**
+   * UB-04 locator 4 — the three-digit type of bill the facility prints, when it
+   * differs from the one the place of service suggests (`typeOfBill.ts`).
+   */
+  typeOfBill?: string;
   /** Short setup shown to the student before they start. */
   briefing: string;
   registrationNotes: string[];
@@ -1305,6 +1323,175 @@ const CASE_NON_COVERED_COSMETIC: MedicalCaseScenario = {
   ],
 };
 
+/**
+ * MCASE-010 — the institutional case.
+ *
+ * Every other case in this file is a physician-office visit: place of service
+ * 11, one professional claim, a CMS-1500. This one happens in a hospital's
+ * outpatient department (place of service 22) and bills the facility: two
+ * departments, two revenue codes, one UB-04 with type of bill 131. It exists so
+ * a student meets the institutional paper by walking a case, not by inventing a
+ * place of service at Coding.
+ */
+export const CASE_HOSPITAL_OUTPATIENT: MedicalCaseScenario = {
+  id: "MCASE-010",
+  title: "A hospital outpatient visit that bills on two revenue codes",
+  specialty: "Hospital outpatient department / Internal medicine",
+  difficulty: "intermediate",
+  estimatedMinutes: 20,
+  planId: "PLAN-CASCADIA-HEALTH-PPO",
+  placeOfService: "22",
+  typeOfBill: "131",
+  patient: {
+    id: "MPT-2010",
+    firstName: "Marcus",
+    lastName: "Bello",
+    dateOfBirth: "1965-11-08",
+    ageAtServiceDate: 61,
+    gender: "Male",
+    subscriberName: "Bello, Marcus",
+    relationshipToSubscriber: "self",
+    memberId: "CCH-7734-2210",
+  },
+  briefing:
+    "Mr Bello has had a productive cough and a fever for three days. He was seen in the hospital's outpatient department, not in his own doctor's office: the department is hospital-employed, so the visit and everything ordered in it bill as hospital facility charges. A two-view chest X-ray and a CBC were done the same day. Your job is to code both services, give each its own revenue code, and let the claim print on the paper a hospital actually sends.",
+  registrationNotes: [
+    "The card on file matches the eligibility record; the patient is the subscriber.",
+    "The service happened in the hospital's outpatient department — the department's own facility number bills it.",
+    "No copay was collected at the desk; confirm the outpatient coinsurance during eligibility.",
+  ],
+  eligibilitySnapshot: {
+    status:
+      "Active. Hospital outpatient department services are covered in network; no prior authorisation is required for a chest X-ray or a CBC.",
+    remainingDeductibleUsd: 0,
+    priorAuthRequired: false,
+    representativeNotes: [
+      "Outpatient department services pay at 80 percent of the contracted allowance with no deductible in this teaching plan.",
+      "Imaging and laboratory are covered when the ordering diagnosis supports them.",
+      "The plan pays the hospital's facility charge; the reading physician bills separately.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Productive cough and fever for three days.",
+    subjective:
+      "Coughing up yellow sputum since Monday, fever to 38.6 at home, some pleuritic chest discomfort on the right. No shortness of breath at rest. No recent travel.",
+    objective:
+      "Temperature 38.4, pulse 96, respirations 20, blood pressure 128/78, oxygen saturation 96 percent on room air. Scattered crackles at the right base. No wheeze.",
+    assessment: "Acute bronchitis with a fever; pneumonia is the question the X-ray has to answer.",
+    plan: "Two-view chest X-ray and a CBC with differential today. Symptomatic treatment, review the films before deciding on an antibiotic, return if breathing worsens.",
+  },
+  diagnoses: [
+    {
+      code: "J20.9",
+      priority: 1,
+      pointer: "A",
+      expectedNote: "Acute bronchitis — the diagnosis that makes the X-ray and the CBC medically necessary.",
+    },
+  ],
+  procedures: [
+    {
+      line: 1,
+      code: "71046",
+      units: 1,
+      dateOfService: "2027-07-14",
+      chargedUsd: 185,
+      linkedDiagnosisPointer: "A",
+      revenueCode: "0320",
+      expectedNote:
+        "Chest X-ray, two views. The film was taken in the hospital's radiology department, so the line carries revenue code 0320 — diagnostic imaging.",
+    },
+    {
+      line: 2,
+      code: "85025",
+      units: 1,
+      dateOfService: "2027-07-14",
+      chargedUsd: 48,
+      linkedDiagnosisPointer: "A",
+      revenueCode: "0300",
+      expectedNote:
+        "CBC with differential, run in the hospital's own laboratory, so the line carries revenue code 0300 — laboratory. Same visit, same bill, a different department.",
+    },
+  ],
+  traps: [
+    {
+      id: "MTRAP-10A",
+      stage: "coding",
+      title: "One revenue code for two departments",
+      commonMistake:
+        "The student puts both services under the same revenue code — usually 0450, the emergency department, because the visit felt urgent.",
+      whyItIsWrong:
+        "A revenue code says which department earned the charge, and the payer prices each department separately. An X-ray billed under the laboratory code, or an outpatient department visit billed as an emergency, is a claim the payer cannot price and returns.",
+      correctAction:
+        "Give each line the code of the department that performed it: 0320 for the X-ray, 0300 for the CBC. Place of service 22 is an outpatient department, never the emergency room.",
+      producesDenialCarc: "CO-16",
+      pointsAtStake: 20,
+    },
+    {
+      id: "MTRAP-10B",
+      stage: "claim",
+      title: "Leaving the place of service at the office default",
+      commonMistake:
+        "The student leaves box 24B at 11 — the physician-office default — so the claim prints on a CMS-1500 as a professional claim.",
+      whyItIsWrong:
+        "A hospital outpatient department is paid as a facility, and a facility charge sent on a professional claim has no type of bill and no revenue codes for the payer to price. The hospital's share is denied and the student has to rebill it.",
+      correctAction:
+        "Keep the encounter at place of service 22. The claim then prints on the UB-04 with type of bill 131 — hospital, outpatient, single date — and the payer can price each revenue code.",
+      producesDenialCarc: "CO-109",
+      pointsAtStake: 20,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "71046",
+      chargedUsd: 185,
+      allowedUsd: 150,
+      planPaysUsd: 120,
+      patientOwesUsd: 30,
+      writeOffUsd: 35,
+      explanation:
+        "Radiology line. Allowed at 150, paid at 80 percent (120), the patient owes 30, and the 35 above the allowance is a contractual write-off.",
+    },
+    {
+      line: 2,
+      code: "85025",
+      chargedUsd: 48,
+      allowedUsd: 40,
+      planPaysUsd: 32,
+      patientOwesUsd: 8,
+      writeOffUsd: 8,
+      explanation:
+        "Laboratory line. Allowed at 40, paid at 80 percent (32), the patient owes 8, and the 8 above the allowance is a contractual write-off.",
+    },
+  ],
+  expectedTotals: { chargedUsd: 233, allowedUsd: 190, planPaysUsd: 152, patientOwesUsd: 38, writeOffUsd: 43 },
+  arFollowUp: {
+    scenario:
+      "Both lines paid on the first pass. The patient has a 38 dollar coinsurance balance covering the 20 percent share of both departments.",
+    outcome: "clean-paid",
+    callObjectives: [
+      "Explain that the coinsurance is 20 percent of the allowed amount, not of the charge.",
+      "Point out that the X-ray and the lab are two departments on one bill — one statement, not two.",
+      "Take the payment and close the account.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 60,
+    passingPoints: 42,
+    criteria: [
+      { stage: "eligibility", criterion: "Confirmed the outpatient department benefit before the service", points: 10 },
+      { stage: "coding", criterion: "Coded the X-ray and the CBC as two lines", points: 10 },
+      { stage: "coding", criterion: "Gave each line its own revenue code (0320, 0300)", points: 20 },
+      { stage: "claim", criterion: "Kept place of service 22 so the claim prints on the UB-04", points: 20 },
+    ],
+  },
+  instructorKey: [
+    "This is the only case that bills a facility, so it is the one to use when teaching the UB-04.",
+    "The two revenue codes are the lesson: the payer prices the X-ray and the laboratory separately even though one bill and one visit date cover both.",
+    "Type of bill 131 reads hospital (1), outpatient (3), single date (1) — ask the student to say each digit out loud.",
+  ],
+};
+
 export const MEDICAL_CASE_SCENARIOS: MedicalCaseScenario[] = [
   CASE_HTN_FOLLOWUP,
   CASE_PREVENTIVE_SCREENING,
@@ -1315,6 +1502,7 @@ export const MEDICAL_CASE_SCENARIOS: MedicalCaseScenario[] = [
   CASE_THERAPY_LIMIT,
   CASE_DEDUCTIBLE_COINSURANCE,
   CASE_NON_COVERED_COSMETIC,
+  CASE_HOSPITAL_OUTPATIENT,
 ];
 
 export const MEDICAL_CASE_INDEX: Record<string, MedicalCaseScenario> = Object.fromEntries(
