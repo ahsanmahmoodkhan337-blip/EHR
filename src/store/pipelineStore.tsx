@@ -48,6 +48,7 @@ import { encounterIdFor, scopingRefusal } from "../domain/dataScoping";
 import { resolveEncounterPatientId } from "../utils/encounterPatient";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
 import { signNote } from "../domain/signNote";
+import { applyCodingPlaceOfService, hasLineForCpt } from "../domain/codingPlaceOfService";
 import {
   compileNoteText,
   normalizeNoteFields,
@@ -173,6 +174,16 @@ interface PipelineContextValue {
    */
   writeNoteFor: (patientId: string | null, fields: NoteFields) => string | null;
   submitToBilling: (icdCodes: string[], cptCodes: string[], lines?: ClaimServiceLine[]) => void;
+  /**
+   * Box 24B — the place of service the Coder picked for one CPT line.
+   *
+   * Written to the Coder's own line and to the claim's box-24 row for the same
+   * CPT, because the billing screen chooses the paper (CMS-1500 / UB-04 / ADA)
+   * from the place of service on the claim's line. Changing the picker on a line
+   * that was already coded used to leave the claim on POS 11 and the CMS-1500.
+   * Same field, no schema change; nothing else on either line is touched.
+   */
+  setCodingLinePlaceOfService: (cpt: string, placeOfService: string) => void;
   submitClaim: (claimData: Record<string, string>) => void;
   // Structured CMS-1500 record
   setClaimForm: (form: ClaimFormData | null) => void;
@@ -583,6 +594,16 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       stage: "prior-auth",
       status: "coded",
     }));
+  };
+
+  /**
+   * 24B — one line's place of service, on the Coder's line and on the claim.
+   * Nothing is written when this CPT has no line yet: the line the student is
+   * working is not coded until Coding is submitted.
+   */
+  const setCodingLinePlaceOfService = (cpt: string, placeOfService: string) => {
+    if (!hasLineForCpt(activeEncounter, cpt)) return;
+    updateActive((enc) => applyCodingPlaceOfService(enc, cpt, placeOfService));
   };
 
   // ── Structured CMS-1500 record ──────────────────────────────────
@@ -1256,6 +1277,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         submitToCoding,
         writeNoteFor,
         submitToBilling,
+        setCodingLinePlaceOfService,
         submitClaim,
         setClaimForm,
         patchClaimForm,

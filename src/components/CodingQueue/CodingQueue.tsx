@@ -117,7 +117,7 @@ interface CodingQueueProps {
 }
 
 export function CodingQueue({ medications }: CodingQueueProps) {
-  const { state, submitToBilling, setRole } = usePipeline();
+  const { state, submitToBilling, setRole, setCodingLinePlaceOfService } = usePipeline();
 
   // Code search state
   const [icdQuery, setIcdQuery] = useState("");
@@ -180,11 +180,17 @@ export function CodingQueue({ medications }: CodingQueueProps) {
   // Collapsible modifier / POS reference panel
   const [showModifierRef, setShowModifierRef] = useState(false);
 
-  // Get or create CPT data for a cpt code
+  // Get or create CPT data for a cpt code. A line the Coder already handed over
+  // keeps its saved place of service (24B), so a reload shows the POS the claim
+  // is billed at instead of resetting the picker to POS 11 under a claim that
+  // says 22.
   const getCptData = (code: string): CPTCodeData => {
     if (!cptDataMap[code]) {
       const cpt = selectedCPTs.find(c => c.code === code);
-      cptDataMap[code] = initialCptData(cpt!);
+      const storedPos = state.codingLines?.find(l => l.cpt === code)?.placeOfService;
+      cptDataMap[code] = storedPos
+        ? { ...initialCptData(cpt!), pos: storedPos }
+        : initialCptData(cpt!);
     }
     return cptDataMap[code];
   };
@@ -721,11 +727,20 @@ export function CodingQueue({ medications }: CodingQueueProps) {
                                     at, and POS 21/22/23 are how an institutional
                                     claim (UB-04 / 837I) becomes reachable at Coding.
                                     A POS saved by an older build stays selectable so
-                                    a stored claim never changes its place of service. */}
+                                    opening this screen never silently changes it. */}
                                 <select
                                   id={`pos-${cpt.code}`}
                                   value={data.pos}
-                                  onChange={e => updateCptData(cpt.code, d => ({ ...d, pos: e.target.value }))}
+                                  onChange={e => {
+                                    const chosen = e.target.value;
+                                    updateCptData(cpt.code, d => ({ ...d, pos: chosen }));
+                                    // Box 24B, written to the claim the biller reads
+                                    // as well as to this line. Without this, a POS
+                                    // picked on an already-coded line changed the
+                                    // picker and nothing else: the claim kept POS 11
+                                    // and still printed on the CMS-1500.
+                                    setCodingLinePlaceOfService(cpt.code, chosen);
+                                  }}
                                   aria-label={`Place of service for CPT ${cpt.code}`}
                                   title={POS_REFERENCE.find(p => p.code === data.pos)?.teachingNote}
                                   className="w-full rounded border border-slate-200 px-1 py-0.5 font-mono text-[10px] outline-none focus:border-brand-400"
