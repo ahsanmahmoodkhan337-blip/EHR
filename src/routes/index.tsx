@@ -1434,7 +1434,7 @@ function PublicLandingPage() {
 
 export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   const router = useRouter();
-  const { patients, caseStates } = usePatientStore();
+  const { patients } = usePatientStore();
   const { activeTab, setActiveTab } = useTabsEpic("summary");
   /**
    * The workspace strip is back, as it was on 19 November (`f8fd8681`): owner,
@@ -3195,34 +3195,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
         <ActiveProgressNote patient={selectedPatient ?? null} />
       </WorkspacePanel>
 
-      {/* ─── Activity Log Stream ─── */}
-      {selectedPatient && (
-        <div className="border-t border-slate-200 bg-white/80 backdrop-blur-sm">
-          <div className="px-4 py-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Activity Log</span>
-              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">{caseStates[selectedPatientId]?.auditLogs?.length ?? 0}</span>
-            </div>
-            <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
-              {(caseStates[selectedPatientId]?.auditLogs ?? []).length === 0 ? (
-                <p className="text-[10px] text-slate-400 italic">No activity recorded yet.</p>
-              ) : (
-                (caseStates[selectedPatientId]?.auditLogs ?? []).slice(-10).map((log, i) => (
-                  <div key={i} className={`shrink-0 rounded-lg border px-2 py-1 text-[9px] ${
-                    log.status === "success" ? "border-green-200 bg-green-50 text-green-700" :
-                    log.status === "warning" ? "border-amber-200 bg-amber-50 text-amber-700" :
-                    log.status === "error" ? "border-red-200 bg-red-50 text-red-700" :
-                    "border-slate-200 bg-slate-50 text-slate-600"
-                  }`}>
-                    <span className="font-medium">{log.role}</span>: {log.message}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    {/* Command Palette — Cmd+K */}
+      {/* Command Palette — Cmd+K */}
       <CommandPalette
         onSelectRole={(role) => setRole(role)}
         onSelectPatient={(pid) => setSelectedPatientId(pid)}

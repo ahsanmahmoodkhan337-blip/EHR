@@ -33,7 +33,7 @@ import { ArWorkQueuePanel } from "../status/ArWorkQueuePanel";
 import { statusEventsFor } from "../../domain/statusEvent";
 import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
 import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
-import { OUTCOME_LABELS, remittanceForClaim } from "../../domain/adjudication";
+import { remittanceForClaim } from "../../domain/adjudication";
 import { CMS1500Form } from "./CMS1500Form";
 import { Ub04Form } from "./Ub04Form";
 import { UB04_LAYOUT, UB04_PDF_COLUMNS } from "../../data/claims/ub04Layout";
@@ -59,19 +59,6 @@ import { carryCodingIntoClaim, encounterIdFor, scopingRefusal } from "../../doma
 import { toast } from "sonner";
 
 type BillingTab = "form" | "remittance" | "denials" | "references";
-
-/**
- * The payers this teaching practice contracts with. The list a student can pick
- * from; the patient's own payer is always offered first even when it is not one
- * of these (`domain/patientCard.ts`).
- */
-const PAYER_OPTIONS = [
-  "Medicare",
-  "Medicaid",
-  "Northwind Health Plan",
-  "Cascadia Health Plan",
-  "Meridian Health Plan",
-];
 
 /**
  * Column spec for the box-24 table in the downloaded PDF — the same list the
@@ -115,19 +102,14 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   // reached the banner, eligibility and the printed paper but not the 277CA or
   // the 835: the student changed the card and the money still came from another
   // plan. One record, one payer, every screen.
-  const [payerChoice, setPayerChoice] = useState<string | null>(null);
-  const payerOnRecord = claimPayer(patient, claimForm?.payerName);
-  const payer = payerChoice ?? payerOnRecord;
+  //
+  // Build 7: the loose "Claim Submission" panel that carried a second payer
+  // picker is gone. The payer is the one on the record and the student changes
+  // it at Registration — so the claim, the 277CA and the 835 cannot name
+  // different plans.
+  const payer = claimPayer(patient, claimForm?.payerName);
   /** What a sentence prints when the chart holds no payer at all. */
   const payerLabel = payer || "the payer on file";
-  // A payer saved at Registration is newer information than a choice made on
-  // this screen before, so it replaces that choice.
-  const payerOnRecordRef = useRef(payerOnRecord);
-  useEffect(() => {
-    if (payerOnRecordRef.current === payerOnRecord) return;
-    payerOnRecordRef.current = payerOnRecord;
-    setPayerChoice(null);
-  }, [payerOnRecord]);
 
   const [submitted, setSubmitted] = useState(false);
   const [billingScore, setBillingScore] = useState<number | null>(null);
@@ -136,6 +118,11 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   useEffect(() => {
     if (openTab) setActiveTab(openTab);
   }, [openTab]);
+  // The tab strip is drawn on both billing stages, but the 835 is posted on the
+  // payments stage only: Stage 5 is the claim, Stage 6 is posting
+  // (spec slice-duplicates-out §3). The stage, not the student, decides — so a
+  // student on the claim stage cannot post a remittance from under the paper.
+  const postingStage = openTab === "remittance";
   // Prior authorisation — the student's answer, not the app's (STANDING-RULES 6).
   // Tri-state so an unanswered question is visibly unanswered: `null` means the
   // student has not decided yet. This used to be a boolean auto-ticked from
@@ -714,16 +701,21 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
               <button onClick={() => setSubmitted(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                 Back to Billing
               </button>
-              <button
-                onClick={() => {
-                  setSubmitted(false);
-                  setActiveTab("remittance");
-                }}
-                className="flex min-h-[40px] items-center gap-2 rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
-              >
-                <Receipt className="h-4 w-4" aria-hidden="true" />
-                {remittance ? "Open the 835 and the ledger" : "Adjudicate the claim"}
-              </button>
+              {/* The 835 is posted on the payments stage, so this desk only offers
+                  it there; on the claim stage the stepper's "Continue to Payments
+                  (835)" carries the student on. */}
+              {postingStage && (
+                <button
+                  onClick={() => {
+                    setSubmitted(false);
+                    setActiveTab("remittance");
+                  }}
+                  className="flex min-h-[40px] items-center gap-2 rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
+                >
+                  <Receipt className="h-4 w-4" aria-hidden="true" />
+                  {remittance ? "Open the 835 and the ledger" : "Adjudicate the claim"}
+                </button>
+              )}
               <button
                 onClick={() => downloadPdf(claimValues, claimLines)}
                 className="flex items-center gap-2 rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
@@ -737,7 +729,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
             </div>
           </div>
         </div>
-      ) : state.status === "coded" || state.status === "billed" ? (
+      ) : state.status === "coded" || state.status === "billed" || state.status === "paid" ? (
         <div className="flex flex-1 overflow-hidden">
           {/* ─── Left: CMS-1500 Form + Actions ─── */}
           <div
@@ -756,7 +748,11 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
                 { key: "remittance" as BillingTab, label: "Remittance & Ledger" },
                 { key: "denials" as BillingTab, label: "Denial Codes" },
                 { key: "references" as BillingTab, label: "References" },
-              ].map((tab) => (
+              ]
+                // Stage 5 is the claim, Stage 6 is posting: the remittance tab
+                // belongs to the payments stage only.
+                .filter((tab) => tab.key !== "remittance" || postingStage)
+                .map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
@@ -832,6 +828,104 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
                       checks and never saved to the claim. Switch off for assessment.
                     </span>
                   </label>
+                </div>
+
+                {/* ─── Prior authorisation — the student's own answer ─── */}
+                {/* Rule 6. This question and the PA status that answers it used
+                    to sit in a loose second claim panel below the paper, which
+                    duplicated the claim it belonged to. They now sit once, above
+                    the paper, and `handleSubmitClaim` still refuses to transmit a
+                    claim carrying a CPT on the payer's PA list until the student
+                    has answered — so deleting the panel did not let a claim out
+                    with no PA answer. */}
+                <div className="clinical-card">
+                  <p className="text-xs font-semibold text-slate-700">Prior authorization</p>
+                  <fieldset className="mt-2">
+                    <legend className="text-[10px] text-slate-600">
+                      Does this encounter require <strong>Prior Authorization</strong>?{" "}
+                      <span className="text-slate-400">
+                        Check the payer's PA list — this answer is yours.
+                      </span>
+                    </legend>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {(
+                        [
+                          { value: null, label: "Not answered" },
+                          { value: true, label: "Yes" },
+                          { value: false, label: "No" },
+                        ] as { value: boolean | null; label: string }[]
+                      ).map((opt) => (
+                        <label
+                          key={opt.label}
+                          className={`flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-[10px] font-medium transition-colors ${
+                            needsPriorAuth === opt.value
+                              ? "border-brand-300 bg-brand-50 text-brand-700"
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="needsPA"
+                            value={opt.label}
+                            checked={needsPriorAuth === opt.value}
+                            onChange={() => setNeedsPriorAuth(opt.value)}
+                            className="accent-brand-600"
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  {/* PA Status indicator — this patient's own authorisations. */}
+                  {(() => {
+                    const patientPaRecords = paRecords.filter((r) => r.patientId === patientId);
+                    const approvedPa = patientPaRecords.find((r) => r.status === "approved");
+                    const pendingPa = patientPaRecords.find((r) => r.status === "submitted" || r.status === "in-progress" || r.status === "pending");
+                    const hasPaRecords = patientPaRecords.length > 0;
+                    if (hasPaRecords) {
+                      return (
+                        <div className={`mt-2 rounded-lg p-2 border ${approvedPa ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
+                          <p className={`text-[10px] font-medium ${approvedPa ? "text-green-700" : "text-amber-700"}`}>
+                            {approvedPa ? (
+                              <><CheckCircle2 className="inline h-3 w-3 mr-1" /> Prior Authorization Approved — proceed with billing</>
+                            ) : (
+                              <><AlertTriangle className="inline h-3 w-3 mr-1" /> PA {pendingPa ? `"${pendingPa.status}" — awaiting approval` : "submitted — awaiting decision"}</>
+                            )}
+                          </p>
+                          {approvedPa?.authEndDate && (() => {
+                            const end = new Date(approvedPa.authEndDate);
+                            const daysLeft = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                            return daysLeft <= 14 ? (
+                              <p className="text-[9px] text-amber-600 mt-0.5 flex items-center gap-1">
+                                <AlertTriangle className="h-2.5 w-2.5" /> Auth expires in {daysLeft} day{daysLeft !== 1 ? "s" : ""}
+                              </p>
+                            ) : (
+                              <p className="text-[9px] text-green-600 mt-0.5">Auth valid until {end.toLocaleDateString()}</p>
+                            );
+                          })()}
+                        </div>
+                      );
+                    }
+                    if (needsPriorAuth === true) {
+                      return (
+                        <div className="mt-2 rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
+                          <p className="text-[11px] font-semibold text-amber-800 flex items-center gap-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Prior Authorization Required
+                          </p>
+                          <p className="mt-1 text-[10px] text-amber-700">You cannot submit this claim until Prior Authorization is completed. Go to Stage 4 to fill the PA form.</p>
+                          <button
+                            onClick={() => setRole("prior-auth")}
+                            className="mt-2 flex min-h-[40px] items-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-bold text-white hover:bg-amber-500 transition-colors"
+                          >
+                            <Shield className="h-3.5 w-3.5" />
+                            Go to Prior Auth Portal
+                          </button>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {/* ─── Professional → CMS-1500 ─── */}
@@ -926,144 +1020,6 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
                     </p>
                   </div>
                 )}
-
-                {/* Claim entry form */}
-                <div className="clinical-card">
-                  <p className="text-xs font-semibold text-slate-700 mb-3">Claim Submission</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] text-slate-500" htmlFor="claim-payer">Payer</label>
-                      {/* The patient's own coverage record, and the chart's payer
-                          is the first option — so the 277CA and the 835 name the
-                          plan Registration captured. A different payer picked
-                          here is the student's own choice, and it is replaced if
-                          Registration later saves a new one. */}
-                      <select
-                        id="claim-payer"
-                        value={payer}
-                        onChange={(e) => setPayerChoice(e.target.value)}
-                        className="w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
-                      >
-                        {!payerOnRecord && <option value="">No payer on file</option>}
-                        {payerOnRecord && !PAYER_OPTIONS.includes(payerOnRecord) && (
-                          <option value={payerOnRecord}>{payerOnRecord}</option>
-                        )}
-                        {PAYER_OPTIONS.map((name) => (
-                          <option key={name} value={name}>{name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      {/* One POS, and it is the claim's own: box 24B on the paper,
-                          else the place of service the encounter was registered at.
-                          It decides the claim type, so a second loose field that
-                          the claim never read could only disagree with it. */}
-                      <p className="text-[10px] text-slate-500">Place of Service (box 24B)</p>
-                      <p className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 font-mono text-xs text-slate-700">
-                        {claimPos || "—"}
-                        {posDescription ? <span className="ml-1 font-sans text-[10px] text-slate-500">{posDescription}</span> : null}
-                      </p>
-                      <div className="mt-1 flex flex-wrap gap-x-1.5 gap-y-0.5">
-                        {POS_CODES.map((p) => (
-                          <span key={p.code} className="text-[8px] text-slate-400">
-                            <span className="font-mono font-semibold">{p.code}</span> {p.description}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 text-[10px] text-slate-400">
-                    ICD-10: {state.icdCodes.join(", ") || "—"} &nbsp;|&nbsp; CPT: {state.cptCodes.join(", ") || "—"}
-                  </div>
-                  {/* Rule 6 — the PA question is the student's to answer. It used
-                      to auto-tick from `paRecords`, which answered it for them. */}
-                  <fieldset className="mt-2">
-                    <legend className="text-[10px] text-slate-600">
-                      Does this encounter require <strong>Prior Authorization</strong>?{" "}
-                      <span className="text-slate-400">
-                        Check the payer's PA list — this answer is yours.
-                      </span>
-                    </legend>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {(
-                        [
-                          { value: null, label: "Not answered" },
-                          { value: true, label: "Yes" },
-                          { value: false, label: "No" },
-                        ] as { value: boolean | null; label: string }[]
-                      ).map((opt) => (
-                        <label
-                          key={opt.label}
-                          className={`flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-[10px] font-medium transition-colors ${
-                            needsPriorAuth === opt.value
-                              ? "border-brand-300 bg-brand-50 text-brand-700"
-                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="needsPA"
-                            value={opt.label}
-                            checked={needsPriorAuth === opt.value}
-                            onChange={() => setNeedsPriorAuth(opt.value)}
-                            className="accent-brand-600"
-                          />
-                          {opt.label}
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                  {/* PA Status indicator */}
-                  {(() => {
-                    const patientPaRecords = paRecords.filter((r) => r.patientId === (state.patientId || ""));
-                    const approvedPa = patientPaRecords.find((r) => r.status === "approved");
-                    const pendingPa = patientPaRecords.find((r) => r.status === "submitted" || r.status === "in-progress" || r.status === "pending");
-                    const hasPaRecords = patientPaRecords.length > 0;
-                    if (hasPaRecords) {
-                      return (
-                        <div className={`mt-2 rounded-lg p-2 border ${approvedPa ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
-                          <p className={`text-[10px] font-medium ${approvedPa ? "text-green-700" : "text-amber-700"}`}>
-                            {approvedPa ? (
-                              <><CheckCircle2 className="inline h-3 w-3 mr-1" /> Prior Authorization Approved — proceed with billing</>
-                            ) : (
-                              <><AlertTriangle className="inline h-3 w-3 mr-1" /> PA {pendingPa ? `"${pendingPa.status}" — awaiting approval` : "submitted — awaiting decision"}</>
-                            )}
-                          </p>
-                          {approvedPa?.authEndDate && (() => {
-                            const end = new Date(approvedPa.authEndDate);
-                            const daysLeft = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                            return daysLeft <= 14 ? (
-                              <p className="text-[9px] text-amber-600 mt-0.5 flex items-center gap-1">
-                                <AlertTriangle className="h-2.5 w-2.5" /> Auth expires in {daysLeft} day{daysLeft !== 1 ? "s" : ""}
-                              </p>
-                            ) : (
-                              <p className="text-[9px] text-green-600 mt-0.5">Auth valid until {end.toLocaleDateString()}</p>
-                            );
-                          })()}
-                        </div>
-                      );
-                    }
-                    if (needsPriorAuth === true) {
-                      return (
-                        <div className="mt-2 rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
-                          <p className="text-[11px] font-semibold text-amber-800 flex items-center gap-1.5">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            Prior Authorization Required
-                          </p>
-                          <p className="mt-1 text-[10px] text-amber-700">You cannot submit this claim until Prior Authorization is completed. Go to Stage 4 to fill the PA form.</p>
-                          <button
-                            onClick={() => setRole("prior-auth")}
-                            className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-500 transition-colors"
-                          >
-                            <Shield className="h-3.5 w-3.5" />
-                            Go to Prior Auth Portal
-                          </button>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3">
@@ -1167,8 +1123,9 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
               </div>
             )}
 
-            {/* Remittance & Ledger — the payer's 835 and the money it posts */}
-            {activeTab === "remittance" && (
+            {/* Remittance & Ledger — the payer's 835 and the money it posts.
+                Drawn on the payments stage only (Stage 6): Stage 5 is the claim. */}
+            {activeTab === "remittance" && postingStage && (
               <div className="space-y-3">
                 {!state.claimNumber ? (
                   <p className="text-[11px] text-slate-500">
@@ -1192,6 +1149,16 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
                       contractual write-off — and that answer arrives as an 835. Nothing reaches the patient's
                       ledger until you post it.
                     </p>
+                    {/* The amber state the old paid-claim screen carried: a claim
+                        marked paid with no 835 behind it is not a payment. */}
+                    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                      <p className="text-[10px] font-medium text-amber-800">No remittance backs this claim</p>
+                      <p className="mt-0.5 text-[10px] leading-relaxed text-amber-700">
+                        No 835 was ever received for it and no money was posted. A payment no remittance
+                        explains is not a payment — the ledger shows nothing until an 835 is adjudicated and
+                        posted.
+                      </p>
+                    </div>
                     <button
                       type="button"
                       onClick={() => adjudicateClaim({ payerName: payer })}
@@ -1354,29 +1321,6 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
               </div>
             </div>
           </div>
-        </div>
-      ) : state.status === "paid" ? (
-        <div className="flex-1 overflow-y-auto p-4">
-          {remittance ? (
-            <div className="mx-auto max-w-3xl space-y-3">
-              <p className="text-sm font-semibold text-slate-800">
-                Claim {remittance.claimNumber} — {OUTCOME_LABELS[remittance.outcome]}
-              </p>
-              <RemittancePanel remittance={remittance} onPost={postRemittance} />
-              <PatientLedgerPanel entries={state.ledger} remittance={remittance} />
-              <ArWorkQueuePanel />
-            </div>
-          ) : (
-            <div className="mx-auto max-w-md rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
-              <AlertTriangle className="mx-auto mb-2 h-7 w-7 text-amber-500" aria-hidden="true" />
-              <p className="text-sm font-medium text-amber-800">No remittance backs this claim</p>
-              <p className="mt-2 text-[11px] leading-relaxed text-amber-700">
-                The claim is marked paid, but no 835 was ever received for it and no money was posted. A
-                payment no remittance explains is not a payment — the ledger shows nothing until an 835 is
-                adjudicated and posted.
-              </p>
-            </div>
-          )}
         </div>
       ) : state.status === "denied" ? (
         <div className="flex flex-1 overflow-hidden">
