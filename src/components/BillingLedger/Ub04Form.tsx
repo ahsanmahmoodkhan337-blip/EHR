@@ -56,7 +56,7 @@ export function Ub04Form({
       <div className="min-w-[560px]">
         <div className="flex gap-0.5 border-b border-form-red/40 pb-0.5">
           {UB04_LINE_COLUMNS.map((col) => (
-            <div key={col.key} style={{ width: `${col.width * 100}%` }} className="shrink-0">
+            <div key={col.key} style={{ flexGrow: col.width, flexBasis: 0 }} className="min-w-0">
               <p className="text-[5.5px] font-bold uppercase leading-none text-form-red">
                 {col.label}
               </p>
@@ -76,7 +76,7 @@ export function Ub04Form({
 
         {rows.map((line, index) => (
           <div key={index} className="flex items-center gap-0.5 border-b border-form-red/20 py-0.5">
-            <div style={{ width: `${UB04_LINE_COLUMNS[0].width * 100}%` }} className="shrink-0">
+            <div style={{ flexGrow: UB04_LINE_COLUMNS[0].width, flexBasis: 0 }} className="shrink-0">
               <select
                 value={String(line.revenueCode ?? "")}
                 onChange={(e) => setLine(index, { revenueCode: e.target.value })}
@@ -92,15 +92,15 @@ export function Ub04Form({
             </div>
 
             <p
-              style={{ width: `${UB04_LINE_COLUMNS[1].width * 100}%` }}
-              className="shrink-0 truncate text-[7px] italic text-ink-muted"
+              style={{ flexGrow: UB04_LINE_COLUMNS[1].width, flexBasis: 0 }}
+              className="min-w-0 truncate text-[7px] italic text-ink-muted"
               title={revenueDescription(line.revenueCode)}
               data-derived-box="43"
             >
               {revenueDescription(line.revenueCode) || "—"}
             </p>
 
-            <div style={{ width: `${UB04_LINE_COLUMNS[2].width * 100}%` }} className="shrink-0">
+            <div style={{ flexGrow: UB04_LINE_COLUMNS[2].width, flexBasis: 0 }} className="shrink-0">
               <input
                 value={String(line.cpt ?? "")}
                 onChange={(e) => setLine(index, { cpt: e.target.value.toUpperCase() })}
@@ -109,7 +109,7 @@ export function Ub04Form({
               />
             </div>
 
-            <div style={{ width: `${UB04_LINE_COLUMNS[3].width * 100}%` }} className="shrink-0">
+            <div style={{ flexGrow: UB04_LINE_COLUMNS[3].width, flexBasis: 0 }} className="shrink-0">
               <input
                 type="date"
                 value={String(line.dateOfService ?? "")}
@@ -119,7 +119,7 @@ export function Ub04Form({
               />
             </div>
 
-            <div style={{ width: `${UB04_LINE_COLUMNS[4].width * 100}%` }} className="shrink-0">
+            <div style={{ flexGrow: UB04_LINE_COLUMNS[4].width, flexBasis: 0 }} className="shrink-0">
               <input
                 inputMode="numeric"
                 value={line.units === undefined || line.units === null ? "" : String(line.units)}
@@ -132,7 +132,7 @@ export function Ub04Form({
               />
             </div>
 
-            <div style={{ width: `${UB04_LINE_COLUMNS[5].width * 100}%` }} className="shrink-0">
+            <div style={{ flexGrow: UB04_LINE_COLUMNS[5].width, flexBasis: 0 }} className="shrink-0">
               <input
                 inputMode="decimal"
                 value={line.charge ? String(line.charge) : ""}
@@ -146,7 +146,7 @@ export function Ub04Form({
               />
             </div>
 
-            <div style={{ width: `${UB04_LINE_COLUMNS[6].width * 100}%` }} className="shrink-0">
+            <div style={{ flexGrow: UB04_LINE_COLUMNS[6].width, flexBasis: 0 }} className="shrink-0">
               <input
                 inputMode="decimal"
                 value={line.nonCovered ? String(line.nonCovered) : ""}
@@ -174,25 +174,25 @@ export function Ub04Form({
 
         {/* Box 49 — the printed 23rd row carries no data; the totals do. */}
         <div className="flex gap-0.5 border-t border-form-red/60 pt-0.5 text-[6px] font-semibold uppercase text-form-red">
-          <p style={{ width: `${UB04_LINE_COLUMNS[0].width * 100}%` }} className="shrink-0">
+          <p style={{ flexGrow: UB04_LINE_COLUMNS[0].width, flexBasis: 0 }} className="shrink-0">
             49 · (blank)
           </p>
-          <p style={{ width: `${UB04_LINE_COLUMNS[1].width * 100}%` }} className="shrink-0">
+          <p style={{ flexGrow: UB04_LINE_COLUMNS[1].width, flexBasis: 0 }} className="shrink-0">
             TOTALS
           </p>
-          <p style={{ width: `${UB04_LINE_COLUMNS[2].width * 100}%` }} className="shrink-0" />
-          <p style={{ width: `${UB04_LINE_COLUMNS[3].width * 100}%` }} className="shrink-0" />
-          <p style={{ width: `${UB04_LINE_COLUMNS[4].width * 100}%` }} className="shrink-0" />
+          <p style={{ flexGrow: UB04_LINE_COLUMNS[2].width, flexBasis: 0 }} className="shrink-0" />
+          <p style={{ flexGrow: UB04_LINE_COLUMNS[3].width, flexBasis: 0 }} className="shrink-0" />
+          <p style={{ flexGrow: UB04_LINE_COLUMNS[4].width, flexBasis: 0 }} className="shrink-0" />
           <p
-            style={{ width: `${UB04_LINE_COLUMNS[5].width * 100}%` }}
-            className="shrink-0 tabular-nums"
+            style={{ flexGrow: UB04_LINE_COLUMNS[5].width, flexBasis: 0 }}
+            className="min-w-0 tabular-nums"
             data-derived-box="47"
           >
             {totalCharges ? totalCharges.toFixed(2) : "0.00"}
           </p>
           <p
-            style={{ width: `${UB04_LINE_COLUMNS[6].width * 100}%` }}
-            className="shrink-0 tabular-nums"
+            style={{ flexGrow: UB04_LINE_COLUMNS[6].width, flexBasis: 0 }}
+            className="min-w-0 tabular-nums"
             data-derived-box="48"
           >
             {totalNonCovered ? totalNonCovered.toFixed(2) : "0.00"}
