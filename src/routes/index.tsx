@@ -1872,11 +1872,16 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   }
 
   // When selected patient changes, load that patient's session data
-  useEffect(() => {
-    // Remember this tab's patient, so a reload reopens the same one.
-    if (selectedPatientId) sessionStorage.setItem("hh_selected_patient", selectedPatientId);
-    console.log("useEffect[selectedPatientId] FIRED for:", selectedPatientId);
-    const p = patients.find(pp => pp.id === selectedPatientId);
+  //
+  // The load can arrive before the patient list does: on a cleared store the
+  // chart is opened and the patient record is registered a moment later. This
+  // used to return early and never run again, which is what left the Tutorial
+  // Patient's chart blank. `chartOpenedFor` marks the chart actually opened, and
+  // the effect below retries the same load the moment the patient is resolvable.
+  const chartOpenedFor = useRef<string | null>(null);
+  function openPatientChart(patientId: string) {
+    console.log("useEffect[selectedPatientId] FIRED for:", patientId);
+    const p = patients.find(pp => pp.id === patientId);
     console.log("  patient found in useEffect:", p?.firstName, p?.lastName);
     if (!p) {
       // Handle case where patient not found (e.g. custom appointment mapped to placeholder)
@@ -1888,13 +1893,36 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       setSoapNote({ subjective: "", objective: "", assessment: "", plan: "" });
       return;
     }
+    // The patient exists: this chart is now open for this patient, and the
+    // retry below must not open it a second time.
+    chartOpenedFor.current = patientId;
     // The summary panel and the workflow must be the same patient: reattach the
     // pipeline to whoever the chart is showing (a refresh restores the pick).
-    if (activePatientId !== selectedPatientId) selectPatient(selectedPatientId);
+    if (activePatientId !== patientId) selectPatient(patientId);
     // If we have saved data for this patient, restore it; otherwise initialize from mock
-    loadPatientSession(selectedPatientId);
+    loadPatientSession(patientId);
+  }
+
+  useEffect(() => {
+    // Remember this tab's patient, so a reload reopens the same one.
+    if (selectedPatientId) sessionStorage.setItem("hh_selected_patient", selectedPatientId);
+    if (!selectedPatientId) return;
+    if (chartOpenedFor.current === selectedPatientId) return;
+    openPatientChart(selectedPatientId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPatientId]);
+
+  // A patient list that arrives after the first render used to leave the chart
+  // blank for good. This runs the same load once, the moment the patient record
+  // exists — so opening the Tutorial Patient from `/patients` always lands on
+  // the chart that was seeded for it.
+  useEffect(() => {
+    if (!selectedPatientId) return;
+    if (chartOpenedFor.current === selectedPatientId) return;
+    if (!patients.some((pp) => pp.id === selectedPatientId)) return;
+    openPatientChart(selectedPatientId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patients, selectedPatientId]);
 
   /**
    * An explicit address names its patient, and it keeps winning.

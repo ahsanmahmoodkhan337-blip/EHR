@@ -41,6 +41,8 @@ const React = (await import("react")).default;
 const { act } = await import("react");
 const { createRoot } = await import("react-dom/client");
 const { PipelineProvider, usePipeline } = await import("../src/store/pipelineStore");
+const { loadUserData } = await import("../src/store/persistence");
+const { buildArWorkQueue } = await import("../src/domain/arWorkQueue");
 const { useEhrStore } = await import("../src/store/ehrStore");
 const { SEED_PATIENTS } = await import("../src/store/patientStore");
 const { TUTORIAL_PA_ID, TUTORIAL_SEED_VERSION } = await import(
@@ -48,6 +50,8 @@ const { TUTORIAL_PA_ID, TUTORIAL_SEED_VERSION } = await import(
 );
 
 const PHONE = "+920000000002";
+/** The late-patient test's own student, so no earlier save can be read back. */
+const LATE_PHONE = "+920000000003";
 
 /** The live pipeline context, re-read on every provider render. */
 let pipeline: ReturnType<typeof usePipeline> | null = null;
@@ -120,6 +124,81 @@ describe("opening the Tutorial Patient's chart seeds it", () => {
     expect(
       pipeline?.paRecords.some((record) => record.patientId === "DEMO" && record.id === TUTORIAL_PA_ID),
     ).toBe(true);
+
+    await screen.unmount();
+  });
+});
+
+/**
+ * The seed does not depend on boot timing.
+ *
+ * On a cleared store the chart can be opened before the patient list has been
+ * registered: `selectPatient("DEMO")` then finds no patient to build the example
+ * from. The request is queued and `PipelineProvider` runs it the moment the
+ * patient record exists — so the chart is the full example either way, and the
+ * denied line is in Denials & AR after the record is saved and read back.
+ */
+describe("a patient list that arrives after the chart was opened", () => {
+  test("the queued seed lands, and the denial survives a reload", async () => {
+    // Nothing registered yet: the patient is not resolvable. `unload` drops the
+    // user records an earlier test left behind (the card the seed wrote), so the
+    // chart store really holds no Tutorial Patient.
+    // A phone of its own, so a save timer left by the test above cannot put a
+    // seeded record under this student's key.
+    win.localStorage.clear();
+    win.localStorage.setItem("hh_logged_in_phone", LATE_PHONE);
+    useEhrStore.getState().registerSeedPatients([]);
+    useEhrStore.getState().unload();
+    const screen = await mount();
+    await screen.open("DEMO");
+    // The open made a blank chart and queued the seed: nothing was dropped.
+    expect(pipeline?.getEncounter("DEMO")?.tutorialSeed).toBeFalsy();
+    expect(pipeline?.getEncounter("DEMO")?.claimNumber).toBeFalsy();
+
+    // The patient record arrives — this is the moment the seed must run.
+    await act(async () => {
+      useEhrStore.getState().registerSeedPatients(SEED_PATIENTS);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    const enc = pipeline?.getEncounter("DEMO");
+    expect(enc?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+    expect(enc?.claimNumber).toBeTruthy();
+    expect(enc?.remittances).toHaveLength(1);
+    expect(enc?.remittances[0].postedAt).toBeTruthy();
+    expect(enc?.remittances[0].claimNumber).toBe(enc?.claimNumber);
+
+    // Let the store write itself, then read it back the way a reload does.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    const saved = loadUserData(LATE_PHONE);
+    expect(saved?.pipeline).toBeTruthy();
+    // The saved slice, read back through JSON — the same record a reload opens.
+    const record = saved?.pipeline?.encounters?.["DEMO"];
+    expect(record?.claimNumber).toBe(enc?.claimNumber);
+    // The two fields `buildArWorkQueue` needs survive the JSON round trip.
+    expect(record?.remittances[0].postedAt).toBe(enc?.remittances[0].postedAt);
+    expect(record?.remittances[0].claimNumber).toBe(record?.claimNumber);
+
+    const items = buildArWorkQueue(
+      [
+        {
+          patientId: record.patientId,
+          patientName: record.displayName,
+          claimNumber: record.claimNumber,
+          remittances: record.remittances,
+          ledger: record.ledger,
+          arItems: record.arItems,
+        },
+      ],
+      "2026-11-22T12:00:00.000Z",
+    );
+    const denials = items.filter((item) => item.kind === "denial");
+    expect(denials).toHaveLength(1);
+    expect(denials[0].cpt).toBe("93000");
+    expect(denials[0].carc).toBe("CO-236");
+    expect(denials[0].appealDeadline).toBeTruthy();
 
     await screen.unmount();
   });

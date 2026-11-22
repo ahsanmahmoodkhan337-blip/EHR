@@ -206,7 +206,9 @@ describe("a refresh opens the patient and stage the address names", () => {
   });
 
   test("the address's stage is applied once, after the patient's session has loaded", () => {
-    const sessionLoad = INDEX.indexOf("loadPatientSession(selectedPatientId);");
+    // The load runs from `openPatientChart(patientId)`, the one function both the
+    // first open and the retry call.
+    const sessionLoad = INDEX.indexOf("loadPatientSession(patientId);");
     const applyAddressStage = INDEX.indexOf("openFlowStage(stageFromRoute);");
     expect(sessionLoad).toBeGreaterThan(-1);
     expect(applyAddressStage).toBeGreaterThan(-1);

@@ -366,6 +366,21 @@ function remittanceReason(remittance: Remittance835): string {
   )} in total adjustments). Nothing is owed by the patient.`;
 }
 
+/**
+ * A seed request that arrived before the patient record existed.
+ *
+ * Opening the Tutorial Patient writes the worked example, but on a cold boot the
+ * chart can be opened before the patient list has been registered. The request is
+ * queued here instead of dropped, and `PipelineProvider` runs it as soon as the
+ * patient exists — so the seed never depends on which module loaded first.
+ */
+let tutorialSeedQueued = false;
+
+/** True while a seed request is waiting for the patient record. */
+export function tutorialSeedIsQueued(): boolean {
+  return tutorialSeedQueued;
+}
+
 /** Initial store — read straight from localStorage so the first render has it. */
 function initialState(): PipelineStoreState {
   const phone = getLoggedInPhone();
@@ -549,9 +564,21 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    */
   const seedTutorialOnOpen = (patientId: string | null): boolean => {
     if (patientId !== TUTORIAL_PATIENT_ID) return false;
-    if (!tutorialSeedPending(store.encounters[encounterKey(patientId)])) return false;
+    if (!tutorialSeedPending(store.encounters[encounterKey(patientId)])) {
+      tutorialSeedQueued = false;
+      return false;
+    }
     const patient = selectPatientById(useEhrStore.getState(), patientId);
-    if (!patient) return false;
+    if (!patient) {
+      // The seed must not depend on boot timing. On a cleared store the chart can
+      // be opened before the patient list has been registered, so the record is
+      // not there to build the example from — dropping the request here is what
+      // left the chart blank. Queue it instead; the provider runs it the moment
+      // the patient exists (`useEffect` below).
+      tutorialSeedQueued = true;
+      return false;
+    }
+    tutorialSeedQueued = false;
     const seededAt = new Date().toISOString();
     if (tutorialCardPending(patient)) {
       const ehr = useEhrStore.getState();
@@ -566,6 +593,20 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     );
     return true;
   };
+
+  // ── A queued seed runs the moment its patient exists ─────────────
+  // `seedTutorialOnOpen` queues the request when the chart was opened before the
+  // patient list was registered (a cleared store on a cold boot). This is where
+  // the queue drains: on mount, and again whenever the patient list or the saved
+  // encounter changes, so the example lands as soon as the record can be built —
+  // never a moment late and never twice (`tutorialSeedPending` is the guard).
+  const seedPatients = useEhrStore((s) => s.seedPatients);
+  const userPatients = useEhrStore((s) => s.user.patients);
+  useEffect(() => {
+    if (!tutorialSeedIsQueued()) return;
+    seedTutorialOnOpen(TUTORIAL_PATIENT_ID);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, seedPatients, userPatients]);
 
   /** Load a patient's encounter. Creates a blank one the first time only. */
   const selectPatient = (patientId: string | null) => {
