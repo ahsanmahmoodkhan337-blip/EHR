@@ -77,6 +77,14 @@ export const CLAIM_X12: Record<ClaimType, "837P" | "837I" | "837D"> = {
  */
 const INSTITUTIONAL_POS = new Set(["21", "22", "23"]);
 
+/**
+ * The rule, in one line, exactly as the biller's screen states it: the place of
+ * service picks the paper, and the type is never picked by hand. Exported so the
+ * claim-type line and the tests read the same sentence.
+ */
+export const CLAIM_PAPER_RULE =
+  "POS 11 (office) → CMS-1500 (837P) · POS 21/22/23 (inpatient, outpatient hospital, emergency room) → UB-04 (837I) · dental → ADA Dental Claim (J430D, 837D). The place of service picks the paper; it is never picked by hand.";
+
 export interface ClaimTypeSuggestion {
   claimType: ClaimType;
   /** One line the biller reads: why this paper was suggested. */

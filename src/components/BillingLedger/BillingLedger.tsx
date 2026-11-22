@@ -51,7 +51,7 @@ import {
 } from "../../utils/encounterPatient";
 import {
   CLAIM_TYPE_OPTIONS,
-
+  CLAIM_PAPER_RULE,
   type ClaimType,
 } from "../../data/claims/claimType";
 import { checkPlaceOfService, principalDiagnosisOf } from "../../domain/claimPaper";
@@ -834,6 +834,12 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
                   {/* The POS decides the paper: it is not a picker, and the reason
                       names the place of service the claim actually bills at. */}
                   <p className="mt-1.5 text-[10px] text-slate-500">{paper.reason}.</p>
+                  {/* The rule itself, so the student can read why this paper and
+                      not another: POS 11 → CMS-1500, POS 21/22/23 → UB-04,
+                      dental → ADA J430D. */}
+                  <p className="mt-1 text-[10px] leading-relaxed text-slate-500" data-testid="claim-paper-rule">
+                    <strong className="font-semibold text-slate-600">Rule:</strong> {CLAIM_PAPER_RULE}
+                  </p>
                   {/* A POS that is not the encounter's is reported with the denial
                       it would earn. It is never changed for the student. */}
                   {posCheck.denial && (

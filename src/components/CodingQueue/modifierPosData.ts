@@ -1,9 +1,10 @@
 /**
  * Modifier & Place-of-Service Reference — Medical Coding Educational Content
  *
- * Reference-only data for the Medical Coder stage. The coder's modifier and POS
- * inputs are free text (a student may type any valid value), so this file exists
- * to teach what each code means, not to build pickers.
+ * Reference data for the Medical Coder stage. The modifier input is free text (a
+ * student may type any valid value); the place-of-service input is a picker built
+ * from `POS_REFERENCE` below, so every POS a student can bill at — including the
+ * institutional 21/22/23 that select the UB-04 — is reachable at Coding.
  *
  * Sources merged here:
  *  - modifiers already taught in the simulator: 25, 59, 27, 50, 51, 52, 76
