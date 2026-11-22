@@ -63,9 +63,11 @@ describe("the Tutorial patient opens at the beginning", () => {
     // The guard is the record's own shape (`tutorialSeedPending`), so the
     // built-in demo chart is replaced while a chart the student worked — or one
     // they are editing in this session — is left alone.
-    expect(INDEX).toContain("patientId === TUTORIAL_PATIENT_ID &&");
-    expect(INDEX).toContain("!savedForPatient &&");
-    expect(INDEX).toContain("tutorialSeedPending(getEncounter(patientId))");
+    // The guard moved into the store with the seed: `seedTutorialOnOpen` reads
+    // the record and refuses anything that is not pending.
+    expect(STORE).toContain("patientId !== TUTORIAL_PATIENT_ID) return false;");
+    expect(STORE).toContain("tutorialSeedPending(store.encounters[encounterKey(patientId)])");
+    expect(INDEX).toContain("!savedForPatient && seedTutorialOnOpen(patientId)");
     expect(INDEX).not.toContain("const hasPipelineWork =");
   });
 });

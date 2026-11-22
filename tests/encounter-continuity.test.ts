@@ -45,6 +45,7 @@ const root = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 
 const INDEX = read("src/routes/index.tsx");
+const PIPELINE_STORE = read("src/store/pipelineStore.tsx");
 const STORE = read("src/store/pipelineStore.tsx");
 const STAGE_NAV = read("src/components/shell/StageNav.tsx");
 const STEPPER = read("src/components/shell/EncounterStepper.tsx");
@@ -96,8 +97,12 @@ describe("step 1 is Registration, and every patient opens there", () => {
   });
 
   test("the Tutorial Patient opens on step 1, not mid-visit", () => {
-    expect(INDEX).toContain("patientId === TUTORIAL_PATIENT_ID &&");
-    expect(INDEX).toContain("tutorialSeedPending(getEncounter(patientId))");
+    // The seed now runs on the store's own open path (`seedTutorialOnOpen`,
+    // called by `selectPatient`), so the guard lives there — and the screen
+    // asks the same function as its second entry.
+    expect(PIPELINE_STORE).toContain("patientId !== TUTORIAL_PATIENT_ID) return false;");
+    expect(PIPELINE_STORE).toContain("tutorialSeedPending(store.encounters[encounterKey(patientId)])");
+    expect(INDEX).toContain("!savedForPatient && seedTutorialOnOpen(patientId)");
     expect(INDEX).toContain("setActiveStage(CHART_OPENING_STEP);");
     expect(INDEX).not.toContain('setActiveStage("sign-lock");');
     expect(INDEX).not.toContain('setActiveStage("hpi");');

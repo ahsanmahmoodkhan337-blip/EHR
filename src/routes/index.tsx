@@ -57,16 +57,7 @@ import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
 import { inboxCount } from "../domain/inbasket";
 import { completedStagesOf } from "../domain/stageProgress";
 import { postedCopayForPatient } from "../domain/checkIn";
-import {
-  TUTORIAL_PATIENT_ID,
-  TUTORIAL_PA_ID,
-  tutorialCardFor,
-  tutorialCardPending,
-  tutorialEligibilityFor,
-  tutorialNoteFields,
-  tutorialPaRecord,
-  tutorialSeedPending,
-} from "../domain/tutorialEncounter";
+import { tutorialNoteFields } from "../domain/tutorialEncounter";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
 import { StageNav } from "../components/shell/StageNav";
@@ -1453,7 +1444,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * Back / "Continue to…" stay inside the chart panel where they were.
    */
   const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("schedule");
-  const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, seedTutorialEncounter, addPARecord, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, seedTutorialOnOpen, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
   /**
    * The patient the chart opens on (owner's audit, 2026-11-20, item 4 — "patient
    * and track context persist across navigation and reload").
@@ -1780,42 +1771,25 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    */
   function loadPatientSession(patientId: string) {
     const savedForPatient = patientDataStore.current[patientId];
-  // The Tutorial Patient — the worked example, seeded once
+    // The Tutorial Patient — the worked example, seeded once
     // (`specs/tutorial-patient-prefill.md`, owner 2026-11-22: "all data filled from
     // start to end so that can act as a standard which data should be where").
     //
-    // Two writes, both through the record's own writers: the patient's own
-    // coverage card with the member ID the 271 needs and the 271 that matches it,
-    // then the clinical half of the encounter (`domain/tutorialEncounter.ts` —
-    // note signed through `signNote`, codes, charges, place of service, prior
-    // authorisation). The encounter's own seed key guards both, so a later open
-    // never overwrites a chart the student has worked since.
+    // The record itself — the patient's own coverage card with the member ID the
+    // 271 needs, the 271 that matches it, the signed note, the codes with their
+    // charge and place of service, the decided prior authorisation and the PA
+    // desk's row for it — is written by the store's own open path,
+    // `seedTutorialOnOpen`, which `selectPatient` calls. That is what makes the
+    // chart filled however it is opened: the inbox, `/patients`, Start Visit or a
+    // pasted link. This is the second entry to the same function, and it answers
+    // whether this chart is showing the example, so the screen paints what the
+    // record now holds instead of guessing.
     //
-    // The guard is the record's own shape, not `encounterHasWork`: the built-in
-    // demo chart (`J06.9` / `99213`, one line, no seed key) counts as work under
-    // that test, so a new student never received the seed. `tutorialSeedPending`
-    // recognises that placeholder and replaces it; a chart the student actually
-    // worked — anything with a claim, an authorisation, money or a signature —
-    // still outranks the example and is left exactly as it is.
-    if (
-      patientId === TUTORIAL_PATIENT_ID &&
-      !savedForPatient &&
-      tutorialSeedPending(getEncounter(patientId))
-    ) {
-      const seededAt = new Date().toISOString();
+    // The guard is the record's own shape (`tutorialSeedPending`): a chart the
+    // student actually worked — anything with a claim, an authorisation, money or
+    // a signature — outranks the example and is left exactly as it is.
+    if (!savedForPatient && seedTutorialOnOpen(patientId)) {
       const tutorial = patients.find((pp) => pp.id === patientId);
-      if (tutorial && tutorialCardPending(tutorial)) {
-        const card = tutorialCardFor(tutorial);
-        const ehr = useEhrStore.getState();
-        ehr.updatePatientInsurance(tutorial.id, card);
-        ehr.recordEligibility(tutorial.id, "primary", tutorialEligibilityFor(tutorial, seededAt));
-      }
-      if (tutorial) seedTutorialEncounter(tutorial.id, tutorial, seededAt);
-      // The PA desk lists its own queue, so the decided authorisation is filed
-      // there too — same number, same visit date, written once.
-      if (tutorial && !paRecords.some((r) => r.patientId === tutorial.id && r.id === TUTORIAL_PA_ID)) {
-        addPARecord(tutorialPaRecord(tutorial, seededAt));
-      }
       // The note on screen is the note the record now holds — one note, one status.
       setSoapNote(tutorial ? tutorialNoteFields(tutorial) : noteFieldsOf(getEncounter(patientId)));
       // The chart still opens on step 1, Registration, and walks forward — the
