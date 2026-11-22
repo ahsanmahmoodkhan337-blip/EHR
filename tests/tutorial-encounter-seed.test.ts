@@ -17,7 +17,7 @@ import { createEncounter, normalizeEncounter } from "../src/store/pipelineEncoun
 import {
   TUTORIAL_CPT_CODES,
   TUTORIAL_MEMBER_ID,
-  TUTORIAL_SEED_VERSION,
+  TUTORIAL_CLINICAL_SEED_VERSION,
   applyTutorialSeed,
   tutorialCardFor,
   tutorialCardPending,
@@ -150,7 +150,7 @@ describe("the seeded encounter's clinical half", () => {
 describe("the seed is written once", () => {
   test("a second open does not overwrite the chart the student worked", () => {
     const first = seeded();
-    expect(first.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+    expect(first.tutorialSeed).toBe(TUTORIAL_CLINICAL_SEED_VERSION);
     // The student codes something of their own on the chart.
     const worked = { ...first, icdCodes: ["I10"], cptCodes: ["99213"] };
     const again = applyTutorialSeed(worked, TUTORIAL, "2026-12-01T00:00:00.000Z");
@@ -174,7 +174,7 @@ describe("read back from storage", () => {
   test("the record still holds the signed note, the codes and the authorisation", () => {
     const stored = JSON.parse(JSON.stringify(seeded()));
     const read = normalizeEncounter(stored, "DEMO");
-    expect(read.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+    expect(read.tutorialSeed).toBe(TUTORIAL_CLINICAL_SEED_VERSION);
     expect(noteStatus(read)).toBe("signed");
     expect(read.icdCodes).toEqual(["R07.9", "I10", "I25.10"]);
     expect(read.cptCodes).toEqual([...TUTORIAL_CPT_CODES]);

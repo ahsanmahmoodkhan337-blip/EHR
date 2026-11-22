@@ -53,12 +53,25 @@ import { patientCard } from "./patientCard";
 import { signNote } from "./signNote";
 
 /**
- * The version of the worked example written onto the record. Bump it only when
- * the seed itself changes in a way an already-seeded chart must receive — a
- * changed seed re-fills a chart a student may have worked, so it is a deliberate
- * act, not a side effect of a rebuild.
+ * The version the clinical half stamps on the record: registration, the signed
+ * note, the codes and the authorisation (`applyTutorialSeed` below).
+ *
+ * It is deliberately its own constant. A chart that already carries it must
+ * still receive the money half, and a guard that only knew "the seed version"
+ * would read that chart as finished and skip the rest of the example.
  */
-export const TUTORIAL_SEED_VERSION = "tutorial-1";
+export const TUTORIAL_CLINICAL_SEED_VERSION = "tutorial-1";
+
+/**
+ * The version of the whole worked example, written onto the record once both
+ * halves are on it: the clinical half above and the money half — the claim, the
+ * 277CA, the 835, the posting and the AR queue (`domain/tutorialClaim.ts`).
+ *
+ * Bump it only when the seed itself changes in a way an already-seeded chart must
+ * receive — a changed seed re-fills a chart a student may have worked, so it is a
+ * deliberate act, not a side effect of a rebuild.
+ */
+export const TUTORIAL_SEED_VERSION = "tutorial-2";
 
 /** The Tutorial Patient's id — the one chart that is a worked example, not practice. */
 export const TUTORIAL_PATIENT_ID = "DEMO";
@@ -409,10 +422,17 @@ export function isBuiltInDemoRecord(
   return !encounter.statusEvents.some((event) => event.reasonCode === "NOTE_SIGNED");
 }
 
-/** True when this encounter still needs the worked example written onto it. */
+/**
+ * True when this encounter still needs the clinical half written onto it.
+ *
+ * A record that carries any seed key already has the clinical half — the money
+ * half is guarded separately, by `tutorialMoneyPending`
+ * (`domain/tutorialClaim.ts`), so an old `tutorial-1` record is upgraded instead
+ * of being skipped for good.
+ */
 export function tutorialSeedPending(encounter: PipelineEncounter | null | undefined): boolean {
   if (!encounter) return true;
-  if (encounter.tutorialSeed === TUTORIAL_SEED_VERSION) return false;
+  if (encounter.tutorialSeed) return false;
   // The built-in demo chart is not the student's work — it is the placeholder
   // this seed exists to replace.
   if (isBuiltInDemoRecord(encounter)) return true;
@@ -458,7 +478,7 @@ export function applyTutorialSeed(
     role: "scribe",
     status: "coded",
     chartStage: "sign-lock",
-    tutorialSeed: TUTORIAL_SEED_VERSION,
+    tutorialSeed: TUTORIAL_CLINICAL_SEED_VERSION,
   };
 }
 
