@@ -48,6 +48,7 @@ import { encounterIdFor, scopingRefusal } from "../domain/dataScoping";
 import { resolveEncounterPatientId } from "../utils/encounterPatient";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
 import { signNote } from "../domain/signNote";
+import { applyTutorialSeed, type TutorialPatientSource } from "../domain/tutorialEncounter";
 import { applyCodingPlaceOfService, hasLineForCpt } from "../domain/codingPlaceOfService";
 import {
   compileNoteText,
@@ -279,8 +280,23 @@ interface PipelineContextValue {
    * Never called on a plain patient switch — switching only loads.
    */
   resetEncounter: (patientId?: string | null) => void;
+  /**
+   * Write the Tutorial Patient's worked example onto that patient's encounter —
+   * once. Spec `specs/tutorial-patient-prefill.md`: the tutorial chart is the
+   * standard a student opens to see what a complete encounter looks like, so the
+   * note, the signature, the vitals, the codes and the decided prior authorisation
+   * are seeded from the patient's own record.
+   *
+   * Guarded by the encounter's own `tutorialSeed` key (`tutorialSeedPending`), so
+   * a second open never overwrites work the student did after the seed. Nothing is
+   * written for any other patient.
+   */
+  seedTutorialEncounter: (
+    patientId: string,
+    patient: TutorialPatientSource,
+    at?: string,
+  ) => void;
   setPatientDisplayName: (name: string | null) => void;
-  prefillForTutorial: () => void;
 }
 
 /**
@@ -517,27 +533,25 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     updateActive((enc) => ({ ...enc, displayName: name }));
   };
 
-  // Open the tutorial patient at the beginning of the encounter.
+  // The Tutorial Patient's worked example, written onto its own encounter once.
   //
-  // Spec `tutorial-start-and-back.md` item 1 and 2: the Tutorial patient lands
-  // on the first stage as the scribe, never in the coding queue, and **no code
-  // arrives already submitted** — the student signs and locks the note, then
-  // codes the visit, then bills it. The note, vitals and orders the caller
-  // loads stay as the scribe stage's starting point; they are not coding work.
-  // The caller only calls this on a first visit (`!hasPipelineWork`), so a
-  // returning student is never dragged back to stage one.
-  const prefillForTutorial = () => {
+  // Spec `tutorial-patient-prefill.md` (owner, 2026-11-22): the tutorial chart is
+  // the standard that shows which datum belongs in which stage, so its note,
+  // signature, codes and prior authorisation are seeded from the patient's own
+  // record by `domain/tutorialEncounter.ts`. The write is guarded by the record's
+  // own seed key, so a later open never overwrites work the student has done since
+  // — and it targets the patient named, never whoever happens to be active.
+  const seedTutorialEncounter = (
+    patientId: string,
+    patient: TutorialPatientSource,
+    at: string = new Date().toISOString(),
+  ) => {
+    const key = encounterKey(patientId);
     setStore((prev) => {
-      const key = encounterKey(prev.activePatientId);
-      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
-      return {
-        ...prev,
-        currentRole: "scribe",
-        encounters: {
-          ...prev.encounters,
-          [key]: { ...enc, stage: "scribe", role: "scribe" },
-        },
-      };
+      const current = prev.encounters[key] ?? createEncounter(patientId);
+      const next = applyTutorialSeed(current, patient, at);
+      if (next === current) return prev;
+      return { ...prev, encounters: { ...prev.encounters, [key]: next } };
     });
   };
 
@@ -1330,7 +1344,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         updatePAStatus,
         resetEncounter,
         setPatientDisplayName,
-        prefillForTutorial,
+        seedTutorialEncounter,
       }}
     >
       {children}

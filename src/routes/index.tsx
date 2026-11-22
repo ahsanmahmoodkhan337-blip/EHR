@@ -57,6 +57,14 @@ import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
 import { inboxCount } from "../domain/inbasket";
 import { completedStagesOf } from "../domain/stageProgress";
 import { postedCopayForPatient } from "../domain/checkIn";
+import {
+  TUTORIAL_PA_ID,
+  tutorialCardFor,
+  tutorialCardPending,
+  tutorialEligibilityFor,
+  tutorialNoteFields,
+  tutorialPaRecord,
+} from "../domain/tutorialEncounter";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
 import { StageNav } from "../components/shell/StageNav";
@@ -1443,7 +1451,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * Back / "Continue to…" stay inside the chart panel where they were.
    */
   const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("schedule");
-  const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, seedTutorialEncounter, addPARecord, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
   /**
    * The patient the chart opens on (owner's audit, 2026-11-20, item 4 — "patient
    * and track context persist across navigation and reload").
@@ -1771,19 +1779,35 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   function loadPatientSession(patientId: string) {
     const savedForPatient = patientDataStore.current[patientId];
     const hasPipelineWork = !!savedForPatient || encounterHasWork(getEncounter(patientId));
-  // DEMO patient — load pre-filled tutorial data (first visit only)
+  // The Tutorial Patient — the worked example, seeded once
+    // (`specs/tutorial-patient-prefill.md`, owner 2026-11-22: "all data filled from
+    // start to end so that can act as a standard which data should be where").
+    //
+    // Two writes, both through the record's own writers: the patient's own
+    // coverage card with the member ID the 271 needs and the 271 that matches it,
+    // then the clinical half of the encounter (`domain/tutorialEncounter.ts` —
+    // note signed through `signNote`, codes, charges, place of service, prior
+    // authorisation). The encounter's own seed key guards both, so a later open
+    // never overwrites a chart the student has worked since.
     if (patientId === "DEMO" && !hasPipelineWork) {
-      setSoapNote({
-        subjective: "Patient reports intermittent chest pain over the past 2 weeks, described as pressure-like, radiating to left arm. Worse with exertion, relieved by rest. Associated shortness of breath when climbing stairs. Denies nausea or diaphoresis. Has history of hypertension, currently on Lisinopril.",
-        objective: "Vitals: BP 145/92, HR 92, Temp 99.1°F, RR 20, O2 Sat 94% on room air. General: Alert, mild distress. CV: Regular rate, no murmurs. Lungs: Clear bilaterally. ECG shows ST-segment depression in leads V4-V6. Labs: Troponin mildly elevated at 0.12 ng/mL.",
-        assessment: "1. Suspected Coronary Artery Disease (I25.10)\n2. Hypertension, uncontrolled (I10)\n3. Chest Pain, unspecified (R07.9)\n\nPlan: Admit for cardiac workup. Order serial troponins, echocardiogram, cardiology consult. Continue Lisinopril, start Atorvastatin 40mg, Aspirin 81mg daily.",
-        plan: "1. Admit to telemetry unit\n2. Serial troponins q6h x3\n3. Echocardiogram in AM\n4. Cardiology consult (Dr. Williams)\n5. Continue home medications\n6. NPO after midnight for possible cardiac catheterization\n7. Stress test if enzymes negative\n8. Discharge planning: cardiac rehab referral"
-      });
-      // The encounter opens at the first scribing step (spec
-      // `start-at-scribing.md` item 1). The note above is the tutorial's seeded
-      // starting point — nothing here fills the chart in; the student walks the
-      // steps from Intake / Vitals, reaches Registration in one Back, and still
-      // signs and locks before coding.
+      const seededAt = new Date().toISOString();
+      const tutorial = patients.find((pp) => pp.id === patientId);
+      if (tutorial && tutorialCardPending(tutorial)) {
+        const card = tutorialCardFor(tutorial);
+        const ehr = useEhrStore.getState();
+        ehr.updatePatientInsurance(tutorial.id, card);
+        ehr.recordEligibility(tutorial.id, "primary", tutorialEligibilityFor(tutorial, seededAt));
+      }
+      if (tutorial) seedTutorialEncounter(tutorial.id, tutorial, seededAt);
+      // The PA desk lists its own queue, so the decided authorisation is filed
+      // there too — same number, same visit date, written once.
+      if (tutorial && !paRecords.some((r) => r.patientId === tutorial.id && r.id === TUTORIAL_PA_ID)) {
+        addPARecord(tutorialPaRecord(tutorial, seededAt));
+      }
+      // The note on screen is the note the record now holds — one note, one status.
+      setSoapNote(tutorial ? tutorialNoteFields(tutorial) : noteFieldsOf(getEncounter(patientId)));
+      // The chart still opens on step 1, Registration, and walks forward — the
+      // seeded record is what the step bar ticks, not a stage the student skipped.
       setActiveStage(CHART_OPENING_STEP);
       setSharedImmunizations([
         { id: "imm-d1", vaccine: "Influenza 2026-2027", dose: "0.5 mL", date: "2026-10-01", status: "Given" },
@@ -1818,7 +1842,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
         insurance: "Medicare Part B",
       });
       setEditableVitals({ bloodPressure: "145/92", heartRate: "92", temperature: "99.1", respiratoryRate: "20", oxygenSaturation: "94" });
-      prefillForTutorial();
       return;
     }
     console.log("loadPatientSession called for:", patientId, "saved:", !!patientDataStore.current[patientId]);

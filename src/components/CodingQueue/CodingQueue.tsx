@@ -181,16 +181,24 @@ export function CodingQueue({ medications }: CodingQueueProps) {
   const [showModifierRef, setShowModifierRef] = useState(false);
 
   // Get or create CPT data for a cpt code. A line the Coder already handed over
-  // keeps its saved place of service (24B), so a reload shows the POS the claim
-  // is billed at instead of resetting the picker to POS 11 under a claim that
-  // says 22.
+  // keeps what it was handed over with — its place of service (24B), its
+  // modifiers (24D), its units (24G) and its charge (24F) — so a reload, or a
+  // chart seeded with coded lines, shows the codes the claim is actually billed
+  // with instead of blank boxes under a claim that already carries them.
   const getCptData = (code: string): CPTCodeData => {
     if (!cptDataMap[code]) {
       const cpt = selectedCPTs.find(c => c.code === code);
-      const storedPos = state.codingLines?.find(l => l.cpt === code)?.placeOfService;
-      cptDataMap[code] = storedPos
-        ? { ...initialCptData(cpt!), pos: storedPos }
-        : initialCptData(cpt!);
+      const stored = state.codingLines?.find(l => l.cpt === code);
+      const base = initialCptData(cpt!);
+      cptDataMap[code] = stored
+        ? {
+            ...base,
+            pos: stored.placeOfService || base.pos,
+            modifiers: stored.modifiers?.length ? [...stored.modifiers] : base.modifiers,
+            units: stored.units > 0 ? stored.units : base.units,
+            charges: stored.charge > 0 ? stored.charge : base.charges,
+          }
+        : base;
     }
     return cptDataMap[code];
   };
