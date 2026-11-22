@@ -59,8 +59,14 @@ describe("the Tutorial patient opens at the beginning", () => {
     expect(INDEX).not.toContain('setActiveStage("sign-lock");');
   });
 
-  test("the prefill still only runs on a first visit", () => {
-    expect(INDEX).toContain('if (patientId === "DEMO" && !hasPipelineWork) {');
+  test("the seed still only runs while the record is pending, never over work", () => {
+    // The guard is the record's own shape (`tutorialSeedPending`), so the
+    // built-in demo chart is replaced while a chart the student worked — or one
+    // they are editing in this session — is left alone.
+    expect(INDEX).toContain("patientId === TUTORIAL_PATIENT_ID &&");
+    expect(INDEX).toContain("!savedForPatient &&");
+    expect(INDEX).toContain("tutorialSeedPending(getEncounter(patientId))");
+    expect(INDEX).not.toContain("const hasPipelineWork =");
   });
 });
 

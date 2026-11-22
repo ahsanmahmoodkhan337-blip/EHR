@@ -376,10 +376,46 @@ export function tutorialEligibilityFor(patient: TutorialPatientSource, at: strin
 
 // ─── The encounter record ────────────────────────────────────────
 
+/**
+ * The two codes the app's old built-in demo chart carried: one diagnosis, one
+ * E/M. They are what a blank Tutorial Patient used to be stamped with, so the
+ * pair on its own is not evidence that a student did any work.
+ */
+const BUILT_IN_DEMO_ICD = "J06.9";
+const BUILT_IN_DEMO_CPT = "99213";
+
+/**
+ * True when this record is the built-in demo chart — `J06.9` / `99213`, at most
+ * one coding line, no seed key — and not work a student did.
+ *
+ * The demo chart is the placeholder the worked example replaces: a chart that
+ * still holds exactly the two codes the old build stamped on it, with no claim,
+ * no authorisation, no money and no signature, is a chart nobody has worked.
+ * Counting it as work is what stopped a new student ever receiving the seed.
+ */
+export function isBuiltInDemoRecord(
+  encounter: PipelineEncounter | null | undefined,
+): boolean {
+  if (!encounter || encounter.tutorialSeed) return false;
+  if (encounter.icdCodes.length !== 1 || encounter.icdCodes[0] !== BUILT_IN_DEMO_ICD) return false;
+  if (encounter.cptCodes.length !== 1 || encounter.cptCodes[0] !== BUILT_IN_DEMO_CPT) return false;
+  if (encounter.codingLines.length > 1) return false;
+  // Anything a student could have decided — a claim, an authorisation, money, a
+  // signature — means this is their chart, not the placeholder.
+  if (encounter.claimForm || encounter.claimNumber) return false;
+  if (encounter.ledger.length || encounter.remittances.length || encounter.arItems.length) return false;
+  if (Object.keys(encounter.paData).length || Object.keys(encounter.claimData).length) return false;
+  if (encounter.status !== "pending") return false;
+  return !encounter.statusEvents.some((event) => event.reasonCode === "NOTE_SIGNED");
+}
+
 /** True when this encounter still needs the worked example written onto it. */
 export function tutorialSeedPending(encounter: PipelineEncounter | null | undefined): boolean {
   if (!encounter) return true;
   if (encounter.tutorialSeed === TUTORIAL_SEED_VERSION) return false;
+  // The built-in demo chart is not the student's work — it is the placeholder
+  // this seed exists to replace.
+  if (isBuiltInDemoRecord(encounter)) return true;
   // A chart the student already worked is never re-filled, whatever key it
   // carries — their note, codes and claim outrank the example.
   return !encounterHasWork(encounter);

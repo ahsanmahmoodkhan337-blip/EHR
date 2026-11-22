@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 
 import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
-import { PipelineProvider, usePipeline, encounterHasWork, type Role } from "../store/pipelineStore";
+import { PipelineProvider, usePipeline, type Role } from "../store/pipelineStore";
 import { ledgerBalance } from "../domain/ledger";
 import { isLoggedIn, getLoggedInPhone } from "../store/accessStore";
 import { useAllAppointments, useEhrStore, flushEhrStore } from "../store/ehrStore";
@@ -58,12 +58,14 @@ import { inboxCount } from "../domain/inbasket";
 import { completedStagesOf } from "../domain/stageProgress";
 import { postedCopayForPatient } from "../domain/checkIn";
 import {
+  TUTORIAL_PATIENT_ID,
   TUTORIAL_PA_ID,
   tutorialCardFor,
   tutorialCardPending,
   tutorialEligibilityFor,
   tutorialNoteFields,
   tutorialPaRecord,
+  tutorialSeedPending,
 } from "../domain/tutorialEncounter";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
@@ -1778,7 +1780,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    */
   function loadPatientSession(patientId: string) {
     const savedForPatient = patientDataStore.current[patientId];
-    const hasPipelineWork = !!savedForPatient || encounterHasWork(getEncounter(patientId));
   // The Tutorial Patient — the worked example, seeded once
     // (`specs/tutorial-patient-prefill.md`, owner 2026-11-22: "all data filled from
     // start to end so that can act as a standard which data should be where").
@@ -1789,7 +1790,18 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     // note signed through `signNote`, codes, charges, place of service, prior
     // authorisation). The encounter's own seed key guards both, so a later open
     // never overwrites a chart the student has worked since.
-    if (patientId === "DEMO" && !hasPipelineWork) {
+    //
+    // The guard is the record's own shape, not `encounterHasWork`: the built-in
+    // demo chart (`J06.9` / `99213`, one line, no seed key) counts as work under
+    // that test, so a new student never received the seed. `tutorialSeedPending`
+    // recognises that placeholder and replaces it; a chart the student actually
+    // worked — anything with a claim, an authorisation, money or a signature —
+    // still outranks the example and is left exactly as it is.
+    if (
+      patientId === TUTORIAL_PATIENT_ID &&
+      !savedForPatient &&
+      tutorialSeedPending(getEncounter(patientId))
+    ) {
       const seededAt = new Date().toISOString();
       const tutorial = patients.find((pp) => pp.id === patientId);
       if (tutorial && tutorialCardPending(tutorial)) {

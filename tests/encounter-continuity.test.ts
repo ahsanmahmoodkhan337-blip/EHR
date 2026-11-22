@@ -96,7 +96,8 @@ describe("step 1 is Registration, and every patient opens there", () => {
   });
 
   test("the Tutorial Patient opens on step 1, not mid-visit", () => {
-    expect(INDEX).toContain('if (patientId === "DEMO" && !hasPipelineWork) {');
+    expect(INDEX).toContain("patientId === TUTORIAL_PATIENT_ID &&");
+    expect(INDEX).toContain("tutorialSeedPending(getEncounter(patientId))");
     expect(INDEX).toContain("setActiveStage(CHART_OPENING_STEP);");
     expect(INDEX).not.toContain('setActiveStage("sign-lock");');
     expect(INDEX).not.toContain('setActiveStage("hpi");');
