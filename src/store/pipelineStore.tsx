@@ -283,7 +283,13 @@ interface PipelineContextValue {
   prefillForTutorial: () => void;
 }
 
-const PipelineContext = createContext<PipelineContextValue | null>(null);
+/**
+ * The pipeline context. Exported so a test can wrap a screen with a context
+ * whose writers it can count — a refused write leaves no trace in the store,
+ * so "how many times did this screen try to seed the claim?" can only be
+ * answered from here (`tests/billing-reseed-once.test.tsx`).
+ */
+export const PipelineContext = createContext<PipelineContextValue | null>(null);
 
 // ─── Helpers ───────────────────────────────────────────────────────
 
