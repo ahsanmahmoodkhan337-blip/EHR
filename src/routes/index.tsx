@@ -98,6 +98,7 @@ import {
   writeEncounterAddress,
 } from "../domain/encounterRoute";
 import { inboxPatients } from "../domain/inbox";
+import { TUTORIAL_NOTE, TUTORIAL_SEED_CLEARED } from "../domain/tutorialEncounter";
 import { IntakeVitalsStage } from "../components/WorkflowAthena/IntakeVitalsStage";
 import { RegistrationStage } from "../components/WorkflowAthena/RegistrationStage";
 import { EligibilityStage } from "../components/WorkflowAthena/EligibilityStage";
@@ -1773,12 +1774,17 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     const hasPipelineWork = !!savedForPatient || encounterHasWork(getEncounter(patientId));
   // DEMO patient — load pre-filled tutorial data (first visit only)
     if (patientId === "DEMO" && !hasPipelineWork) {
-      setSoapNote({
-        subjective: "Patient reports intermittent chest pain over the past 2 weeks, described as pressure-like, radiating to left arm. Worse with exertion, relieved by rest. Associated shortness of breath when climbing stairs. Denies nausea or diaphoresis. Has history of hypertension, currently on Lisinopril.",
-        objective: "Vitals: BP 145/92, HR 92, Temp 99.1°F, RR 20, O2 Sat 94% on room air. General: Alert, mild distress. CV: Regular rate, no murmurs. Lungs: Clear bilaterally. ECG shows ST-segment depression in leads V4-V6. Labs: Troponin mildly elevated at 0.12 ng/mL.",
-        assessment: "1. Suspected Coronary Artery Disease (I25.10)\n2. Hypertension, uncontrolled (I10)\n3. Chest Pain, unspecified (R07.9)\n\nPlan: Admit for cardiac workup. Order serial troponins, echocardiogram, cardiology consult. Continue Lisinopril, start Atorvastatin 40mg, Aspirin 81mg daily.",
-        plan: "1. Admit to telemetry unit\n2. Serial troponins q6h x3\n3. Echocardiogram in AM\n4. Cardiology consult (Dr. Williams)\n5. Continue home medications\n6. NPO after midnight for possible cardiac catheterization\n7. Stress test if enzymes negative\n8. Discharge planning: cardiac rehab referral"
-      });
+      // The tutorial's pre-made encounter is seeded by `prefillForTutorial`
+      // (spec `tutorial-patient-prefill.md`). Its note is the same note, so
+      // the screen and the record cannot disagree. A chart the student chose
+      // to "Start over" stays blank: nothing is filled back in.
+      const tutorialRecord = getEncounter("DEMO");
+      const tutorialCleared = tutorialRecord?.tutorialSeed === TUTORIAL_SEED_CLEARED;
+      setSoapNote(
+        tutorialCleared
+          ? { subjective: "", objective: "", assessment: "", plan: "" }
+          : { ...TUTORIAL_NOTE },
+      );
       // The encounter opens at the first scribing step (spec
       // `start-at-scribing.md` item 1). The note above is the tutorial's seeded
       // starting point — nothing here fills the chart in; the student walks the
@@ -1817,8 +1823,12 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
         pcp: "Dr. Demo Instructor, MD",
         insurance: "Medicare Part B",
       });
-      setEditableVitals({ bloodPressure: "145/92", heartRate: "92", temperature: "99.1", respiratoryRate: "20", oxygenSaturation: "94" });
-      prefillForTutorial();
+      setEditableVitals(
+        tutorialCleared
+          ? { bloodPressure: "", heartRate: "", temperature: "", respiratoryRate: "", oxygenSaturation: "" }
+          : { bloodPressure: "145/92", heartRate: "92", temperature: "99.1", respiratoryRate: "20", oxygenSaturation: "94" },
+      );
+      prefillForTutorial(patients.find((p) => p.id === "DEMO") ?? null);
       return;
     }
     console.log("loadPatientSession called for:", patientId, "saved:", !!patientDataStore.current[patientId]);

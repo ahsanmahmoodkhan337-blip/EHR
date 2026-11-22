@@ -1270,6 +1270,38 @@ const mockPatients: Patient[] = [
 // central store (never persisted) and merged under the student's own patients,
 // where a user record with the same id always wins (Phase 0, section 2).
 
+/**
+ * The Tutorial Patient's coverage card.
+ *
+ * Spec `tutorial-patient-prefill.md` §B: the card names the payer and carries a
+ * **member ID**, so the 270/271 can match the member (it used to fail with "no
+ * member ID on the coverage"), box 1a / box 11 fill from the card rather than
+ * from demo values, and Registration can never read this chart as self-pay. The
+ * identifiers are fictional teaching data, like every other patient's.
+ */
+const TUTORIAL_INSURANCE: PatientInsurance = {
+  primary: {
+    payerName: "Medicare Part B",
+    ediPayerId: "MCRB01",
+    subscriberId: "1EG4-TE5-MK73",
+    groupNumber: "MCRB-PARTB",
+    relationshipToSubscriber: "Self",
+    subscriberName: "Tutorial Patient",
+    subscriberDob: "1971-06-20",
+    subscriberSex: "M",
+    planName: "Meridian Advantage HMO",
+    eligibility: {
+      status: "active",
+      checkedAt: "2026-07-09T09:00:00.000Z",
+      payerResponse:
+        "271: Medicare Part B — active, Meridian Advantage HMO; member 1EG4-TE5-MK73 matched.",
+    },
+  },
+  secondary: null,
+  source: "seed",
+  updatedAt: "2026-07-09T09:00:00.000Z",
+};
+
 export const SEED_PATIENTS: Patient[] = mockPatients.map((p) => ({
   ...p,
   isSeed: true,
@@ -1277,7 +1309,7 @@ export const SEED_PATIENTS: Patient[] = mockPatients.map((p) => ({
   // Seed patients carry the same shape the migration gives a saved patient: a
   // payer name from their `insurance` label, and no member / group / EDI ID —
   // nothing was ever captured for them, so the claim boxes fall to demo data.
-  insuranceRecord: deriveInsuranceRecord(p),
+  insuranceRecord: p.id === "DEMO" ? TUTORIAL_INSURANCE : deriveInsuranceRecord(p),
 }));
 
 useEhrStore.getState().registerSeedPatients(SEED_PATIENTS);

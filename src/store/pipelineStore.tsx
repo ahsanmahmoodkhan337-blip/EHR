@@ -44,6 +44,12 @@ import {
   type ReasonCode,
 } from "../domain/claimStatus";
 import { mintNextClaimNumber } from "./claimSequence";
+import {
+  TUTORIAL_PATIENT_ID,
+  buildTutorialEncounter,
+  clearedTutorialEncounter,
+} from "../domain/tutorialEncounter";
+import type { Patient } from "./patientStore";
 import { encounterIdFor, scopingRefusal } from "../domain/dataScoping";
 import { resolveEncounterPatientId } from "../utils/encounterPatient";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
@@ -280,7 +286,13 @@ interface PipelineContextValue {
    */
   resetEncounter: (patientId?: string | null) => void;
   setPatientDisplayName: (name: string | null) => void;
-  prefillForTutorial: () => void;
+  /**
+   * Open the Tutorial Patient. The first time only, this seeds the chart's
+   * pre-made encounter — note signed, codes, prior auth, claim, 277CA, 835 and
+   * its posted ledger (`domain/tutorialEncounter.ts`). It never writes over work
+   * the student did afterwards, and a chart "Start over" cleared is not refilled.
+   */
+  prefillForTutorial: (patient?: Patient | null) => void;
 }
 
 /**
@@ -369,6 +381,36 @@ export function rememberActivePatient(patientId: string | null): void {
   const saved = normalizePipelineStore(local?.pipeline, local?.currentRole ?? "scribe");
   if (saved.activePatientId === patientId) return;
   saveUserData(phone, { pipeline: { ...saved, activePatientId: patientId } });
+}
+
+/**
+ * Return the Tutorial Patient's chart to an empty visit, leaving every other
+ * patient alone (spec `tutorial-patient-prefill.md` §C).
+ *
+ * It is the tutorial's "Start over": the chart's note, codes, prior
+ * authorisation, claim, 277CA, 835, ledger entries and AR work are removed, the
+ * prior-auth record filed for this patient is dropped, and the chart is marked
+ * as cleared so opening it again never re-seeds the pre-made encounter. The
+ * student's other patients are not touched — the write reads and rewrites this
+ * one encounter key and this one patient's PA records.
+ *
+ * Written straight to the student's saved record (the same store the provider
+ * reads at mount), because the control that calls it sits on a page with no
+ * pipeline provider; the chart is opened afterwards and reads this record.
+ */
+export function startOverTutorialEncounter(patientId: string = TUTORIAL_PATIENT_ID): void {
+  const phone = getLoggedInPhone();
+  if (!phone) return;
+  const local = loadUserData(phone);
+  const saved = normalizePipelineStore(local?.pipeline, local?.currentRole ?? "scribe");
+  const key = encounterKey(patientId);
+  saveUserData(phone, {
+    pipeline: {
+      ...saved,
+      encounters: { ...saved.encounters, [key]: clearedTutorialEncounter() },
+    },
+    paRecords: (local?.paRecords ?? []).filter((record) => record.patientId !== patientId),
+  });
 }
 
 // ─── Provider ──────────────────────────────────────────────────────
@@ -499,26 +541,56 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // Open the tutorial patient at the beginning of the encounter.
   //
-  // Spec `tutorial-start-and-back.md` item 1 and 2: the Tutorial patient lands
-  // on the first stage as the scribe, never in the coding queue, and **no code
-  // arrives already submitted** — the student signs and locks the note, then
-  // codes the visit, then bills it. The note, vitals and orders the caller
-  // loads stay as the scribe stage's starting point; they are not coding work.
-  // The caller only calls this on a first visit (`!hasPipelineWork`), so a
-  // returning student is never dragged back to stage one.
-  const prefillForTutorial = () => {
+  // Spec `tutorial-patient-prefill.md` (owner report, 2026-11-22: "when i click
+  // on tutorial patient it doesn't open pre made encounter — in that encounter
+  // from start till end all information should be pre filled"). Until this
+  // build the tutorial chart opened at the scribe stage with nothing on it, so
+  // a visitor never saw the cycle the product teaches.
+  //
+  // The whole pipeline is now seeded once, from the patient's own chart, by
+  // `domain/tutorialEncounter.ts`: a signed note, coded lines with charges, a
+  // decided prior authorisation, the claim with its 277CA, the payer's 835 and
+  // the posted ledger — so every stage, including Denials & AR, has its own
+  // saved record. The seeding is guarded by `tutorialSeed` on the record, so a
+  // second open never overwrites work the student did afterwards, and a chart
+  // "Start over" cleared is never refilled.
+  const prefillForTutorial = (patient?: Patient | null) => {
+    const key = encounterKey(TUTORIAL_PATIENT_ID);
+    const existing = store.encounters[key];
+    // A chart that was offered the tutorial, or that already holds the
+    // student's own work, is only opened — never seeded.
+    const alreadyOffered = Boolean(existing?.tutorialSeed) || encounterHasWork(existing);
+    if (alreadyOffered) {
+      setStore((prev) =>
+        prev.activePatientId === TUTORIAL_PATIENT_ID && prev.currentRole === "scribe"
+          ? prev
+          : { ...prev, activePatientId: TUTORIAL_PATIENT_ID, currentRole: "scribe" },
+      );
+      return;
+    }
+    const claimNumber = mintNextClaimNumber(
+      Object.values(store.encounters).map((enc) => enc.claimNumber),
+    );
+    const seeded = buildTutorialEncounter({
+      patient: patient ?? null,
+      claimNumber,
+      by: getLoggedInPhone() ?? "system",
+    });
     setStore((prev) => {
-      const key = encounterKey(prev.activePatientId);
-      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
+      const current = prev.encounters[key];
+      // Re-checked against the state being written: a second caller in the same
+      // tick must not seed twice, and a chart with work is left alone.
+      if (current?.tutorialSeed || encounterHasWork(current)) return prev;
       return {
         ...prev,
+        activePatientId: TUTORIAL_PATIENT_ID,
         currentRole: "scribe",
-        encounters: {
-          ...prev.encounters,
-          [key]: { ...enc, stage: "scribe", role: "scribe" },
-        },
+        encounters: { ...prev.encounters, [key]: seeded.encounter },
       };
     });
+    setPaRecords((prev) =>
+      prev.some((record) => record.patientId === TUTORIAL_PATIENT_ID) ? prev : [...prev, seeded.paRecord],
+    );
   };
 
   // Start an encounter over. A plain patient switch must never call this.

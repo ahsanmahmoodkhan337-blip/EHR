@@ -158,6 +158,15 @@ export interface AdjudicationInput {
   deductibleRemainingCents: number;
   /** Box 23 of the claim: the authorisation number, or "". */
   priorAuthNumber: string;
+  /**
+   * The CPT codes that authorisation actually covers, when the caller knows
+   * them (the Prior Auth stage's own record names the procedure). A plan that
+   * requires an authorisation denies a code the authorisation does not cover —
+   * the case library states the rule: "the authorisation must match the CPT
+   * code and the diagnosis on the claim". Omitted by every caller that does not
+   * know the covered codes, and then only the number is checked.
+   */
+  authorizedCptCodes?: string[];
   /** The member's year-to-date usage, when the case records it. */
   benefitUsage?: { category: string; used: number; limit: number }[];
   /** One clock read for the whole remittance; the caller may pin it in tests. */
@@ -316,6 +325,8 @@ function authRequiredFor(cpt: string, plan: MedicalPlan | null): boolean {
 interface LineContext {
   plan: MedicalPlan | null;
   priorAuthNumber: string;
+  /** The codes the authorisation on file covers, when the caller knows them. */
+  authorizedCptCodes: string[] | null;
   /** Deductible left before this line. */
   deductibleRemainingCents: number;
   allCodes: string[];
@@ -351,9 +362,17 @@ function priceLine(
     insuranceBalanceCents: 0,
   };
 
-  // (a) A required authorisation the payer has no number for.
-  if (authRequiredFor(input.cpt, plan) && !ctx.priorAuthNumber.trim()) {
+  // (a) A required authorisation the payer has no number for — or a number that
+  //     does not cover this code. Both are the same money answer: the payer
+  //     allowed nothing and nothing is billed to the patient.
+  const authOnFile = ctx.priorAuthNumber.trim();
+  const authCoversThisCode =
+    ctx.authorizedCptCodes === null || ctx.authorizedCptCodes.includes(input.cpt);
+  if (authRequiredFor(input.cpt, plan) && (!authOnFile || !authCoversThisCode)) {
     const adj = [adjustment("CO-197", billedCents)];
+    const reason = !authOnFile
+      ? `CPT ${input.cpt} needs an authorisation on this plan and box 23 carries none, so the payer allowed nothing: ${dollars(billedCents)} is a CO-197 contractual write-off and the patient owes nothing for it.`
+      : `CPT ${input.cpt} needs an authorisation on this plan, and the authorisation on file (${authOnFile}) covers ${ctx.authorizedCptCodes?.join(", ") || "another procedure"}, not ${input.cpt}. The payer allowed nothing: ${dollars(billedCents)} is a CO-197 contractual write-off and the patient owes nothing for it.`;
     return {
       line: {
         ...base,
@@ -362,7 +381,7 @@ function priceLine(
         writeOffCents: billedCents,
         denied: true,
         allowanceSource: "billed",
-        explanation: `CPT ${input.cpt} needs an authorisation on this plan and box 23 carries none, so the payer allowed nothing: ${dollars(billedCents)} is a CO-197 contractual write-off and the patient owes nothing for it.`,
+        explanation: reason,
       },
       deductibleLeftCents: ctx.deductibleRemainingCents,
     };
@@ -492,6 +511,9 @@ export function adjudicateClaim(input: AdjudicationInput): Remittance835 {
   const ctx: LineContext = {
     plan: input.plan,
     priorAuthNumber: input.priorAuthNumber ?? "",
+    authorizedCptCodes: Array.isArray(input.authorizedCptCodes)
+      ? input.authorizedCptCodes.map((code) => String(code).trim()).filter(Boolean)
+      : null,
     deductibleRemainingCents: deductibleLeft,
     allCodes,
   };

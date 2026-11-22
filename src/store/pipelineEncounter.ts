@@ -420,6 +420,15 @@ export interface PipelineEncounter {
    * can never disagree with the money. v6.
    */
   arItems: ArItemState[];
+  /**
+   * Set once the Tutorial Patient's chart has been offered its pre-made
+   * encounter (`domain/tutorialEncounter.ts`), so a second open never re-seeds
+   * it and "Start over" is never undone. Absent on every other chart and on a
+   * tutorial chart written before this field existed — such a chart is seeded
+   * on its next open unless it already holds work. Optional, so no migration is
+   * needed and no saved record loses a field.
+   */
+  tutorialSeed?: string;
 }
 
 /**
