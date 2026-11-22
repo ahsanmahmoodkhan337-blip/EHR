@@ -22,6 +22,8 @@ import {
   type RcmStageId,
 } from "../shell/stageModel";
 import { StageReviewFrame } from "../shell/StageReviewFrame";
+import { CaseClaimPaper } from "./CaseClaimPaper";
+import { caseClaimPaper } from "../../domain/caseClaimPaper";
 import { useStageShortcuts } from "../shell/useStageShortcuts";
 import { adjacentStage, isReviewingStage, isStageUnlocked } from "../shell/stageReview";
 import {
@@ -1055,11 +1057,32 @@ function ClaimStage() {
   const verdict = state.claimSubmitted ? claimVerdict(traps, triggeredTrapIds) : null;
   const dxMap = Object.fromEntries(activeCase.diagnoses.map((d) => [d.code, d.pointer]));
 
+  // The paper follows the case's place of service, exactly as it does on the
+  // free-form encounter: a facility case bills on the UB-04 with the case's own
+  // type of bill and one revenue code per department, and a professional case
+  // keeps the CMS-1500 summary below.
+  const paper = caseClaimPaper(
+    activeCase,
+    state.procedures.map((line) => ({ code: line.code, modifier: line.modifier })),
+  );
+  const facility = paper.claimType === "institutional";
+
   return (
     <div className="h-full overflow-y-auto p-4">
-      <h3 className="text-sm font-bold text-slate-800">Claim — CMS-1500</h3>
-      <p className="text-[10px] text-slate-400">Review the claim lines and diagnosis pointers, then submit.</p>
+      <h3 className="text-sm font-bold text-slate-800">Claim — {paper.paper}</h3>
+      <p className="text-[10px] text-slate-400">
+        {facility
+          ? "The paper is built from this case's record: its type of bill, and a revenue code for each department that billed."
+          : "Review the claim lines and diagnosis pointers, then submit."}
+      </p>
 
+      {facility && (
+        <div className="mt-3">
+          <CaseClaimPaper paper={paper} />
+        </div>
+      )}
+
+      {!facility && (
       <div className="mt-3 clinical-card">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -1110,6 +1133,13 @@ function ClaimStage() {
           <p className="mt-2 text-[10px] text-slate-400">No claim lines yet — go back to coding and select the procedures.</p>
         )}
       </div>
+      )}
+
+      {facility && state.procedures.length === 0 && (
+        <p className="mt-3 text-[10px] text-slate-400">
+          No claim lines yet — go back to coding and select the procedures.
+        </p>
+      )}
 
       {verdict && (
         <div

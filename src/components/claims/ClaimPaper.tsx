@@ -42,9 +42,15 @@ export interface ClaimPaperProps {
    * a demo value must never be mistakable for a captured one.
    */
   demoFields?: Record<string, DemoFilledBox>;
+  /**
+   * Print the boxes as text instead of inputs. Used where the paper is shown
+   * for reading — a graded case's claim is built from the case's own record and
+   * is not edited on the sheet — so no box is a control that does nothing.
+   */
+  readOnly?: boolean;
 }
 
-export function ClaimPaper({ layout, values, issues, table, set, note, demoFields }: ClaimPaperProps) {
+export function ClaimPaper({ layout, values, issues, table, set, note, demoFields, readOnly }: ClaimPaperProps) {
   const bad = errorBoxes(issues);
 
   // Full workspace width — the paper no longer shares its row with a side
@@ -69,7 +75,17 @@ export function ClaimPaper({ layout, values, issues, table, set, note, demoField
       {layout.rows.map((row, rowIndex) => (
         <div key={`row-${rowIndex}`} className="flex" style={{ minHeight: row.heightMm * MM }}>
           {row.cells.map((cell) => (
-            <Box key={cell.id} box={cell} values={values} issues={issues} bad={bad} set={set} table={table} demoFields={demoFields} />
+            <Box
+              key={cell.id}
+              box={cell}
+              values={values}
+              issues={issues}
+              bad={bad}
+              set={set}
+              table={table}
+              demoFields={demoFields}
+              readOnly={readOnly}
+            />
           ))}
         </div>
       ))}
@@ -87,6 +103,7 @@ function Box({
   set,
   table,
   demoFields,
+  readOnly,
 }: {
   box: ClaimBox;
   values: Record<string, unknown>;
@@ -95,6 +112,7 @@ function Box({
   set: (field: string, value: unknown) => void;
   table?: ReactNode;
   demoFields?: Record<string, DemoFilledBox>;
+  readOnly?: boolean;
 }) {
   const invalid = bad.has(box.id);
   const issue = issues.find((i) => i.box === box.id && i.severity === "error");
@@ -134,7 +152,21 @@ function Box({
 
       {box.structural === "table" && <div className="mt-0.5">{table}</div>}
 
-      {box.structural === "pointerGrid" && (
+      {box.structural === "pointerGrid" && readOnly && (
+        <div className="mt-1 grid grid-cols-6 gap-x-2 gap-y-0.5">
+          {DIAGNOSIS_POINTERS.map((letter, i) => {
+            const codes = (values.diagnosisCodes as string[]) ?? [];
+            return (
+              <p key={letter} className="flex items-baseline gap-0.5">
+                <span className="text-[7px] font-bold text-form-red">{letter}.</span>
+                <span className="min-w-0 text-[9px] text-ink">{codes[i] ?? ""}</span>
+              </p>
+            );
+          })}
+        </div>
+      )}
+
+      {box.structural === "pointerGrid" && !readOnly && (
         <div className="mt-1 grid grid-cols-6 gap-x-2 gap-y-0.5">
           {DIAGNOSIS_POINTERS.map((letter, i) => {
             const codes = (values.diagnosisCodes as string[]) ?? [];
@@ -161,17 +193,24 @@ function Box({
 
       {box.checks && (
         <div className="mt-0.5 space-y-0.5">
-          {box.checks.map((check) => (
-            <label key={check.field} className="flex items-center gap-1 text-[8px] text-ink">
-              <input
-                type="checkbox"
-                checked={Boolean(values[check.field])}
-                onChange={(e) => set(check.field, e.target.checked)}
-                className="h-2.5 w-2.5 accent-form-red"
-              />
-              {check.label}
-            </label>
-          ))}
+          {box.checks.map((check) =>
+            readOnly ? (
+              <p key={check.field} className="flex items-center gap-1 text-[8px] text-ink">
+                <span aria-hidden="true">{values[check.field] ? "✓" : "—"}</span>
+                {check.label}
+              </p>
+            ) : (
+              <label key={check.field} className="flex items-center gap-1 text-[8px] text-ink">
+                <input
+                  type="checkbox"
+                  checked={Boolean(values[check.field])}
+                  onChange={(e) => set(check.field, e.target.checked)}
+                  className="h-2.5 w-2.5 accent-form-red"
+                />
+                {check.label}
+              </label>
+            ),
+          )}
         </div>
       )}
 
@@ -185,7 +224,15 @@ function Box({
           }`}
         >
           {box.fields.map((field) => (
-            <Field key={field.field} box={box} field={field} values={values} set={set} demo={demoFields?.[field.field]} />
+            <Field
+              key={field.field}
+              box={box}
+              field={field}
+              values={values}
+              set={set}
+              demo={demoFields?.[field.field]}
+              readOnly={readOnly}
+            />
           ))}
         </div>
       )}
@@ -199,6 +246,7 @@ function Field({
   values,
   set,
   demo,
+  readOnly,
 }: {
   box: ClaimBox;
   field: NonNullable<ClaimBox["fields"]>[number];
@@ -206,8 +254,25 @@ function Field({
   set: (field: string, value: unknown) => void;
   /** Set when this box is showing a demo value instead of a captured one. */
   demo?: DemoFilledBox;
+  /** Print the value as text — the sheet is being read, not edited. */
+  readOnly?: boolean;
 }) {
   const raw = values[field.field];
+
+  // A read-only sheet prints every box as text, so no field is an input that
+  // silently throws the student's typing away.
+  if (readOnly) {
+    const printed =
+      raw === undefined || raw === null || raw === "" || raw === 0 ? "" : String(raw);
+    return (
+      <div className="min-w-0 flex-1" style={{ flex: field.flex ?? 1 }}>
+        {field.label && <p className="text-[6px] uppercase tracking-wide text-ink-muted">{field.label}</p>}
+        <p className="min-w-0 text-[9px] leading-tight text-ink" data-box={box.id}>
+          {printed}
+        </p>
+      </div>
+    );
+  }
   const common =
     "min-w-0 w-full bg-transparent text-[9.5px] leading-tight text-ink outline-none placeholder:text-ink-muted/40 focus:bg-brand-50";
 
