@@ -202,11 +202,23 @@ describe("only the student's own charts are listed", () => {
     expect(listed.map((p) => p.id)).toEqual([TUTORIAL_PATIENT_ID, REGISTERED.id]);
   });
 
-  test("the badge count and /patients count the same own charts", () => {
+  test("the Tutorial Patient is pinned first in /patients, and a demo chart is not", () => {
     const all = [TUTORIAL, DEMO_CHART, REGISTERED];
-    expect(ownPatientList(all).map((p) => p.id)).toEqual([REGISTERED.id]);
-    // The Inbox lists the pinned Tutorial Patient on top of those, once.
+    // The standard worked-example chart (owner, 2026-11-22) is always a row, and
+    // it is the first one — a new student's page is never empty.
+    expect(ownPatientList(all).map((p) => p.id)).toEqual([TUTORIAL_PATIENT_ID, REGISTERED.id]);
+    // The Inbox lists the same two, once each.
     expect(inboxPatients(all, [], "2026-11-24")).toHaveLength(2);
+    // With nothing but the Tutorial Patient on file the page still has a row, so
+    // its "no patients yet" state stays for a record with no charts at all.
+    expect(ownPatientList([TUTORIAL]).map((p) => p.id)).toEqual([TUTORIAL_PATIENT_ID]);
+  });
+
+  test("the Tutorial Patient's row opens its encounter, not a hub tab", () => {
+    expect(PATIENTS_PAGE).toContain("isTutorialPatient({ id: patientId })");
+    expect(PATIENTS_PAGE).toContain('to: "/encounter/$encounterId/$stage"');
+    // Every other patient still opens their own hub.
+    expect(PATIENTS_PAGE).toContain('to: "/patients/$id/$tab"');
   });
 
   test("the search and the appointment picker offer own charts plus the Tutorial Patient", () => {

@@ -8,10 +8,9 @@
  * The Tutorial patient is always pinned at the top.
  *
  * The badge counts the student's own charts only — the pinned Tutorial Patient
- * is practice, not waiting work — so it agrees with "charts on file" on
- * `/patients` (`specs/slice-inbox-patients.md`). With nothing booked or
- * registered yet, the panel says so and points at the Schedule instead of
- * showing a bare list.
+ * is practice, not waiting work — so it is labelled as the count of their own
+ * patients (`specs/slice-inbox-patients.md`). With nothing booked or registered
+ * yet, the panel says so and points at the Schedule instead of a bare list.
  */
 
 import { Link } from "@tanstack/react-router";

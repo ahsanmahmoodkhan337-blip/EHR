@@ -7,15 +7,19 @@
  * buried behind the chart it was meant to open. It is a page of its own now
  * (spec `phase-1-navigation.md` item 1).
  *
- * Every row opens that patient's chart in the medical workspace — the only
- * place a chart lives. Nothing is written here: opening a patient loads their
- * own saved encounter, it does not reset it.
+ * Every row opens that patient's chart — the only place a chart lives. Nothing
+ * is written here: opening a patient loads their own saved encounter, it does
+ * not reset it.
  *
- * Only the student's own charts are listed (`specs/slice-inbox-patients.md`):
- * the patients they registered and the ones they booked on the Schedule. The 18
- * built-in demo charts are teaching material and live in Practice Cases, so a
- * new student sees the empty state and a way to their first appointment. The
- * full lookup by id is untouched, so a claim on a demo chart still names it.
+ * The Tutorial Patient is the standard worked-example chart (owner, 2026-11-22),
+ * so it is pinned first in the list and its row opens its *encounter* — the
+ * workspace at the stage its record is saved on — rather than a hub tab, which
+ * has nothing of its own to show. Every other row opens that patient's hub.
+ *
+ * The 18 built-in demo charts are teaching material and live in Practice Cases,
+ * so they are not rows here. With only the Tutorial Patient on file the page
+ * still lists it; the empty state is kept for a record with no charts at all.
+ * The full lookup by id is untouched, so a claim on a demo chart still names it.
  */
 
 import { useMemo, useState } from "react";
@@ -24,8 +28,10 @@ import { Search, UserRound, CalendarPlus } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { useActiveTrack } from "../components/shell/activeTrack";
 import { PatientProvider, usePatientStore } from "../store/patientStore";
-import { rememberActivePatient } from "../store/pipelineStore";
-import { ownPatientList } from "../domain/inbox";
+import { rememberActivePatient, savedEncounterStage } from "../store/pipelineStore";
+import { isTutorialPatient, ownPatientList } from "../domain/inbox";
+import { flowStage, type EncounterFlowStageId } from "../domain/encounterFlow";
+import { openingStageId } from "../domain/encounterRoute";
 import { DEFAULT_HUB_TAB } from "../components/patients/PatientHubTabs";
 
 export const Route = createFileRoute("/patients")({
@@ -68,8 +74,22 @@ function PatientsPage() {
   // The pick is also made the one active patient every page reads, and written
   // through before the route changes, so Coding, Claims, Payments and Denials &
   // AR open on this patient instead of the Tutorial Patient (audit item 4).
+  //
+  // The Tutorial Patient is the exception: its chart is the encounter itself, so
+  // its row opens `/encounter/:id/:stage` at the stage its record is saved on.
+  // Naming the patient and stage in the address is what makes the workspace
+  // open this encounter rather than whatever the session last showed.
   const openPatient = (patientId: string) => {
     rememberActivePatient(patientId);
+    if (isTutorialPatient({ id: patientId })) {
+      const saved = savedEncounterStage(patientId);
+      const stage: EncounterFlowStageId = flowStage(saved)?.id ?? openingStageId();
+      void navigate({
+        to: "/encounter/$encounterId/$stage",
+        params: { encounterId: patientId, stage },
+      });
+      return;
+    }
     void navigate({ to: "/patients/$id/$tab", params: { id: patientId, tab: DEFAULT_HUB_TAB } });
   };
 
@@ -146,27 +166,43 @@ function PatientsPage() {
                 </tr>
               </thead>
               <tbody>
-                {matches.map((patient) => (
-                  <tr key={patient.id}>
-                    <td className="font-medium text-slate-800">
-                      {patient.firstName} {patient.lastName}
-                    </td>
-                    <td className="font-mono text-xs text-slate-500">{patient.mrn || "—"}</td>
-                    <td className="text-xs tabular-nums text-slate-500">{patient.dateOfBirth || "—"}</td>
-                    <td className="text-slate-600">{patient.primaryCareProvider || "—"}</td>
-                    <td className="text-slate-600">{patient.insurance || "—"}</td>
-                    <td className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => openPatient(patient.id)}
-                        aria-label={`Open the patient hub for ${patient.firstName} ${patient.lastName}`}
-                        className="min-h-10 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-                      >
-                        Open patient
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {matches.map((patient) => {
+                  const tutorial = isTutorialPatient(patient);
+                  const name = `${patient.firstName} ${patient.lastName}`.trim();
+                  return (
+                    <tr key={patient.id}>
+                      <td className="font-medium text-slate-800">
+                        {patient.firstName} {patient.lastName}
+                        {tutorial && (
+                          <span
+                            className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-800"
+                            title="The standard worked-example chart"
+                          >
+                            Tutorial
+                          </span>
+                        )}
+                      </td>
+                      <td className="font-mono text-xs text-slate-500">{patient.mrn || "—"}</td>
+                      <td className="text-xs tabular-nums text-slate-500">{patient.dateOfBirth || "—"}</td>
+                      <td className="text-slate-600">{patient.primaryCareProvider || "—"}</td>
+                      <td className="text-slate-600">{patient.insurance || "—"}</td>
+                      <td className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => openPatient(patient.id)}
+                          aria-label={
+                            tutorial
+                              ? `Open the Tutorial Patient encounter for ${name}`
+                              : `Open the patient hub for ${name}`
+                          }
+                          className="min-h-10 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                        >
+                          {tutorial ? "Open encounter" : "Open patient"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
