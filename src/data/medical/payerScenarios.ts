@@ -97,10 +97,20 @@ export const MEDICAL_PLANS: MedicalPlan[] = [
     planCoinsurancePercent: 80,
     preventivePaidInFull: true,
     priorAuthCptCodes: ["72141", "71250", "27447"],
-    cciEdits: [],
+    cciEdits: [
+      {
+        componentCode: "93000",
+        comprehensiveCode: "99214",
+        carc: "CO-236",
+        explanation:
+          "This plan's own same-day edit treats a 12-lead ECG (93000) drawn and interpreted during an office visit as part of that visit: the visit pays and the ECG line is allowed nothing unless the ECG is reported as a distinct service. The rule is this fictional plan's policy, not a statement of any national edit.",
+        correctHandling:
+          "Append modifier 59 to the 93000 line when the ECG was a distinct, separately documented service, or appeal the CO-236 with the tracing and the interpretation report. Without either, the write-off stands and the patient owes nothing for that line.",
+      },
+    ],
     benefitLimits: [],
     notes:
-      "Medicare Advantage-style HMO used for the prior-authorisation case. Advanced imaging and joint replacement require a prior authorisation that must be on file before the claim is submitted; a missing authorisation denies the claim even when the service is otherwise covered.",
+      "Medicare Advantage-style HMO used for the prior-authorisation case. Advanced imaging and joint replacement require a prior authorisation that must be on file before the claim is submitted; a missing authorisation denies the claim even when the service is otherwise covered. Its same-day edit also treats an in-office 12-lead ECG as part of the office visit billed with it, so an ECG without modifier 59 comes back CO-236 — the Tutorial Patient's worked example carries that one denial so the AR queue has real money to work.",
   },
   {
     id: "PLAN-NORTHWIND-MEDICAID",

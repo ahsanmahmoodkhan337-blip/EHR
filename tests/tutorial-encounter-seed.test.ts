@@ -112,7 +112,9 @@ describe("the seeded encounter's clinical half", () => {
     expect(enc.noteUpdatedAt).toBe(AT);
     // Signed means read-only, everywhere.
     expect(enc.stage).toBe("scribe");
-    expect(enc.status).toBe("coded");
+    // `billed` since the money half landed: the record holds a submitted claim
+    // and a posted 835, so the encounter's own status says so.
+    expect(enc.status).toBe("billed");
   });
 
   test("the codes match the note's assessment and carry charge, units and POS 11", () => {

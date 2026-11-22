@@ -519,7 +519,10 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     const key = encounterKey(patientId);
     setStore((prev) => {
       const current = prev.encounters[key] ?? createEncounter(patientId);
-      const next = applyTutorialSeed(current, patient, at);
+      // The example's claim takes a number no other chart already carries.
+      const next = applyTutorialSeed(current, patient, at, {
+        existingClaimNumbers: Object.values(prev.encounters).map((e) => e.claimNumber),
+      });
       if (next === current) return prev;
       return { ...prev, encounters: { ...prev.encounters, [key]: next } };
     });
