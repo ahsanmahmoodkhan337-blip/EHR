@@ -18,12 +18,14 @@ import {
   CheckCircle2,
   Download,
   History,
+  Laptop,
   RotateCcw,
   ShieldAlert,
   Upload,
   UserRound,
 } from "lucide-react";
 import { getLoggedInPhone, isLoggedIn } from "../store/accessStore";
+import { getSharingSignal, MAX_DEVICE_COUNT, resetOtherSessions } from "../store/accountSecurity";
 import { PatientProvider } from "../store/patientStore";
 import { AppShell } from "../components/AppShell";
 import { useActiveTrack } from "../components/shell/activeTrack";
@@ -69,6 +71,7 @@ function SettingsPage() {
   const [chosen, setChosen] = useState<ResetGroupId[]>([]);
   const [typed, setTyped] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [resettingDevices, setResettingDevices] = useState(false);
   const [status, setStatus] = useState<Status>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const cancelRef = useRef<HTMLButtonElement | null>(null);
@@ -169,6 +172,20 @@ function SettingsPage() {
     setTyped("");
   };
 
+  // "Sign out other devices" — clears every other binding, keeps this one. It
+  // lives here now: the dashboard footer's device line moved to Settings (owner's
+  // student-experience work order, 2026-11-21, item 6).
+  const handleResetOtherDevices = async () => {
+    if (!phone) return;
+    setResettingDevices(true);
+    try {
+      await resetOtherSessions(phone);
+      window.location.reload();
+    } finally {
+      setResettingDevices(false);
+    }
+  };
+
   if (!loggedIn || !phone) {
     return (
       <div className="brand-gradient flex min-h-dvh flex-col items-center justify-center p-4">
@@ -183,6 +200,9 @@ function SettingsPage() {
       </div>
     );
   }
+
+  // The device-binding signal the dashboard footer used to print.
+  const signal = getSharingSignal(phone);
 
   return (
     <>
@@ -241,6 +261,53 @@ function SettingsPage() {
               <Stat label="Patient case files" value={Object.keys(caseStates).length} />
               <Stat label="Dental track saved" value={dental ? "Yes" : "No"} />
             </dl>
+          )}
+        </section>
+
+        {/* ── Where you are signed in ──
+            Moved here from the dashboard footer (owner's student-experience work
+            order, 2026-11-21, item 6): the device-binding line and the
+            "Sign out other devices" control belong with the account controls,
+            not on the screen a student works from. Same wording, same rule. */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <Laptop className="h-4 w-4 text-brand-600" /> Where you are signed in
+          </h2>
+          <p className="mt-1 text-[11px] text-slate-500">
+            Your sign-in is bound to the devices it is used from. A second device
+            shows here, so sharing an account is visible.
+          </p>
+          <p className="mt-2 text-xs text-slate-600">
+            {signal.distinctDeviceCount > 0 ? (
+              <span>
+                Signed in on {signal.distinctDeviceCount} device
+                {signal.distinctDeviceCount === 1 ? "" : "s"}
+                {signal.lastLoginAt
+                  ? ` · last sign-in ${new Date(signal.lastLoginAt).toLocaleString()}`
+                  : ""}
+              </span>
+            ) : (
+              <span>First sign-in on this device</span>
+            )}
+            {signal.flagged && (
+              <span
+                className="ml-1 text-amber-600"
+                title="This account has been used from more than one device or had overlapping sessions."
+              >
+                (multi-device)
+              </span>
+            )}
+          </p>
+          {signal.distinctDeviceCount > 1 && (
+            <button
+              type="button"
+              onClick={handleResetOtherDevices}
+              disabled={resettingDevices}
+              className="mt-3 flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              title={`Sign out every other device and keep only this one (device limit: ${MAX_DEVICE_COUNT}).`}
+            >
+              {resettingDevices ? "Signing out…" : "Sign out other devices"}
+            </button>
           )}
         </section>
 
