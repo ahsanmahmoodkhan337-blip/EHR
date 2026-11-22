@@ -48,6 +48,18 @@ import { encounterIdFor, scopingRefusal } from "../domain/dataScoping";
 import { resolveEncounterPatientId } from "../utils/encounterPatient";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
 import { signNote } from "../domain/signNote";
+import {
+  applyTutorialSeed,
+  tutorialCardFor,
+  tutorialCardPending,
+  tutorialEligibilityFor,
+  tutorialPaRecord,
+  tutorialSeedPending,
+  TUTORIAL_PA_ID,
+  TUTORIAL_PATIENT_ID,
+  type TutorialPatientSource,
+} from "../domain/tutorialEncounter";
+import { selectPatientById, useEhrStore } from "./ehrStore";
 import { applyCodingPlaceOfService, hasLineForCpt } from "../domain/codingPlaceOfService";
 import {
   compileNoteText,
@@ -279,8 +291,24 @@ interface PipelineContextValue {
    * Never called on a plain patient switch — switching only loads.
    */
   resetEncounter: (patientId?: string | null) => void;
+  /**
+   * Write the Tutorial Patient's worked example onto that patient's encounter —
+   * once — when the chart is opened. Spec `specs/tutorial-patient-prefill.md`:
+   * the tutorial chart is the standard a student opens to see what a complete
+   * encounter looks like, so the note, the signature, the vitals, the codes and
+   * the decided prior authorisation are seeded from the patient's own record.
+   *
+   * `selectPatient` calls it, so it works however the chart is opened — the
+   * inbox, `/patients`, Start Visit or a pasted link. A screen that loads a
+   * session may call it a second time; it answers whether this chart is showing
+   * the example, and the answer is the same either way.
+   *
+   * Guarded by the encounter's own `tutorialSeed` key (`tutorialSeedPending`), so
+   * a second open never overwrites work the student did after the seed. Nothing is
+   * written for any other patient.
+   */
+  seedTutorialOnOpen: (patientId: string | null) => boolean;
   setPatientDisplayName: (name: string | null) => void;
-  prefillForTutorial: () => void;
 }
 
 /**
@@ -475,8 +503,73 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   const getEncounter = (patientId: string | null) => store.encounters[encounterKey(patientId)];
 
+  // The Tutorial Patient's worked example, written onto its own encounter once.
+  //
+  // Spec `tutorial-patient-prefill.md` (owner, 2026-11-22): the tutorial chart is
+  // the standard that shows which datum belongs in which stage, so its note,
+  // signature, codes and prior authorisation are seeded from the patient's own
+  // record by `domain/tutorialEncounter.ts`. The write is guarded by the record's
+  // own seed key, so a later open never overwrites work the student has done since
+  // — and it targets the patient named, never whoever happens to be active.
+  const seedTutorialEncounter = (
+    patientId: string,
+    patient: TutorialPatientSource,
+    at: string = new Date().toISOString(),
+  ) => {
+    const key = encounterKey(patientId);
+    setStore((prev) => {
+      const current = prev.encounters[key] ?? createEncounter(patientId);
+      const next = applyTutorialSeed(current, patient, at);
+      if (next === current) return prev;
+      return { ...prev, encounters: { ...prev.encounters, [key]: next } };
+    });
+  };
+
+  /**
+   * Seed the Tutorial Patient's worked example when its chart is opened.
+   *
+   * `selectPatient` is the store's own open path, so the example is written here
+   * rather than by one screen's effect — that is what makes it work however the
+   * chart is opened: the inbox, `/patients`, Start Visit or a pasted link.
+   *
+   * The patient is read from the central chart store by id (`selectPatientById`),
+   * so the record is built from the chart it is filed under: the patient's own
+   * coverage card and the 271 that matches it, then the signed note, the codes
+   * with their charge and place of service, and the decided prior authorisation
+   * (`domain/tutorialEncounter.ts`). The PA desk keeps its own queue, so the
+   * authorisation is filed there too through `setPaRecords` — one number, one
+   * visit date, written once.
+   *
+   * Returns true when this chart is showing the example: it was seeded now, or it
+   * already holds the seed and nothing the student did. A chart the student worked
+   * answers false and is left exactly as it is.
+   */
+  const seedTutorialOnOpen = (patientId: string | null): boolean => {
+    if (patientId !== TUTORIAL_PATIENT_ID) return false;
+    if (!tutorialSeedPending(store.encounters[encounterKey(patientId)])) return false;
+    const patient = selectPatientById(useEhrStore.getState(), patientId);
+    if (!patient) return false;
+    const seededAt = new Date().toISOString();
+    if (tutorialCardPending(patient)) {
+      const ehr = useEhrStore.getState();
+      ehr.updatePatientInsurance(patient.id, tutorialCardFor(patient));
+      ehr.recordEligibility(patient.id, "primary", tutorialEligibilityFor(patient, seededAt));
+    }
+    seedTutorialEncounter(patient.id, patient, seededAt);
+    setPaRecords((prev) =>
+      prev.some((record) => record.patientId === patient.id && record.id === TUTORIAL_PA_ID)
+        ? prev
+        : [...prev, tutorialPaRecord(patient, seededAt)],
+    );
+    return true;
+  };
+
   /** Load a patient's encounter. Creates a blank one the first time only. */
   const selectPatient = (patientId: string | null) => {
+    // Opening the Tutorial Patient's chart is what seeds it, so the worked
+    // example is there however the chart was opened — not only from the screen
+    // that used to seed it.
+    seedTutorialOnOpen(patientId);
     setStore((prev) => {
       const key = encounterKey(patientId);
       const existing = prev.encounters[key];
@@ -515,30 +608,6 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   const setPatientDisplayName = (name: string | null) => {
     updateActive((enc) => ({ ...enc, displayName: name }));
-  };
-
-  // Open the tutorial patient at the beginning of the encounter.
-  //
-  // Spec `tutorial-start-and-back.md` item 1 and 2: the Tutorial patient lands
-  // on the first stage as the scribe, never in the coding queue, and **no code
-  // arrives already submitted** — the student signs and locks the note, then
-  // codes the visit, then bills it. The note, vitals and orders the caller
-  // loads stay as the scribe stage's starting point; they are not coding work.
-  // The caller only calls this on a first visit (`!hasPipelineWork`), so a
-  // returning student is never dragged back to stage one.
-  const prefillForTutorial = () => {
-    setStore((prev) => {
-      const key = encounterKey(prev.activePatientId);
-      const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
-      return {
-        ...prev,
-        currentRole: "scribe",
-        encounters: {
-          ...prev.encounters,
-          [key]: { ...enc, stage: "scribe", role: "scribe" },
-        },
-      };
-    });
   };
 
   // Start an encounter over. A plain patient switch must never call this.
@@ -1330,7 +1399,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         updatePAStatus,
         resetEncounter,
         setPatientDisplayName,
-        prefillForTutorial,
+        seedTutorialOnOpen,
       }}
     >
       {children}

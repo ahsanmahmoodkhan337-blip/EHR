@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 
 import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
-import { PipelineProvider, usePipeline, encounterHasWork, type Role } from "../store/pipelineStore";
+import { PipelineProvider, usePipeline, type Role } from "../store/pipelineStore";
 import { ledgerBalance } from "../domain/ledger";
 import { isLoggedIn, getLoggedInPhone } from "../store/accessStore";
 import { useAllAppointments, useEhrStore, flushEhrStore } from "../store/ehrStore";
@@ -57,6 +57,7 @@ import { ActiveProgressNote } from "../components/TabsEpic/ActiveProgressNote";
 import { inboxCount } from "../domain/inbasket";
 import { completedStagesOf } from "../domain/stageProgress";
 import { postedCopayForPatient } from "../domain/checkIn";
+import { TUTORIAL_PATIENT_ID, tutorialNoteFields } from "../domain/tutorialEncounter";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
 import { StageNav } from "../components/shell/StageNav";
@@ -1443,7 +1444,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * Back / "Continue to…" stay inside the chart panel where they were.
    */
   const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("schedule");
-  const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, prefillForTutorial, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
+  const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, seedTutorialOnOpen, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
   /**
    * The patient the chart opens on (owner's audit, 2026-11-20, item 4 — "patient
    * and track context persist across navigation and reload").
@@ -1769,58 +1770,30 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * Falls back to mock patient data or defaults if no saved session.
    */
   function loadPatientSession(patientId: string) {
-    const savedForPatient = patientDataStore.current[patientId];
-    const hasPipelineWork = !!savedForPatient || encounterHasWork(getEncounter(patientId));
-  // DEMO patient — load pre-filled tutorial data (first visit only)
-    if (patientId === "DEMO" && !hasPipelineWork) {
-      setSoapNote({
-        subjective: "Patient reports intermittent chest pain over the past 2 weeks, described as pressure-like, radiating to left arm. Worse with exertion, relieved by rest. Associated shortness of breath when climbing stairs. Denies nausea or diaphoresis. Has history of hypertension, currently on Lisinopril.",
-        objective: "Vitals: BP 145/92, HR 92, Temp 99.1°F, RR 20, O2 Sat 94% on room air. General: Alert, mild distress. CV: Regular rate, no murmurs. Lungs: Clear bilaterally. ECG shows ST-segment depression in leads V4-V6. Labs: Troponin mildly elevated at 0.12 ng/mL.",
-        assessment: "1. Suspected Coronary Artery Disease (I25.10)\n2. Hypertension, uncontrolled (I10)\n3. Chest Pain, unspecified (R07.9)\n\nPlan: Admit for cardiac workup. Order serial troponins, echocardiogram, cardiology consult. Continue Lisinopril, start Atorvastatin 40mg, Aspirin 81mg daily.",
-        plan: "1. Admit to telemetry unit\n2. Serial troponins q6h x3\n3. Echocardiogram in AM\n4. Cardiology consult (Dr. Williams)\n5. Continue home medications\n6. NPO after midnight for possible cardiac catheterization\n7. Stress test if enzymes negative\n8. Discharge planning: cardiac rehab referral"
-      });
-      // The encounter opens at the first scribing step (spec
-      // `start-at-scribing.md` item 1). The note above is the tutorial's seeded
-      // starting point — nothing here fills the chart in; the student walks the
-      // steps from Intake / Vitals, reaches Registration in one Back, and still
-      // signs and locks before coding.
-      setActiveStage(CHART_OPENING_STEP);
-      setSharedImmunizations([
-        { id: "imm-d1", vaccine: "Influenza 2026-2027", dose: "0.5 mL", date: "2026-10-01", status: "Given" },
-        { id: "imm-d2", vaccine: "Tdap", dose: "0.5 mL", date: "2023-05-10", status: "Given" },
-        { id: "imm-d3", vaccine: "COVID-19 Bivalent", dose: "0.3 mL", date: "2024-09-20", status: "Given" },
-      ]);
-      setSharedLabs(["CBC — pending", "CMP — abnormal (elevated glucose 142)", "Cardiac Enzymes — Troponin 0.12 (elevated)", "Lipid Panel — LDL 160"]);
-      setSharedReferrals([
-        { id: "ref-d1", specialty: "Cardiology", reason: "Chest pain evaluation", status: "Sent", date: "2026-07-09" },
-        { id: "ref-d2", specialty: "Cardiac Rehab", reason: "Post-discharge rehabilitation", status: "Scheduled", date: "2026-07-09" },
-      ]);
-      setSharedOrders([
-        { id: "ord-d1", item: "ECG 12-lead (STAT)", status: "Completed", provider: "Dr. Demo Instructor", date: "2026-07-09" },
-        { id: "ord-d2", item: "Chest X-Ray PA/LAT", status: "Completed", provider: "Dr. Demo Instructor", date: "2026-07-09" },
-        { id: "ord-d3", item: "Echocardiogram", status: "Ordered", provider: "Dr. Demo Instructor", date: "2026-07-09" },
-        { id: "ord-d4", item: "Cardiac Catheterization", status: "Pending", provider: "Dr. Demo Instructor", date: "2026-07-09" },
-      ]);
-      setSharedImaging([
-        { id: "img-d1", study: "Chest X-Ray (PA/LAT)", status: "Resulted", date: "2026-07-09" },
-        { id: "img-d2", study: "ECG 12-lead", status: "Resulted", date: "2026-07-09" },
-      ]);
-      setEditablePatientData({
-        chiefComplaint: "Chest pain and shortness of breath",
-        problems: ["Hypertension (I10)", "Coronary Artery Disease (I25.10)", "Chest Pain (R07.9)"],
-        medications: [
-          { id: "med-d1", name: "Lisinopril", dosage: "10mg", frequency: "Once daily" },
-          { id: "med-d2", name: "Atorvastatin", dosage: "40mg", frequency: "Once daily at bedtime" },
-          { id: "med-d3", name: "Aspirin", dosage: "81mg", frequency: "Once daily" },
-        ],
-        allergies: ["Penicillin", "Sulfa drugs"],
-        pcp: "Dr. Demo Instructor, MD",
-        insurance: "Medicare Part B",
-      });
-      setEditableVitals({ bloodPressure: "145/92", heartRate: "92", temperature: "99.1", respiratoryRate: "20", oxygenSaturation: "94" });
-      prefillForTutorial();
-      return;
-    }
+    // The Tutorial Patient — the worked example, seeded once
+    // (`specs/tutorial-patient-prefill.md`, owner 2026-11-22: "all data filled from
+    // start to end so that can act as a standard which data should be where").
+    //
+    // The record itself — the patient's own coverage card with the member ID the
+    // 271 needs, the 271 that matches it, the signed note, the codes with their
+    // charge and place of service, the decided prior authorisation and the PA
+    // desk's row for it — is written by the store's own open path,
+    // `seedTutorialOnOpen`, which `selectPatient` calls. That is what makes the
+    // chart filled however it is opened: the inbox, `/patients`, Start Visit or a
+    // pasted link. This is the second entry to the same function, and it answers
+    // whether this chart is showing the example, so the screen paints what the
+    // record now holds instead of guessing.
+    //
+    // The guard is the record's own shape (`tutorialSeedPending`): a chart the
+    // student actually worked — anything with a claim, an authorisation, money or
+    // a signature — outranks the example and is left exactly as it is.
+    // This is a second entry to that function, and its answer is all this screen
+    // needs: the seed is the only writer for the Tutorial Patient. The old
+    // hardcoded demo prefill that used to sit here — its own note, problem list,
+    // medications, allergies, card, vitals and clinical history — is gone; the
+    // chart below is painted from the record the seed wrote and from the
+    // patient's own chart, the same way every other chart is.
+    const showingTutorialExample = seedTutorialOnOpen(patientId);
     console.log("loadPatientSession called for:", patientId, "saved:", !!patientDataStore.current[patientId]);
     const saved = patientDataStore.current[patientId];
     const p = patients.find(pp => pp.id === patientId);
@@ -1868,7 +1841,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       });
       // Demo clinical items appear on seeded demo patients only (owner decision
       // 2026-11-20). A patient the student registered starts with empty lists.
-      const seeded = p.isSeed === true;
+      const seeded = p.isSeed === true || p.id === TUTORIAL_PATIENT_ID;
       setSharedImmunizations(seeded ? SEED_IMMUNIZATIONS : []);
       setSharedLabs([]);
       setSharedReferrals(seeded ? SEED_REFERRALS : []);
@@ -1878,7 +1851,11 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       // encounter's own record. A draft an earlier build kept in
       // `user.noteDrafts` is adopted into that record once and never read again:
       // one note, one status (`domain/noteStatus.ts`).
-      const storedFields = noteFieldsOf(getEncounter(patientId));
+      // On a first open the encounter was seeded a moment ago in this same pass,
+      // so the note comes from the seed rather than from a record read before it.
+      const storedFields = showingTutorialExample
+        ? tutorialNoteFields(p)
+        : noteFieldsOf(getEncounter(patientId));
       const legacyDraft = useEhrStore.getState().user.noteDrafts[patientId];
       if (!noteFieldsHaveText(storedFields) && legacyDraft && noteFieldsHaveText(legacyDraft.fields)) {
         writeNoteFor(patientId, legacyDraft.fields);

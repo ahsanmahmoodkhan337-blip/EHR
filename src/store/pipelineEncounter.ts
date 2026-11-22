@@ -420,6 +420,14 @@ export interface PipelineEncounter {
    * can never disagree with the money. v6.
    */
   arItems: ArItemState[];
+  /**
+   * The version of the Tutorial Patient's worked example written onto this
+   * encounter (`domain/tutorialEncounter.ts`), or null for a chart that is the
+   * student's own work. It is the seed's guard: the example is written once, and
+   * a second open — or a later rebuild — never overwrites the chart. Null on every
+   * encounter except the Tutorial Patient's.
+   */
+  tutorialSeed: string | null;
 }
 
 /**
@@ -509,6 +517,7 @@ export function createEncounter(patientId: string | null): PipelineEncounter {
     remittances: [],
     ledger: [],
     arItems: [],
+    tutorialSeed: null,
   };
 }
 
@@ -581,6 +590,9 @@ export function normalizeEncounter(
     // starts with no item worked: the queue is derived from the 835 and the
     // ledger, so nothing is invented for it and no money moves on its own.
     arItems: Array.isArray(raw.arItems) ? raw.arItems : [],
+    // A record saved before the Tutorial Patient's worked example existed carries
+    // no seed key, so it reads as "never seeded" — which is what it is.
+    tutorialSeed: typeof raw.tutorialSeed === "string" ? raw.tutorialSeed : null,
   };
 }
 

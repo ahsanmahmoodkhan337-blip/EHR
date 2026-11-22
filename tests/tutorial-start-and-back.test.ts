@@ -18,6 +18,7 @@ const root = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 
 const STORE = read("src/store/pipelineStore.tsx");
+const SEED = read("src/domain/tutorialEncounter.ts");
 const INDEX = read("src/routes/index.tsx");
 const SHELL = read("src/components/AppShell.tsx");
 const SIDEBAR = read("src/components/shell/AppHeader.tsx");
@@ -33,19 +34,21 @@ function functionBody(source: string, name: string): string {
 }
 
 describe("the Tutorial patient opens at the beginning", () => {
-  const prefill = functionBody(STORE, "prefillForTutorial");
-
-  test("it puts the encounter on the first stage as the scribe", () => {
-    expect(prefill).toContain('stage: "scribe"');
-    expect(prefill).toContain('role: "scribe"');
-    expect(prefill).toContain('currentRole: "scribe"');
+  // Superseded deliberately by spec `tutorial-patient-prefill.md` (owner,
+  // 2026-11-22): the Tutorial Patient is now the *worked example* — a chart with
+  // its note signed, its codes captured and its authorisation decided, so a
+  // student can see which datum belongs where. What still holds is that the chart
+  // opens on step 1, and that the example is written once and never over a
+  // student's own work.
+  test("the worked example is written once, guarded by the record's own seed key", () => {
+    expect(STORE).toContain("seedTutorialEncounter");
+    expect(STORE).toContain("applyTutorialSeed");
+    expect(SEED).toContain("encounter.tutorialSeed === TUTORIAL_SEED_VERSION");
+    expect(SEED).toContain("return !encounterHasWork(encounter);");
   });
 
-  test("no code arrives already submitted", () => {
-    expect(prefill).not.toContain("icdCodes");
-    expect(prefill).not.toContain("cptCodes");
-    expect(prefill).not.toContain('stage: "coder"');
-    expect(prefill).not.toContain('role: "coder"');
+  test("the note is signed through the one signature the app has", () => {
+    expect(SEED).toContain("signNote(encounter,");
   });
 
   test("the tutorial opens on step 1, and never lands on a later step", () => {
@@ -56,8 +59,16 @@ describe("the Tutorial patient opens at the beginning", () => {
     expect(INDEX).not.toContain('setActiveStage("sign-lock");');
   });
 
-  test("the prefill still only runs on a first visit", () => {
-    expect(INDEX).toContain('if (patientId === "DEMO" && !hasPipelineWork) {');
+  test("the seed still only runs while the record is pending, never over work", () => {
+    // The guard is the record's own shape (`tutorialSeedPending`), so the
+    // built-in demo chart is replaced while a chart the student worked — or one
+    // they are editing in this session — is left alone.
+    // The guard moved into the store with the seed: `seedTutorialOnOpen` reads
+    // the record and refuses anything that is not pending.
+    expect(STORE).toContain("patientId !== TUTORIAL_PATIENT_ID) return false;");
+    expect(STORE).toContain("tutorialSeedPending(store.encounters[encounterKey(patientId)])");
+    expect(INDEX).toContain("const showingTutorialExample = seedTutorialOnOpen(patientId);");
+    expect(INDEX).not.toContain("const hasPipelineWork =");
   });
 });
 
