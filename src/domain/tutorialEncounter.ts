@@ -9,7 +9,7 @@
  * to end so that can act as a standard which data should be where."* Spec
  * `specs/tutorial-patient-prefill.md`.
  *
- * WHAT IT WRITES — the clinical half
+ * WHAT IT WRITES — the clinical half only
  *   - the patient's own coverage card, with a Medicare Part B member ID, and the
  *     271 answer that matches it (`runEligibility270`);
  *   - the progress note, signed and locked through `domain/signNote.ts` — the one
@@ -22,28 +22,10 @@
  *   - one decided prior authorisation (`paData`), whose number covers the codes
  *     this encounter actually billed.
  *
- * WHAT IT WRITES — the money half (`tutorialMoneySeed`)
- *   - the claim, box by box, from the patient's card, the coded lines and the
- *     practice's provider (`utils/claimAutoFill.ts` → `buildClaimForm`): box 11
- *     from the card, box 23 the authorisation number, box 24 the coded lines and
- *     the Luhn-valid fictional NPI — nothing typed by hand;
- *   - the claim submitted: the 837P and its **277CA A1 accepted** recorded on the
- *     timeline by `domain/clearinghouse.ts` → `buildSubmissionEvents`, the same
- *     function the Biller's Submit writes;
- *   - the **835** from `domain/adjudication.ts` → `adjudicateClaim`, priced line
- *     by line against the plan the card names, with real group + CARC codes. One
- *     line is denied (the plan's same-day edit bundles the ECG into the visit),
- *     the rest paid, and every figure traceable to its line;
- *   - the posting: `domain/ledger.ts` → `postRemittanceToLedger`, so charge,
- *     insurance-payment and adjustment entries exist on the patient's ledger and
- *     the AR queue has money to work;
- *   - the timeline rows the store writes when a student does the same three
- *     things (CLAIM_CREATED, ERA_RECEIVED, ERA_POSTED, the outcome).
- *
- * The denial is the payer's own rule, not a coding error on the chart: the
- * fictional plan's same-day edit (`data/medical/payerScenarios.ts`) treats an
- * in-office ECG billed with the visit as part of it. That is what puts one real
- * denied line — age, bucket, appeal deadline — in Denials & AR.
+ * The money half — the claim, the 277CA, the 835, the posting and the AR queue —
+ * is `domain/tutorialClaim.ts` (`tutorial-2`), written onto this record by the
+ * store on the same open. Nothing here invents a claim: every box on that paper
+ * has to come from a record this chart already holds.
  *
  * WHERE EVERY VALUE COMES FROM
  * The patient's own record — name, card, vitals, problems, medications, labs, the
@@ -59,36 +41,36 @@
 
 import { CPT_CODES } from "../components/CodingQueue/cptData";
 import { MEDICAL_PROVIDER_PROFILE } from "../data/claims/providerProfile";
-import { suggestClaimType } from "../data/claims/claimType";
-import type { Patient, PatientInsurance } from "../store/patientStore";
+import type { PatientInsurance } from "../store/patientStore";
 import {
   encounterHasWork,
-  type ClaimFormData,
   type ClaimServiceLine,
   type PipelineEncounter,
 } from "../store/pipelineEncounter";
-import { buildClaimForm } from "../utils/claimAutoFill";
 import { buildInsuranceRecord } from "../utils/insuranceRecord";
-import { adjudicateClaim, planForPayerName, type Remittance835 } from "./adjudication";
-import { claimStatusForRemittance, nextClaimNumber, type ClaimStatus, type ReasonCode } from "./claimStatus";
-import { buildSubmissionEvents } from "./clearinghouse";
 import { runEligibility270, type EligibilityRecord } from "./eligibility";
-import { postRemittanceToLedger, type LedgerEntry } from "./ledger";
 import type { NoteFields } from "./noteStatus";
 import { patientCard } from "./patientCard";
 import { signNote } from "./signNote";
-import { appendStatusEvent, makeStatusEvent, type StatusEvent } from "./statusEvent";
 
 /**
- * The version of the worked example written onto the record. Bump it only when
- * the seed itself changes in a way an already-seeded chart must receive — a
- * changed seed re-fills a chart a student may have worked, so it is a deliberate
- * act, not a side effect of a rebuild.
+ * The version the clinical half stamps on the record: registration, the signed
+ * note, the codes and the authorisation (`applyTutorialSeed` below).
  *
- * `tutorial-2` adds the money half (claim, 277CA, 835, posting, denial). A chart
- * still holding `tutorial-1` and none of that money is the example, not the
- * student's work, so it receives the money half on its next open; see
- * `tutorialSeedPending`.
+ * It is deliberately its own constant. A chart that already carries it must
+ * still receive the money half, and a guard that only knew "the seed version"
+ * would read that chart as finished and skip the rest of the example.
+ */
+export const TUTORIAL_CLINICAL_SEED_VERSION = "tutorial-1";
+
+/**
+ * The version of the whole worked example, written onto the record once both
+ * halves are on it: the clinical half above and the money half — the claim, the
+ * 277CA, the 835, the posting and the AR queue (`domain/tutorialClaim.ts`).
+ *
+ * Bump it only when the seed itself changes in a way an already-seeded chart must
+ * receive — a changed seed re-fills a chart a student may have worked, so it is a
+ * deliberate act, not a side effect of a rebuild.
  */
 export const TUTORIAL_SEED_VERSION = "tutorial-2";
 
@@ -442,28 +424,16 @@ export function isBuiltInDemoRecord(
 }
 
 /**
- * True when this record carries an older version of the example and still holds
- * none of the money the current version writes.
+ * True when this encounter still needs the clinical half written onto it.
  *
- * `tutorial-1` seeded the clinical half only, so a chart with a signed note and
- * no claim number, no 835 and no ledger entry is the example as an earlier build
- * left it — not work a student did, because the money stages have nothing in
- * them. A chart with any of that money is left alone.
+ * A record that carries any seed key already has the clinical half — the money
+ * half is guarded separately, by `tutorialMoneyPending`
+ * (`domain/tutorialClaim.ts`), so an old `tutorial-1` record is upgraded instead
+ * of being skipped for good.
  */
-function tutorialMoneyMissing(encounter: PipelineEncounter): boolean {
-  return (
-    !encounter.claimNumber &&
-    (encounter.remittances ?? []).length === 0 &&
-    (encounter.ledger ?? []).length === 0
-  );
-}
-
-/** True when this encounter still needs the worked example written onto it. */
 export function tutorialSeedPending(encounter: PipelineEncounter | null | undefined): boolean {
   if (!encounter) return true;
-  if (encounter.tutorialSeed === TUTORIAL_SEED_VERSION) return false;
-  // An earlier version of the example: the money half is written onto it once.
-  if (encounter.tutorialSeed) return tutorialMoneyMissing(encounter);
+  if (encounter.tutorialSeed) return false;
   // The built-in demo chart is not the student's work — it is the placeholder
   // this seed exists to replace.
   if (isBuiltInDemoRecord(encounter)) return true;
@@ -472,279 +442,21 @@ export function tutorialSeedPending(encounter: PipelineEncounter | null | undefi
   return !encounterHasWork(encounter);
 }
 
-// ─── The money half: claim → 277CA → 835 → posting ────────────────
-
-/** `$225.00` — the one way this module writes a dollar figure. */
-function dollars(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
 /**
- * One plain sentence for the timeline, naming the money and who carries it —
- * the same wording the store's posting writes, so the example's timeline reads
- * like any other claim's.
- */
-function outcomeReason(remittance: Remittance835): string {
-  const { paidCents, patientRespCents, writeOffCents, allowedCents, deniedCents } = remittance.totals;
-  if (remittance.outcome === "paid_in_full") {
-    return `Paid in full: the plan paid ${dollars(paidCents)} of ${dollars(allowedCents)} allowed. The patient's ${dollars(
-      patientRespCents,
-    )} (deductible and coinsurance) is now on the ledger as their balance.`;
-  }
-  if (remittance.outcome === "partially_paid") {
-    return `Partially paid: ${dollars(paidCents)} paid, ${dollars(deniedCents)} denied, ${dollars(
-      writeOffCents,
-    )} written off. The patient's ${dollars(patientRespCents)} is on the ledger; the denied lines are for the AR queue.`;
-  }
-  if (remittance.outcome === "patient_responsibility") {
-    return `Nothing paid by the plan: the whole ${dollars(patientRespCents)} allowed is the patient's responsibility and is on the ledger. No write-off.`;
-  }
-  return `Denied with no patient balance: ${dollars(deniedCents)} written off as contractual (${dollars(
-    writeOffCents,
-  )} in total adjustments). Nothing is owed by the patient.`;
-}
-
-/** Everything the money half writes onto the encounter. */
-export interface TutorialMoneySeed {
-  claimForm: ClaimFormData;
-  claimNumber: string;
-  claimStatus: ClaimStatus;
-  statusEvents: StatusEvent[];
-  remittances: Remittance835[];
-  ledger: LedgerEntry[];
-}
-
-/** What the seed needs to know that only the store can answer. */
-export interface TutorialSeedOptions {
-  /**
-   * Claim numbers this student has already minted, so the example's claim takes
-   * the next one instead of a number another chart already carries.
-   */
-  existingClaimNumbers?: (string | null | undefined)[];
-}
-
-/**
- * The money half, built from the clinical half's own record.
- *
- * Every value comes from a pure module the student's own walk uses:
- * `buildClaimForm` fills the paper from the patient's card and the coded lines,
- * `buildSubmissionEvents` records the 837P and its 277CA, `adjudicateClaim`
- * prices the lines against the plan the card names, and `postRemittanceToLedger`
- * writes the charge / insurance / adjustment entries. `at` is the seed's one
- * clock read, passed in by the caller.
- *
- * Returns null when the submission was not accepted — a rejected claim is not
- * adjudicated, and nothing is invented to make one look accepted.
- */
-export function tutorialMoneySeed(
-  clinical: PipelineEncounter,
-  patient: TutorialPatientSource,
-  at: string,
-  options: TutorialSeedOptions = {},
-): TutorialMoneySeed | null {
-  const patientId = clinical.patientId ?? TUTORIAL_PATIENT_ID;
-  // The claim prints the card the seed writes onto the chart, so box 1a and the
-  // 271 name the same member ID — one card, two screens.
-  const coverage = tutorialCardFor(patient);
-  const coveredPatient = { ...patient, insuranceRecord: coverage } as unknown as Patient;
-  const card = patientCard(coveredPatient);
-  const payerName = card.payerName || "Medicare Part B";
-  const claimNumber = nextClaimNumber(options.existingClaimNumbers ?? []);
-
-  const claimForm = buildClaimForm({
-    patient: coveredPatient,
-    pipeline: { ...clinical, demoFillMissingBoxes: false },
-    // Box 23: the authorisation number the PA stage decided.
-    paNumber: clinical.paData.paId ?? "",
-    claimType: suggestClaimType({ placeOfService: OFFICE_POS }).claimType,
-    encounterDate: dateOfService(patient, at),
-    placeOfService: OFFICE_POS,
-  });
-
-  let events = clinical.statusEvents;
-  const created = makeStatusEvent(
-    {
-      entityType: "claim",
-      entityId: claimNumber,
-      patientId,
-      claimNumber,
-      at,
-      from: null,
-      to: "draft",
-      by: "system",
-      jobRole: "biller",
-      reasonCode: "CLAIM_CREATED",
-      reason: `Claim ${claimNumber} created from this encounter. Nothing has been scrubbed or submitted yet.`,
-    },
-    events,
-  );
-  events = appendStatusEvent(events, created);
-
-  const submitted = buildSubmissionEvents({
-    facts: {
-      track: "medical",
-      claimNumber,
-      subscriberId: claimForm.insuredId,
-      subscriberIdOnFile: card.memberId,
-      patientDob: claimForm.patientDob,
-      patientDobOnFile: patient.dateOfBirth ?? "",
-    },
-    from: "draft",
-    patientId,
-    by: "system",
-    jobRole: "biller",
-    lineCount: claimForm.serviceLines.filter((line) => (line.cpt ?? "").trim() !== "").length,
-    payerName,
-    existing: events,
-    at,
-  });
-  events = submitted.events;
-  if (submitted.ack.category !== "A1") {
-    // A rejected claim never reaches the payer's adjudication. The timeline says
-    // so and the money stages stay empty — the same rule the store keeps.
-    return {
-      claimForm,
-      claimNumber,
-      claimStatus: "rejected",
-      statusEvents: events,
-      remittances: [],
-      ledger: [],
-    };
-  }
-
-  const lines = claimForm.serviceLines
-    .filter((line) => (line.cpt ?? "").trim() !== "")
-    .map((line) => ({
-      cpt: line.cpt.trim(),
-      modifiers: (Array.isArray(line.modifiers) ? line.modifiers : []).filter(Boolean),
-      units: Number(line.units) > 0 ? Number(line.units) : 1,
-      chargeCents: Math.round((Number(line.charge) || 0) * 100),
-    }));
-
-  const plan = planForPayerName(payerName);
-  const remittance = adjudicateClaim({
-    claimNumber,
-    payerName,
-    plan,
-    lines,
-    // The plan's deductible is what this member has still to meet; the
-    // simulator records no accumulated deductible, so it starts unmet.
-    deductibleRemainingCents: Math.round((plan?.deductibleUsd ?? 0) * 100),
-    // Box 23: the authorisation number the claim actually carries.
-    priorAuthNumber: claimForm.priorAuthNumber ?? "",
-    at,
-  });
-  const posted: Remittance835 = { ...remittance, postedAt: at };
-  const ledger = postRemittanceToLedger(posted, { patientId, userId: "system", at });
-
-  const received = makeStatusEvent(
-    {
-      entityType: "claim",
-      entityId: claimNumber,
-      patientId,
-      claimNumber,
-      at,
-      from: "accepted",
-      to: "adjudicated",
-      by: "system",
-      jobRole: "system",
-      reasonCode: "ERA_RECEIVED",
-      reason: `835 ${remittance.checkOrEftNumber} received from ${remittance.payerName}: billed ${dollars(
-        remittance.totals.billedCents,
-      )}, allowed ${dollars(remittance.totals.allowedCents)}, paid ${dollars(
-        remittance.totals.paidCents,
-      )}, patient ${dollars(remittance.totals.patientRespCents)}. Nothing has reached the ledger yet.`,
-      amountCents: remittance.totals.paidCents,
-      refs: { eraId: remittance.id, checkNumber: remittance.checkOrEftNumber },
-    },
-    events,
-  );
-  events = appendStatusEvent(events, received);
-
-  const postedEvent = makeStatusEvent(
-    {
-      entityType: "claim",
-      entityId: claimNumber,
-      patientId,
-      claimNumber,
-      at,
-      from: "adjudicated",
-      to: "adjudicated",
-      by: "system",
-      jobRole: "payment-poster",
-      reasonCode: "ERA_POSTED",
-      reason: `835 ${remittance.checkOrEftNumber} posted: ${ledger.length} ledger entr${
-        ledger.length === 1 ? "y" : "ies"
-      } — charges ${dollars(remittance.totals.billedCents)}, insurance payment ${dollars(
-        remittance.totals.paidCents,
-      )}, contractual write-off ${dollars(remittance.totals.writeOffCents)}.`,
-      amountCents: remittance.totals.paidCents,
-      refs: { eraId: remittance.id, checkNumber: remittance.checkOrEftNumber },
-    },
-    events,
-  );
-  events = appendStatusEvent(events, postedEvent);
-
-  const claimStatus = claimStatusForRemittance(remittance);
-  const outcomeCode: ReasonCode =
-    remittance.outcome === "paid_in_full"
-      ? "ERA_PAID_IN_FULL"
-      : remittance.outcome === "partially_paid"
-        ? "ERA_PARTIAL"
-        : remittance.outcome === "patient_responsibility"
-          ? "PATIENT_BALANCE_CREATED"
-          : "ERA_DENIED";
-  const outcomeEvent = makeStatusEvent(
-    {
-      entityType: "claim",
-      entityId: claimNumber,
-      patientId,
-      claimNumber,
-      at,
-      from: "adjudicated",
-      to: claimStatus,
-      by: "system",
-      jobRole: "payment-poster",
-      reasonCode: outcomeCode,
-      reason: outcomeReason(remittance),
-      amountCents:
-        remittance.outcome === "patient_responsibility"
-          ? remittance.totals.patientRespCents
-          : remittance.totals.paidCents,
-      refs: { eraId: remittance.id, checkNumber: remittance.checkOrEftNumber },
-    },
-    events,
-  );
-  events = appendStatusEvent(events, outcomeEvent);
-
-  return {
-    claimForm,
-    claimNumber,
-    claimStatus,
-    statusEvents: events,
-    remittances: [posted],
-    ledger,
-  };
-}
-
-/**
- * The Tutorial Patient's encounter with the worked example filled in.
+ * The Tutorial Patient's encounter with the clinical half filled in.
  *
  * The note is signed through `domain/signNote.ts`, so the signature, the
  * `NOTE_SIGNED` timeline entry and the read-only lock are the same ones Sign &
- * Lock writes. The money half is `tutorialMoneySeed` above — the same pure
- * modules the student's own walk uses, written in one go onto the record. `at` is
- * the seed's timestamp and is passed in, never read here.
+ * Lock writes. `at` is the seed's timestamp and is passed in, never read here.
  *
- * The encounter keeps opening on the progress note (`stage`/`role` "scribe"), so
- * the student walks the stepper from the beginning; every stage after it already
- * holds its data.
+ * The encounter keeps opening on the progress note (`stage`/`role` "scribe"): the
+ * claim, the 835 and the AR queue are the next slice, and a chart that opened on
+ * an empty Biller screen would read as a broken one.
  */
 export function applyTutorialSeed(
   encounter: PipelineEncounter,
   patient: TutorialPatientSource,
   at: string,
-  options: TutorialSeedOptions = {},
 ): PipelineEncounter {
   if (!tutorialSeedPending(encounter)) return encounter;
   if ((patient.id ?? "") !== TUTORIAL_PATIENT_ID) return encounter;
@@ -756,25 +468,18 @@ export function applyTutorialSeed(
     at,
   });
 
-  const clinical: PipelineEncounter = {
+  return {
     ...signed,
     noteUpdatedAt: at,
     icdCodes: tutorialIcdCodes(patient),
     cptCodes: [...TUTORIAL_CPT_CODES],
     codingLines: tutorialCodingLines(patient, at),
     paData: tutorialPaData(patient, at),
-  };
-
-  const money = tutorialMoneySeed(clinical, patient, at, options);
-
-  return {
-    ...clinical,
-    ...(money ?? {}),
     stage: "scribe",
     role: "scribe",
-    status: money?.claimStatus === "rejected" ? "coded" : "billed",
+    status: "coded",
     chartStage: "sign-lock",
-    tutorialSeed: TUTORIAL_SEED_VERSION,
+    tutorialSeed: TUTORIAL_CLINICAL_SEED_VERSION,
   };
 }
 

@@ -60,6 +60,7 @@ import {
   type TutorialPatientSource,
 } from "../domain/tutorialEncounter";
 import { selectPatientById, useEhrStore } from "./ehrStore";
+import { applyTutorialMoneySeed, tutorialMoneyPending } from "../domain/tutorialClaim";
 import { applyCodingPlaceOfService, hasLineForCpt } from "../domain/codingPlaceOfService";
 import {
   compileNoteText,
@@ -534,10 +535,40 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     const key = encounterKey(patientId);
     setStore((prev) => {
       const current = prev.encounters[key] ?? createEncounter(patientId);
-      // The example's claim takes a number no other chart already carries.
-      const next = applyTutorialSeed(current, patient, at, {
-        existingClaimNumbers: Object.values(prev.encounters).map((e) => e.claimNumber),
-      });
+      const next = applyTutorialSeed(current, patient, at);
+      if (next === current) return prev;
+      return { ...prev, encounters: { ...prev.encounters, [key]: next } };
+    });
+  };
+
+  /**
+   * Write the money half of the worked example — the claim, its 837P and 277CA,
+   * the 835, the posting and the AR queue it derives — onto the Tutorial
+   * Patient's own encounter (`domain/tutorialClaim.ts`).
+   *
+   * Guarded by the record's own `tutorial-2` key (`tutorialMoneyPending`), so a
+   * record that already has it is left exactly as it is, and one still on the
+   * clinical half (`tutorial-1`, written by a browser that saw the previous
+   * build) is upgraded in place without touching the note, the codes, the
+   * signature, the authorisation or the stage the chart opens on.
+   *
+   * The claim number is minted from the student's own sequence
+   * (`store/claimSequence.ts`) so two encounters can never share one.
+   */
+  const seedTutorialClaim = (patientId: string, at: string) => {
+    setStore((prev) => {
+      const key = encounterKey(patientId);
+      const current = prev.encounters[key];
+      if (!current) return prev;
+      if (!tutorialMoneyPending(current)) return prev;
+      // Read the chart back rather than trusting the object from before the card
+      // was written: the claim's box 1a is the member ID registration just saved.
+      const patient = selectPatientById(useEhrStore.getState(), patientId);
+      if (!patient) return prev;
+      const claimNumber = mintNextClaimNumber(
+        Object.values(prev.encounters).map((e) => e.claimNumber),
+      );
+      const next = applyTutorialMoneySeed(current, patient, at, claimNumber);
       if (next === current) return prev;
       return { ...prev, encounters: { ...prev.encounters, [key]: next } };
     });
@@ -554,7 +585,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * so the record is built from the chart it is filed under: the patient's own
    * coverage card and the 271 that matches it, then the signed note, the codes
    * with their charge and place of service, and the decided prior authorisation
-   * (`domain/tutorialEncounter.ts`). The PA desk keeps its own queue, so the
+   * (`domain/tutorialEncounter.ts`), then the claim, the 835 and the posting
+   * (`domain/tutorialClaim.ts`). The PA desk keeps its own queue, so the
    * authorisation is filed there too through `setPaRecords` — one number, one
    * visit date, written once.
    *
@@ -564,7 +596,13 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    */
   const seedTutorialOnOpen = (patientId: string | null): boolean => {
     if (patientId !== TUTORIAL_PATIENT_ID) return false;
-    if (!tutorialSeedPending(store.encounters[encounterKey(patientId)])) {
+    const current = store.encounters[encounterKey(patientId)];
+    // Two halves, two guards. A chart on the clinical half only (`tutorial-1`)
+    // still needs the money half, and a guard that asked one question would read
+    // it as finished.
+    const clinicalPending = tutorialSeedPending(current);
+    const moneyPending = tutorialMoneyPending(current);
+    if (!clinicalPending && !moneyPending) {
       tutorialSeedQueued = false;
       return false;
     }
@@ -580,17 +618,25 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     }
     tutorialSeedQueued = false;
     const seededAt = new Date().toISOString();
+    // The card and the 271 are what the claim's box 1a and the payer's member
+    // match are read from, so they are written whichever half is missing — a
+    // chart upgraded from the clinical half still needs a member ID on its card.
     if (tutorialCardPending(patient)) {
       const ehr = useEhrStore.getState();
       ehr.updatePatientInsurance(patient.id, tutorialCardFor(patient));
       ehr.recordEligibility(patient.id, "primary", tutorialEligibilityFor(patient, seededAt));
     }
-    seedTutorialEncounter(patient.id, patient, seededAt);
-    setPaRecords((prev) =>
-      prev.some((record) => record.patientId === patient.id && record.id === TUTORIAL_PA_ID)
-        ? prev
-        : [...prev, tutorialPaRecord(patient, seededAt)],
-    );
+    if (clinicalPending) {
+      seedTutorialEncounter(patient.id, patient, seededAt);
+      setPaRecords((prev) =>
+        prev.some((record) => record.patientId === patient.id && record.id === TUTORIAL_PA_ID)
+          ? prev
+          : [...prev, tutorialPaRecord(patient, seededAt)],
+      );
+    }
+    // The money half runs its own guard inside the write, so this is a no-op on
+    // a chart that already holds it.
+    seedTutorialClaim(patient.id, seededAt);
     return true;
   };
 

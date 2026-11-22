@@ -20,13 +20,16 @@
  */
 import { describe, expect, test } from "bun:test";
 import { createEncounter, normalizeEncounter } from "../src/store/pipelineEncounter";
+import type { Patient } from "../src/store/patientStore";
 import {
   TUTORIAL_MEMBER_ID,
   TUTORIAL_PA_ID,
   TUTORIAL_SEED_VERSION,
   applyTutorialSeed,
+  tutorialCardFor,
   type TutorialPatientSource,
 } from "../src/domain/tutorialEncounter";
+import { applyTutorialMoneySeed } from "../src/domain/tutorialClaim";
 import { remittanceBalances } from "../src/domain/adjudication";
 import { buildArWorkQueue, appealDeadlineFor, agingBucketFor, daysBetween } from "../src/domain/arWorkQueue";
 import { ledgerBalance, ledgerEntriesForClaim } from "../src/domain/ledger";
@@ -59,9 +62,18 @@ const TUTORIAL: TutorialPatientSource = {
   ],
 };
 
+/** The chart as the store holds it once registration has written the card. */
+const PATIENT = {
+  ...TUTORIAL,
+  insuranceRecord: tutorialCardFor(TUTORIAL),
+} as unknown as Patient;
+
 /** The seeded record, as a reload reads it: JSON round trip, then normalised. */
 function seededRecord() {
-  const seeded = applyTutorialSeed(createEncounter("DEMO"), TUTORIAL, AT);
+  // The two halves the store writes on one open: the clinical half, then the
+  // money half onto it (`seedTutorialEncounter` → `seedTutorialClaim`).
+  const clinical = applyTutorialSeed(createEncounter("DEMO"), TUTORIAL, AT);
+  const seeded = applyTutorialMoneySeed(clinical, PATIENT, AT, "CLM-000001");
   return normalizeEncounter(JSON.parse(JSON.stringify(seeded)), "DEMO");
 }
 
@@ -174,17 +186,17 @@ describe("Denials & AR, read from the same saved record", () => {
 describe("the seed stays one written-once example", () => {
   test("a second open writes nothing more", () => {
     const first = seededRecord();
-    const again = applyTutorialSeed(first, TUTORIAL, "2026-12-01T00:00:00.000Z");
+    const again = applyTutorialMoneySeed(first, PATIENT, "2026-12-01T00:00:00.000Z", "CLM-000002");
     expect(again).toBe(first);
     expect(again.claimNumber).toBe(first.claimNumber);
     expect(again.remittances).toHaveLength(1);
   });
 
-  test("the claim number does not collide with one already minted", () => {
-    const seeded = applyTutorialSeed(createEncounter("DEMO"), TUTORIAL, AT, {
-      existingClaimNumbers: ["CLM-000007"],
-    });
-    expect(seeded.claimNumber).not.toBe("CLM-000007");
+  test("the claim number is the caller's own, never invented here", () => {
+    const clinical = applyTutorialSeed(createEncounter("DEMO"), TUTORIAL, AT);
+    // No number, no money: the store mints it from the student's own sequence.
+    expect(applyTutorialMoneySeed(clinical, PATIENT, AT, "")).toBe(clinical);
+    const seeded = applyTutorialMoneySeed(clinical, PATIENT, AT, "CLM-000008");
     expect(seeded.claimNumber).toBe("CLM-000008");
     expect(seeded.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
   });

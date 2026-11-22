@@ -17,7 +17,7 @@ import { createEncounter, normalizeEncounter } from "../src/store/pipelineEncoun
 import {
   TUTORIAL_CPT_CODES,
   TUTORIAL_MEMBER_ID,
-  TUTORIAL_SEED_VERSION,
+  TUTORIAL_CLINICAL_SEED_VERSION,
   applyTutorialSeed,
   tutorialCardFor,
   tutorialCardPending,
@@ -112,9 +112,9 @@ describe("the seeded encounter's clinical half", () => {
     expect(enc.noteUpdatedAt).toBe(AT);
     // Signed means read-only, everywhere.
     expect(enc.stage).toBe("scribe");
-    // `billed` since the money half landed: the record holds a submitted claim
-    // and a posted 835, so the encounter's own status says so.
-    expect(enc.status).toBe("billed");
+    // `coded` is the clinical half's own status; the money half, written by the
+    // store's `seedTutorialClaim` on the same open, is what moves it to `billed`.
+    expect(enc.status).toBe("coded");
   });
 
   test("the codes match the note's assessment and carry charge, units and POS 11", () => {
@@ -152,7 +152,7 @@ describe("the seeded encounter's clinical half", () => {
 describe("the seed is written once", () => {
   test("a second open does not overwrite the chart the student worked", () => {
     const first = seeded();
-    expect(first.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+    expect(first.tutorialSeed).toBe(TUTORIAL_CLINICAL_SEED_VERSION);
     // The student codes something of their own on the chart.
     const worked = { ...first, icdCodes: ["I10"], cptCodes: ["99213"] };
     const again = applyTutorialSeed(worked, TUTORIAL, "2026-12-01T00:00:00.000Z");
@@ -176,7 +176,7 @@ describe("read back from storage", () => {
   test("the record still holds the signed note, the codes and the authorisation", () => {
     const stored = JSON.parse(JSON.stringify(seeded()));
     const read = normalizeEncounter(stored, "DEMO");
-    expect(read.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+    expect(read.tutorialSeed).toBe(TUTORIAL_CLINICAL_SEED_VERSION);
     expect(noteStatus(read)).toBe("signed");
     expect(read.icdCodes).toEqual(["R07.9", "I10", "I25.10"]);
     expect(read.cptCodes).toEqual([...TUTORIAL_CPT_CODES]);

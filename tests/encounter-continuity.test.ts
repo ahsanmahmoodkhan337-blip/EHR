@@ -101,7 +101,7 @@ describe("step 1 is Registration, and every patient opens there", () => {
     // called by `selectPatient`), so the guard lives there — and the screen
     // asks the same function as its second entry.
     expect(PIPELINE_STORE).toContain("patientId !== TUTORIAL_PATIENT_ID) return false;");
-    expect(PIPELINE_STORE).toContain("tutorialSeedPending(store.encounters[encounterKey(patientId)])");
+    expect(PIPELINE_STORE).toContain("const clinicalPending = tutorialSeedPending(current);");
     expect(INDEX).toContain("const showingTutorialExample = seedTutorialOnOpen(patientId);");
     expect(INDEX).toContain("setActiveStage(CHART_OPENING_STEP);");
     expect(INDEX).not.toContain('setActiveStage("sign-lock");');
