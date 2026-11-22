@@ -716,14 +716,29 @@ export function CodingQueue({ medications }: CodingQueueProps) {
                                   <label htmlFor={`pos-${cpt.code}`} className="text-[9px] font-medium text-slate-500">POS</label>
                                   <span className="text-[8px] text-slate-400">(place of service)</span>
                                 </div>
-                                <input
+                                {/* A picker, not a text box: the places of service the
+                                    simulator teaches are the ones a student can bill
+                                    at, and POS 21/22/23 are how an institutional
+                                    claim (UB-04 / 837I) becomes reachable at Coding.
+                                    A POS saved by an older build stays selectable so
+                                    a stored claim never changes its place of service. */}
+                                <select
                                   id={`pos-${cpt.code}`}
-                                  type="text"
                                   value={data.pos}
                                   onChange={e => updateCptData(cpt.code, d => ({ ...d, pos: e.target.value }))}
-                                  placeholder={DEFAULT_POS}
-                                  className="w-full rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-brand-400"
-                                />
+                                  aria-label={`Place of service for CPT ${cpt.code}`}
+                                  title={POS_REFERENCE.find(p => p.code === data.pos)?.teachingNote}
+                                  className="w-full rounded border border-slate-200 px-1 py-0.5 font-mono text-[10px] outline-none focus:border-brand-400"
+                                >
+                                  {POS_REFERENCE.map(p => (
+                                    <option key={p.code} value={p.code}>
+                                      {p.code} — {p.description}
+                                    </option>
+                                  ))}
+                                  {!!data.pos && !POS_REFERENCE.some(p => p.code === data.pos) && (
+                                    <option value={data.pos}>{data.pos} — as coded</option>
+                                  )}
+                                </select>
                               </div>
                             </div>
                             {/* The "Modifier 25 prefilled" note is gone: nothing is
