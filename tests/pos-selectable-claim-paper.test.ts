@@ -9,7 +9,11 @@
  *  2. the paper follows the POS — 11 → CMS-1500 (837P), 21/22/23 → UB-04
  *     (837I), dental → ADA J430D (837D);
  *  3. the biller's claim-type line states that rule in the same words the tests
- *     read, so the screen and the engine cannot drift apart.
+ *     read, so the screen and the engine cannot drift apart;
+ *  4. a POS picked on a line that was already coded is written to that line's
+ *     `placeOfService` on the claim the billing screen reads — the picker used
+ *     to change only lines coded after it was set, so the claim stayed on POS 11
+ *     and kept printing the CMS-1500.
  */
 
 import { describe, expect, test } from "bun:test";
@@ -18,9 +22,37 @@ import { join } from "node:path";
 import { POS_REFERENCE } from "../src/components/CodingQueue/modifierPosData";
 import { CLAIM_PAPER_RULE } from "../src/data/claims/claimType";
 import { paperForPos } from "../src/domain/claimPaper";
+import { applyCodingPlaceOfService, hasLineForCpt } from "../src/domain/codingPlaceOfService";
+import {
+  createEncounter,
+  type ClaimFormData,
+  type ClaimServiceLine,
+  type PipelineEncounter,
+} from "../src/store/pipelineEncounter";
 
 const root = join(import.meta.dir, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
+
+/** One box-24 row, as the Coder hands it over and as the claim carries it. */
+const line = (cpt: string, placeOfService: string): ClaimServiceLine => ({
+  dateOfService: "2026-11-22",
+  placeOfService,
+  cpt,
+  modifiers: [],
+  diagnosisPointer: "A",
+  charge: 150,
+  units: 1,
+  renderingNpi: "1999999999",
+});
+
+/** An encounter already coded at POS 11 whose claim exists at POS 11. */
+function codedEncounter(): PipelineEncounter {
+  return {
+    ...createEncounter("EMILY"),
+    codingLines: [line("99213", "11")],
+    claimForm: { serviceLines: [line("99213", "11")] } as unknown as ClaimFormData,
+  };
+}
 
 describe("the institutional places of service are selectable at Coding", () => {
   test("POS 21, 22 and 23 are options in the reference the picker is built from", () => {
@@ -84,6 +116,54 @@ describe("each place of service picks its own paper", () => {
       expect(paper.paper, `POS ${pos}`).toBe("ADA Dental Claim (J430D)");
       expect(paper.x12, `POS ${pos}`).toBe("837D");
     }
+  });
+});
+
+describe("a picker change lands on the service line the biller reads", () => {
+  test("POS 22 on an already-coded line is written to the claim's own line", () => {
+    const after = applyCodingPlaceOfService(codedEncounter(), "99213", "22");
+
+    expect(after.claimForm?.serviceLines[0].placeOfService).toBe("22");
+    expect(after.codingLines[0].placeOfService).toBe("22");
+  });
+
+  test("the claim then bills on the UB-04 as an 837I, not the CMS-1500", () => {
+    const after = applyCodingPlaceOfService(codedEncounter(), "99213", "22");
+    const paper = paperForPos({
+      placeOfService: after.claimForm?.serviceLines[0].placeOfService ?? "",
+      posDescription: "Outpatient hospital",
+    });
+
+    expect(paper.paper).toBe("UB-04 (CMS-1450)");
+    expect(paper.x12).toBe("837I");
+  });
+
+  test("the value is on the stored record, so a reload keeps the UB-04", () => {
+    const after = applyCodingPlaceOfService(codedEncounter(), "99213", "22");
+    const reloaded = JSON.parse(JSON.stringify(after)) as PipelineEncounter;
+
+    expect(reloaded.claimForm?.serviceLines[0].placeOfService).toBe("22");
+    expect(reloaded.codingLines[0].placeOfService).toBe("22");
+  });
+
+  test("only the line the picker touched changes", () => {
+    const enc = codedEncounter();
+    enc.codingLines = [line("99213", "11"), line("99214", "11")];
+    const after = applyCodingPlaceOfService(enc, "99213", "22");
+
+    expect(after.claimForm?.serviceLines[0].placeOfService).toBe("22");
+    expect(after.codingLines[1].placeOfService).toBe("11");
+  });
+
+  test("a CPT with no line yet writes nothing", () => {
+    expect(hasLineForCpt(createEncounter("EMILY"), "99213")).toBe(false);
+  });
+
+  test("the picker's onChange writes the choice through the store action", () => {
+    const coding = read("src/components/CodingQueue/CodingQueue.tsx");
+    expect(coding).toContain("setCodingLinePlaceOfService(cpt.code, chosen)");
+    const store = read("src/store/pipelineStore.tsx");
+    expect(store).toContain("applyCodingPlaceOfService(enc, cpt, placeOfService)");
   });
 });
 
