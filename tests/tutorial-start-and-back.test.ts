@@ -67,7 +67,7 @@ describe("the Tutorial patient opens at the beginning", () => {
     // the record and refuses anything that is not pending.
     expect(STORE).toContain("patientId !== TUTORIAL_PATIENT_ID) return false;");
     expect(STORE).toContain("tutorialSeedPending(store.encounters[encounterKey(patientId)])");
-    expect(INDEX).toContain("!savedForPatient && seedTutorialOnOpen(patientId)");
+    expect(INDEX).toContain("const showingTutorialExample = seedTutorialOnOpen(patientId);");
     expect(INDEX).not.toContain("const hasPipelineWork =");
   });
 });
