@@ -44,13 +44,13 @@ import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlySt
 /** The reason drawn under each write control on the Billing screen. */
 const SIMULATE_DENIAL_REASON = readOnlyNoteId("billing-simulate-denial");
 const ROUTE_PA_REASON = readOnlyNoteId("billing-route-pa");
-const ADJUDICATE_REASON = readOnlyNoteId("billing-adjudicate");
 const DEMO_FILL_REASON = readOnlyNoteId("billing-demo-fill");
 import {
   skipClaimAutosave,
   useReadOnlyChart,
   useReadOnlyGuard,
   withClaimSubmit,
+  withMoneyStep,
 } from "../../domain/tutorialReadOnly";
 import { CMS1500_LAYOUT, CMS1500_LINE_COLUMNS } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE, MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
@@ -1394,31 +1394,37 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       </p>
                     </div>
                     <div className="mt-2">
+                      {/* The student's own forward step, not an edit: on the
+                          standard reference chart the claim is filled and
+                          submitted by the student, and the payer's 835, the
+                          posting and the AR row follow from pressing this. The
+                          store still refuses it before Submit (an unaccepted
+                          claim has never been to the payer), so nothing changes
+                          until the claim is out. */}
                       <button
                         type="button"
-                        onClick={() => {
-                          if (guard("The adjudication")) return;
-                          adjudicateClaim({ payerName: payer });
-                        }}
+                        onClick={() => withMoneyStep(() => adjudicateClaim({ payerName: payer }))}
                         aria-label={`Adjudicate claim ${state.claimNumber} against the plan's rules`}
                         className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                        {...readOnlyAttrs(readOnly, ADJUDICATE_REASON)}
                       >
                         <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
                         Adjudicate this claim
                       </button>
-                      <ReadOnlyNote readOnly={readOnly} id={ADJUDICATE_REASON} />
                     </div>
                   </div>
                 ) : (
                   <>
-                    <RemittancePanel remittance={remittance} onPost={postRemittance} readOnly={readOnly} />
+                    <RemittancePanel
+                      remittance={remittance}
+                      onPost={() => withMoneyStep(postRemittance)}
+                      readOnly={false}
+                    />
                     <PatientLedgerPanel
                       entries={state.ledger}
                       remittance={remittance}
                       className="mt-3"
                     />
-                    <ArWorkQueuePanel className="mt-3" readOnly={readOnly} />
+                    <ArWorkQueuePanel className="mt-3" readOnly={readOnly} claimSubmitted={transmitted} />
                   </>
                 )}
               </div>
