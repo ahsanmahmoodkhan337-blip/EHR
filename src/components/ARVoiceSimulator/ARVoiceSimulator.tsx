@@ -39,7 +39,7 @@ import {
 } from "./arData";
 import { AccentPractice } from "./AccentPractice";
 import { CARC_CODES } from "../../data/claims/carc";
-import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
 import { refuseReadOnly } from "../../domain/tutorialReadOnly";
 
 type TabView = "ledger" | "calls" | "scripts" | "appeals" | "scenarios" | "carriers";
@@ -291,14 +291,6 @@ export default function ARVoiceSimulator({ readOnly = false }: ARVoiceSimulatorP
         </button>
       </div>
 
-      {/* The standard chart's write controls say why they cannot act, where the
-          student would click. */}
-      {readOnly && (
-        <div className="border-b border-slate-200 bg-white px-4 py-2">
-          <ReadOnlyReason />
-        </div>
-      )}
-
       {/* ── Sub-tabs ── */}
       <div className="flex overflow-x-auto border-b border-slate-200 bg-slate-50 px-2 gap-0.5">
         {tabs.map((tab) => (
@@ -505,13 +497,14 @@ export default function ARVoiceSimulator({ readOnly = false }: ARVoiceSimulatorP
                               onClick={() => handleLogCall(claim, outcome as ARCallRecord["outcome"])}
                               aria-label={`Log call outcome ${outcome.replace(/-/g, " ")} for claim ${claim.id.slice(-8)}`}
                               className="flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[9px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                              {...readOnlyAttrs(readOnly)}
+                              {...readOnlyAttrs(readOnly, readOnlyNoteId(`ar-call-${claim.id}`))}
                             >
                               <Phone className="h-2.5 w-2.5" />
                               {outcome.replace(/-/g, " ")}
                             </button>
                           ))}
                         </div>
+                        <ReadOnlyNote readOnly={readOnly} id={readOnlyNoteId(`ar-call-${claim.id}`)} />
 
                         {/* Clearing a denial moves money, and money moves in the AR
                             work queue above: rebill, appeal, transfer to the patient or

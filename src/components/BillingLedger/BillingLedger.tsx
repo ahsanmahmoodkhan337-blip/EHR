@@ -38,7 +38,12 @@ import { CMS1500Form } from "./CMS1500Form";
 import { Ub04Form } from "./Ub04Form";
 import { UB04_LAYOUT, UB04_PDF_COLUMNS } from "../../data/claims/ub04Layout";
 import { REVENUE_CODES as UB04_REVENUE_CODES } from "../../data/claims/revenueCodes";
-import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
+
+/** The reason drawn under each write control on the Billing screen. */
+const SIMULATE_DENIAL_REASON = readOnlyNoteId("billing-simulate-denial");
+const ROUTE_PA_REASON = readOnlyNoteId("billing-route-pa");
+const ADJUDICATE_REASON = readOnlyNoteId("billing-adjudicate");
 import { useReadOnlyChart, useReadOnlyGuard } from "../../domain/tutorialReadOnly";
 import { CMS1500_LAYOUT, CMS1500_LINE_COLUMNS } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE, MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
@@ -1190,16 +1195,19 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   </div>
                 )}
 
-                {/* Actions */}
-                {readOnly && <ReadOnlyReason className="mb-2" />}
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={simulateDenial}
-                    className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                    {...readOnlyAttrs(readOnly)}
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5" /> Simulate Denial (Path B)
-                  </button>
+                {/* Actions — each write control carries its own reason, directly
+                    under it, so none of them reads as a dead button. */}
+                <div className="flex flex-wrap items-start gap-3">
+                  <div>
+                    <button
+                      onClick={simulateDenial}
+                      className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...readOnlyAttrs(readOnly, SIMULATE_DENIAL_REASON)}
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" /> Simulate Denial (Path B)
+                    </button>
+                    <ReadOnlyNote readOnly={readOnly} id={SIMULATE_DENIAL_REASON} />
+                  </div>
                   {/* The only scrub control on this screen. */}
                   <button
                     type="button"
@@ -1211,13 +1219,16 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   </button>
                   {/* Phase 3: Route to PA */}
                   {cs?.paStatus === "REQUIRED_MISSING" && (
-                    <button
-                      onClick={() => setShowRoutingModal(true)}
-                      className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-                      {...readOnlyAttrs(readOnly)}
-                    >
-                      <Route className="h-3.5 w-3.5" /> Route Claim to PA Specialist
-                    </button>
+                    <div>
+                      <button
+                        onClick={() => setShowRoutingModal(true)}
+                        className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        {...readOnlyAttrs(readOnly, ROUTE_PA_REASON)}
+                      >
+                        <Route className="h-3.5 w-3.5" /> Route Claim to PA Specialist
+                      </button>
+                      <ReadOnlyNote readOnly={readOnly} id={ROUTE_PA_REASON} />
+                    </div>
                   )}
                 </div>
 
@@ -1338,19 +1349,22 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                         posted.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (guard("The adjudication")) return;
-                        adjudicateClaim({ payerName: payer });
-                      }}
-                      aria-label={`Adjudicate claim ${state.claimNumber} against the plan's rules`}
-                      className="mt-2 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                      {...readOnlyAttrs(readOnly)}
-                    >
-                      <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
-                      Adjudicate this claim
-                    </button>
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (guard("The adjudication")) return;
+                          adjudicateClaim({ payerName: payer });
+                        }}
+                        aria-label={`Adjudicate claim ${state.claimNumber} against the plan's rules`}
+                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        {...readOnlyAttrs(readOnly, ADJUDICATE_REASON)}
+                      >
+                        <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
+                        Adjudicate this claim
+                      </button>
+                      <ReadOnlyNote readOnly={readOnly} id={ADJUDICATE_REASON} />
+                    </div>
                   </div>
                 ) : (
                   <>

@@ -16,8 +16,10 @@
  *    store write off the render path.
  */
 
-import { READ_ONLY_REASON_ID } from "../shell/ReadOnlyStage";
-import { READ_ONLY_REASON } from "../../domain/tutorialReadOnly";
+import { readOnlyAttrs, readOnlyNoteId, ReadOnlyNote } from "../shell/ReadOnlyStage";
+
+/** The reason drawn under the Post 835 button, at the point of the click. */
+const POST_835_REASON = readOnlyNoteId("payments-post-835");
 import { useId } from "react";
 import { CheckCircle2, FileText, Landmark } from "lucide-react";
 import {
@@ -210,8 +212,7 @@ export function RemittancePanel({ remittance, onPost, readOnly = false, classNam
             type="button"
             onClick={onPost}
             disabled={readOnly || unbalanced.length > 0}
-            title={readOnly ? READ_ONLY_REASON : undefined}
-            aria-describedby={readOnly ? READ_ONLY_REASON_ID : undefined}
+            {...readOnlyAttrs(readOnly, POST_835_REASON)}
             aria-label={`Post 835 ${remittance.checkOrEftNumber} to the patient ledger`}
             className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-emerald-700 px-3 text-[11px] font-semibold text-white hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -219,6 +220,7 @@ export function RemittancePanel({ remittance, onPost, readOnly = false, classNam
             Post this 835 to the ledger
           </button>
         )}
+        <ReadOnlyNote readOnly={readOnly} id={POST_835_REASON} className="basis-full" />
         <p className="text-[10px] text-slate-500">
           Posting writes the charge, the insurance payment and every contractual adjustment to the patient's
           ledger. Nothing is posted until you press it.

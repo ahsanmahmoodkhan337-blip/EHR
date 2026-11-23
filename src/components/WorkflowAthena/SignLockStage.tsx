@@ -11,7 +11,10 @@
 import { Lock, Shield, AlertTriangle, CheckCircle2, Loader2, FileDown } from "lucide-react";
 import type { SoapNoteData } from "./AssessmentPlanStage";
 import { exportSOAPNotePDF } from "../../utils/pdfExport";
-import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
+
+/** The reason drawn under the Sign & Lock button, at the point of the click. */
+const SIGN_LOCK_REASON = readOnlyNoteId("sign-lock");
 
 interface SignLockStageProps {
   patientName?: string;
@@ -25,7 +28,6 @@ interface SignLockStageProps {
 export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, readOnly = false }: SignLockStageProps) {
   return (
     <div className="flex flex-col gap-4">
-      {readOnly && <ReadOnlyReason />}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-slate-800">Sign & Lock Note</h3>
@@ -86,10 +88,11 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
         <p className="mt-1 text-sm text-slate-500">
           Review all documentation before signing and locking the encounter note.
         </p>
-        <div className="mt-4 flex items-center justify-center gap-3">
+        <div className="mt-4 flex flex-wrap items-start justify-center gap-3">
+          <div>
           <button
             onClick={onSignAndLock}
-            {...readOnlyAttrs(readOnly)}
+            {...readOnlyAttrs(readOnly, SIGN_LOCK_REASON)}
             disabled={isSubmitting}
             className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
               isSubmitting
@@ -104,6 +107,8 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
             )}
             {isSubmitting ? "Signing & Locking..." : "Sign & Lock Note"}
           </button>
+          <ReadOnlyNote readOnly={readOnly} id={SIGN_LOCK_REASON} />
+          </div>
           <button
             onClick={() => {
               if (!note) return;
