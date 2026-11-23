@@ -112,8 +112,12 @@ const CONVENTIONS = [
 
 // ─── Component ────────────────────────────────────────────────────
 
+import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+
 interface CodingQueueProps {
-  medications?: { id: string; name: string; dosage: string; frequency: string }[];
+  medications?: { id: string; name: string; dosage: string; frequency: string   /** The standard reference chart: codes cannot be added, removed or sent. */
+  readOnly?: boolean;
+}[];
 }
 
 /**
@@ -132,7 +136,7 @@ function ordinal(n: number): string {
   return `${n}th`;
 }
 
-export function CodingQueue({ medications }: CodingQueueProps) {
+export function CodingQueue({ medications, readOnly = false }: CodingQueueProps) {
   const { state, submitToBilling, setRole, setCodingLinePlaceOfService } = usePipeline();
 
   // Code search state
@@ -424,8 +428,11 @@ export function CodingQueue({ medications }: CodingQueueProps) {
     return total;
   }, [selectedCPTs, cptDataMap]);
 
+  // The standard chart: codes are shown, never changed.
+  const readOnlyBanner = readOnly ? <ReadOnlyReason className="mb-3" /> : null;
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      {readOnlyBanner}
       {/* Header */}
       <div className="border-b border-slate-200 bg-white px-4 py-3">
         <div className="flex items-center gap-2">
@@ -1172,6 +1179,7 @@ export function CodingQueue({ medications }: CodingQueueProps) {
               {selectedICDs.length > 0 && selectedCPTs.length > 0 && (
                 <button
                   onClick={handleSubmitToBilling}
+                  {...readOnlyAttrs(readOnly)}
                   className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-brand-600 transition-colors"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />

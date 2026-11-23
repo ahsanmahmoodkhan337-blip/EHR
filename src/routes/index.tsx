@@ -2562,13 +2562,13 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
             className="contents"
           >
           {currentRole === "coder" && (
-            <CodingQueue medications={editablePatientData.medications} />
+            <CodingQueue medications={editablePatientData.medications} readOnly={tutorialChartOpen} />
           )}
           {currentRole === "biller" && (
             <BillingLedger openTab={billingTab} onOpenPayments={() => openFlowStage("payments")} />
           )}
           {currentRole === "prior-auth" && (
-            <PriorAuthPortal />
+            <PriorAuthPortal readOnly={tutorialChartOpen} />
           )}
           {currentRole === "ar-voice" && (
             <div className="flex flex-1 flex-col overflow-y-auto">
@@ -2687,7 +2687,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                   >
                     {activeStage === "registration" && (
                       <>
-                        <RegistrationStage patientId={selectedPatientId} />
+                        <RegistrationStage patientId={selectedPatientId} readOnly={tutorialChartOpen} />
                         {/* The 270/271 writes the stored record the banner reads,
                             so the Front Desk stage and the banner cannot disagree. */}
                         <div className="mt-4">
@@ -2734,6 +2734,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         note={soapNote}
                         onSignAndLock={handleSignAndLock}
                         isSubmitting={isSubmittingNote}
+                        readOnly={tutorialChartOpen}
                       />
                     )}
                     </fieldset>

@@ -70,12 +70,16 @@ function toIsoDate(dob: string): string | null {
   return `${year}-${month}-${day}`;
 }
 
+import { readOnlyAttrs } from "../shell/ReadOnlyStage";
+
 interface RegistrationStageProps {
+  /** The standard reference chart: a control that would write is disabled and says why. */
+  readOnly?: boolean;
   /** The patient this registration writes its insurance record to. */
   patientId?: string | null;
 }
 
-export function RegistrationStage({ patientId }: RegistrationStageProps) {
+export function RegistrationStage({ patientId, readOnly = false }: RegistrationStageProps) {
   const { getPatientById } = usePatientStore();
   const updatePatientInsurance = useEhrStore((s) => s.updatePatientInsurance);
   const updatePatientIdentity = useEhrStore((s) => s.updatePatientIdentity);
@@ -454,7 +458,11 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
         </fieldset>
         )}
         <div className="mt-4 flex justify-end">
-          <button onClick={handleSubmit} className="btn-primary">
+          <button
+            onClick={handleSubmit}
+            className="btn-primary disabled:cursor-not-allowed disabled:bg-slate-300"
+            {...readOnlyAttrs(readOnly)}
+          >
             {isComplete ? "Re-verify" : "Verify Identity & Insurance"}
           </button>
         </div>
