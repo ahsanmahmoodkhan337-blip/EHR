@@ -41,6 +41,7 @@ import { AccentPractice } from "./AccentPractice";
 import { CARC_CODES } from "../../data/claims/carc";
 import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
 import { refuseReadOnly } from "../../domain/tutorialReadOnly";
+import { MoneyNotYet } from "../status/MoneyNotYet";
 
 type TabView = "ledger" | "calls" | "scripts" | "appeals" | "scenarios" | "carriers";
 
@@ -52,9 +53,15 @@ export interface ARVoiceSimulatorProps {
    * 2026-11-23: a click that does nothing reads as a broken button).
    */
   readOnly?: boolean;
+  /**
+   * True once the active claim has left draft. The empty ledger and the empty
+   * claim list then name the step still missing (adjudicate, then post) instead
+   * of asking for a Submit the student has already pressed.
+   */
+  claimSubmitted?: boolean;
 }
 
-export default function ARVoiceSimulator({ readOnly = false }: ARVoiceSimulatorProps = {}) {
+export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = false }: ARVoiceSimulatorProps = {}) {
   const pipeline = usePipeline();
   const {
     arWorkItems,
@@ -325,15 +332,9 @@ export default function ARVoiceSimulator({ readOnly = false }: ARVoiceSimulatorP
             </div>
 
             {ledgerTotal.totalClaims === 0 ? (
-              /* Empty state — nothing submitted yet */
-              <div className="rounded-lg border-2 border-dashed border-slate-200 bg-white p-8 text-center">
-                <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-                <p className="text-xs font-medium text-slate-500">No claims in the AR aging ledger yet</p>
-                <p className="mt-1 text-[10px] text-slate-400">
-                  This ledger reflects the claims denied in the <strong>Biller</strong> stage (Path B — Simulate Denial).
-                  Complete Scribe → Coding → Billing and simulate a denial to see it appear here.
-                </p>
-              </div>
+              /* No posted 835 yet: the ledger names the step that fills it
+                 rather than drawing four buckets of $0 (`status/MoneyNotYet.tsx`). */
+              <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} />
             ) : (
               <>
                 {/* Aging summary cards */}
@@ -444,11 +445,18 @@ export default function ARVoiceSimulator({ readOnly = false }: ARVoiceSimulatorP
 
             {/* Claims list */}
             {currentClaims.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <CheckCircle2 className="mb-2 h-10 w-10 text-green-400" />
-                <p className="text-sm font-medium text-slate-500">No claims in this bucket</p>
-                <p className="text-xs text-slate-400">All resolved. Simulate a denial in Stage 5 to populate this view.</p>
-              </div>
+              denialItems.length === 0 ? (
+                <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <CheckCircle2 className="mb-2 h-10 w-10 text-green-400" />
+                  <p className="text-sm font-medium text-slate-500">No denied lines in this bucket</p>
+                  <p className="text-xs text-slate-400">
+                    The queue holds {denialItems.length} denied line{denialItems.length === 1 ? "" : "s"} in
+                    another age bucket — pick it above.
+                  </p>
+                </div>
+              )
             ) : (
               <div className="space-y-2">
                 {currentClaims.map((claim) => (

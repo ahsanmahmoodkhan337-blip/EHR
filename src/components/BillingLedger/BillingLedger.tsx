@@ -30,6 +30,7 @@ import { ClaimAckChip, ClaimAckPanel } from "../status/ClaimAckPanel";
 import { RemittancePanel } from "../status/RemittancePanel";
 import { PatientLedgerPanel } from "../status/PatientLedgerPanel";
 import { ArWorkQueuePanel } from "../status/ArWorkQueuePanel";
+import { MoneyNotYet } from "../status/MoneyNotYet";
 import { statusEventsFor } from "../../domain/statusEvent";
 import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
 import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
@@ -1359,6 +1360,12 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                     No claim exists yet. Open the claim paper first — a remittance is always about a claim
                     the payer has already received.
                   </p>
+                ) : !transmitted ? (
+                  /* Nothing has been sent, so nothing has been priced: the stage
+                     says which step produces the 835 instead of drawing an empty
+                     remittance and a zero balance as if they were an answer
+                     (`status/MoneyNotYet.tsx`). */
+                  <MoneyNotYet stage="payments" />
                 ) : ack?.category !== "A1" ? (
                   <p className="text-[11px] text-slate-500">
                     The payer adjudicates only a claim the clearinghouse accepted. This claim's 277CA is{" "}

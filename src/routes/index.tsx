@@ -2299,6 +2299,14 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   const tutorialChartOpen =
     activePatientId === TUTORIAL_PATIENT_ID || selectedPatientId === TUTORIAL_PATIENT_ID;
 
+  // The claim has left draft, i.e. the student has pressed Submit on Billing.
+  // Read from the saved record, never from a screen's memory, so a reload keeps
+  // the answer. Payments (835) and Denials & AR use it to name the step that is
+  // still missing rather than asking for a Submit the student already pressed
+  // (`components/status/MoneyNotYet.tsx`).
+  const claimSubmitted =
+    pipelineState.claimStatus !== null && pipelineState.claimStatus !== "draft";
+
   const flowNext = nextFlowStage(flowStageId);
   const flowPrevious = previousFlowStage(flowStageId);
   const onLastFlowStage = flowStageId === lastFlowStageId();
@@ -2605,10 +2613,10 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
           {currentRole === "ar-voice" && (
             <div className="flex flex-1 flex-col overflow-y-auto">
               <div className="shrink-0 p-3">
-                <ArWorkQueuePanel readOnly={tutorialChartOpen} />
+                <ArWorkQueuePanel readOnly={tutorialChartOpen} claimSubmitted={claimSubmitted} />
               </div>
               <div className="flex min-h-0 flex-1 flex-col">
-                <ARVoiceSimulator readOnly={tutorialChartOpen} />
+                <ARVoiceSimulator readOnly={tutorialChartOpen} claimSubmitted={claimSubmitted} />
               </div>
             </div>
           )}
