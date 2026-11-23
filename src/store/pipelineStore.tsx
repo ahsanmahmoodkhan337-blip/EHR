@@ -484,9 +484,6 @@ export function rememberActivePatient(patientId: string | null): void {
 function withTutorialSeed(prev: PipelineStoreState): PipelineStoreState {
   const key = encounterKey(TUTORIAL_PATIENT_ID);
   const current = prev.encounters[key];
-  // Nothing pending means nothing to write: the state comes back as it went in,
-  // so a save of a chart the student worked never looks like a change.
-  if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return prev;
   let patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID);
   if (!patient) return prev;
   const at = new Date().toISOString();
@@ -504,6 +501,12 @@ function withTutorialSeed(prev: PipelineStoreState): PipelineStoreState {
       return selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? known;
     });
   }
+  // Nothing pending means nothing more to write: the state comes back as it went
+  // in, so a save of a chart the student worked never looks like a change. The
+  // card above is checked on every save, not only while the example is pending —
+  // a chart whose example landed but whose card did not used to keep printing
+  // "Not on file" for good.
+  if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return prev;
   // One builder for both paths: the same `seedTutorialInto` that the open path
   // writes with, so a chart saved from here and a chart seeded on open are the
   // same record.
@@ -700,7 +703,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    */
   const prepareTutorialChart = (at: string): TutorialPatientSource | undefined => {
     const current = storeRef.current.encounters[encounterKey(TUTORIAL_PATIENT_ID)];
-    if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return undefined;
+    const pending = tutorialSeedPending(current) || tutorialMoneyPending(current);
     let patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID);
     if (!patient) return undefined;
     const seededPatient = patient;
@@ -713,6 +716,10 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         return selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? seededPatient;
       });
     }
+    // The card is repaired on every open, even when the example itself is already
+    // on the record: a chart seeded before its card landed would otherwise print
+    // "Not on file" on the Front Desk card and the 271 for good.
+    if (!pending) return undefined;
     const prepared = patient;
     setPaRecords((prev) =>
       prev.some((record) => record.patientId === prepared.id && record.id === TUTORIAL_PA_ID)
@@ -735,11 +742,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    */
   const seedTutorialOnOpen = (patientId: string | null): boolean => {
     if (patientId !== TUTORIAL_PATIENT_ID) return false;
-    const current = store.encounters[encounterKey(patientId)];
-    // Two halves, two guards. A chart on the clinical half only (`tutorial-1`)
-    // still needs the money half, and a guard that asked one question would read
-    // it as finished.
-    if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return false;
+    // No pending-check here: `prepareTutorialChart` also repairs a card the
+    // example never wrote, so it is asked on every open and answers `undefined`
+    // when there is nothing left to do.
     const at = new Date().toISOString();
     const patient = prepareTutorialChart(at);
     if (!patient) return false;
@@ -755,8 +760,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return useEhrStore.subscribe(() => {
       if (seedingRef.current) return;
-      const current = storeRef.current.encounters[encounterKey(TUTORIAL_PATIENT_ID)];
-      if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return;
+      // No pending-check: a card the example never wrote is repaired here too.
       seedingRef.current = true;
       try {
         const at = new Date().toISOString();
