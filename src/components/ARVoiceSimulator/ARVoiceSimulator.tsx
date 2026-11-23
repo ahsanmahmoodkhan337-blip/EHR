@@ -45,9 +45,8 @@ type TabView = "ledger" | "calls" | "scripts" | "appeals" | "scenarios" | "carri
 export default function ARVoiceSimulator() {
   const pipeline = usePipeline();
   const {
-    deniedClaims,
+    arWorkItems,
     addCallRecord,
-    getClaimsByAging,
     arCalls,
   } = pipeline;
 
@@ -133,7 +132,36 @@ export default function ARVoiceSimulator() {
   // Call script bucket
   const [scriptBucket, setScriptBucket] = useState<string>("0-30");
 
-  const claimsByAging = getClaimsByAging();
+  // ─── One AR ledger: the same work queue the Billing stage reads ────
+  // `arWorkItems` (`domain/arWorkQueue.ts`) is derived from the posted 835s and
+  // the ledger, so the denial a student posted on Billing is money this desk can
+  // work — never a second list written by "Simulate Denial" alone.
+  const denialItems = useMemo(
+    () => arWorkItems.filter((item) => item.kind === "denial"),
+    [arWorkItems],
+  );
+  const claimsByAging = useMemo(() => {
+    const buckets: Record<string, DeniedClaim[]> = { "0-30": [], "31-60": [], "61-90": [], "90+": [] };
+    denialItems.forEach((item) => {
+      const bucket = (item.bucket === "91-120" || item.bucket === "120+" ? "90+" : item.bucket) as DeniedClaim["agingBucket"];
+      (buckets[bucket] ??= []).push({
+        id: item.id,
+        encounterId: item.patientId ?? "",
+        patientName: item.patientName ?? "",
+        reason: item.carc ? `${item.carc} — ${item.carcDescription ?? ""}`.trim() : "Denied line",
+        amount: item.amountCents / 100,
+        deniedAt: item.datedAt,
+        agingBucket: bucket,
+        resolutionStatus: (item.status === "open" ? "unresolved" : item.status) as DeniedClaim["resolutionStatus"],
+        assignedTo: item.assignedTo,
+        notes: item.note,
+        patientId: item.patientId,
+        claimId: item.claimNumber,
+        claimNumber: item.claimNumber,
+      });
+    });
+    return buckets;
+  }, [denialItems]);
 
   // ─── Real aging ledger — derived from actual denied claims ─────────
   // Never show demo figures as if they were the student's own AR.
@@ -153,12 +181,12 @@ export default function ARVoiceSimulator() {
   // Top denial reasons from real denied claims (replaces hardcoded payer list)
   const topDenialReasons = useMemo(() => {
     const counts: Record<string, number> = {};
-    deniedClaims.forEach((c) => {
-      const key = (c.reason.split("—")[0] || c.reason || "Unknown").trim();
+    denialItems.forEach((item) => {
+      const key = item.carc ?? "Unknown";
       counts[key] = (counts[key] ?? 0) + 1;
     });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  }, [deniedClaims]);
+  }, [denialItems]);
 
   // ─── Bucket stats ────────────────────────────────────────────────
   const bucketStats = [

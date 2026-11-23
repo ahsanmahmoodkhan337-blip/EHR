@@ -29,12 +29,13 @@
  * The claim bills an office visit (99214) and a 12-lead ECG (93000) on the same
  * day, and the Coder's lines carry no modifiers — the seed never makes that
  * decision for a student (`utils/claimAutoFill.ts` says the same about box 24D).
- * The plan the card names (`PLAN-MERIDIAN-ADVANTAGE`, `data/medical/payerScenarios.ts`)
- * carries its own same-day edit: an ECG drawn and interpreted during the visit is
- * a component of that visit, so the ECG line is allowed nothing and written off
- * under CO-236. `adjudicateClaim` applies that edit itself, which is why nothing
- * here invents a denial on top of it — one engine, one rule, one denied line, and
- * the AR queue has real money to work.
+ * The payer the card names (Medicare Part B) is priced on the plan table's
+ * `PLAN-MEDICARE-PART-B` row (`data/medical/payerScenarios.ts`), whose same-day
+ * edit is the *payer's* own procedure-pair rule: an ECG drawn and interpreted
+ * during the visit is a component of that visit, so the ECG line is allowed
+ * nothing and written off under CO-236. `adjudicateClaim` applies that edit
+ * itself, which is why nothing here invents a denial on top of it — one engine,
+ * one rule, one denied line, and the AR queue has real money to work.
  *
  * SEEDED ONCE, AND UPGRADED IN PLACE
  * `tutorialMoneyPending` is the guard. A record that already carries
@@ -150,10 +151,13 @@ export function applyTutorialMoneySeed(
   // through is left exactly as it was rather than half-filled.
   if (ack.category !== "A1") return encounter;
 
-  // ── The 835, priced line by line — the plan's own same-day edit included ──
+  // ── The 835, priced line by line — the payer's own same-day edit included ──
   const remittance = adjudicateClaim({
     claimNumber,
     payerName,
+    // Box 32 of the claim the student is looking at: the 835's N1*PR carries the
+    // same id, so Payments can show the `00102` the paper holds.
+    payerId: claimForm.payerEdiId,
     plan,
     lines: lineInputs,
     deductibleRemainingCents: Math.round((plan?.deductibleUsd ?? 0) * 100),
@@ -259,6 +263,10 @@ export function applyTutorialMoneySeed(
   );
 
   const deniedLine = remittance.lines.find((line) => line.denied && line.patientRespCents === 0);
+  // The CARC the payer's own edit wrote on the denied line — and nothing when the
+  // line carries no adjustment. A code this seed made up would be a CARC printed
+  // on a sentence the 835 never wrote (`specs/tutorial-payer-consistency.md`).
+  const deniedCarc = deniedLine?.adjustments[0]?.carc ?? "";
 
   return {
     ...encounter,
@@ -269,14 +277,14 @@ export function applyTutorialMoneySeed(
     statusEvents: events,
     remittances: [posted],
     ledger,
-    denialInfo: deniedLine
-      ? {
-          // The CARC the payer's own edit wrote on the denied line.
-          code: deniedLine.adjustments[0]?.carc ?? "CO-236",
-          reason: deniedLine.explanation,
-          amount: deniedLine.billedCents / 100,
-        }
-      : encounter.denialInfo,
+    denialInfo:
+      deniedLine && deniedCarc
+        ? {
+            code: deniedCarc,
+            reason: deniedLine.explanation,
+            amount: deniedLine.billedCents / 100,
+          }
+        : encounter.denialInfo,
     status: "billed",
     tutorialSeed: TUTORIAL_SEED_VERSION,
   };

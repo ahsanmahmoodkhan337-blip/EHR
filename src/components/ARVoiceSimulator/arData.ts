@@ -41,7 +41,7 @@ export interface CallScript {
 
 export const INSURANCE_CARRIERS: InsuranceCarrier[] = [
   {
-    name: "Medicare",
+    name: "Medicare Part B",
     phone: "(800) 555-0101 (Provider Line — simulated)",
     hours: "24/7 (Automated) / M-F 7a-7p (Agent)",
     department: "Provider Line / MAC",
@@ -73,7 +73,7 @@ export const INSURANCE_CARRIERS: InsuranceCarrier[] = [
     notes: "Cascadia takes electronic reconsiderations through its provider portal for fast resolution. Have the member ID and claim number ready, and ask for 'claim reconsideration' for coding errors."
   },
   {
-    name: "Meridian Health Plan",
+    name: "Meridian Advantage HMO",
     phone: "(800) 555-0173 (Provider Services — simulated)",
     hours: "M-F 8a-6p ET",
     department: "Claims / Prior Auth / Appeals",
@@ -277,7 +277,7 @@ This letter is an appeal regarding the coordination of benefits (COB) denial for
 **Insurance Coverage:**
 Primary Payer: [Primary Insurance Name]
 Primary Paid: [Amount]
-Secondary Payer: [Your Plan Name]
+Secondary Payer: [Member's Secondary Plan Name]
 
 **COB Issue:**
 The primary payer processed and paid $[Primary Payment]. The remaining balance of $[Remaining Balance] should be applied to the secondary coverage per standard COB rules.
