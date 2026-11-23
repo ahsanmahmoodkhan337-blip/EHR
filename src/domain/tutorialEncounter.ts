@@ -234,15 +234,72 @@ function labsLine(patient: TutorialPatientSource): string {
 }
 
 /**
+ * The Tutorial Patient's own note — the worked example, written out in full.
+ *
+ * Owner, 2026-11-23: the example note read as "just random words". It is the one
+ * chart a student copies the shape of a real cardiology visit from, so it is
+ * written as that visit: an HPI in the order a clinician asks the questions, a
+ * review of systems, the exam findings that go with a diaphoretic patient and a
+ * positive troponin, three numbered diagnoses in the order the codes are
+ * reported, and a plan that names the work and the codes it bills.
+ *
+ * Every figure here is the chart's own: the vitals record (145/92, 92, 99.1, 20,
+ * 94), the three labs (troponin 0.085, glucose 145, CBC pending), the three
+ * problems (I10, I25.10, R07.9) in `tutorialIcdCodes`' order, the medications and
+ * the allergies. Nothing the chart does not hold is written, and no absolute date
+ * is written into the text, so the note cannot contradict box 24A on its own.
+ * R73.09 and a chest X-ray are deliberately absent: neither is on this chart.
+ */
+const TUTORIAL_SUBJECTIVE = `55-year-old man with hypertension and known coronary artery disease presents with two hours of chest pressure.
+
+HPI: Onset — sudden, about two hours before this visit, while walking up a flight of stairs. Character — substernal pressure/squeezing, 7/10 at onset, 5/10 now. Radiation — to the left arm. Duration — constant since onset, not waxing and waning. Associated symptoms — shortness of breath and diaphoresis. Aggravating — exertion makes it worse. Relieving — rest has not relieved it; not positional; not relieved by antacids. Denies pleuritic pain, tearing pain, fever, cough, palpitations, syncope, calf pain and recent travel. Reports he has missed doses of lisinopril over the past week.
+
+ROS: Constitutional — diaphoresis; no fever, chills or weight change. Cardiovascular — chest pressure; no palpitations, orthopnoea, paroxysmal nocturnal dyspnoea or claudication. Respiratory — dyspnoea on exertion; no cough or haemoptysis. Gastrointestinal — no nausea, vomiting or abdominal pain. Musculoskeletal — no back pain. Neurological — no syncope, focal weakness or speech change. All other systems reviewed and negative.
+
+PMH: Essential hypertension (I10). Coronary artery disease (I25.10). Medications: lisinopril 10 mg once daily (missed for the past week), atorvastatin 40 mg once daily at bedtime, aspirin 81 mg once daily. Allergies: penicillin — anaphylaxis (hives, swelling, difficulty breathing); sulfa drugs — rash and fever.`;
+
+const TUTORIAL_OBJECTIVE = `Vitals: BP 145/92 mmHg, HR 92 bpm and regular, RR 20/min, temperature 99.1 °F, SpO2 94% on room air.
+General: anxious and diaphoretic, in moderate distress, speaking in full sentences.
+Cardiovascular: regular rate and rhythm; no murmur, rub or gallop; no JVD; no peripheral oedema; distal pulses 2+ and symmetric.
+Respiratory: clear to auscultation bilaterally; no wheeze, no crackles.
+Abdomen: soft, non-tender.
+Extremities: no calf tenderness or swelling.
+ECG: 12-lead, performed and interpreted in the office today — sinus tachycardia at 92 bpm, no ST-segment elevation, T-wave flattening in leads V4–V6.
+Labs: troponin I 0.085 ng/mL (reference <0.04) — abnormal; CMP glucose 145 mg/dL (reference 70–100) — abnormal; CBC pending.`;
+
+const TUTORIAL_ASSESSMENT = `1. Chest pain, suspected unstable angina / rule out non-ST-elevation myocardial infarction — R07.9. Two hours of exertional substernal pressure radiating to the left arm with diaphoresis; T-wave flattening in V4–V6; troponin 0.085 ng/mL, above the reference limit of 0.04.
+2. Essential hypertension, uncontrolled — I10. BP 145/92 today with lisinopril missed for the past week.
+3. Coronary artery disease — I25.10. Known disease, on aspirin and a statin; no ST-segment elevation on today's ECG.`;
+
+const TUTORIAL_PLAN = `1. ECG: 12-lead ECG with interpretation and report performed in the office today — CPT 93000.
+2. Troponin: resulted at 0.085 ng/mL; repeat troponin in 3 hours and compare.
+3. Cardiology: referral placed today for urgent evaluation; stress testing versus cardiac catheterisation per cardiology.
+4. Medications: aspirin 325 mg chewed once now, then aspirin 81 mg daily; continue atorvastatin 40 mg at bedtime; resume lisinopril 10 mg daily and recheck BP in 24 hours.
+5. Oxygen only if SpO2 falls below 92%.
+6. Education: chest-pain red flags (pain at rest, worsening pain, syncope, severe dyspnoea) — return or call immediately; medication adherence reviewed, including the missed lisinopril.
+7. Follow-up: cardiology per the referral; primary care provider in 3–5 days, with a fasting glucose recheck at that visit.`;
+
+/**
  * The progress note, written from the patient's own chart.
  *
- * Subjective is the chart's chief complaint, the visit's own note and the problem
- * and medication lists; Objective is the vitals and labs the chart holds; the
- * Assessment is the coded problem list in the order the codes are reported; the
- * Plan is the work the visit's own note records, the medications the chart lists
- * and the ECG that was billed. Nothing is added that the chart does not hold.
+ * The Tutorial Patient gets the written-out example above. Every other chart
+ * gets the derived note: Subjective is the chart's chief complaint, the visit's
+ * own note and the problem and medication lists; Objective is the vitals and labs
+ * the chart holds; the Assessment is the coded problem list in the order the codes
+ * are reported; the Plan is the work the visit's own note records, the medications
+ * the chart lists and the ECG that was billed. Nothing is added that the chart
+ * does not hold.
  */
 export function tutorialNoteFields(patient: TutorialPatientSource): NoteFields {
+  if ((patient.id ?? "") === TUTORIAL_PATIENT_ID) {
+    return {
+      subjective: TUTORIAL_SUBJECTIVE,
+      objective: TUTORIAL_OBJECTIVE,
+      assessment: TUTORIAL_ASSESSMENT,
+      plan: TUTORIAL_PLAN,
+    };
+  }
+
   const visit = patient.encounters?.[0];
   const problems = patient.problems ?? [];
   const medications = (patient.medications ?? []).filter((med) => med.name);

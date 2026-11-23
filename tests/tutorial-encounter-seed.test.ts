@@ -63,7 +63,7 @@ const TUTORIAL: TutorialPatientSource = {
   ],
   encounters: [
     {
-      date: "2026-07-09",
+      date: "2026-11-23",
       provider: "Dr. Demo Instructor, MD",
       diagnosis: "Chest pain (R07.9), Essential hypertension (I10)",
       notes: "Tutorial patient presenting with chest pain and shortness of breath. ECG and cardiac enzymes ordered. Cardiology consult placed.",
@@ -130,7 +130,7 @@ describe("the seeded encounter's clinical half", () => {
       expect(line.charge).toBeGreaterThan(0);
       expect(line.units).toBe(1);
       expect(line.renderingNpi).toBe(MEDICAL_PROVIDER_PROFILE.npi);
-      expect(line.dateOfService).toBe("2026-07-09");
+      expect(line.dateOfService).toBe("2026-11-23");
     }
     // Every line points at a diagnosis this encounter actually reported.
     const letters = "ABCDEFGHIJKL";
