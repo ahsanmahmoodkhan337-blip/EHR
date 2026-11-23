@@ -33,9 +33,26 @@ import {
   runEligibility270,
 } from "../../domain/eligibility";
 import { memberIdOnFile, patientCard } from "../../domain/patientCard";
+import { READ_ONLY_REASON, useReadOnlyChart } from "../../domain/tutorialReadOnly";
+import { ReadOnlyNote, readOnlyNoteId } from "../shell/ReadOnlyStage";
 
-export function EligibilityStage({ patientId }: { patientId?: string | null }) {
+/** The reason drawn under the 270 button, at the point of the click. */
+const ELIGIBILITY_REASON = readOnlyNoteId("eligibility-270");
+
+export function EligibilityStage({
+  patientId,
+  readOnly = false,
+}: {
+  patientId?: string | null;
+  /**
+   * The standard reference chart: the 270 writes the stored coverage answer, so
+   * the button is refused and says why. The chart's own signal is read too, so a
+   * screen that forgets the prop still cannot write (`useReadOnlyChart`).
+   */
+  readOnly?: boolean;
+}) {
   const { getPatientById } = usePatientStore();
+  const chartLocked = useReadOnlyChart(patientId) || readOnly;
   const recordEligibility = useEhrStore((s) => s.recordEligibility);
   const { setRole } = usePipeline();
   const [running, setRunning] = useState(false);
@@ -103,14 +120,22 @@ export function EligibilityStage({ patientId }: { patientId?: string | null }) {
           <button
             type="button"
             onClick={runInquiry}
-            disabled={running || !coverage}
+            disabled={running || !coverage || chartLocked}
             aria-label="Run the 270/271 eligibility inquiry for this patient's primary coverage"
-            title={coverage ? undefined : "This patient has no primary coverage on file — register the card first."}
+            title={
+              chartLocked
+                ? READ_ONLY_REASON
+                : coverage
+                  ? undefined
+                  : "This patient has no primary coverage on file — register the card first."
+            }
+            {...(chartLocked ? { "aria-describedby": ELIGIBILITY_REASON } : {})}
             className="flex min-h-10 items-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
             {running ? "Inquiring…" : checked ? "Re-run 270 inquiry" : "Verify eligibility (270)"}
           </button>
+          <ReadOnlyNote readOnly={chartLocked} id={ELIGIBILITY_REASON} />
 
           {running && (
             <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">

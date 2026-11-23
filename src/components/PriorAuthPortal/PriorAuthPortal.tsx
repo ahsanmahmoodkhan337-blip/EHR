@@ -458,6 +458,10 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
       )}
 
       {/* ── Active Tab Content ── */}
+      {/* The tab strip above stays live so the worked example can be read tab by
+          tab; the panels below it are the e-PA form and its follow-ups, which are
+          writes, so they keep the lock (spec `tutorial-dead-buttons.md` §2). */}
+      <fieldset disabled={readOnly} className="contents">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* ═══ TAB: QUEUE DASHBOARD with Alerts + Expandable Cards ═══ */}
         {activeTab === "queue" && (
@@ -2041,6 +2045,7 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
           </div>
         )}
       </div>
+      </fieldset>
     </div>
   );
 }

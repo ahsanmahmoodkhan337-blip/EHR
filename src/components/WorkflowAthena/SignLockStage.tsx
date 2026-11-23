@@ -93,7 +93,7 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
           <button
             onClick={onSignAndLock}
             {...readOnlyAttrs(readOnly, SIGN_LOCK_REASON)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || readOnly}
             className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
               isSubmitting
                 ? "bg-blue-400 text-white cursor-wait"

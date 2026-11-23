@@ -1319,6 +1319,10 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   // Instructor / exam-mode switch. Persisted with the rest of the store, so an
   // assessment session keeps the paper free of demo values.
   const setDemoFillMissingBoxes = (enabled: boolean) => {
+    // The refusal lives where the write happens (spec `tutorial-dead-buttons.md`
+    // §3): the reference chart's paper is the seed's, so its demo-fill switch is
+    // not the student's to flip.
+    if (refuseStudentWrite(store.activePatientId, "The demo-fill switch")) return;
     setStore((prev) => ({ ...prev, demoFillMissingBoxes: enabled }));
   };
 

@@ -44,6 +44,7 @@ import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlySt
 const SIMULATE_DENIAL_REASON = readOnlyNoteId("billing-simulate-denial");
 const ROUTE_PA_REASON = readOnlyNoteId("billing-route-pa");
 const ADJUDICATE_REASON = readOnlyNoteId("billing-adjudicate");
+const DEMO_FILL_REASON = readOnlyNoteId("billing-demo-fill");
 import {
   skipClaimAutosave,
   useReadOnlyChart,
@@ -1024,6 +1025,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       type="checkbox"
                       checked={demoFillEnabled}
                       onChange={(e) => setDemoFillMissingBoxes(e.target.checked)}
+                      {...(readOnly ? readOnlyAttrs(readOnly, DEMO_FILL_REASON) : {})}
                       className="mt-0.5 h-3 w-3 accent-brand-600"
                     />
                     <span>
@@ -1032,6 +1034,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       checks and never saved to the claim. Switch off for assessment.
                     </span>
                   </label>
+                  <ReadOnlyNote readOnly={readOnly} id={DEMO_FILL_REASON} />
                 </div>
 
                 {/* ─── Prior authorisation — the student's own answer ─── */}

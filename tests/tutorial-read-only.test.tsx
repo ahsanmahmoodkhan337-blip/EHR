@@ -150,9 +150,10 @@ const WRITE_BUTTON = /^(Save|Submit|Add line|Simulate|Route|Adjudicate|Post|Remo
  *
  * Billing's "Demo-fill missing boxes" switch paints a grey italic DEMO value over
  * a box nothing captured and is never saved to the claim, so it is a reading
- * setting like Print, Download and the form tabs — it stays enabled on the locked
- * chart, because a student has to be able to read the standard chart. It is named
- * here, not switched off in the component.
+ * setting like Print, Download and the form tabs. Since the per-control read-only
+ * pass it is refused on the reference chart like any other write
+ * (`refuseStudentWrite`, spec `tutorial-dead-buttons.md` §3), so it is named here
+ * and asked about as a setting — never counted as the claim's Submit.
  */
 const READ_SETTING = /Demo-fill missing boxes/;
 function isReadSetting(el: Element): boolean {
@@ -247,13 +248,12 @@ describe("every stage of the Tutorial Patient's chart is locked", () => {
       }
 
       // ── The lock itself ────────────────────────────────────────
-      // The stage's content sits in a fieldset that is disabled for this chart,
-      // and the fieldset is the reason a student's keystroke is refused.
+      // Read-only is enforced where each write happens (spec
+      // `tutorial-dead-buttons.md` §2): a stage that holds read controls — Print,
+      // Download, the tabs, the calculator — keeps them live and refuses only its
+      // writes, so a wrapper fieldset is no longer required on every stage. Any
+      // wrapper that names the notice is still a disabled fieldset.
       const wrappers = [...screen.container.querySelectorAll(`[aria-describedby="${TUTORIAL_NOTICE_ID}"]`)];
-      expect({ stage: stageId, wrappers: wrappers.length > 0 }).toEqual({
-        stage: stageId,
-        wrappers: true,
-      });
       for (const wrapper of wrappers) {
         expect({ stage: stageId, tag: wrapper.tagName, locked: wrapper.matches(":disabled") }).toEqual({
           stage: stageId,
@@ -274,8 +274,9 @@ describe("every stage of the Tutorial Patient's chart is locked", () => {
       // Spec § C2: the Sign & Lock, Submit Claim, Post 835 and Start over
       // buttons stay on screen — a student must see that the workflow has them.
       // What must never happen is one of them being pressable.
-      const controlsInside = wrappers.flatMap((wrapper) => [...wrapper.querySelectorAll(INTERACTIVE)]);
-      const pressable = controlsInside.filter((el) => !isBlocked(el));
+      const pressable = [...screen.container.querySelectorAll(INTERACTIVE)].filter(
+        (el) => !el.closest('[aria-hidden="true"]') && isWriteControl(el) && !isBlocked(el),
+      );
       expect({
         stage: stageId,
         pressable: pressable.map((el) => `${el.tagName}:${(el.textContent ?? "").trim().slice(0, 30)}`),
