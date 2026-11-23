@@ -90,11 +90,12 @@ const docKindIcon = (kind: PADocument["kind"]) => {
 
 // Payer-specific requirements
 const PAYER_REQUIREMENTS: Record<string, { label: string; requirements: string[]; turnaroundTime: string }> = {
-  Medicare: { label: "Medicare", requirements: ["CMS NCD/LCD criteria", "Medicare Advantage policy", "Signature requirements"], turnaroundTime: "72 hours" },
+  // Part B is reviewed on the payer's own criteria — never a Medicare Advantage product's policy.
+  "Medicare Part B": { label: "Medicare Part B", requirements: ["CMS NCD/LCD criteria", "Medicare Physician Fee Schedule / local coverage policy", "Signature requirements"], turnaroundTime: "72 hours" },
   Medicaid: { label: "Medicaid", requirements: ["State-specific criteria", "Income verification", "Referral from PCP"], turnaroundTime: "5-7 business days" },
   "Northwind Health Plan": { label: "Northwind", requirements: ["Northwind medical policy", "Step therapy (if applicable)", "Network provider confirmation"], turnaroundTime: "48-72 hours" },
   "Cascadia Health Plan": { label: "Cascadia", requirements: ["Cascadia provider manual", "Lab values within 30 days", "Specialist referral"], turnaroundTime: "48 hours" },
-  "Meridian Health Plan": { label: "Meridian", requirements: ["Meridian clinical policy bulletins", "ICD-10 code matching", "Prior treatment history"], turnaroundTime: "48-72 hours" },
+  "Meridian Advantage HMO": { label: "Meridian", requirements: ["Meridian clinical policy bulletins", "ICD-10 code matching", "Prior treatment history"], turnaroundTime: "48-72 hours" },
   "Ridgeline Health Plan": { label: "Ridgeline", requirements: ["Ridgeline medical coverage policy", "Peer-to-peer review available", "Documentation of failed conservative therapy"], turnaroundTime: "3-5 business days" },
 };
 
@@ -137,6 +138,10 @@ export default function PriorAuthPortal() {
         submittedBy: r.submittedBy,
         submittedAt: r.submittedAt,
         status: r.status,
+        // The record's own verification, carried through: the panel prints the
+        // proof the chart wrote instead of re-running a check of its own.
+        verificationStatus: r.verificationStatus,
+        verificationResult: r.verificationResult,
         urgency: "routine" as const,
       };
     });
@@ -208,7 +213,15 @@ export default function PriorAuthPortal() {
 
   // Payer-specific requirements — only for a payer the panel actually has rules
   // for. No fallback: another payer's rules are not this payer's rules.
-  const payerInfo = PAYER_REQUIREMENTS[payer] ?? null;
+  // Exact key first, then the longest key the payer's name starts with, so a
+  // payer printed as "Medicare Part B" finds its own row — and another payer's
+  // rules are still never borrowed.
+  const payerInfo =
+    PAYER_REQUIREMENTS[payer] ??
+    Object.entries(PAYER_REQUIREMENTS)
+      .filter(([key]) => payer.startsWith(key))
+      .sort((x, y) => y[0].length - x[0].length)[0]?.[1] ??
+    null;
 
   const isLocked = state.status !== "coded" && state.status !== "billed" && !submitted;
 
@@ -665,6 +678,13 @@ export default function PriorAuthPortal() {
                             </p>
                           </div>
                         </div>
+                        {/* The record's own verification — the proof the chart holds */}
+                        {item.verificationResult && (
+                          <div className="mt-2 rounded bg-slate-50 border border-slate-200 px-2 py-1">
+                            <p className="text-[9px] font-medium text-slate-500">Verification</p>
+                            <p className="text-[10px] text-slate-700">{item.verificationResult}</p>
+                          </div>
+                        )}
                         {/* Auth expiry alert */}
                         {item.authEndDate && (() => {
                           const end = new Date(item.authEndDate);

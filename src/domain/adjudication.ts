@@ -30,7 +30,7 @@
  * The rules applied, in the order a payer applies them (each line):
  *   a. a required authorisation the payer has no number for → CO-197, the line
  *      pays nothing and nothing is billed to the patient;
- *   b. the plan's same-day edit (one code treated as part of another billed the
+ *   b. the payer's same-day edit (one code treated as part of another billed the
  *      same day) → CO-236 on the component line, same money answer;
  *   c. a service the plan excludes → PR-96, the patient owes it;
  *   d. otherwise the line is covered: the deductible is applied first, then the
@@ -122,6 +122,15 @@ export interface Remittance835 {
   /** The claim control number the payer quotes back (835 CLP01). */
   claimControlNumber: string;
   payerName: string;
+  /**
+   * The payer's EDI identification (835 N1*PR), the same id box 32 of the claim
+   * carries. Empty when the claim recorded none — the panel says so rather than
+   * printing a number the paper does not hold.
+   */
+  payerId?: string;
+  /** The plan the money was priced on, by its name in the plan table. */
+  planName?: string | null;
+  /** Internal plan key. Kept for traceability; never printed as a plan's name. */
   planId: string | null;
   /** EFT trace number or check number (835 BPR16 / TRN). */
   checkOrEftNumber: string;
@@ -151,6 +160,8 @@ export interface AdjudicationLineInput {
 export interface AdjudicationInput {
   claimNumber: string;
   payerName: string;
+  /** Box 32 of the claim: the payer's EDI id, carried onto the 835's N1*PR. */
+  payerId?: string;
   /** The plan the claim is priced against, or null when none is recorded. */
   plan: MedicalPlan | null;
   lines: AdjudicationLineInput[];
@@ -224,12 +235,18 @@ export function planForPayerNameStrict(payerName: string | null | undefined): Me
   if (!name) return null;
   const byName: [string, string][] = [
     ["cascadia", "PLAN-CASCADIA-HEALTH-PPO"],
+    // A Medicare *Advantage* product is a plan of its own and keeps its own row.
+    ["medicare advantage", "PLAN-MERIDIAN-ADVANTAGE"],
+    // `medicare part b` is matched before `medicare` so the Tutorial Patient's
+    // card is priced on the Part B row, never on another product's money
+    // (`specs/tutorial-payer-consistency.md`, the root cause).
+    ["medicare part b", "PLAN-MEDICARE-PART-B"],
     ["meridian", "PLAN-MERIDIAN-ADVANTAGE"],
     ["northwind", "PLAN-NORTHWIND-MEDICAID"],
     ["atlas", "PLAN-ATLAS-SELECT-PPO"],
     ["vanguard", "PLAN-VANGUARD-HMO"],
     ["medicaid", "PLAN-NORTHWIND-MEDICAID"],
-    ["medicare", "PLAN-MERIDIAN-ADVANTAGE"],
+    ["medicare", "PLAN-MEDICARE-PART-B"],
   ];
   const hit = byName.find(([needle]) => name.includes(needle));
   return hit ? findPlan(hit[1]) ?? null : null;
@@ -379,7 +396,7 @@ function priceLine(
         writeOffCents: billedCents,
         denied: true,
         allowanceSource: "billed",
-        explanation: `The plan's same-day edit treats ${input.cpt} as part of another code billed the same day, so it allowed nothing: ${dollars(billedCents)} is a CO-236 contractual write-off, not a patient balance.`,
+        explanation: `The payer's same-day edit treats ${input.cpt} as part of another code billed the same day, so it allowed nothing: ${dollars(billedCents)} is a CO-236 contractual write-off, not a patient balance.`,
       },
       deductibleLeftCents: ctx.deductibleRemainingCents,
     };
@@ -536,6 +553,8 @@ export function adjudicateClaim(input: AdjudicationInput): Remittance835 {
     claimNumber: input.claimNumber,
     claimControlNumber: input.claimNumber,
     payerName: input.payerName,
+    payerId: (input.payerId ?? "").trim(),
+    planName: input.plan?.name ?? null,
     planId: input.plan?.id ?? null,
     checkOrEftNumber: eftNumber(input.claimNumber),
     paymentDate: at.slice(0, 10),

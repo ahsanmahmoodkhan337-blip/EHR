@@ -221,7 +221,11 @@ describe("the Prior Auth panel's payer is the patient's coverage record", () => 
     expect(PORTAL).not.toContain('useState("Medicare")');
     expect(PORTAL).not.toContain('PAYER_REQUIREMENTS["Medicare"]');
     expect(PORTAL).toContain("const payer = card.payerName;");
-    expect(PORTAL).toContain("const payerInfo = PAYER_REQUIREMENTS[payer] ?? null;");
+    // The lookup still starts from the payer the card names — exact key first,
+    // then the longest key that payer's name starts with (so "Medicare Part B"
+    // finds its own row). It never starts from a literal payer.
+    expect(PORTAL).toContain("PAYER_REQUIREMENTS[payer] ??");
+    expect(PORTAL).not.toContain('PAYER_REQUIREMENTS["Medicare Part B"]');
     // The payer is printed, not chosen: the only select left on the form is the
     // procedure.
     expect(PORTAL).not.toContain("setPayer(");

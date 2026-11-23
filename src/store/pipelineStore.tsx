@@ -1125,6 +1125,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       const remittance = adjudicateClaimDomain({
         claimNumber: enc.claimNumber,
         payerName: payerName || "the payer",
+        // Box 32 of the claim, so the 835's N1*PR carries the same payer id the
+        // paper does instead of no identification at all.
+        payerId: enc.claimForm?.payerEdiId ?? "",
         plan,
         lines,
         // The plan's deductible is what this member has still to meet; the

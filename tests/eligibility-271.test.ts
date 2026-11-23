@@ -94,7 +94,10 @@ describe("item 4b — the 271 reads the patient's own plan", () => {
     expect(planForPayerNameStrict("Sunrise Benefit Trust")).toBeNull();
     expect(planForPayerNameStrict("")).toBeNull();
     expect(planForPayerName("Sunrise Benefit Trust")?.id).toBe(MEDICAL_PLANS[0]?.id);
-    expect(planForPayerNameStrict("Medicare Part B")?.id).toBe("PLAN-MERIDIAN-ADVANTAGE");
+    // A Medicare Part B card is priced on the Part B row, never on another
+    // product's money (`specs/tutorial-payer-consistency.md`).
+    expect(planForPayerNameStrict("Medicare Part B")?.id).toBe("PLAN-MEDICARE-PART-B");
+    expect(planForPayerNameStrict("Medicare Advantage HMO")?.id).toBe("PLAN-MERIDIAN-ADVANTAGE");
   });
 });
 

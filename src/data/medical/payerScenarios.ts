@@ -19,7 +19,11 @@
 
 import type { CarcCodeString } from "../claims/carc";
 
-export type MedicalPlanType = "Commercial PPO" | "Medicare Advantage HMO" | "Medicaid MCO";
+export type MedicalPlanType =
+  | "Commercial PPO"
+  | "Medicare Advantage HMO"
+  | "Medicaid MCO"
+  | "Medicare Part B (fee-for-service)";
 
 /** A same-day pair the payer's claim edits treat as one service. */
 export interface MedicalCciEdit {
@@ -89,6 +93,38 @@ export const MEDICAL_PLANS: MedicalPlan[] = [
       "Commercial PPO used for the clean-paid and documentation-driven cases. Preventive care pays in full; office and procedure visits pay at 80 percent of the contracted allowance with no deductible in this teaching plan.",
   },
   {
+    /**
+     * The Tutorial Patient's payer (`specs/tutorial-payer-consistency.md`). The
+     * card, the banner, the 271, box 11c and the 835 all name **Medicare Part B**,
+     * so the plan that prices that card has to be this row and not another
+     * product's. Figures are illustrative teaching values, not CMS's published
+     * amounts. The same-day edit here is the *payer's* own procedure-pair rule
+     * (NCCI), not a plan benefit limit — which is why its wording says so.
+     */
+    id: "PLAN-MEDICARE-PART-B",
+    name: "Medicare Part B",
+    planType: "Medicare Part B (fee-for-service)",
+    network: "in-network preferred",
+    deductibleUsd: 50,
+    planCoinsurancePercent: 80,
+    preventivePaidInFull: true,
+    priorAuthCptCodes: [],
+    cciEdits: [
+      {
+        componentCode: "93000",
+        comprehensiveCode: "99214",
+        carc: "CO-236",
+        explanation:
+          "The payer's own same-day edit treats a 12-lead ECG (93000) drawn and interpreted during the office visit billed with it (99214) as part of that visit: the visit pays and the ECG line is allowed nothing unless the ECG is reported as a distinct service. The rule is the payer's — its National Correct Coding Initiative procedure-pair edit — not this teaching plan's benefit design.",
+        correctHandling:
+          "Append modifier 59 to the 93000 line when the ECG was a distinct, separately documented service, or appeal the CO-236 with the tracing and the interpretation report. Without either, the write-off stands and the patient owes nothing for that line.",
+      },
+    ],
+    benefitLimits: [],
+    notes:
+      "Fictional teaching instance of Medicare Part B — the payer the Tutorial Patient's card names. Every figure is illustrative, not CMS's published amount: 80 percent of the allowed amount after a small annual deductible, no fixed copay and no prior-authorisation list. Its same-day edit is the payer's own NCCI procedure-pair rule, so an in-office 12-lead ECG billed with the visit that reads it comes back CO-236. Medicare issues no group number, so the card's group box reads not on file rather than an invented one.",
+  },
+  {
     id: "PLAN-MERIDIAN-ADVANTAGE",
     name: "Meridian Advantage HMO",
     planType: "Medicare Advantage HMO",
@@ -103,14 +139,14 @@ export const MEDICAL_PLANS: MedicalPlan[] = [
         comprehensiveCode: "99214",
         carc: "CO-236",
         explanation:
-          "This plan's own same-day edit treats a 12-lead ECG (93000) drawn and interpreted during an office visit as part of that visit: the visit pays and the ECG line is allowed nothing unless the ECG is reported as a distinct service. The rule is this fictional plan's policy, not a statement of any national edit.",
+          "This payer's own same-day edit treats a 12-lead ECG (93000) drawn and interpreted during an office visit as part of that visit: the visit pays and the ECG line is allowed nothing unless the ECG is reported as a distinct service. The rule is this fictional payer's policy, not a statement of any national edit.",
         correctHandling:
           "Append modifier 59 to the 93000 line when the ECG was a distinct, separately documented service, or appeal the CO-236 with the tracing and the interpretation report. Without either, the write-off stands and the patient owes nothing for that line.",
       },
     ],
     benefitLimits: [],
     notes:
-      "Medicare Advantage-style HMO used for the prior-authorisation case. Advanced imaging and joint replacement require a prior authorisation that must be on file before the claim is submitted; a missing authorisation denies the claim even when the service is otherwise covered. Its same-day edit also treats an in-office 12-lead ECG as part of the office visit billed with it, so an ECG without modifier 59 comes back CO-236 — the Tutorial Patient's worked example carries that one denial so the AR queue has real money to work.",
+      "Medicare Advantage-style HMO used for the prior-authorisation case. Advanced imaging and joint replacement require a prior authorisation that must be on file before the claim is submitted; a missing authorisation denies the claim even when the service is otherwise covered. This payer's same-day edit also treats an in-office 12-lead ECG as part of the office visit billed with it, so an ECG without modifier 59 comes back CO-236 — the Meridian practice case carries that denial so the AR queue has real money to work.",
   },
   {
     id: "PLAN-NORTHWIND-MEDICAID",

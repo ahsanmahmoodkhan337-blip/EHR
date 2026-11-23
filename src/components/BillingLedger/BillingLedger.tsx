@@ -672,7 +672,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
       const raw = l.modifiers;
       return Array.isArray(raw) ? raw.length > 0 : String(raw ?? "").trim() !== "";
     });
-    const co97 = CARC_BY_CODE["CO-97"];
+    const co236 = CARC_BY_CODE["CO-236"];
     const results = [
       { check: "ICD-10 code present", pass: state.icdCodes.length > 0, note: state.icdCodes.length > 0 ? `${state.icdCodes.length} code(s) found` : "No diagnosis codes entered" },
       { check: "CPT code present", pass: state.cptCodes.length > 0, note: state.cptCodes.length > 0 ? `${state.cptCodes.length} code(s) found` : "No procedure codes entered" },
@@ -704,7 +704,7 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
         pass: sameDayLines <= 1,
         note:
           sameDayLines > 1
-            ? `${sameDayLines} lines share a date of service. The payer's edit may include one service in another; the remittance would carry ${co97.code} — ${co97.description} — and the line would pay $0. ${
+            ? `${sameDayLines} lines share a date of service. The payer's edit may include one service in another; the remittance would carry ${co236.code} — ${co236.description} — and the line would pay $0. ${
                 anyModifier
                   ? "The modifiers on this claim are the ones you typed; the payer decides whether they apply."
                   : "No modifier has been applied to any line."
@@ -730,10 +730,11 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
   // standard 20% coinsurance. Paid + patient responsibility = allowed.
   const PAYER_FACTOR: Record<string, number> = {
     Medicare: 1.0,
+    "Medicare Part B": 1.0,
     Medicaid: 0.8,
-    "Northwind Health Plan": 1.6,
-    "Cascadia Health Plan": 1.5,
-    "Meridian Health Plan": 1.55,
+    "Northwind State Medicaid": 1.6,
+    "Cascadia Health PPO": 1.5,
+    "Meridian Advantage HMO": 1.55,
     "Ridgeline Health Plan": 1.5,
   };
   const calcPayment = () => {

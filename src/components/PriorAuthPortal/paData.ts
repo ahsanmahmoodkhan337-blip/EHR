@@ -98,6 +98,13 @@ export interface PARecord {
   submittedAt: string;
   /** Status from PA_STATUS_FLOW */
   status: string;
+  /**
+   * The verification the chart recorded for this authorisation, carried through
+   * so the queue prints the record's own proof (`domain/tutorialEncounter.ts`)
+   * rather than running a fresh check on the screen.
+   */
+  verificationStatus?: "not-verified" | "verified" | "failed";
+  verificationResult?: string;
   urgency: "routine" | "urgent" | "emergent";
   assignedTo?: string;
 }

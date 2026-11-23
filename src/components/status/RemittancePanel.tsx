@@ -76,7 +76,13 @@ export function RemittancePanel({ remittance, onPost, className = "" }: Remittan
         </div>
         <div>
           <dt className="text-slate-400">Plan</dt>
-          <dd className="font-semibold text-slate-700">{remittance.planId ?? "no plan on file"}</dd>
+          {/* The plan's name, as the plan table spells it. The internal key
+              (`PLAN-…`) is never printed as if it were a plan. */}
+          <dd className="font-semibold text-slate-700">{remittance.planName || "no plan on file"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-400">Payer ID (N1*PR)</dt>
+          <dd className="font-mono font-semibold text-slate-700">{remittance.payerId || "not on file"}</dd>
         </div>
       </dl>
 
