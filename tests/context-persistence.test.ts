@@ -97,8 +97,13 @@ describe("choosing a patient makes them the one active patient", () => {
       store.indexOf("export function rememberActivePatient"),
       store.indexOf("// ─── Provider"),
     );
-    // The one field the pick changes is saved straight away.
-    expect(pick).toContain("saveUserData(phone, { pipeline: { ...saved, activePatientId: patientId } })");
+    // The one field the pick changes is saved straight away — and the record is
+    // carried forward with the Tutorial Patient's worked example on it when the
+    // chart being opened is that one, so this write never puts a pre-seed
+    // snapshot back over the chart on screen.
+    expect(pick).toContain(
+      "saveUserData(phone, { pipeline: { ...withTutorialSeed(saved), activePatientId: patientId } })",
+    );
     expect(pick).toContain("loadUserData(phone)");
     // A pick is not a note, a code, a claim or money.
     expect(pick).not.toContain("createEncounter");

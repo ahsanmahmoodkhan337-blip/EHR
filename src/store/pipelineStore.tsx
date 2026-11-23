@@ -435,7 +435,44 @@ export function rememberActivePatient(patientId: string | null): void {
   const local = loadUserData(phone);
   const saved = normalizePipelineStore(local?.pipeline, local?.currentRole ?? "scribe");
   if (saved.activePatientId === patientId) return;
-  saveUserData(phone, { pipeline: { ...saved, activePatientId: patientId } });
+  // Carry the record forward as it is about to be saved — with the worked
+  // example on it when the chart being opened is the Tutorial Patient's — so
+  // this write never puts a pre-seed snapshot back over the chart on screen.
+  saveUserData(phone, { pipeline: { ...withTutorialSeed(saved), activePatientId: patientId } });
+}
+
+/**
+ * The record to save, with the Tutorial Patient's worked example applied.
+ *
+ * The seed is written here, on the way to storage, because the screen paints the
+ * example the moment the chart is opened — and a save taken from the state as it
+ * was *before* that open stores a blank chart the student never saw. The same
+ * guards decide: a chart that already holds the seed, or work the student did,
+ * comes back untouched, and the claim number is minted from the student's own
+ * sequence. Nothing is invented.
+ */
+function withTutorialSeed(prev: PipelineStoreState): PipelineStoreState {
+  const key = encounterKey(TUTORIAL_PATIENT_ID);
+  const current = prev.encounters[key];
+  // Nothing pending means nothing to write: the state comes back as it went in,
+  // so a save of a chart the student worked never looks like a change.
+  if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return prev;
+  let patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID);
+  if (!patient) return prev;
+  const at = new Date().toISOString();
+  // The card and the 271 are what the claim's box 1a and the payer's member
+  // match read, so they are written before the example is built — and the
+  // patient is read back afterwards, because box 1a is the member ID just saved.
+  if (tutorialCardPending(patient)) {
+    const ehr = useEhrStore.getState();
+    ehr.updatePatientInsurance(patient.id, tutorialCardFor(patient));
+    ehr.recordEligibility(patient.id, "primary", tutorialEligibilityFor(patient, at));
+    patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? patient;
+  }
+  // One builder for both paths: the same `seedTutorialInto` that the open path
+  // writes with, so a chart saved from here and a chart seeded on open are the
+  // same record.
+  return seedTutorialInto(prev, patient, at);
 }
 
 /**
@@ -522,7 +559,19 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     const phone = getLoggedInPhone();
     if (!phone) return;
     const t = setTimeout(
-      () => saveUserData(phone, { pipeline: store, currentRole: store.currentRole, deniedClaims, arCalls, paRecords }),
+      () =>
+        saveUserData(phone, {
+          // The saved record is the seeded one: the Tutorial Patient's worked
+          // example is applied to the record being written, so the write that
+          // saves a chart is the same write that carries its seed. A snapshot
+          // taken before the seed would save a blank chart the screen was not
+          // showing.
+          pipeline: withTutorialSeed(store),
+          currentRole: store.currentRole,
+          deniedClaims,
+          arCalls,
+          paRecords,
+        }),
       400
     );
     return () => clearTimeout(t);
