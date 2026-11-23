@@ -2565,7 +2565,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
             <CodingQueue medications={editablePatientData.medications} />
           )}
           {currentRole === "biller" && (
-            <BillingLedger openTab={billingTab} />
+            <BillingLedger openTab={billingTab} onOpenPayments={() => openFlowStage("payments")} />
           )}
           {currentRole === "prior-auth" && (
             <PriorAuthPortal />

@@ -116,6 +116,22 @@ interface CodingQueueProps {
   medications?: { id: string; name: string; dosage: string; frequency: string }[];
 }
 
+/**
+ * "1st", "2nd", "3rd", "4th" — the priority label beside a selected ICD-10 code.
+ *
+ * The old inline expression printed "3th" for the third code, and would have
+ * printed "21th" for a twenty-first: a coder reads those labels as the order the
+ * claim reports its diagnoses in (box 21 A, B, C), so the wording has to be right.
+ */
+function ordinal(n: number): string {
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return `${n}th`;
+  if (n % 10 === 1) return `${n}st`;
+  if (n % 10 === 2) return `${n}nd`;
+  if (n % 10 === 3) return `${n}rd`;
+  return `${n}th`;
+}
+
 export function CodingQueue({ medications }: CodingQueueProps) {
   const { state, submitToBilling, setRole, setCodingLinePlaceOfService } = usePipeline();
 
@@ -599,7 +615,7 @@ export function CodingQueue({ medications }: CodingQueueProps) {
                         <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold text-white ${
                           idx === 0 ? "bg-red-400" : idx === 1 ? "bg-amber-400" : "bg-brand-500"
                         }`}>
-                          {idx === 0 ? "1st" : idx === 1 ? "2nd" : `${idx + 1}th`}
+                          {ordinal(idx + 1)}
                         </span>
                         <span className="font-mono font-semibold text-brand-700 shrink-0">{c.code}</span>
                         <span className="flex-1 text-slate-600 truncate">{c.description}</span>

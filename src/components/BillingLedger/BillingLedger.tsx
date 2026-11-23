@@ -82,6 +82,20 @@ const CMS1500_PDF_COLUMNS = CMS1500_LINE_COLUMNS.map((col) => ({
  */
 export interface BillingLedgerProps {
   openTab?: BillingTab;
+  /**
+   * Open the encounter's **Payments (835)** stage.
+   *
+   * The 835 and the ledger live on that stage, not behind a tab on this one
+   * (`postingStage` below), so the claim desk's "Open the 835 and the ledger"
+   * button asks the encounter to move there. Until it did, the button switched a
+   * tab this stage filters out — a control that was present and did nothing.
+   */
+  onOpenPayments?: () => void;
+}
+
+/** "$1,234.50" — the money sentences on this desk, in cents. */
+function money(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
 }
 
 /** A saved claim's service lines, whatever shape an earlier build left them in. */
@@ -141,7 +155,7 @@ function claimSeedKey(input: {
   ].join("~");
 }
 
-export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
+export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = {}) {
   const { state, submitClaim, handleDenial, setRole, paRecords, setClaimForm, setDemoFillMissingBoxes, transmitClaim, adjudicateClaim, postRemittance } = usePipeline();
   const claimForm = state.claimForm;
   const { caseStates, setBillingStatus, setPaStatus, addRoutingNote, addAuditLog, getPatientById } = usePatientStore();
@@ -801,16 +815,26 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
         </div>
       </div>
 
-      {transmitted && !paperOpen ? (
+      {transmitted && !paperOpen && !postingStage ? (
         <div className="flex flex-1 items-center justify-center p-4">
           <div className="max-w-lg rounded-xl border border-brand-200 bg-brand-50 p-6 text-center">
             <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-500" aria-hidden="true" />
             <p className="text-sm font-medium text-brand-700">
               Claim {state.claimNumber ?? ""} transmitted — 277CA {ack?.category ?? "A1"}
             </p>
+            {/* The payer's answer, when there is one. This line used to say
+                "nothing has been paid yet" on every claim that had left draft —
+                beside a header badge reading "Partially paid", on a chart whose
+                835 and ledger were already saved. The copy now follows the money
+                on the record: no 835, no payment; an 835, the payer's own figures. */}
             <p className="mt-1 text-xs text-brand-600">
-              The clearinghouse acknowledged the 837P. Nothing has been paid yet: the payer
-              adjudicates next, and its 835 is what pays, part-pays or denies the claim.
+              {remittance
+                ? `The payer answered: 835 ${remittance.checkOrEftNumber} allowed ${money(
+                    remittance.totals.allowedCents,
+                  )}, paid ${money(remittance.totals.paidCents)} and adjusted ${money(
+                    remittance.totals.writeOffCents,
+                  )}; ${money(remittance.totals.patientRespCents)} is the patient's. The remittance and the ledger are on Payments (835).`
+                : "The clearinghouse acknowledged the 837P. Nothing has been paid yet: the payer adjudicates next, and its 835 is what pays, part-pays or denies the claim."}
             </p>
             {ack && <ClaimAckPanel ack={ack} track="medical" className="mt-3 text-left" />}
             {modifierWarning && (
@@ -830,19 +854,16 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
               <button onClick={() => setPaperOpen(true)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                 Back to Billing
               </button>
-              {/* The 835 is posted on the payments stage, so this desk only offers
-                  it there; on the claim stage the stepper's "Continue to Payments
-                  (835)" carries the student on. */}
-              {postingStage && (
+              {/* The 835 and the ledger are the encounter's next stage, so this
+                  button moves the encounter there. It used to switch a tab this
+                  stage filters out, which is a control that does nothing. */}
+              {remittance && onOpenPayments && (
                 <button
-                  onClick={() => {
-                    setPaperOpen(true);
-                    setActiveTab("remittance");
-                  }}
+                  onClick={onOpenPayments}
                   className="flex min-h-[40px] items-center gap-2 rounded-lg border border-brand-300 px-4 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
                 >
                   <Receipt className="h-4 w-4" aria-hidden="true" />
-                  {remittance ? "Open the 835 and the ledger" : "Adjudicate the claim"}
+                  Open the 835 and the ledger
                 </button>
               )}
               <button
