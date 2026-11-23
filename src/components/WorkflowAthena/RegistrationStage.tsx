@@ -33,7 +33,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { CreditCard, IdCard, CheckCircle2, Star } from "lucide-react";
+import { CreditCard, IdCard, CheckCircle2, Star, Lock } from "lucide-react";
 import { scoreRegistration, updateStageScore, getStudentName } from "../../utils/scoring";
 import { usePatientStore } from "../../store/patientStore";
 import { useEhrStore } from "../../store/ehrStore";
@@ -50,6 +50,7 @@ import {
   registrationIdentityFor,
 } from "../../domain/patientCard";
 import { box11Value, payerIssuesGroupNumber } from "../../domain/claimParties";
+import { scoreTranscription, type TranscriptionScore } from "../../domain/registrationTranscription";
 
 /**
  * Turn the form's MM/DD/YYYY date of birth into the ISO `YYYY-MM-DD` the chart
@@ -76,6 +77,10 @@ import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlySt
 
 /** The reason drawn under Verify, at the point of the click. */
 const VERIFY_REASON = readOnlyNoteId("registration-verify");
+/** The sentence under the locked boxes, so a screen reader lands on it. */
+const READ_CARD_REASON_ID = "registration-read-card-reason";
+/** The same sentence at the top of the locked form, so it is read there too. */
+const READ_CARD_LOCK_ID = "registration-read-card-lock";
 
 interface RegistrationStageProps {
   /** The standard reference chart: a control that would write is disabled and says why. */
@@ -117,6 +122,22 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
   });
   const [submitted, setSubmitted] = useState(false);
   const [savedToChart, setSavedToChart] = useState(false);
+  /**
+   * Has the student read the two documents on screen?
+   *
+   * Registration is a read-then-transcribe exercise, so the identity and
+   * insurance boxes open LOCKED and the student presses "Read the card" to
+   * unlock them. Nothing is revealed by reading — the documents are already in
+   * front of them — so the gate costs the answer key nothing; it only stops a
+   * student transcribing from memory or from the banner instead of the card.
+   *
+   * The Tutorial Patient's chart is the reference and keeps its own behaviour:
+   * `readOnly` there means no gate at all, and the fields stay locked by the
+   * chart itself.
+   */
+  const [cardRead, setCardRead] = useState(false);
+  /** The saved transcription's own count — null until the student saves. */
+  const [transcription, setTranscription] = useState<TranscriptionScore | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   /**
    * No insurance: the patient pays cash. Coverage is then "Self-pay".
@@ -176,6 +197,10 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
       return;
     }
     prefilledFor.current = id;
+    // The read gate and the saved count belong to one patient's chart: opening
+    // the next patient re-locks the form and clears the previous chart's score.
+    setCardRead(false);
+    setTranscription(null);
     const card = registrationCardFor(patient);
     const hasCard = Boolean(card.payerName || card.subscriberId || card.groupNumber || card.payerId);
     // The self-pay decision belongs to the chart, not to the last one opened: a
@@ -241,7 +266,18 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
 
   const [registrationScore, setRegistrationScore] = useState<number | null>(null);
 
+  // A student's chart opens with the identity and insurance boxes locked until
+  // the card has been read. The reference chart (`readOnly`) shows no gate: it
+  // is already read-only, and the owner's rule is that it stays unchanged.
+  const gateLocked = !readOnly && !cardRead;
+
   const handleSubmit = () => {
+    // Locked boxes are not a form to score: pressing Verify before reading the
+    // card says what is missing, and nothing is written or revealed.
+    if (gateLocked) {
+      setErrors({ readCard: "Read the card above before verifying." });
+      return;
+    }
     if (validate()) {
       const score = scoreRegistration(
         {
@@ -301,6 +337,25 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
         );
         setSavedToChart(true);
       }
+
+      // The field count appears only here — after the student has committed
+      // their transcription. Counting as they type would name the wrong box
+      // before they had decided, which is the answer key on a working screen.
+      setTranscription(
+        scoreTranscription(
+          {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            dob: form.dob,
+            payerName: selfPay ? "Self-pay" : form.payerName,
+            subscriberId: form.subscriberId,
+            groupNumber: form.groupNumber,
+            payerId: form.payerId,
+            relationship: form.relationship,
+          },
+          patient,
+        ),
+      );
     }
   };
 
@@ -352,11 +407,66 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
           <p><span className="text-[10px] font-semibold uppercase text-blue-700">Plan</span><br /><span className="font-medium text-slate-800">{onFileOr(card.planName)}</span></p>
           <p><span className="text-[10px] font-semibold uppercase text-blue-700">Relationship</span><br /><span className="font-medium text-slate-800">{onFileOr(card.relationship)}</span></p>
         </div>
+        {/* Read the card, then the count. The two things this panel owes the
+            student: the gate that unlocks the boxes below, and — only after they
+            have saved — how many boxes hold what the documents print. */}
+        {!readOnly && (
+          <div className="mt-3 flex flex-col gap-1.5 border-t border-blue-200 pt-3">
+            {!cardRead ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCardRead(true)}
+                  aria-describedby={READ_CARD_REASON_ID}
+                  className="btn-primary min-h-10 self-start"
+                >
+                  <IdCard className="h-4 w-4" aria-hidden="true" />
+                  Read the card
+                </button>
+                <p id={READ_CARD_REASON_ID} className="text-[11px] text-slate-600">
+                  The identity and insurance boxes below stay locked until you have read both
+                  documents.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="flex items-center gap-1.5 text-[11px] font-medium text-blue-800">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  Card read — transcribe the boxes below.
+                </p>
+                {transcription && (
+                  <p
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700"
+                    aria-live="polite"
+                  >
+                    <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                    {transcription.correct} of {transcription.total} fields transcribed correctly
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ─── Transcription Form ─── */}
       <div className="clinical-card">
         <h4 className="mb-3 text-sm font-semibold text-slate-700">Transcribe Patient Information</h4>
+        {/* The read gate: every box below, and Verify with them, is locked until
+            the card above has been read. The sentence naming the reason sits
+            directly above the dead boxes (standing rule 9 / the dead-control
+            rule), and the control that unlocks them is the one button on the
+            card panel, still pressable. */}
+        {gateLocked && (
+          <p id={READ_CARD_LOCK_ID} className="mb-3 text-[11px] text-slate-600">
+            These boxes are locked — press “Read the card” above to unlock them.
+          </p>
+        )}
+        <fieldset
+          disabled={gateLocked}
+          aria-describedby={gateLocked ? READ_CARD_LOCK_ID : undefined}
+          className="m-0 min-w-0 border-0 p-0"
+        >
         {/* Offered only to a patient whose own card names no payer: a chart that
             holds Medicare Part B is never recorded as self-pay (owner rule). */}
         {!cardNamesPayer && (
@@ -483,6 +593,7 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
           )}
         </fieldset>
         )}
+        </fieldset>
         <div className="mt-4 flex flex-col items-end">
           <button
             onClick={handleSubmit}
@@ -491,6 +602,12 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
           >
             {isComplete ? "Re-verify" : "Verify Identity & Insurance"}
           </button>
+          {/* Verify stays pressable while the boxes are locked — a dead button is
+              the bug — and pressing it says what is missing instead of scoring
+              an empty form. */}
+          {errors.readCard && (
+            <p className="mt-1 text-[10px] text-red-500">{errors.readCard}</p>
+          )}
           <ReadOnlyNote readOnly={readOnly} id={VERIFY_REASON} className="max-w-md text-right" />
         </div>
         {isComplete && (
