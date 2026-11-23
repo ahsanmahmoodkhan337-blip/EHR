@@ -39,6 +39,7 @@
  */
 
 import { TUTORIAL_PATIENT_ID } from "./tutorialIdentity";
+import { box11Value } from "./claimParties";
 
 /** What every screen prints when the selected patient has no card on file. */
 export const NOT_ON_FILE = "Not on file";
@@ -412,12 +413,37 @@ export function registrationCardFor(patient: CardHolder | null | undefined): {
   return {
     payerName: card.payerName,
     subscriberId: card.memberId,
-    groupNumber: card.groupNumber,
+    // A payer that issues no group number (original Medicare) prints `N/A`, the
+    // same word box 11 uses — otherwise a Medicare chart could only be verified
+    // by inventing one (`specs/blank-field-sweep.md` §A).
+    groupNumber: box11Value(card.groupNumber, card.payerName),
     payerId: card.payerId,
     relationship: card.relationship || "Self",
     secondaryPayerName: (secondary?.payerName ?? "").trim(),
     secondaryPayerId: (secondary?.ediPayerId ?? "").trim(),
     secondarySubscriberId: (secondary?.subscriberId ?? "").trim(),
     secondaryGroupNumber: (secondary?.groupNumber ?? "").trim(),
+  };
+}
+
+/**
+ * The identity half of Registration's transcription form: the name and date of
+ * birth the chart already holds.
+ *
+ * Read from the patient, never from the insurance card — the government ID's
+ * spelling is the one that wins, and the card's own member name is this case's
+ * deliberate misspelling. The date is MM/DD/YYYY, the form's format. A chart with
+ * no name prints blanks rather than borrowing the previous patient's.
+ */
+export function registrationIdentityFor(patient: CardHolder | null | undefined): {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+} {
+  const card = patientCard(patient);
+  return {
+    firstName: (patient?.firstName ?? "").trim(),
+    lastName: (patient?.lastName ?? "").trim(),
+    dateOfBirth: card.dateOfBirth,
   };
 }

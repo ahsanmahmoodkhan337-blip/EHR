@@ -1,5 +1,5 @@
 /**
- * tutorialClaim.ts — the Tutorial Patient's money half (seed version tutorial-5)
+ * tutorialClaim.ts — the Tutorial Patient's money half (seed version tutorial-6)
  *
  * Inspired by: the worked example a billing instructor hands out — the same
  * patient, the same encounter, carried past the code into a claim that is
@@ -47,7 +47,7 @@
  */
 
 import type { Patient } from "../store/patientStore";
-import type { PipelineEncounter } from "../store/pipelineEncounter";
+import type { ClaimFormData, PipelineEncounter } from "../store/pipelineEncounter";
 import { buildClaimForm } from "../utils/claimAutoFill";
 import type { ClaimStatus } from "./claimStatus";
 import { priorAuthForClaim } from "./priorAuthNumber";
@@ -98,6 +98,26 @@ const DRAFT_REASON =
   "The claim was built from this encounter's coded lines and the patient's own coverage card. " +
   "Every box is filled; nothing has been transmitted. Press Submit to send it to the clearinghouse.";
 
+/** DTP01 for "onset of current illness / symptom / injury" — box 15's qualifier. */
+const ONSET_QUALIFIER = "431";
+
+/**
+ * Box 15 — the other date and its qualifier, from the note's own onset.
+ *
+ * The HPI in this chart's note documents when the illness started ("about two
+ * hours before this visit"), so the qualifier is 431 and the date is the visit's
+ * date of service. `buildClaimForm` leaves the pair blank because no structured
+ * field holds an onset — a blank box 15 on the reference chart was the gap
+ * `specs/blank-field-sweep.md` §B names.
+ */
+function withOnsetBox(claimForm: ClaimFormData): ClaimFormData {
+  const dos = (claimForm.serviceLines ?? [])
+    .map((line) => String(line.dateOfService ?? ""))
+    .find((date) => /^\d{4}-\d{2}-\d{2}$/.test(date));
+  if (!dos) return claimForm;
+  return { ...claimForm, similarIllnessQualifier: ONSET_QUALIFIER, similarIllnessDate: dos };
+}
+
 /**
  * The Tutorial Patient's encounter with the claim filled in as a draft.
  *
@@ -128,14 +148,16 @@ export function applyTutorialMoneySeed(
   // 24J. `demoFillMissingBoxes` is on for the reference chart, so a box the chart
   // genuinely cannot supply (the patient's own signature in box 12, a payer that
   // issues no group number in box 11) still prints rather than sitting blank.
-  const claimForm = buildClaimForm({
-    patient,
-    displayName: encounter.displayName,
-    pipeline: { ...encounter, demoFillMissingBoxes: true },
-    paNumber: priorAuthForClaim({ paData: encounter.paData, cptCodes: encounter.cptCodes }) || undefined,
-    encounterDate: encounter.codingLines[0]?.dateOfService,
-    placeOfService: encounter.codingLines[0]?.placeOfService,
-  });
+  const claimForm = withOnsetBox(
+    buildClaimForm({
+      patient,
+      displayName: encounter.displayName,
+      pipeline: { ...encounter, demoFillMissingBoxes: true },
+      paNumber: priorAuthForClaim({ paData: encounter.paData, cptCodes: encounter.cptCodes }) || undefined,
+      encounterDate: encounter.codingLines[0]?.dateOfService,
+      placeOfService: encounter.codingLines[0]?.placeOfService,
+    }),
+  );
   // A claim with no line on it is not a filled claim: leave the record alone
   // rather than hand the student an empty paper to submit.
   const billable = claimForm.serviceLines.filter((line) => (line.cpt ?? "").trim() !== "");

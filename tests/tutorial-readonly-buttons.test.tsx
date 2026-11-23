@@ -451,7 +451,7 @@ describe("the Submit path sends the claim rather than refusing silently", () => 
 
     // ── The draft the student is handed ────────────────────────────
     const draft = pipeline?.getEncounter("DEMO");
-    expect(draft?.tutorialSeed).toBe("tutorial-5");
+    expect(draft?.tutorialSeed).toBe("tutorial-6");
     expect(draft?.claimNumber).toBeTruthy();
     expect(draft?.claimStatus).toBe("draft");
     expect(draft?.remittances).toHaveLength(0);

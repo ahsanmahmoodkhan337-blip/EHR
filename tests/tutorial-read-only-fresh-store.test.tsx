@@ -1,5 +1,5 @@
 /**
- * A fresh store still seeds the Tutorial Patient to `tutorial-5`.
+ * A fresh store still seeds the Tutorial Patient to `tutorial-6`.
  *
  * Spec `specs/tutorial-patient-prefill.md` § C2, third regression test. § C also
  * says the seed is not a student write — the read-only guard must let the worked
@@ -17,8 +17,9 @@
  * constant — a bump of the constant must not let a seed that stopped upgrading
  * pass this test. The literal moved from `tutorial-4` to `tutorial-5` when the
  * claim half changed from "already sent" to "filled draft, the student presses
- * Submit" (owner, 2026-11-23): that bump is the deliberate act this literal
- * exists to make visible.
+ * Submit" (owner, 2026-11-23), and to `tutorial-6` when the draft stopped having
+ * a blank box on it (`specs/blank-field-sweep.md`): each bump is the deliberate
+ * act this literal exists to make visible.
  *
  * Inspiration: Epic's Playground patient — open the training chart for the first
  * time and the whole worked example is already in it.
@@ -124,7 +125,7 @@ beforeEach(() => {
 });
 
 describe("a fresh store", () => {
-  test("seeds the Tutorial Patient to tutorial-5, whole, on the first open", async () => {
+  test("seeds the Tutorial Patient to tutorial-6, whole, on the first open", async () => {
     const screen = await mount();
     // Nothing on the chart before it is opened.
     expect(pipeline?.getEncounter("DEMO")).toBeUndefined();
@@ -133,7 +134,7 @@ describe("a fresh store", () => {
     const draft = pipeline?.getEncounter("DEMO");
 
     // The version the seed upgrades to, as a literal.
-    expect(draft?.tutorialSeed).toBe("tutorial-5");
+    expect(draft?.tutorialSeed).toBe("tutorial-6");
     // The claim half: a claim number minted by the store's own sequence (never a
     // blank or invented one) and the paper filled from the chart — and nothing
     // sent, priced or posted until the student presses Submit.
@@ -170,7 +171,7 @@ describe("a fresh store", () => {
     // Let the store write itself, then read the record back the way a reload does.
     await screen.settle();
     const saved = loadUserData(PHONE)?.pipeline?.encounters?.DEMO;
-    expect(saved?.tutorialSeed).toBe("tutorial-5");
+    expect(saved?.tutorialSeed).toBe("tutorial-6");
     expect(saved?.claimNumber).toBe(enc!.claimNumber);
     expect(saved?.claimStatus).toBe("partially_paid");
     expect(saved?.remittances[0]?.postedAt).toBeTruthy();

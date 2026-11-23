@@ -71,6 +71,13 @@ export const DEMO_CLAIM_DATA: Record<string, DemoClaimValue> = {};
  *
  * The provenance is printed in the claim's own grey strip (`ClaimFormShell`), so
  * the student sees the stage without a value ever being printed on the paper.
+ *
+ * Owner, 2026-11-23 (`specs/blank-field-sweep.md` §B, §E): a box that no stage
+ * will ever fill says so instead of naming a stage that has no field — 16, 17,
+ * 17b and 19 read "Not applicable", and 17a and 11b, which have a field on the
+ * paper and no capture anywhere, read "Undetermined". Boxes 9 and 9c no longer
+ * reach this list on a one-payer chart: they print `N/A`, and box 15 is filled
+ * from the note's own onset.
  */
 export const UNFILLED_BOX_SOURCES: Record<string, DemoClaimValue> = {
   insuredId: {
@@ -87,6 +94,13 @@ export const UNFILLED_BOX_SOURCES: Record<string, DemoClaimValue> = {
     box: "11",
     value: "",
     stage: "Registration & eligibility (the group number on the coverage record)",
+  },
+  otherClaimId: {
+    box: "11b",
+    value: "",
+    // Box 11b has a field on the paper and no stage captures it; box 11d beside
+    // it says there is no other benefit plan, so nothing belongs here.
+    stage: "Undetermined — no stage captures an other claim ID (box 11d says there is no other benefit plan)",
   },
   insuredPlanName: {
     box: "11c",
@@ -108,7 +122,10 @@ export const UNFILLED_BOX_SOURCES: Record<string, DemoClaimValue> = {
   additionalInfo: {
     box: "19",
     value: "",
-    stage: "Scribe / provider (additional claim information)",
+    // Owner, 2026-11-23: no blank field, but no invented one either. Box 19 is
+    // paper-only and nothing in this chart writes a note to the payer, so it
+    // states that rather than naming a stage that has no field.
+    stage: "Not applicable — the note carries no additional claim information for box 19 (paper-only)",
   },
   insuredEmployer: {
     box: "9c",
@@ -118,22 +135,29 @@ export const UNFILLED_BOX_SOURCES: Record<string, DemoClaimValue> = {
   unableToWorkFrom: {
     box: "16",
     value: "",
-    stage: "Scribe / provider (the dates the patient was unable to work)",
+    stage: "Not applicable — the chart captures no work status, so box 16 has no source (paper-only)",
   },
   unableToWorkTo: {
     box: "16",
     value: "",
-    stage: "Scribe / provider (the dates the patient was unable to work)",
+    stage: "Not applicable — the chart captures no work status, so box 16 has no source (paper-only)",
   },
   referringProvider: {
     box: "17",
     value: "",
-    stage: "Registration / front desk (the referring provider's name)",
+    stage: "Not applicable — no referring provider: this visit was not a referral (the chart holds a referral out, not in)",
+  },
+  referringOtherId: {
+    box: "17a",
+    value: "",
+    // Undetermined rather than N/A: box 17a has a field on the paper and no
+    // stage in this app captures a second identifier for a referring provider.
+    stage: "Undetermined — no stage captures an other ID for a referring provider (box 17 has none)",
   },
   referringNpi: {
     box: "17b",
     value: "",
-    stage: "Registration / front desk (the referring provider's NPI)",
+    stage: "Not applicable — follows box 17; never back-filled from the billing provider's NPI",
   },
   priorAuthNumber: {
     box: "23",

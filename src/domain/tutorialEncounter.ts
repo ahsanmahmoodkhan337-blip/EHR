@@ -80,7 +80,7 @@ export const TUTORIAL_CLINICAL_SEED_VERSION = "tutorial-3";
  * receive — a changed seed re-fills a chart a student may have worked, so it is a
  * deliberate act, not a side effect of a rebuild.
  */
-export const TUTORIAL_SEED_VERSION = "tutorial-5";
+export const TUTORIAL_SEED_VERSION = "tutorial-6";
 
 /**
  * Every version a saved `tutorialSeed` may carry, oldest first, with what that
@@ -110,6 +110,11 @@ const SEED_VERSION_LADDER: { version: string; clinical: number; money: boolean; 
   { version: "tutorial-4", clinical: 2, money: true, claim: 1 },
   // The claim opens as a filled draft; the student's Submit is what sends it.
   { version: "tutorial-5", clinical: 2, money: true, claim: 2 },
+  // The draft with no blank box on it: 9 / 9c print N/A, 15 carries the note's
+  // onset, 14 is the encounter's date of service and 31 is the note's signature
+  // date (`specs/blank-field-sweep.md`). An older draft is rebuilt from the chart
+  // in the same write, so an existing browser heals instead of keeping the blanks.
+  { version: "tutorial-6", clinical: 2, money: true, claim: 3 },
 ];
 
 /** The note revision this build writes — the clinical half's own version. */

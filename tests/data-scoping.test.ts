@@ -236,7 +236,7 @@ describe("CLM-000004 and CLM-000005 are flagged demo orphans", () => {
 // ─── 4. The coded charge arrives in the claim ──────────────────────
 
 describe("charge, units, place of service and modifiers carry from Coding into the claim", () => {
-  test("an empty box 24 takes the coder's lines and box 28 sums them", () => {
+  test("an empty box 24 takes the coder's lines and box 28 sums 24F × 24G", () => {
     const form = emptyClaim();
     const result = carryCodingIntoClaim(form, [coderLine()]);
     expect(result.changed).toBe(true);
@@ -249,7 +249,9 @@ describe("charge, units, place of service and modifiers carry from Coding into t
     expect(line.placeOfService).toBe("11"); // 24B
     expect(line.modifiers).toEqual(["25"]); // 24D
     expect(line.idQualifier).toBe("XX");  // 24I — 24J is an NPI
-    expect(result.form.totalCharge).toBe(145); // 28
+    // 28 = 24F × 24G: 145.00 for each of the 2 units (owner, 2026-11-23 —
+    // `specs/blank-field-sweep.md` §D; Coding shows "$145 × 2 = $290").
+    expect(result.form.totalCharge).toBe(290); // 28
   });
 
   test("the CLM-000006 case: a claim opened before Coding finished picks the charge up", () => {
@@ -260,7 +262,8 @@ describe("charge, units, place of service and modifiers carry from Coding into t
     expect(result.form.serviceLines[0].charge).toBe(145);
     expect(result.form.serviceLines[0].units).toBe(2);
     expect(result.form.serviceLines[0].modifiers).toEqual(["25"]);
-    expect(result.form.totalCharge).toBe(145);
+    // 28 = 24F × 24G, the same arithmetic as the first case.
+    expect(result.form.totalCharge).toBe(290);
     // And the Claims list no longer reads "no charge coded yet" for it.
     const enc = encounterWith("MPT-2001", {
       claimNumber: "CLM-000006",
@@ -268,8 +271,9 @@ describe("charge, units, place of service and modifiers carry from Coding into t
       codingLines: [coderLine()],
     });
     const row = buildClaimRows({ encounters: [enc], nameForPatient }).find((r) => r.claimNumber === "CLM-000006")!;
-    expect(row.billedCents).toBe(14500);
-    expect(row.fields.find((f) => f.label === "Billed")!.value).toBe("$145.00");
+    // The Claims list reads box 28, which is 24F × 24G: 2 units at $145.00.
+    expect(row.billedCents).toBe(29000);
+    expect(row.fields.find((f) => f.label === "Billed")!.value).toBe("$290.00");
   });
 
   test("a value the student typed on the claim is never overwritten", () => {

@@ -186,11 +186,20 @@ export function validateCMS1500(form: ClaimFormData, context: ValidationContext 
     err("25", "Box 25: an EIN must be in XX-XXXXXXX form.");
   }
 
-  const lineTotal = lines.reduce((sum, l) => sum + money(l.charge), 0);
+  // Box 28 is the sum of box 24F times box 24G. The paper prints a per-unit
+  // charge in 24F and the units in 24G, so 3 units at $100 is $300 — a check
+  // that summed the bare charge could never catch a total that ignored units.
+  const lineTotal = lines.reduce(
+    (sum, l) => sum + money(l.charge) * (Number.isFinite(l.units) && l.units > 0 ? l.units : 1),
+    0,
+  );
   if (money(form.totalCharge) <= 0) {
     err("28", "Box 28: total charge must be greater than zero.");
   } else if (lines.length > 0 && !near(money(form.totalCharge), lineTotal)) {
-    err("28", `Box 28: total charge (${money(form.totalCharge).toFixed(2)}) must equal the sum of box 24F (${lineTotal.toFixed(2)}).`);
+    err(
+      "28",
+      `Box 28: total charge (${money(form.totalCharge).toFixed(2)}) must equal the sum of box 24F × 24G (${lineTotal.toFixed(2)}).`,
+    );
   }
 
   if (blank(form.providerSignature)) err("31", "Box 31: provider signature is required.");

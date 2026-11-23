@@ -312,7 +312,7 @@ describe("a student write to the standard chart is refused where it happens", ()
     });
 
     const draft = pipeline?.getEncounter("DEMO");
-    expect(draft?.tutorialSeed).toBe("tutorial-5");
+    expect(draft?.tutorialSeed).toBe("tutorial-6");
     expect(draft?.claimNumber).toBeTruthy();
     // The claim opens filled and unsent — the student's own Submit is the one
     // write the reference chart allows (owner, 2026-11-23).
@@ -379,7 +379,7 @@ describe("a student write to the standard chart is refused where it happens", ()
     const now = pipeline?.getEncounter("DEMO");
     expect(now?.claimNumber).toBe(seeded!.claimNumber);
     expect(now?.scribeNote).toBe(seeded!.scribeNote);
-    expect(now?.tutorialSeed).toBe("tutorial-5");
+    expect(now?.tutorialSeed).toBe("tutorial-6");
     expect(now?.icdCodes).toEqual(seeded!.icdCodes);
     expect(now?.codingLines).toEqual(seeded!.codingLines);
     expect(now?.remittances).toHaveLength(1);
