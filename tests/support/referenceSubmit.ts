@@ -34,7 +34,7 @@ import { adjudicateClaim, planForPayerName } from "../../src/domain/adjudication
 import { buildSubmissionEvents } from "../../src/domain/clearinghouse";
 import { appendLedgerEntries, postRemittanceToLedger } from "../../src/domain/ledger";
 import { claimStatusForRemittance } from "../../src/domain/claimStatus";
-import { withClaimSubmit } from "../../src/domain/tutorialReadOnly";
+import { withClaimSubmit, withMoneyStep } from "../../src/domain/tutorialReadOnly";
 
 /** The claim's billable lines, read the way the paper's Submit reads them. */
 function billableLines(form: Record<string, unknown> | null | undefined) {
@@ -210,13 +210,17 @@ export function pressSubmitOnReferenceClaim(
 /**
  * Step 2 at the store layer: the Payments stage's **Adjudicate this claim** and
  * the posting of the 835 it returns — the student's own second decision.
+ *
+ * Both are forward steps, not edits, so they run inside `withMoneyStep` — the
+ * same call-scoped window `components/BillingLedger` opens around its own two
+ * presses (`domain/tutorialReadOnly.ts`).
  */
 export function pressAdjudicateOnReferenceClaim(
   store: ReferenceClaimStore,
   patientId = "DEMO",
 ): void {
   const facts = claimFacts(store, patientId);
-  withClaimSubmit(() => {
+  withMoneyStep(() => {
     store.adjudicateClaim({ payerName: facts.payerName });
     store.postRemittance();
   });

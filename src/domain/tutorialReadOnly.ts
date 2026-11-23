@@ -90,6 +90,44 @@ export function isClaimSubmit(): boolean {
   return claimSubmitDepth > 0;
 }
 
+// ─── The forward money steps: adjudicate, then post the 835 ───────
+//
+// Owner's ruling, 2026-11-23 — the reference chart is *filled, not finished*:
+// every section opens filled and the actions stay the student's. Submit was the
+// first of those actions; the Payments (835) stage then promised *"press
+// Adjudicate this claim here"* and offered no control that worked, so the chart
+// dead-ended at the 277CA and Denials & AR never filled.
+//
+// Adjudication and posting are **forward** steps, not edits: they add the payer's
+// 835, the ledger entries and the AR row to a chart whose content is already
+// written, and they cannot change a box, a note or a code. They are therefore
+// let through the lock the same way Submit is — a call-scoped window, not a flag
+// — and the stores still refuse them until the claim is accepted and the 835
+// exists, so pressing them before Submit changes nothing.
+
+let moneyStepDepth = 0;
+
+/**
+ * Run one of the student's forward money steps on the reference chart.
+ *
+ * Every write inside the call is allowed through: adjudicating the claim and
+ * posting its 835 are actions the person learning takes, not the seed filling
+ * the chart.
+ */
+export function withMoneyStep<T>(fn: () => T): T {
+  moneyStepDepth += 1;
+  try {
+    return fn();
+  } finally {
+    moneyStepDepth -= 1;
+  }
+}
+
+/** True while the student's own adjudication or posting is writing. */
+export function isMoneyStep(): boolean {
+  return moneyStepDepth > 0;
+}
+
 // ─── The refusal, said out loud ────────────────────────────────────
 //
 // A refused write must say why. The message lives here rather than in a store
@@ -136,9 +174,10 @@ export function refuseStudentWrite(
   what: string,
 ): boolean {
   if (!isTutorialChart(patientId)) return false;
-  // The seed fills the chart; the student's own Submit is the one action the
+  // The seed fills the chart; the student's own Submit and the forward money
+  // steps that follow it (adjudicate, post the 835) are the actions the
   // reference chart exists to let them take.
-  if (isSeedWrite() || isClaimSubmit()) return false;
+  if (isSeedWrite() || isClaimSubmit() || isMoneyStep()) return false;
   publish(refusalSentence(what));
   return true;
 }

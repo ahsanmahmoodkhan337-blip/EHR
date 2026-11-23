@@ -61,7 +61,7 @@ import {
   TUTORIAL_PATIENT_ID,
   type TutorialPatientSource,
 } from "../domain/tutorialEncounter";
-import { isClaimSubmit, isSeedWrite, refuseStudentWrite, withSeedWrite } from "../domain/tutorialReadOnly";
+import { isClaimSubmit, isMoneyStep, isSeedWrite, refuseStudentWrite, withSeedWrite } from "../domain/tutorialReadOnly";
 import { selectPatientById, useEhrStore } from "./ehrStore";
 import { applyTutorialMoneySeed, tutorialMoneyPending } from "../domain/tutorialClaim";
 import { applyCodingPlaceOfService, hasLineForCpt } from "../domain/codingPlaceOfService";
@@ -681,7 +681,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     // inside the updater, the student's own Submit looked like an ordinary
     // student write and the backstop below dropped the 837P, the 835 and the
     // posting — a button that reported success and changed nothing.
-    const provenanced = isSeedWrite() || isClaimSubmit();
+    const provenanced = isSeedWrite() || isClaimSubmit() || isMoneyStep();
     setStore((prev) => {
       const next = update(prev);
       if (next === prev) return prev;
