@@ -17,6 +17,7 @@
  * write lands in the same block, so a control that still reached the store (a
  * click handler on a row rather than a form control) says what happened.
  */
+import { Link } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import { TUTORIAL_READ_ONLY_LINE, useTutorialRefusal } from "../../domain/tutorialReadOnly";
 
@@ -33,6 +34,12 @@ export function TutorialReadOnlyNotice() {
     >
       <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
       <span className="font-medium">{TUTORIAL_READ_ONLY_LINE}</span>
+      <Link
+        to="/schedule"
+        className="rounded font-semibold text-brand-700 underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:text-brand-300"
+      >
+        Go to Schedule
+      </Link>
       {refusal && (
         <span className="basis-full font-medium text-amber-700 dark:text-amber-400" data-testid="tutorial-refusal">
           {refusal}
