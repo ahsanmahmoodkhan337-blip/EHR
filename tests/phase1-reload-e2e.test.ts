@@ -331,7 +331,10 @@ describe("phase 1 — the stepper is the record's, not the screen's", () => {
     expect(BILLING).toContain(
       'const transmitted = state.claimStatus !== null && state.claimStatus !== "draft";',
     );
-    expect(BILLING).toContain("{transmitted && !paperOpen ? (");
+    // The claim header is drawn on the claim stage only: the posting stage
+    // (openTab === "remittance", from the stepper's route) puts the 835 in front
+    // of the student instead. Both flags come from the route, never local memory.
+    expect(BILLING).toContain("{transmitted && !paperOpen && !postingStage ? (");
     expect(BILLING).not.toContain("setSubmitted");
   });
 });
