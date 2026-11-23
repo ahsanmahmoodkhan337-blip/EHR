@@ -16,6 +16,8 @@
  *    store write off the render path.
  */
 
+import { READ_ONLY_REASON_ID } from "../shell/ReadOnlyStage";
+import { READ_ONLY_REASON } from "../../domain/tutorialReadOnly";
 import { useId } from "react";
 import { CheckCircle2, FileText, Landmark } from "lucide-react";
 import {
@@ -39,10 +41,15 @@ export interface RemittancePanelProps {
   remittance: Remittance835;
   /** Post this 835 to the patient ledger. Called from a click, never a render. */
   onPost: () => void;
+  /**
+   * The standard reference chart: posting is a write, so the button is disabled
+   * and says why rather than accepting the click and dropping it.
+   */
+  readOnly?: boolean;
   className?: string;
 }
 
-export function RemittancePanel({ remittance, onPost, className = "" }: RemittancePanelProps) {
+export function RemittancePanel({ remittance, onPost, readOnly = false, className = "" }: RemittancePanelProps) {
   const headingId = useId();
   const posted = Boolean(remittance.postedAt);
   const { totals } = remittance;
@@ -202,7 +209,9 @@ export function RemittancePanel({ remittance, onPost, className = "" }: Remittan
           <button
             type="button"
             onClick={onPost}
-            disabled={unbalanced.length > 0}
+            disabled={readOnly || unbalanced.length > 0}
+            title={readOnly ? READ_ONLY_REASON : undefined}
+            aria-describedby={readOnly ? READ_ONLY_REASON_ID : undefined}
             aria-label={`Post 835 ${remittance.checkOrEftNumber} to the patient ledger`}
             className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-emerald-700 px-3 text-[11px] font-semibold text-white hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:opacity-40"
           >

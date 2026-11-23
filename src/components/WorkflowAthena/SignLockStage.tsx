@@ -11,17 +11,21 @@
 import { Lock, Shield, AlertTriangle, CheckCircle2, Loader2, FileDown } from "lucide-react";
 import type { SoapNoteData } from "./AssessmentPlanStage";
 import { exportSOAPNotePDF } from "../../utils/pdfExport";
+import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
 
 interface SignLockStageProps {
   patientName?: string;
   note?: SoapNoteData;
   onSignAndLock?: () => void;
   isSubmitting?: boolean;
+  /** The standard reference chart: signing is a write, so it is disabled and says why. */
+  readOnly?: boolean;
 }
 
-export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting }: SignLockStageProps) {
+export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, readOnly = false }: SignLockStageProps) {
   return (
     <div className="flex flex-col gap-4">
+      {readOnly && <ReadOnlyReason />}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-slate-800">Sign & Lock Note</h3>
@@ -85,6 +89,7 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting }
         <div className="mt-4 flex items-center justify-center gap-3">
           <button
             onClick={onSignAndLock}
+            {...readOnlyAttrs(readOnly)}
             disabled={isSubmitting}
             className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
               isSubmitting

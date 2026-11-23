@@ -111,3 +111,45 @@ export function refuseStudentWrite(
 export function useTutorialRefusal(): string | null {
   return useSyncExternalStore(subscribeTutorialRefusal, tutorialRefusal, tutorialRefusal);
 }
+
+// ─── One signal the screens share ──────────────────────────────────
+//
+// The lead's root-cause note (2026-11-23): the guard reached the stores but no
+// stage component, so every write control on the Tutorial Patient rendered live
+// and its refusal was invisible — Submit looked clickable and did nothing.
+//
+// `useReadOnlyChart` is the one signal. A stage takes it from the chart it is
+// working on (or from the route, which passes the same value), disables every
+// control that would write, prints `READ_ONLY_REASON` beside it, and its
+// handlers call `useReadOnlyGuard` so a click that still gets through says the
+// same sentence out loud instead of vanishing.
+
+/** Why a write control on the standard chart cannot act — one sentence. */
+export const READ_ONLY_REASON =
+  "This is the standard reference chart and cannot be changed. Book a New Appointment or open a Practice Case to practise.";
+
+/** True when this chart refuses the student's writes. */
+export function useReadOnlyChart(patientId: string | null | undefined): boolean {
+  return isTutorialChart(patientId);
+}
+
+/** Say the refusal out loud, for a handler that was reached anyway. */
+export function refuseReadOnly(what: string): true {
+  publish(refusalSentence(what));
+  return true;
+}
+
+/**
+ * A stage handler's first line.
+ *
+ *   const guard = useReadOnlyGuard(patientId);
+ *   const submit = () => { if (guard("The claim")) return; … };
+ *
+ * Returns `true` when the write was refused, so the caller stops there.
+ */
+export function useReadOnlyGuard(
+  patientId: string | null | undefined,
+): (what: string) => boolean {
+  const readOnly = useReadOnlyChart(patientId);
+  return (what: string) => (readOnly ? refuseReadOnly(what) : false);
+}

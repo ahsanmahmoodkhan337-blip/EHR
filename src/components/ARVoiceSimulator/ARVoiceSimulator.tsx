@@ -39,10 +39,22 @@ import {
 } from "./arData";
 import { AccentPractice } from "./AccentPractice";
 import { CARC_CODES } from "../../data/claims/carc";
+import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { refuseReadOnly } from "../../domain/tutorialReadOnly";
 
 type TabView = "ledger" | "calls" | "scripts" | "appeals" | "scenarios" | "carriers";
 
-export default function ARVoiceSimulator() {
+export interface ARVoiceSimulatorProps {
+  /**
+   * The Tutorial Patient's chart is the standard reference and cannot be
+   * changed. Logging a call writes to the store, so the button is disabled and
+   * says why rather than accepting the click and dropping it (owner report,
+   * 2026-11-23: a click that does nothing reads as a broken button).
+   */
+  readOnly?: boolean;
+}
+
+export default function ARVoiceSimulator({ readOnly = false }: ARVoiceSimulatorProps = {}) {
   const pipeline = usePipeline();
   const {
     arWorkItems,
@@ -206,6 +218,11 @@ export default function ARVoiceSimulator() {
 
   // ─── Handlers ────────────────────────────────────────────────────
   const handleLogCall = (claim: DeniedClaim, outcome: ARCallRecord["outcome"]) => {
+    // A call record is a write. The standard chart refuses it, and says so.
+    if (readOnly) {
+      refuseReadOnly("The AR call record");
+      return;
+    }
     const record: ARCallRecord = {
       id: `call-${Date.now()}`,
       claimId: claim.id,
@@ -273,6 +290,14 @@ export default function ARVoiceSimulator() {
           {accentMode ? "Accent Practice ON" : "Accent Practice OFF"}
         </button>
       </div>
+
+      {/* The standard chart's write controls say why they cannot act, where the
+          student would click. */}
+      {readOnly && (
+        <div className="border-b border-slate-200 bg-white px-4 py-2">
+          <ReadOnlyReason />
+        </div>
+      )}
 
       {/* ── Sub-tabs ── */}
       <div className="flex overflow-x-auto border-b border-slate-200 bg-slate-50 px-2 gap-0.5">
@@ -478,7 +503,9 @@ export default function ARVoiceSimulator() {
                             <button
                               key={outcome}
                               onClick={() => handleLogCall(claim, outcome as ARCallRecord["outcome"])}
-                              className="flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[9px] font-medium text-slate-600 hover:bg-slate-50"
+                              aria-label={`Log call outcome ${outcome.replace(/-/g, " ")} for claim ${claim.id.slice(-8)}`}
+                              className="flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[9px] font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                              {...readOnlyAttrs(readOnly)}
                             >
                               <Phone className="h-2.5 w-2.5" />
                               {outcome.replace(/-/g, " ")}

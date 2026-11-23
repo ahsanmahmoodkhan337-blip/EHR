@@ -6,6 +6,7 @@
 // Inspired by: CoverMyMeds + Epic PA Hub
 // ──────────────────────────────────────────────────────────────────────
 
+import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
 import { useState, useMemo, useEffect } from "react";
 import {
   Shield,
@@ -101,7 +102,7 @@ const PAYER_REQUIREMENTS: Record<string, { label: string; requirements: string[]
 
 // Document attachment simulation
 
-export default function PriorAuthPortal() {
+export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boolean }) {
   const { state, submitPA, addPARecord, setRole, paRecords } = usePipeline();
   const { getPatientById } = usePatientStore();
 
@@ -386,8 +387,9 @@ export default function PriorAuthPortal() {
     );
   }
 
+  const readOnlyBanner = readOnly ? <ReadOnlyReason className="mb-2" /> : null;
   return (
-    <div className="flex flex-1 flex-col h-full">
+    <div className="flex flex-1 flex-col h-full">{readOnlyBanner}
       {/* ── CoverMyMeds-style Header ── */}
       <div className={`flex flex-wrap items-center gap-2 px-4 py-2.5 border-b ${CMM_BORDER} bg-white`}>
         <Shield className="h-4 w-4 text-brand-800" />
@@ -1106,6 +1108,7 @@ export default function PriorAuthPortal() {
                   onClick={handleSubmit}
                   disabled={!procedure || Boolean(paScope)}
                   aria-label={paScope ? `${paScope.message} ${paScope.nextStep}` : undefined}
+                  {...readOnlyAttrs(readOnly)}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium text-white transition-colors ${
                     procedure && !paScope
                       ? `${CMM_PRIMARY} ${CMM_PRIMARY_HOVER}`

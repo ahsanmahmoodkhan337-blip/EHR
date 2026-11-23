@@ -34,6 +34,8 @@ import {
 } from "../../domain/arWorkQueue";
 import { CARC_BY_CODE } from "../../data/claims/carc";
 import { usePipeline } from "../../store/pipelineStore";
+import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { refuseReadOnly } from "../../domain/tutorialReadOnly";
 
 function money(cents: number): string {
   return `$${(Math.abs(cents) / 100).toFixed(2)}`;
@@ -52,10 +54,17 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 export interface ArWorkQueuePanelProps {
+  /**
+   * The Tutorial Patient's chart is the standard reference and cannot be
+   * changed. Every action in this queue writes money to the ledger, so on that
+   * chart the buttons are disabled and carry the reason instead of taking the
+   * click and dropping it.
+   */
+  readOnly?: boolean;
   className?: string;
 }
 
-export function ArWorkQueuePanel({ className = "" }: ArWorkQueuePanelProps) {
+export function ArWorkQueuePanel({ readOnly = false, className = "" }: ArWorkQueuePanelProps) {
   const headingId = useId();
   const { arWorkItems, resolveArItem, updateArItemWork, getEncounter } = usePipeline();
   const [filter, setFilter] = useState<Filter>("open");
@@ -76,6 +85,10 @@ export function ArWorkQueuePanel({ className = "" }: ArWorkQueuePanelProps) {
     (getEncounter(item.patientId)?.ledger ?? []).filter((e) => e.id.includes(`-ar-${item.id}-`));
 
   const startAction = (item: ArWorkItem, action: ArAction) => {
+    if (readOnly) {
+      refuseReadOnly("The AR action");
+      return;
+    }
     setPending({ itemId: item.id, action });
     setReasonCode(item.carc && WRITE_OFF_REASONS.includes(item.carc) ? item.carc : WRITE_OFF_REASONS[0]);
     setNote("");
@@ -83,6 +96,11 @@ export function ArWorkQueuePanel({ className = "" }: ArWorkQueuePanelProps) {
 
   const commit = (item: ArWorkItem) => {
     if (!pending || pending.itemId !== item.id) return;
+    // Clearing a row writes ledger entries. The standard chart refuses it.
+    if (readOnly) {
+      refuseReadOnly("The AR action");
+      return;
+    }
     resolveArItem({
       itemId: item.id,
       action: pending.action,
@@ -107,6 +125,14 @@ export function ArWorkQueuePanel({ className = "" }: ArWorkQueuePanelProps) {
           {visible.length} shown
         </span>
       </header>
+
+      {/* The standard chart cannot be worked, and says so where the student
+          would click. */}
+      {readOnly && (
+        <div className="border-b border-slate-100 px-3 py-2">
+          <ReadOnlyReason />
+        </div>
+      )}
 
       {/* Two totals, never added together: refused money is not patient money. */}
       <dl className="grid grid-cols-1 gap-2 border-b border-slate-100 px-3 py-2 text-[10px] sm:grid-cols-2">
@@ -258,7 +284,8 @@ export function ArWorkQueuePanel({ className = "" }: ArWorkQueuePanelProps) {
                         type="button"
                         onClick={() => commit(item)}
                         aria-label={`Confirm ${AR_ACTION_LABELS[pending.action].toLowerCase()} for ${item.claimNumber}`}
-                        className="inline-flex min-h-[40px] items-center rounded-lg bg-brand-600 px-3 text-[10px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                        className="inline-flex min-h-[40px] items-center rounded-lg bg-brand-600 px-3 text-[10px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        {...readOnlyAttrs(readOnly)}
                       >
                         Confirm and post
                       </button>
@@ -281,7 +308,8 @@ export function ArWorkQueuePanel({ className = "" }: ArWorkQueuePanelProps) {
                           type="button"
                           onClick={() => startAction(item, action)}
                           aria-label={`${AR_ACTION_LABELS[action]} on ${item.claimNumber}`}
-                          className="inline-flex min-h-[40px] items-center rounded-lg bg-slate-100 px-2.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                          className="inline-flex min-h-[40px] items-center rounded-lg bg-slate-100 px-2.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+                          {...readOnlyAttrs(readOnly)}
                         >
                           {AR_ACTION_LABELS[action]}
                         </button>
@@ -290,17 +318,31 @@ export function ArWorkQueuePanel({ className = "" }: ArWorkQueuePanelProps) {
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       <button
                         type="button"
-                        onClick={() => updateArItemWork({ itemId: item.id, status: "in-progress" })}
+                        onClick={() => {
+                          if (readOnly) {
+                            refuseReadOnly("The AR work item");
+                            return;
+                          }
+                          updateArItemWork({ itemId: item.id, status: "in-progress" });
+                        }}
                         aria-label={`Mark ${item.claimNumber} in progress`}
-                        className="inline-flex min-h-[40px] items-center rounded-lg px-2 text-[10px] font-medium text-slate-500 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                        className="inline-flex min-h-[40px] items-center rounded-lg px-2 text-[10px] font-medium text-slate-500 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        {...readOnlyAttrs(readOnly)}
                       >
                         {item.status === "in-progress" ? "In progress" : "Mark in progress"}
                       </button>
                       <button
                         type="button"
-                        onClick={() => updateArItemWork({ itemId: item.id, status: "escalated" })}
+                        onClick={() => {
+                          if (readOnly) {
+                            refuseReadOnly("The AR work item");
+                            return;
+                          }
+                          updateArItemWork({ itemId: item.id, status: "escalated" });
+                        }}
                         aria-label={`Escalate ${item.claimNumber}`}
-                        className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-2 text-[10px] font-medium text-slate-500 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                        className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-2 text-[10px] font-medium text-slate-500 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        {...readOnlyAttrs(readOnly)}
                       >
                         <AlertTriangle className="h-3 w-3" aria-hidden="true" />
                         {item.status === "escalated" ? "Escalated" : "Escalate"}
