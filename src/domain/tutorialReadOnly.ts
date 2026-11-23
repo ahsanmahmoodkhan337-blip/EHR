@@ -198,6 +198,23 @@ export function skipClaimAutosave(patientId: string | null | undefined): boolean
   return isTutorialChart(patientId) && !isSeedWrite() && !isClaimSubmit();
 }
 
+/**
+ * True when this chart's case-progress mirror must not be attempted.
+ *
+ * The same false-failure class as the note's autosave and the claim's auto-fill,
+ * one layer down: the patient store's per-case bookkeeping (`addAuditLog`,
+ * `setBillingStatus`, `setQueueStage`, `setPaStatus`, `setArStatus` …) is a
+ * mirror of what the chart already holds, written *after* an action was allowed.
+ * On the standard chart those writes were refused, and the student's own Submit
+ * printed *"The case progress was not saved"* under a claim that had just been
+ * sent (lead's walk, 2026-11-23). Nothing of the chart's is lost by skipping
+ * them — the mirror is bookkeeping, not content — so skip the attempt and say
+ * nothing. A seed write still goes through.
+ */
+export function skipCaseProgressMirror(patientId: string | null | undefined): boolean {
+  return isTutorialChart(patientId) && !isSeedWrite();
+}
+
 /** Say the refusal out loud, for a handler that was reached anyway. */
 export function refuseReadOnly(what: string): true {
   publish(refusalSentence(what));

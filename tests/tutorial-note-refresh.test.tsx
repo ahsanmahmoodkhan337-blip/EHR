@@ -50,7 +50,10 @@ const { applyTutorialSeed, TUTORIAL_SEED_VERSION } = await import(
   "../src/domain/tutorialEncounter"
 );
 const { applyTutorialMoneySeed } = await import("../src/domain/tutorialClaim");
-const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
+const {
+  pressSubmitOnReferenceClaim,
+  pressAdjudicateOnReferenceClaim,
+} = await import("./support/referenceSubmit");
 
 const demoPatient = SEED_PATIENTS.find((patient) => patient.id === "DEMO")!;
 
@@ -137,6 +140,15 @@ async function mount() {
         await new Promise((resolve) => setTimeout(resolve, 60));
       });
     },
+    /** The student's own adjudication, then posting, on the Payments stage. */
+    async pressAdjudicate() {
+      await act(async () => {
+        pressAdjudicateOnReferenceClaim(pipeline!);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+    },
     async unmount() {
       await act(async () => root.unmount());
       container.remove();
@@ -190,6 +202,14 @@ describe("a chart seeded by an older build receives the new note", () => {
 
     // ── The student's own Submit ──────────────────────────────────
     await screen.pressSubmit();
+    const sent = pipeline?.getEncounter("DEMO");
+    // Submit sends the claim and earns its 277CA. It does not adjudicate it.
+    expect(sent?.claimStatus).toBe("accepted");
+    expect(sent?.remittances).toHaveLength(0);
+    expect(sent?.ledger).toHaveLength(0);
+
+    // ── The student's own adjudication and posting on Payments ────
+    await screen.pressAdjudicate();
     const enc = pipeline?.getEncounter("DEMO");
     expect(enc?.claimStatus).toBe("partially_paid");
     // One 835, posted, with the denial the plan's own same-day edit earns.
@@ -216,8 +236,10 @@ describe("a chart seeded by an older build receives the new note", () => {
   test("opening the chart again changes nothing", async () => {
     const screen = await mount();
     await screen.open("DEMO");
-    // The student's own Submit, so there is money on the record to be left alone.
+    // The student's own Submit, then his adjudication, so there is money on the
+    // record to be left alone.
     await screen.pressSubmit();
+    await screen.pressAdjudicate();
     const refreshed = pipeline?.getEncounter("DEMO");
 
     await screen.open("DEMO");
@@ -256,6 +278,7 @@ describe("a chart seeded by an older build receives the new note", () => {
     expect(draft?.remittances).toHaveLength(0);
 
     await second.pressSubmit();
+    await second.pressAdjudicate();
     const enc = pipeline?.getEncounter("DEMO");
     expect(enc?.remittances).toHaveLength(1);
     await second.unmount();

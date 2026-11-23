@@ -102,7 +102,10 @@ const { READ_ONLY_REASON, clearTutorialRefusal, refuseReadOnly, tutorialRefusal 
   "../src/domain/tutorialReadOnly"
 );
 const { READ_ONLY_REASON_ID } = await import("../src/components/shell/ReadOnlyStage");
-const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
+const {
+  pressSubmitOnReferenceClaim,
+  pressAdjudicateOnReferenceClaim,
+} = await import("./support/referenceSubmit");
 const { TUTORIAL_NOTICE_ID } = await import("../src/components/TabsEpic/TutorialReadOnlyNotice");
 
 /** Every stage of the encounter after the note, in stepper order. */
@@ -211,6 +214,16 @@ async function pressSubmitOnDemo() {
   expect(draft?.remittances).toHaveLength(0);
   await act(async () => {
     pressSubmitOnReferenceClaim(pipeline!);
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+  });
+  // Submit earns the 277CA; the 835 and the posting are the student's own next
+  // decision on Payments, and the money stages draw their controls from it.
+  expect(pipeline?.getEncounter("DEMO")?.claimStatus).toBe("accepted");
+  expect(pipeline?.getEncounter("DEMO")?.remittances).toHaveLength(0);
+  await act(async () => {
+    pressAdjudicateOnReferenceClaim(pipeline!);
   });
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -460,18 +473,48 @@ describe("the Submit path sends the claim rather than refusing silently", () => 
     // no "was not saved" sentence is published by it.
     expect(tutorialRefusal()).toBeNull();
 
-    // ── The money that follows the press ──────────────────────────
+    // The submit path's own case-progress mirror (`addAuditLog`,
+    // `setBillingStatus` …) is bookkeeping that follows an allowed action, so on
+    // the reference chart it is skipped in silence — never refused out loud. A
+    // refusal here printed "The case progress was not saved" under a Submit that
+    // had worked (`specs/pr189-submit-evidence.md`, defect 2).
+    clearTutorialRefusal();
+    await act(async () => {
+      useEhrStore
+        .getState()
+        .updateCase("DEMO", (cs) => ({ ...cs, billingStatus: "CLEARED_AND_SENT" }));
+    });
+    expect(tutorialRefusal()).toBeNull();
+
+    // ── What the press did, and what it left to the student ───────
     const sent = pipeline?.getEncounter("DEMO");
     // The 277CA: the clearinghouse accepted this claim.
     expect(sent?.statusEvents.some((event) => event.reasonCode === "277CA_ACCEPTED")).toBe(true);
+    // And the press stops there: Submit does not adjudicate, post or queue a
+    // denial — those follow the student's own decision on Payments.
+    expect(sent?.claimStatus).toBe("accepted");
+    expect(sent?.remittances).toHaveLength(0);
+    expect(sent?.ledger).toHaveLength(0);
+    expect(
+      (pipeline?.arWorkItems ?? []).filter((item) => item.claimNumber === sent!.claimNumber),
+    ).toHaveLength(0);
+
+    // ── The student's own adjudication and posting on Payments ─────
+    await act(async () => {
+      pressAdjudicateOnReferenceClaim(pipeline!);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    const adjudicated = pipeline?.getEncounter("DEMO");
     // The payer's 835, priced line by line, and the posting that writes the ledger.
-    expect(sent?.remittances).toHaveLength(1);
-    expect(sent?.remittances[0]?.postedAt).toBeTruthy();
-    expect((sent?.ledger ?? []).length).toBeGreaterThan(0);
+    expect(adjudicated?.remittances).toHaveLength(1);
+    expect(adjudicated?.remittances[0]?.postedAt).toBeTruthy();
+    expect((adjudicated?.ledger ?? []).length).toBeGreaterThan(0);
     // And the denied ECG line is a row in the AR queue.
     expect(
       (pipeline?.arWorkItems ?? []).filter(
-        (item) => item.claimNumber === sent!.claimNumber && item.kind === "denial",
+        (item) => item.claimNumber === adjudicated!.claimNumber && item.kind === "denial",
       ),
     ).toHaveLength(1);
 

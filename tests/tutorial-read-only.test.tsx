@@ -109,7 +109,10 @@ const { loadUserData } = await import("../src/store/persistence");
 const { ENCOUNTER_FLOW_STAGES } = await import("../src/domain/encounterFlow");
 const { TUTORIAL_READ_ONLY_LINE, clearTutorialRefusal } = await import("../src/domain/tutorialReadOnly");
 const { TUTORIAL_NOTICE_ID } = await import("../src/components/TabsEpic/TutorialReadOnlyNotice");
-const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
+const {
+  pressSubmitOnReferenceClaim,
+  pressAdjudicateOnReferenceClaim,
+} = await import("./support/referenceSubmit");
 
 /** The seven stages of the encounter, in the order the stepper draws them. */
 const STAGES = ENCOUNTER_FLOW_STAGES.map((stage) => stage.id);
@@ -318,6 +321,16 @@ describe("a student write to the standard chart is refused where it happens", ()
 
     await act(async () => {
       pressSubmitOnReferenceClaim(pipeline!);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    // Submit earns the 277CA and nothing more: the 835 and the posting are the
+    // student's own next decision on Payments.
+    expect(pipeline?.getEncounter("DEMO")?.claimStatus).toBe("accepted");
+    expect(pipeline?.getEncounter("DEMO")?.remittances).toHaveLength(0);
+    await act(async () => {
+      pressAdjudicateOnReferenceClaim(pipeline!);
     });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 600));

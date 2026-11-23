@@ -1,25 +1,29 @@
 /**
- * The student's own Submit on the Tutorial Patient's claim, for the tests.
+ * The student's own work on the Tutorial Patient's claim, for the tests.
  *
  * Owner, 2026-11-23: *"in billing section it should not be submitted, the
  * CMS-1500 should be filled and student should submit too … himself."* The
- * reference claim now opens as a filled **draft** — no 837P, no 277CA, no 835,
- * no posting and no AR row — and every one of those is produced by the student
- * pressing **Submit** on the Billing stage (`components/BillingLedger`).
+ * reference claim opens as a filled **draft** — no 837P, no 277CA, no 835, no
+ * posting and no AR row — and the cycle is walked in two deliberate steps:
  *
- * A test that asserted the old, already-sent state therefore has to make that
- * press itself. There are two ways, and each matches the layer the test works
- * at:
+ *   1. **Submit** on the Billing stage (`components/BillingLedger`): the 837P and
+ *      its 277CA. The claim leaves `draft` as `accepted` (or `rejected`) and
+ *      nothing is priced, posted or queued. Submit does not adjudicate
+ *      (`specs/pr189-submit-evidence.md`, defect 1).
+ *   2. **Adjudicate this claim** on the Payments stage: the payer's 835, then the
+ *      posting that writes the ledger and the AR row the denial derives.
  *
- *   - `submitReferenceClaim` — the pure domain calls `BillingLedger`'s handler
- *     makes (the 837P + 277CA, the payer's 835, the posting), for a test that
- *     holds a record and no store.
- *   - `pressSubmitOnReferenceClaim` — the same four **store** actions, in the
- *     same order, inside `withClaimSubmit` (the one write the read-only chart
- *     lets through), for a test that mounts `PipelineProvider`.
+ * There are two layers, and each helper matches the layer the test works at:
+ *
+ *   - `submitReferenceClaim` / `adjudicateReferenceClaim` — the pure domain calls
+ *     `BillingLedger`'s handlers make, for a test that holds a record and no store.
+ *   - `pressSubmitOnReferenceClaim` / `pressAdjudicateOnReferenceClaim` — the same
+ *     **store** actions, in the same order, inside `withClaimSubmit` (the window
+ *     the read-only chart opens for the student's own work), for a test that
+ *     mounts `PipelineProvider`.
  *
  * Neither invents a value: the boxes come from the claim on the record, exactly
- * as the paper's own Submit reads them.
+ * as the paper's own controls read them.
  *
  * Inspired by: Epic's training environment, where the demo claim is filled and
  * the learner presses Send — the send is the exercise, not the setup.
@@ -29,6 +33,7 @@ import type { PipelineEncounter } from "../../src/store/pipelineEncounter";
 import { adjudicateClaim, planForPayerName } from "../../src/domain/adjudication";
 import { buildSubmissionEvents } from "../../src/domain/clearinghouse";
 import { appendLedgerEntries, postRemittanceToLedger } from "../../src/domain/ledger";
+import { claimStatusForRemittance } from "../../src/domain/claimStatus";
 import { withClaimSubmit } from "../../src/domain/tutorialReadOnly";
 
 /** The claim's billable lines, read the way the paper's Submit reads them. */
@@ -45,9 +50,8 @@ function billableLines(form: Record<string, unknown> | null | undefined) {
 }
 
 /**
- * The student's Submit at the domain layer: the 837P and its 277CA, then the
- * payer's 835, then the posting — the same three modules, in the same order, on
- * one record.
+ * Step 1, at the domain layer: the 837P and the 277CA it earns — and nothing
+ * else. The claim leaves `draft` as `accepted`; no 835, no posting, no AR row.
  */
 export function submitReferenceClaim(
   enc: PipelineEncounter,
@@ -79,28 +83,77 @@ export function submitReferenceClaim(
   if (ack.category !== "A1") {
     throw new Error(`the clearinghouse rejected the reference claim: ${ack.reason}`);
   }
+  return {
+    ...enc,
+    claimStatus: "accepted",
+    statusEvents: events,
+  };
+}
+
+/**
+ * Step 2, at the domain layer: the payer adjudicates the accepted claim and its
+ * 835 arrives. Nothing reaches the ledger yet — that is the posting.
+ */
+export function adjudicateReferenceClaim(
+  enc: PipelineEncounter,
+  at: string,
+): PipelineEncounter {
+  const form = enc.claimForm;
+  if (!form) throw new Error("the reference claim has no paper to adjudicate");
+  if (enc.claimStatus !== "accepted") {
+    throw new Error(`the reference claim is ${enc.claimStatus ?? "unset"}, not accepted`);
+  }
   const plan = planForPayerName(form.payerName);
   const remittance = adjudicateClaim({
     claimNumber: enc.claimNumber ?? "",
     payerName: form.payerName,
     payerId: form.payerEdiId,
     plan,
-    lines,
+    lines: billableLines(form as unknown as Record<string, unknown>),
     deductibleRemainingCents: Math.round((plan?.deductibleUsd ?? 0) * 100),
     priorAuthNumber: form.priorAuthNumber ?? "",
     at,
   });
+  return {
+    ...enc,
+    claimStatus: "adjudicated",
+    remittances: [...enc.remittances, remittance],
+  };
+}
+
+/**
+ * Step 3, at the domain layer: the posting writes the ledger entries and the
+ * claim's status follows the money — `partially_paid` for the reference claim.
+ */
+export function postReferenceClaim(
+  enc: PipelineEncounter,
+  at: string,
+  by = "923001234567",
+): PipelineEncounter {
+  const remittance = enc.remittances.find(
+    (r) => r.claimNumber === enc.claimNumber && !r.postedAt,
+  );
+  if (!remittance) throw new Error("the reference claim has no 835 to post");
   const entries = postRemittanceToLedger(remittance, { patientId: enc.patientId, userId: by, at });
   return {
     ...enc,
-    claimStatus: "accepted",
-    statusEvents: events,
-    remittances: [{ ...remittance, postedAt: at }],
+    claimStatus: claimStatusForRemittance(remittance),
+    remittances: enc.remittances.map((r) => (r.id === remittance.id ? { ...r, postedAt: at } : r)),
     ledger: appendLedgerEntries(enc.ledger, entries),
   };
 }
 
-/** The four store actions a mounted `PipelineProvider` exposes for Submit. */
+/** All three steps, for a test that only needs the money to exist. */
+export function submitAndAdjudicateReferenceClaim(
+  enc: PipelineEncounter,
+  patient: Pick<Patient, "insuranceRecord" | "dateOfBirth">,
+  at: string,
+  by = "923001234567",
+): PipelineEncounter {
+  return postReferenceClaim(adjudicateReferenceClaim(submitReferenceClaim(enc, patient, at, by), at), at, by);
+}
+
+/** The store actions a mounted `PipelineProvider` exposes for both steps. */
 export interface ReferenceClaimStore {
   getEncounter: (patientId: string) => PipelineEncounter | undefined;
   transmitClaim: (input: {
@@ -116,35 +169,64 @@ export interface ReferenceClaimStore {
   postRemittance: () => void;
 }
 
+/** The claim's own boxes, read the way the paper's controls read them. */
+function claimFacts(store: ReferenceClaimStore, patientId: string) {
+  const enc = store.getEncounter(patientId);
+  const form = enc?.claimForm as unknown as Record<string, unknown> | null | undefined;
+  if (!form) throw new Error("the reference claim has no paper");
+  return {
+    lines: billableLines(form),
+    subscriberId: String(form.insuredId ?? ""),
+    patientDob: String(form.patientDob ?? ""),
+    payerName: String(form.payerName ?? ""),
+  };
+}
+
 /**
- * The student's Submit at the store layer: `BillingLedger`'s handler, reduced to
- * the four calls it makes. The boxes are the claim's own — box 1a and box 3 —
- * so the 277CA is answered exactly as the paper answers it.
+ * Step 1 at the store layer: `BillingLedger`'s Submit handler, reduced to the two
+ * calls it makes. Box 1a and box 3 are the claim's own, so the 277CA is answered
+ * exactly as the paper answers it.
  */
 export function pressSubmitOnReferenceClaim(
   store: ReferenceClaimStore,
   patientId = "DEMO",
 ): void {
-  const enc = store.getEncounter(patientId);
-  const form = enc?.claimForm as unknown as Record<string, unknown> | null | undefined;
-  if (!form) throw new Error("the reference claim has no paper to submit");
-  const lines = billableLines(form);
-  const subscriberId = String(form.insuredId ?? "");
-  const patientDob = String(form.patientDob ?? "");
-  const payerName = String(form.payerName ?? "");
+  const facts = claimFacts(store, patientId);
   // `withClaimSubmit` is the one window the read-only chart opens: the student's
   // press is the exercise, so the stores let this write through.
   withClaimSubmit(() => {
     store.transmitClaim({
-      subscriberId,
-      subscriberIdOnFile: subscriberId,
-      patientDob,
-      patientDobOnFile: patientDob,
-      lineCount: lines.length,
-      payerName,
+      subscriberId: facts.subscriberId,
+      subscriberIdOnFile: facts.subscriberId,
+      patientDob: facts.patientDob,
+      patientDobOnFile: facts.patientDob,
+      lineCount: facts.lines.length,
+      payerName: facts.payerName,
     });
     store.submitClaim({});
-    store.adjudicateClaim({ payerName });
+  });
+}
+
+/**
+ * Step 2 at the store layer: the Payments stage's **Adjudicate this claim** and
+ * the posting of the 835 it returns — the student's own second decision.
+ */
+export function pressAdjudicateOnReferenceClaim(
+  store: ReferenceClaimStore,
+  patientId = "DEMO",
+): void {
+  const facts = claimFacts(store, patientId);
+  withClaimSubmit(() => {
+    store.adjudicateClaim({ payerName: facts.payerName });
     store.postRemittance();
   });
+}
+
+/** Both presses, for a test that only needs the money to exist. */
+export function pressSubmitAndAdjudicateOnReferenceClaim(
+  store: ReferenceClaimStore,
+  patientId = "DEMO",
+): void {
+  pressSubmitOnReferenceClaim(store, patientId);
+  pressAdjudicateOnReferenceClaim(store, patientId);
 }

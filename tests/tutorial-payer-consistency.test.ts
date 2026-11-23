@@ -22,7 +22,7 @@ import { applyTutorialSeed, tutorialCardFor, type TutorialPatientSource } from "
 import { applyTutorialMoneySeed } from "../src/domain/tutorialClaim";
 import { eligibility271 } from "../src/domain/eligibility";
 import { buildArWorkQueue } from "../src/domain/arWorkQueue";
-import { submitReferenceClaim } from "./support/referenceSubmit";
+import { submitReferenceClaim, adjudicateReferenceClaim, postReferenceClaim } from "./support/referenceSubmit";
 
 const AT = "2026-11-22T10:00:00.000Z";
 const NOW = "2026-11-22T12:00:00.000Z";
@@ -64,16 +64,24 @@ function seededRecord() {
 }
 
 /**
- * The record after the student's own Submit — the claim opens filled and
- * unsent, and the 835 the payer sends back exists only because the student
- * pressed Submit on the Billing stage (owner, 2026-11-23).
+ * The record after the student's own work — the claim opens filled and unsent,
+ * Submit earns its 277CA and nothing else, and the 835 exists only because the
+ * student then adjudicated and posted it on Payments (owner, 2026-11-23;
+ * `specs/pr189-submit-evidence.md`).
  */
 function submittedRecord() {
   const draft = seededRecord();
   // The draft is what the chart opens: nothing sent, priced or posted yet.
   expect(draft.claimStatus).toBe("draft");
   expect(draft.remittances).toHaveLength(0);
-  const submitted = submitReferenceClaim(draft, PATIENT, AT);
+  const accepted = submitReferenceClaim(draft, PATIENT, AT);
+  // Submit sends the claim and earns the 277CA — it does not adjudicate it.
+  expect(accepted.claimStatus).toBe("accepted");
+  expect(accepted.remittances).toHaveLength(0);
+  expect(accepted.ledger).toHaveLength(0);
+  const adjudicated = adjudicateReferenceClaim(accepted, AT);
+  expect(adjudicated.ledger).toHaveLength(0);
+  const submitted = postReferenceClaim(adjudicated, AT);
   return normalizeEncounter(JSON.parse(JSON.stringify(submitted)), "DEMO");
 }
 

@@ -42,7 +42,11 @@ import {
   type DocumentRecord,
 } from "../domain/documents";
 import { markFailed, markSaved, markSaving } from "./autosave";
-import { refuseStudentWrite, isSeedWrite } from "../domain/tutorialReadOnly";
+import {
+  refuseStudentWrite,
+  isSeedWrite,
+  skipCaseProgressMirror,
+} from "../domain/tutorialReadOnly";
 import { TUTORIAL_PATIENT_ID, tutorialNameRepair } from "../domain/tutorialIdentity";
 import { deleteGroupStores, resetInMemory, type ResetGroupId } from "./resetData";
 
@@ -1571,6 +1575,11 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
   },
 
   updateCase: (patientId, updater) => {
+    // The case-progress mirror follows an action the chart already allowed, so on
+    // the reference chart it is skipped in silence rather than refused out loud —
+    // a refusal here printed "The case progress was not saved" under a Submit that
+    // worked (`skipCaseProgressMirror`).
+    if (skipCaseProgressMirror(patientId)) return;
     if (refuseStudentWrite(patientId, "The case progress")) return;
     set((s) => ({
       user: {

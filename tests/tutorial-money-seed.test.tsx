@@ -46,7 +46,10 @@ const { loadUserData } = await import("../src/store/persistence");
 const { TUTORIAL_SEED_VERSION, TUTORIAL_MEMBER_ID } = await import(
   "../src/domain/tutorialEncounter"
 );
-const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
+const {
+  pressSubmitOnReferenceClaim,
+  pressAdjudicateOnReferenceClaim,
+} = await import("./support/referenceSubmit");
 
 const PHONE = "+920000000003";
 
@@ -85,6 +88,15 @@ async function mount() {
     async pressSubmit() {
       await act(async () => {
         pressSubmitOnReferenceClaim(pipeline!);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+    },
+    /** The student's own adjudication, then posting, on the Payments stage. */
+    async pressAdjudicate() {
+      await act(async () => {
+        pressAdjudicateOnReferenceClaim(pipeline!);
       });
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 60));
@@ -134,18 +146,29 @@ describe("a cleared store gets the whole worked example", () => {
     // ── The student's own Submit ──────────────────────────────────
     await screen.pressSubmit();
     const sent = pipeline?.getEncounter("DEMO");
-    expect(sent?.claimStatus).toBe("partially_paid");
-
-    // The 277CA came back A1 and the 835 was received and posted.
+    // Submit sends the claim and earns its 277CA. It does not adjudicate it.
+    expect(sent?.claimStatus).toBe("accepted");
     const codes = (sent?.statusEvents ?? []).map((event) => event.reasonCode);
     expect(codes).toContain("SUBMITTED_837P");
     expect(codes).toContain("277CA_ACCEPTED");
-    expect(codes).toContain("ERA_RECEIVED");
-    expect(codes).toContain("ERA_POSTED");
+    expect(codes).not.toContain("ERA_RECEIVED");
+    expect(codes).not.toContain("ERA_POSTED");
+    // No 835, no posting and no AR row until the student adjudicates on Payments.
+    expect(sent?.remittances).toHaveLength(0);
+    expect(sent?.ledger).toHaveLength(0);
+    expect(pipeline?.arWorkItems ?? []).toHaveLength(0);
+
+    // ── The student's own adjudication and posting on Payments ────
+    await screen.pressAdjudicate();
+    const paid = pipeline?.getEncounter("DEMO");
+    expect(paid?.claimStatus).toBe("partially_paid");
+    const paidCodes = (paid?.statusEvents ?? []).map((event) => event.reasonCode);
+    expect(paidCodes).toContain("ERA_RECEIVED");
+    expect(paidCodes).toContain("ERA_POSTED");
 
     // The 835: posted, one denial, and every line balances.
-    expect(sent?.remittances).toHaveLength(1);
-    const remittance = sent!.remittances[0];
+    expect(paid?.remittances).toHaveLength(1);
+    const remittance = paid!.remittances[0];
     expect(remittance.postedAt).toBeTruthy();
     const denied = remittance.lines.filter((line) => line.denied);
     expect(denied).toHaveLength(1);
@@ -156,14 +179,14 @@ describe("a cleared store gets the whole worked example", () => {
     expect(remittance.totals.paidCents).toBeGreaterThan(0);
 
     // The posting: charge, insurance payment and adjustment entries on the ledger.
-    expect(sent?.ledger.length).toBeGreaterThan(0);
-    expect(sent?.ledger.some((entry) => entry.type === "charge")).toBe(true);
-    expect(sent?.ledger.some((entry) => entry.type === "insurance_payment")).toBe(true);
-    expect(sent?.ledger.some((entry) => entry.type === "adjustment" && entry.code === "CO-236")).toBe(true);
+    expect(paid?.ledger.length).toBeGreaterThan(0);
+    expect(paid?.ledger.some((entry) => entry.type === "charge")).toBe(true);
+    expect(paid?.ledger.some((entry) => entry.type === "insurance_payment")).toBe(true);
+    expect(paid?.ledger.some((entry) => entry.type === "adjustment" && entry.code === "CO-236")).toBe(true);
 
     // The AR queue derives the denial from that posted 835.
     const denialItems = (pipeline?.arWorkItems ?? []).filter(
-      (item) => item.claimNumber === sent!.claimNumber && item.kind === "denial",
+      (item) => item.claimNumber === paid!.claimNumber && item.kind === "denial",
     );
     expect(denialItems).toHaveLength(1);
     expect(denialItems[0].carc).toBe("CO-236");
@@ -172,7 +195,7 @@ describe("a cleared store gets the whole worked example", () => {
     await screen.settle();
     const saved = loadUserData(PHONE)?.pipeline?.encounters?.DEMO;
     expect(saved?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
-    expect(saved?.claimNumber).toBe(sent!.claimNumber);
+    expect(saved?.claimNumber).toBe(paid!.claimNumber);
     expect(saved?.claimStatus).toBe("partially_paid");
     expect(saved?.remittances[0]?.postedAt).toBeTruthy();
 

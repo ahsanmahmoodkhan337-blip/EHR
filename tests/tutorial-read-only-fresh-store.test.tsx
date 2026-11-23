@@ -57,7 +57,10 @@ const { useEhrStore } = await import("../src/store/ehrStore");
 const { SEED_PATIENTS } = await import("../src/store/patientStore");
 const { loadUserData } = await import("../src/store/persistence");
 const { buildArWorkQueue } = await import("../src/domain/arWorkQueue");
-const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
+const {
+  pressSubmitOnReferenceClaim,
+  pressAdjudicateOnReferenceClaim,
+} = await import("./support/referenceSubmit");
 
 let pipeline: ReturnType<typeof usePipeline> | null = null;
 
@@ -89,6 +92,15 @@ async function mount() {
     async pressSubmit() {
       await act(async () => {
         pressSubmitOnReferenceClaim(pipeline!);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+    },
+    /** The student's own adjudication, then posting, on the Payments stage. */
+    async pressAdjudicate() {
+      await act(async () => {
+        pressAdjudicateOnReferenceClaim(pipeline!);
       });
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 60));
@@ -140,6 +152,15 @@ describe("a fresh store", () => {
 
     // ── The student's own Submit ──────────────────────────────────
     await screen.pressSubmit();
+    const sent = pipeline?.getEncounter("DEMO");
+    // Submit sends the claim and earns its 277CA — and stops there.
+    expect(sent?.claimStatus).toBe("accepted");
+    expect(sent?.statusEvents.some((event) => event.reasonCode === "277CA_ACCEPTED")).toBe(true);
+    expect(sent?.remittances).toHaveLength(0);
+    expect(sent?.ledger).toHaveLength(0);
+
+    // ── The student's own adjudication and posting on Payments ────
+    await screen.pressAdjudicate();
     const enc = pipeline?.getEncounter("DEMO");
     expect(enc?.claimStatus).toBe("partially_paid");
     expect(enc?.remittances).toHaveLength(1);

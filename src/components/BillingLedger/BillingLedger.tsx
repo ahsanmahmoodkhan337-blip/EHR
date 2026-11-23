@@ -688,14 +688,11 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
           });
           submitClaim({ ...legacyBoxMap(values), payer, posCode: claimPos, submittedAt: new Date().toISOString() });
           setPaperOpen(false);
-          // On the standard reference chart the same press carries the cycle the
-          // student is being shown: the payer's 835 is adjudicated and posted, so
-          // the 835 and the AR row appear from this one action. They were seeded
-          // before 2026-11-23; now nothing is priced or posted until this click.
-          if (readOnly) {
-            adjudicateClaim({ payerName: payer });
-            postRemittance();
-          }
+          // Submit sends the claim and earns its 277CA — nothing more. The payer's
+          // 835, the posting and the AR row follow the student's own adjudication
+          // in Payments: adjudicating here took the exercise away and printed a
+          // paid 835 beside a 277CA that said nothing had been paid (lead's walk,
+          // 2026-11-23, `specs/pr189-submit-evidence.md`).
           // The modifier-25 trap still costs the student its score; it is not a
           // clearinghouse rejection, so it is reported as an edit check, not an outcome.
           if (!missingMod25) {

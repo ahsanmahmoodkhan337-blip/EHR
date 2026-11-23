@@ -53,7 +53,10 @@ const { saveUserData, loadUserData } = await import("../src/store/persistence");
 const { applyTutorialSeed, TUTORIAL_SEED_VERSION } = await import(
   "../src/domain/tutorialEncounter"
 );
-const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
+const {
+  pressSubmitOnReferenceClaim,
+  pressAdjudicateOnReferenceClaim,
+} = await import("./support/referenceSubmit");
 
 const demoPatient = SEED_PATIENTS.find((patient) => patient.id === "DEMO")!;
 
@@ -117,6 +120,15 @@ async function mount() {
     async pressSubmit() {
       await act(async () => {
         pressSubmitOnReferenceClaim(pipeline!);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+    },
+    /** The student's own adjudication, then posting, on the Payments stage. */
+    async pressAdjudicate() {
+      await act(async () => {
+        pressAdjudicateOnReferenceClaim(pipeline!);
       });
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 60));
@@ -199,6 +211,14 @@ describe("a record holding the clinical half is upgraded in place", () => {
 
     // ── The student's own Submit ──────────────────────────────────
     await screen.pressSubmit();
+    const sent = pipeline?.getEncounter("DEMO");
+    // Submit sends the claim and earns its 277CA. It does not adjudicate it.
+    expect(sent?.claimStatus).toBe("accepted");
+    expect(sent?.remittances).toHaveLength(0);
+    expect(sent?.ledger).toHaveLength(0);
+
+    // ── The student's own adjudication and posting on Payments ────
+    await screen.pressAdjudicate();
     const enc = pipeline?.getEncounter("DEMO");
     expect(enc?.claimStatus).toBe("partially_paid");
 
@@ -239,8 +259,9 @@ describe("a record holding the clinical half is upgraded in place", () => {
     const draft = pipeline?.getEncounter("DEMO");
     expect(draft?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
 
-    // The student's own Submit, so there is money to leave alone.
+    // The student's own Submit and adjudication, so there is money to leave alone.
     await screen.pressSubmit();
+    await screen.pressAdjudicate();
     const seeded = pipeline?.getEncounter("DEMO");
     expect(seeded?.claimStatus).toBe("partially_paid");
 

@@ -81,6 +81,8 @@ const { createRoot } = await import("react-dom/client");
 const { RouterProvider, createRouter, createMemoryHistory } = await import("@tanstack/react-router");
 const { routeTree } = await import("../src/routeTree.gen");
 const { useEhrStore } = await import("../src/store/ehrStore");
+const { PipelineProvider, usePipeline } = await import("../src/store/pipelineStore");
+const { pressAdjudicateOnReferenceClaim } = await import("./support/referenceSubmit");
 const { SEED_PATIENTS } = await import("../src/store/patientStore");
 
 /** Mount the app at one encounter address, the way a pasted link opens it. */
@@ -109,9 +111,9 @@ async function openStage(stageId: string) {
 }
 
 /**
- * The student's own Submit, pressed on the Billing stage: the real button, in
- * the real screen. The claim transmits, the payer answers and the money posts in
- * the same press, and the store saves it before the screen goes away.
+ * Step 1 — the student's own Submit, pressed on the Billing stage: the real
+ * button, in the real screen. The claim transmits and earns its 277CA, and the
+ * press stops there: no 835, no posting, no AR row.
  */
 async function pressSubmitOnBilling() {
   const screen = await openStage("billing");
@@ -129,16 +131,56 @@ async function pressSubmitOnBilling() {
   await act(async () => {
     submit!.dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
   });
-  // The transmission bar runs for ~800 ms, then the 835 and the posting land.
+  // The transmission bar runs for ~800 ms and the 277CA comes back.
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 2000));
   });
-  expect(screen.text()).toContain("Partially paid");
-  // Let the store save the money before this screen goes away.
+  // Sent, not paid: the 277CA says the payer adjudicates next
+  // (`specs/pr189-submit-evidence.md`, defect 1).
+  expect(screen.text()).toContain("awaits adjudication");
+  expect(screen.text()).not.toContain("Partially paid");
+  // Let the store save the claim before this screen goes away.
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 1200));
   });
   await screen.unmount();
+}
+
+/**
+ * Step 2 — the student's own adjudication and posting on Payments. Pressed
+ * through the store the Payments desk reads, because the read-only chart's own
+ * Adjudicate control is still locked.
+ */
+async function adjudicateOnPayments() {
+  let pipeline: ReturnType<typeof usePipeline> | null = null;
+  function Probe() {
+    pipeline = usePipeline();
+    return null;
+  }
+  const container = win.document.createElement("div");
+  win.document.body.appendChild(container);
+  const root = createRoot(container as unknown as HTMLElement);
+  await act(async () => {
+    root.render(React.createElement(PipelineProvider, null, React.createElement(Probe)));
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+  await act(async () => {
+    pressAdjudicateOnReferenceClaim(pipeline!);
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+  });
+  expect(pipeline?.getEncounter("DEMO")?.remittances).toHaveLength(1);
+  await act(async () => root.unmount());
+  container.remove();
+}
+
+/** Both steps, in the order the student takes them. */
+async function submitThenAdjudicate() {
+  await pressSubmitOnBilling();
+  await adjudicateOnPayments();
 }
 
 beforeEach(() => {
@@ -150,7 +192,7 @@ beforeEach(() => {
 
 describe("the Tutorial Patient's money stages", () => {
   test("Payments (835) draws the 835, its allowed/paid/adjustment money and the ledger", async () => {
-    await pressSubmitOnBilling();
+    await submitThenAdjudicate();
     const screen = await openStage("payments");
     const text = screen.text();
 
@@ -177,7 +219,7 @@ describe("the Tutorial Patient's money stages", () => {
   }, 40000);
 
   test("Billing does not call a part-paid claim unpaid", async () => {
-    await pressSubmitOnBilling();
+    await submitThenAdjudicate();
     const screen = await openStage("billing");
     const text = screen.text();
     expect(text).toContain("Partially paid");
@@ -188,7 +230,7 @@ describe("the Tutorial Patient's money stages", () => {
   }, 40000);
 
   test("Denials & AR carries the denied ECG line", async () => {
-    await pressSubmitOnBilling();
+    await submitThenAdjudicate();
     const screen = await openStage("denials-ar");
     const text = screen.text();
     expect(text).toContain("CO-236");
