@@ -6,7 +6,7 @@
 // Inspired by: CoverMyMeds + Epic PA Hub
 // ──────────────────────────────────────────────────────────────────────
 
-import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
+import { ReadOnlyNote, ReadOnlyReason, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
 import { useState, useMemo, useEffect } from "react";
 import {
   Shield,
@@ -390,8 +390,10 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
     );
   }
 
-  // The reason is drawn under the e-PA button itself, at the point of the click.
-  const readOnlyBanner = null;
+  // The reason is drawn at the top of the stage *and* under the e-PA button, so a
+  // student on the Queue tab (where the button is not drawn) still reads why the
+  // portal will not take their request.
+  const readOnlyBanner = readOnly ? <ReadOnlyReason className="mb-2" /> : null;
   return (
     <div className="flex flex-1 flex-col h-full">{readOnlyBanner}
       {/* ── CoverMyMeds-style Header ── */}
