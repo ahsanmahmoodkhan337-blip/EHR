@@ -54,7 +54,7 @@ const TUTORIAL: TutorialPatientSource = {
   medications: [{ name: "Lisinopril", dosage: "10mg", frequency: "Once daily", status: "active" }],
   encounters: [
     {
-      date: "2026-07-09",
+      date: "2026-11-23",
       provider: "Dr. Demo Instructor, MD",
       diagnosis: "Chest pain (R07.9), Essential hypertension (I10)",
       notes: "Chest pain and shortness of breath. ECG and cardiac enzymes ordered.",
@@ -95,7 +95,7 @@ describe("the Tutorial Patient's claim", () => {
     expect(form.serviceLines.map((line) => line.cpt)).toEqual(["99214", "93000"]);
     for (const line of form.serviceLines) {
       expect(line.placeOfService).toBe("11");
-      expect(line.dateOfService).toBe("2026-07-09");
+      expect(line.dateOfService).toBe("2026-11-23");
       expect(line.charge).toBeGreaterThan(0);
       // Box 24J / 33: a Luhn-valid NPI, not a placeholder.
       expect(isLuhnValidNpi(line.renderingNpi)).toBe(true);

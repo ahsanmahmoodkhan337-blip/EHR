@@ -244,8 +244,8 @@ const mockPatients: Patient[] = [
     emergencyContact: { name: "Demo Support", phone: "(555) 555-0102", relation: "Instructor" },
     primaryCareProvider: "Dr. Demo Instructor, MD",
     insurance: "Medicare Part B",
-    chiefComplaint: "Chest pain and shortness of breath — DEMO",
-    vitals: { bloodPressure: "145/92", heartRate: 92, temperature: 99.1, respiratoryRate: 20, oxygenSaturation: 94, recordedAt: "2026-01-01T09:00:00Z" },
+    chiefComplaint: "Chest pain and shortness of breath",
+    vitals: { bloodPressure: "145/92", heartRate: 92, temperature: 99.1, respiratoryRate: 20, oxygenSaturation: 94, recordedAt: "2026-11-23T09:00:00Z" },
     problems: ["Hypertension (I10)", "Coronary Artery Disease (I25.10)", "Chest Pain (R07.9)"],
     medications: [
       { id: "med-d1", name: "Lisinopril", dosage: "10mg", frequency: "Once daily", route: "Oral", status: "active", prescribedDate: "2026-01-15", prescribedBy: "Dr. Demo Instructor" },
@@ -257,12 +257,15 @@ const mockPatients: Patient[] = [
       { id: "alg-d2", allergen: "Sulfa drugs", severity: "moderate" as const, reaction: "Rash and fever", recordedDate: "2021-07-14" },
     ],
     labResults: [
-      { id: "lab-d1", testName: "CBC (Complete Blood Count)", value: "Pending", referenceRange: "", unit: "", status: "pending" as const, date: "2026-07-09" },
-      { id: "lab-d2", testName: "CMP (Comprehensive Metabolic Panel)", value: "Glucose elevated at 145", referenceRange: "70-100", unit: "mg/dL", status: "abnormal" as const, date: "2026-07-09" },
-      { id: "lab-d3", testName: "Cardiac Enzymes (Troponin I)", value: "0.085", referenceRange: "< 0.04", unit: "ng/mL", status: "abnormal" as const, date: "2026-07-09" },
+      { id: "lab-d1", testName: "CBC (Complete Blood Count)", value: "Pending", referenceRange: "", unit: "", status: "pending" as const, date: "2026-11-23" },
+      { id: "lab-d2", testName: "CMP (Comprehensive Metabolic Panel)", value: "Glucose elevated at 145", referenceRange: "70-100", unit: "mg/dL", status: "abnormal" as const, date: "2026-11-23" },
+      { id: "lab-d3", testName: "Cardiac Enzymes (Troponin I)", value: "0.085", referenceRange: "< 0.04", unit: "ng/mL", status: "abnormal" as const, date: "2026-11-23" },
     ],
+    // The visit is the day the banner shows. `dateOfService` reads this line, so
+    // box 24A, the prior authorisation and the note's own vitals stamp all name
+    // 2026-11-23 instead of a July date the screen never shows (owner, 2026-11-23).
     encounters: [
-      { id: "enc-d1", date: "2026-07-09", type: "Office Visit — Tutorial", provider: "Dr. Demo Instructor, MD", diagnosis: "Chest pain (R07.9), Essential hypertension (I10)", notes: "Tutorial patient presenting with chest pain and shortness of breath. BP elevated at 145/92. ECG and cardiac enzymes ordered. Cardiology consult placed.", department: "Internal Medicine" },
+      { id: "enc-d1", date: "2026-11-23", type: "Office Visit — Tutorial", provider: "Dr. Demo Instructor, MD", diagnosis: "Chest pain (R07.9), Essential hypertension (I10)", notes: "Tutorial patient presenting with chest pain and shortness of breath. BP elevated at 145/92. ECG and cardiac enzymes ordered. Cardiology consult placed.", department: "Internal Medicine" },
     ],
   },
   {
