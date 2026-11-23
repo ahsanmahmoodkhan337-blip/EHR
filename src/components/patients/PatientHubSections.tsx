@@ -53,12 +53,13 @@ function dateOf(day: string): string {
 
 /** One coverage card: what the card holds, then the 271 filed against it. */
 function CoverageCard({
+  holder,
   coverage,
   which,
   label,
   onRun,
 }: {
-  patientId: string;
+  holder: Patient;
   coverage: EligibilityCoverage | null;
   which: "primary" | "secondary";
   label: string;
@@ -120,7 +121,7 @@ function CoverageCard({
         )}
         <button
           type="button"
-          onClick={() => onRun(runEligibility270(coverage, new Date().toISOString()))}
+          onClick={() => onRun(runEligibility270(coverage, new Date().toISOString(), holder))}
           aria-label={`Run the 270/271 eligibility check for ${label.toLowerCase()} coverage for this patient`}
           className="min-h-10 rounded-lg bg-white px-3 text-[11px] font-semibold text-brand-700 ring-1 ring-brand-200 transition-colors hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
         >
@@ -227,7 +228,7 @@ function AppointmentRow({ patient, appointmentId }: { patient: Patient; appointm
               type="button"
               onClick={() => {
                 if (!primary) return;
-                recordEligibility(patient.id, "primary", runEligibility270(primary, new Date().toISOString()));
+                recordEligibility(patient.id, "primary", runEligibility270(primary, new Date().toISOString(), patient));
               }}
               disabled={!primary}
               aria-label={`Run the 270/271 eligibility check for ${patient.firstName} ${patient.lastName} at this check-in`}
@@ -302,14 +303,14 @@ export function InsuranceSection({ patient }: { patient: Patient }) {
       </h2>
       <div className="grid gap-2 lg:grid-cols-2">
         <CoverageCard
-          patientId={patient.id}
+          holder={patient}
           coverage={record.primary}
           which="primary"
           label="Primary"
           onRun={(eligibility) => recordEligibility(patient.id, "primary", eligibility)}
         />
         <CoverageCard
-          patientId={patient.id}
+          holder={patient}
           coverage={record.secondary}
           which="secondary"
           label="Secondary"

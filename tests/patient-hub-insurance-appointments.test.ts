@@ -44,8 +44,26 @@ describe("the stored 271", () => {
   });
 
   test("a stored 271 is carried forward exactly as it was saved", () => {
-    const stored = { status: "active" as const, checkedAt: AT, payerResponse: "271: active" };
+    const stored = {
+      status: "active" as const,
+      checkedAt: AT,
+      payerResponse: "271: active",
+      payerNameOnFile: "Amir Khan",
+      cardName: "Amir Khan",
+      nameCheck: "match" as const,
+    };
     expect(eligibilityOf({ ...COVERAGE, eligibility: stored })).toEqual(stored);
+  });
+
+  test("a 271 saved before the name check reads not-compared, never a match", () => {
+    // The fields did not exist when this record was written (standing rule 3).
+    const older = { status: "active" as const, checkedAt: AT, payerResponse: "271: active" };
+    expect(eligibilityOf({ ...COVERAGE, eligibility: older })).toEqual({
+      ...older,
+      payerNameOnFile: "",
+      cardName: "",
+      nameCheck: "not-compared",
+    });
   });
 });
 

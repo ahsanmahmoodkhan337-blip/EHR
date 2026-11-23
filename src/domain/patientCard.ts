@@ -332,8 +332,8 @@ export function caseMismatch(patient: CardHolder | null | undefined): CardMismat
       documentsAgree: false,
       consequence:
         `The insurance card spells the surname “${surnameError}”; the government ID — and so the chart — spells it “${lastName}”. ` +
-        "A subscriber name that does not match the payer's file fails the 270/271 eligibility check as a name mismatch, " +
-        "and the claim denies until the payer's record is corrected. The chart keeps the government ID spelling.",
+        "The 270 carries the card's spelling and the 271 answers with a name mismatch — the subscriber name it holds is not the name on the chart — " +
+        "and the claim denies until the payer's record carries the chart's spelling. The chart keeps the government ID spelling.",
     };
   }
 
@@ -347,8 +347,8 @@ export function caseMismatch(patient: CardHolder | null | undefined): CardMismat
       documentsAgree: false,
       consequence:
         `The insurance card spells the given name “${givenNameError}”; the government ID — and so the chart — spells it “${firstName}”. ` +
-        "A subscriber name that does not match the payer's file fails the 270/271 eligibility check as a name mismatch, " +
-        "and the claim denies until the payer's record is corrected. The chart keeps the government ID spelling.",
+        "The 270 carries the card's spelling and the 271 answers with a name mismatch — the subscriber name it holds is not the name on the chart — " +
+        "and the claim denies until the payer's record carries the chart's spelling. The chart keeps the government ID spelling.",
     };
   }
 

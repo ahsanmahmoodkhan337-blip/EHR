@@ -16,7 +16,9 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { eligibility271 } from "../src/domain/eligibility";
+import { eligibility271, runEligibility270 } from "../src/domain/eligibility";
+import { TUTORIAL_PATIENT_ID, TUTORIAL_PATIENT_FIRST_NAME, TUTORIAL_PATIENT_LAST_NAME } from "../src/domain/tutorialIdentity";
+import { tutorialEligibilityFor } from "../src/domain/tutorialEncounter";
 import { planForPayerName, planForPayerNameStrict } from "../src/domain/adjudication";
 import { MEDICAL_PLANS } from "../src/data/medical/payerScenarios";
 import { applyDemoFill, unfilledBoxes } from "../src/utils/demoClaimFill";
@@ -25,7 +27,82 @@ import { DEMO_CLAIM_DATA, UNFILLED_BOX_SOURCES } from "../src/data/claims/demoCl
 const ROOT = join(import.meta.dir, "..");
 const read = (relative: string) => readFileSync(join(ROOT, relative), "utf8");
 
+const AT = "2026-11-20T09:00:00.000Z";
 const coverage = (payerName: string) => ({ payerName, subscriberId: "M-1" });
+
+/** A chart with a card on file and a name the case's one-mismatch trap can transpose. */
+const chart = (firstName: string, lastName: string, subscriberName = "") => ({
+  id: "P-271",
+  mrn: "MRN-271",
+  firstName,
+  lastName,
+  insuranceRecord: {
+    primary: {
+      payerName: "Atlas Select PPO",
+      planName: "Atlas Select PPO",
+      subscriberId: "A-884210",
+      relationshipToSubscriber: "Self",
+      ...(subscriberName ? { subscriberName } : {}),
+    },
+  },
+});
+
+describe("the 271 runs the name check its copy promises", () => {
+  test("a card spelling the chart does not have is a stated 271 result", () => {
+    const record = runEligibility270(chart("Jonathan", "Doe").insuranceRecord.primary, AT, chart("Jonathan", "Doe"));
+
+    expect(record.nameCheck).toBe("mismatch");
+    expect(record.cardName).toBe("Jonathan Doe");
+    // The payer's file holds the card's spelling, which is the transposed one.
+    expect(record.payerNameOnFile).toBe("Jonathan Deo");
+    expect(record.payerResponse).toContain("does not match the payer's file");
+    expect(record.payerResponse).toContain("Jonathan Deo");
+    expect(record.payerResponse).toContain("Jonathan Doe");
+    expect(record.payerResponse).toContain("denies");
+  });
+
+  test("a card and a chart that agree say so, and the member ID still matched", () => {
+    const patient = chart("Li", "Xu", "Xu, Li");
+    const record = runEligibility270(patient.insuranceRecord.primary, AT, patient);
+
+    expect(record.status).toBe("active");
+    expect(record.nameCheck).toBe("match");
+    expect(record.payerNameOnFile).toBe("Xu, Li");
+    expect(record.payerResponse).toContain("matches the payer's file");
+  });
+
+  test("a 270 that carried no name claims no match", () => {
+    const record = runEligibility270(coverage("Northwind Health Plan"), AT);
+
+    expect(record.status).toBe("active");
+    expect(record.nameCheck).toBe("not-compared");
+    expect(record.payerNameOnFile).toBe("");
+    expect(record.payerResponse).toContain("No subscriber name was compared");
+  });
+
+  test("a subscriber who is not the patient is not a name mismatch", () => {
+    const patient = chart("Ayesha", "Qadir");
+    const dependent = { ...patient.insuranceRecord.primary, relationshipToSubscriber: "Child", subscriberName: "Qadir, Rubina" };
+    const record = runEligibility270(dependent, AT, patient);
+
+    expect(record.nameCheck).toBe("not-compared");
+    expect(record.payerResponse).toContain("not the patient");
+  });
+
+  test("the Tutorial Patient's 271 agrees with its filled card", () => {
+    const tutorial = {
+      id: TUTORIAL_PATIENT_ID,
+      firstName: TUTORIAL_PATIENT_FIRST_NAME,
+      lastName: TUTORIAL_PATIENT_LAST_NAME,
+    };
+    const record = tutorialEligibilityFor(tutorial, AT);
+
+    expect(record.status).toBe("active");
+    expect(record.nameCheck).toBe("match");
+    expect(record.payerNameOnFile).toBe("Tutorial Patient");
+    expect(record.cardName).toBe("Tutorial Patient");
+  });
+});
 
 describe("item 4b — the 271 reads the patient's own plan", () => {
   test("the figures come from that payer's plan, and the plan is named", () => {
