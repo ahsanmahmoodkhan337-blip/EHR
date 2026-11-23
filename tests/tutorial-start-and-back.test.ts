@@ -42,8 +42,11 @@ describe("the Tutorial patient opens at the beginning", () => {
   // opens on step 1, and that the example is written once and never over a
   // student's own work.
   test("the worked example is written once, guarded by the record's own seed key", () => {
-    expect(STORE).toContain("seedTutorialEncounter");
+    // The seed runs in the store write itself (`seedTutorialInto`), so the
+    // encounter and its claim land together and no later write can drop them.
+    expect(STORE).toContain("seedTutorialInto");
     expect(STORE).toContain("applyTutorialSeed");
+    expect(STORE).toContain("applyTutorialMoneySeed");
     expect(SEED).toContain("if (encounter.tutorialSeed) return false;");
     expect(SEED).toContain("return !encounterHasWork(encounter);");
     // The money half asks its own question of the same record: a chart that
