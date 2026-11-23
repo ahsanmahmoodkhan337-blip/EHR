@@ -348,9 +348,11 @@ describe("phase 1 — registration's group number reaches box 11", () => {
     const { claimForm } = walkTheVisit();
     const card = PATIENT.insuranceRecord.primary.groupNumber;
     expect(claimForm.insuredPolicyGroup).toBe(card);
-    // The seeding rule lives in one place, read off the patient's own card.
+    // The seeding rule lives in one place, read off the patient's own card. A
+    // payer that issues no group number prints N/A instead of a blank the edit
+    // check would call an error (`specs/claim-boxes-agree.md` §1).
     const AUTOFILL = read("src/utils/claimAutoFill.ts");
-    expect(AUTOFILL).toContain("insuredPolicyGroup: card.groupNumber,");
+    expect(AUTOFILL).toContain("insuredPolicyGroup: box11Value(card.groupNumber, payerName),");
   });
 });
 

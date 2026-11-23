@@ -41,7 +41,7 @@ import { REVENUE_CODES as UB04_REVENUE_CODES } from "../../data/claims/revenueCo
 import { CMS1500_LAYOUT, CMS1500_LINE_COLUMNS } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE, MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
 import { providerProfileFor } from "../../data/claims/renderingProviders";
-import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, identitySeedFor, reseedIdentityBoxes, stripFabricatedIds } from "../../utils/claimAutoFill";
+import { buildClaimForm, blankServiceLine, backfillIdentityBoxes, identitySeedFor, reseedIdentityBoxes, stripFabricatedIds, repairClaimParties } from "../../utils/claimAutoFill";
 import { validateCMS1500, validateUB04, type ClaimIssue } from "../../utils/claimValidation";
 import {
   useEncounterPatientId,
@@ -356,6 +356,10 @@ export function BillingLedger({ openTab }: BillingLedgerProps = {}) {
     // typed is never overwritten.
     Object.assign(patch, backfillIdentityBoxes(savedClaim, patient, state.displayName));
     Object.assign(patch, reseedIdentityBoxes(savedClaim, patient, state.displayName));
+    // The parties agree with each other: box 11 prints N/A for a payer that
+    // issues no group number, box 4 prints box 2's name on a SELF claim, and box
+    // 13 is box 12's signature (`specs/claim-boxes-agree.md`).
+    Object.assign(patch, repairClaimParties(savedClaim, patient, state.displayName));
     // Box 23 fills the moment this encounter has an authorisation of its own — a
     // PA submitted after the claim was opened. A box the student typed is never
     // overwritten, and a number that is not this encounter's is never put there.
