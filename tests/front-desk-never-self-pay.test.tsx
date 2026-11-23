@@ -125,10 +125,14 @@ describe("the Front Desk stage of a covered chart", () => {
     expect(screen.text).not.toMatch(/self.?pay/i);
 
     // ── The card's own facts, on the stage ─────────────────────
+    // The card panel prints this patient's payer and member ID. Since phase 2
+    // (owner, 2026-11-23) the transcription boxes below it open BLANK — the
+    // student types what the card says before Verify — so the card, not the form,
+    // is where the patient's own coverage must be readable.
     expect(screen.text).toContain("Medicare Part B");
+    expect(screen.text).toContain("1EG4TE5MK72");
     const values = [...screen.container.querySelectorAll("input")].map((el) => el.value);
-    expect(values).toContain("Medicare Part B");
-    expect(values).toContain("1EG4TE5MK72");
+    expect(values).not.toContain("1EG4TE5MK72");
 
     // ── No self-pay control is offered for this chart ──────────
     const selfPayBoxes = [...screen.container.querySelectorAll("input[type=checkbox]")];

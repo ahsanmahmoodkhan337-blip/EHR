@@ -395,6 +395,12 @@ export function registrationExpectations(
  * Read from the selected patient only. A patient with no card gets blanks — the
  * form must not keep the previous patient's card in its fields, because pressing
  * Verify would then write that card onto this patient's chart.
+ *
+ * NOT the transcription form's starting value any more (owner phase 2, 2026-11-23:
+ * "the student types the member ID, group and plan from the card before Verify
+ * reveals the stored values"). The form now opens blank and the student reads the
+ * card; this function stays as the reader of the stored coverage, which is what
+ * `transcriptionChecks` and `transcriptionKeepsCard` compare the typing against.
  */
 export function registrationCardFor(patient: CardHolder | null | undefined): {
   payerName: string;
@@ -419,5 +425,124 @@ export function registrationCardFor(patient: CardHolder | null | undefined): {
     secondaryPayerId: (secondary?.ediPayerId ?? "").trim(),
     secondarySubscriberId: (secondary?.subscriberId ?? "").trim(),
     secondaryGroupNumber: (secondary?.groupNumber ?? "").trim(),
+  };
+}
+
+// ─── Card transcription: what the student typed against the card ───
+
+/** The coverage fields Registration asks the student to transcribe. */
+export type TranscriptionField = "payerName" | "memberId" | "groupNumber" | "planName" | "payerId";
+
+/** What the student typed into Registration's transcription form. */
+export interface TranscriptionTyped {
+  payerName?: string;
+  memberId?: string;
+  groupNumber?: string;
+  planName?: string;
+  payerId?: string;
+}
+
+export interface TranscriptionCheck {
+  field: TranscriptionField;
+  /** The form's own label for the field. */
+  label: string;
+  /** What the student typed, trimmed. "" when they left it blank. */
+  typed: string;
+  /** What this patient's own card holds — revealed only after Verify. */
+  onCard: string;
+  /**
+   * True when the card holds no value for this field, so there is nothing to
+   * score the typing against; the entry is simply what the chart keeps.
+   */
+  uncorroborated: boolean;
+  matches: boolean;
+  /**
+   * The claim box, the X12 element and the denial this field costs when it is
+   * wrong. Printed only after the student has committed an answer (rule 6).
+   */
+  consequence: string;
+}
+
+/** The one consequence line per field, in real claim identifiers. */
+const TRANSCRIPTION_CONSEQUENCE: Record<TranscriptionField, string> = {
+  memberId:
+    "CMS-1500 box 1a (837P loop 2010BA, NM1*IL) would carry an ID the payer cannot match, " +
+    "so the 270/271 comes back not-found and the claim denies CO-16 — missing information the payer needs.",
+  groupNumber:
+    "CMS-1500 box 11 (837P REF*6R) would point at another group's benefit plan, so the allowed " +
+    "amount and the deductible are priced from a plan that is not this patient's and the claim is " +
+    "corrected and resubmitted.",
+  planName:
+    "CMS-1500 box 11c names the insurance plan or program (paper-only — no 837P element carries " +
+    "it). A plan that is not this patient's prices the claim on another benefit package, so the " +
+    "allowed amount on the 835 is not this patient's.",
+  payerId:
+    "The EDI payer ID routes the 837P to the wrong payer mailbox (NM1*PR, loop 2010BB), and the " +
+    "clearinghouse returns a 277CA A3 rejection before any payer sees the claim.",
+  payerName:
+    "The payer named at the top of the CMS-1500 and in NM1*PR would not be the plan that holds " +
+    "this patient's coverage, and the claim denies CO-109 — this payer is not the right payer.",
+};
+
+/**
+ * Compare what the student typed with the card this patient already owns.
+ *
+ * The truth is the patient's own saved coverage (`patientCard`), never a constant
+ * and never the form. The caller prints the result only after Verify — before
+ * that, this is the answer key (standing rule 6).
+ */
+export function transcriptionChecks(
+  patient: CardHolder | null | undefined,
+  typed: TranscriptionTyped,
+): TranscriptionCheck[] {
+  const card = patientCard(patient);
+  const rows: { field: TranscriptionField; label: string; onCard: string; typed: string }[] = [
+    { field: "payerName", label: "Payer name", onCard: card.payerName, typed: typed.payerName ?? "" },
+    { field: "memberId", label: "Member ID", onCard: card.memberId, typed: typed.memberId ?? "" },
+    { field: "groupNumber", label: "Group number", onCard: card.groupNumber, typed: typed.groupNumber ?? "" },
+    { field: "planName", label: "Plan", onCard: card.planName, typed: typed.planName ?? "" },
+    { field: "payerId", label: "Payer ID (EDI)", onCard: card.payerId, typed: typed.payerId ?? "" },
+  ];
+
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+  return rows.map((row) => {
+    const onCard = row.onCard.trim();
+    const value = row.typed.trim();
+    const uncorroborated = onCard === "";
+    return {
+      field: row.field,
+      label: row.label,
+      typed: value,
+      onCard,
+      uncorroborated,
+      matches: uncorroborated ? value !== "" : same(value, onCard),
+      consequence: TRANSCRIPTION_CONSEQUENCE[row.field],
+    };
+  });
+}
+
+/**
+ * The coverage values Registration saves.
+ *
+ * A card already on the chart wins over a transcription that disagrees with it:
+ * a typo must never be written onto the patient, or every later screen — the
+ * banner, the 271, box 1a of the claim — would print it and the card itself would
+ * start printing the typo back on the next visit. Where the chart holds nothing
+ * for a field, the typed value is what fills it (that is a new registration).
+ */
+export function transcriptionKeepsCard(
+  patient: CardHolder | null | undefined,
+  typed: TranscriptionTyped,
+): { payerName: string; memberId: string; groupNumber: string; planName: string; payerId: string } {
+  const card = patientCard(patient);
+  const keep = (onCard: string, value: string | undefined) =>
+    onCard.trim() ? onCard.trim() : (value ?? "").trim();
+  return {
+    payerName: keep(card.payerName, typed.payerName),
+    memberId: keep(card.memberId, typed.memberId),
+    groupNumber: keep(card.groupNumber, typed.groupNumber),
+    planName: keep(card.planName, typed.planName),
+    payerId: keep(card.payerId, typed.payerId),
   };
 }

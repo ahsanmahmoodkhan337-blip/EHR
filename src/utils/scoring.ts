@@ -329,6 +329,82 @@ export function getLeaderboard(): LeaderboardRow[] {
 export function getStudentName(): string {
   return localStorage.getItem("hh_student_name") || "Student";
 }
+
+// ─── Registration: the score locked on the first verification ───────
+
+/**
+ * Registration is scored once per patient.
+ *
+ * Owner phase 2 (2026-11-23): the student transcribes the insurance card before
+ * Verify reveals the stored values, and "a score is locked in and cannot be
+ * improved by retrying". So the first verification writes this student's score
+ * for that patient and later verifications read it back — pressing Verify again
+ * can correct the chart, never the mark.
+ *
+ * Keyed by patient inside the student's own key (`store/studentScope`), so two
+ * students on one machine do not share a lock and a chart's mark follows the
+ * patient. A chart with no lock reads `null`, which is honest for every student
+ * who worked Registration before this shipped: their next verification is their
+ * first.
+ */
+const REGISTRATION_LOCK_KEY = "hh_registration_locked";
+
+export interface LockedRegistrationScore {
+  /** Points out of 10, as scored on the first verification. */
+  score: number;
+  /** ISO timestamp of that first verification. */
+  at: string;
+}
+
+type RegistrationLockMap = Record<string, LockedRegistrationScore>;
+
+function readRegistrationLocks(phone: string | null): RegistrationLockMap {
+  try {
+    const raw = readStudentItem(REGISTRATION_LOCK_KEY, phone);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as RegistrationLockMap;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+/** This student's locked Registration score for one patient, or null. */
+export function loadLockedRegistrationScore(
+  patientId: string | null | undefined,
+  phone: string | null = getScopePhone(),
+): LockedRegistrationScore | null {
+  if (!patientId || !phone) return null;
+  const lock = readRegistrationLocks(phone)[patientId];
+  if (!lock || typeof lock.score !== "number" || !Number.isFinite(lock.score)) return null;
+  return { score: lock.score, at: typeof lock.at === "string" ? lock.at : "" };
+}
+
+/**
+ * Lock this student's Registration score for one patient.
+ *
+ * A patient that already has a lock keeps it: the first verification is the one
+ * that counts, and a retry cannot raise (or lower) it. Returns the lock in force,
+ * which is what the caller prints.
+ */
+export function lockRegistrationScore(
+  patientId: string | null | undefined,
+  score: number,
+  phone: string | null = getScopePhone(),
+): LockedRegistrationScore | null {
+  if (!patientId || !phone) return null;
+  const existing = loadLockedRegistrationScore(patientId, phone);
+  if (existing) return existing;
+  const locks = readRegistrationLocks(phone);
+  const lock: LockedRegistrationScore = {
+    score: Math.max(0, Math.min(10, Math.round(score))),
+    at: new Date().toISOString(),
+  };
+  locks[patientId] = lock;
+  writeStudentItem(REGISTRATION_LOCK_KEY, JSON.stringify(locks), phone);
+  return lock;
+}
+
 // ─── Speech transcript scoring (AR Voice accent practice) ────────────
 
 export interface SpeechScoreResult {

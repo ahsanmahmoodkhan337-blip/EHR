@@ -60,6 +60,10 @@ export const RESET_GROUPS: readonly ResetGroup[] = [
       { key: `hh_scores_${phone}`, backend: "local" },
       { key: `hh_streak_${phone}`, backend: "local" },
       { key: `hh_challenges_${phone}`, backend: "local" },
+      // Registration's locked per-patient score (owner phase 2). Student progress,
+      // so "reset my data" removes it with the rest and the next verification is
+      // that patient's first again.
+      { key: `hh_registration_locked_${phone}`, backend: "local" },
     ],
   },
   {

@@ -27,6 +27,10 @@ export interface DotPhraseTextareaProps {
   id?: string;
   name?: string;
   disabled?: boolean;
+  /** A signed note: the textarea still shows its text but takes no edits or phrases. */
+  readOnly?: boolean;
+  /** Fired when the field loses focus — the caller's own autosave flush. */
+  onBlur?: () => void;
   /** Optional footer hint text in the suggestion dropdown. */
   hint?: string;
   /** Live vitals used to expand dynamic dot-codes (e.g. `.vitals`). */
@@ -57,6 +61,8 @@ export function DotPhraseTextarea({
   id,
   name,
   disabled,
+  readOnly,
+  onBlur,
   hint = DEFAULT_HINT,
   vitals,
 }: DotPhraseTextareaProps) {
@@ -167,9 +173,12 @@ export function DotPhraseTextarea({
         name={name}
         rows={rows}
         disabled={disabled}
+        readOnly={readOnly}
+        aria-readonly={readOnly || undefined}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onBlur={onBlur}
         placeholder={placeholder}
         className={className}
       />

@@ -31,6 +31,7 @@ import {
 } from "../../domain/noteStatus";
 import { formatWhen } from "../../domain/homeWorkQueues";
 import { useEncounterDateOfService } from "../../utils/encounterPatient";
+import { DotPhraseTextarea } from "../scribe/DotPhraseTextarea";
 
 export interface ActiveProgressNoteProps {
   /** The patient whose chart is open, or null when nobody is. */
@@ -118,6 +119,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
     label: string,
     placeholder: string,
     tone: string,
+    section: "HPI" | "ROS" | "PE" | "A&P" | "Plan",
   ) => (
     <div className="rounded-lg border border-slate-200 p-2">
       <label
@@ -126,13 +128,16 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
       >
         {label}
       </label>
-      <textarea
+      {/* Dot phrases (Epic SmartPhrases / eCW dot phrases): typing "." opens the
+          trigger list and Tab or Enter expands the teaching phrase into the note,
+          where it stays editable like any other sentence (owner phase 2). */}
+      <DotPhraseTextarea
         id={`active-note-${key}`}
         value={fields[key]}
-        onChange={(e) => edit(key, e.target.value)}
+        onChange={(next) => edit(key, next)}
         onBlur={flush}
         readOnly={readOnly}
-        aria-readonly={readOnly}
+        section={section}
         placeholder={readOnly ? "" : placeholder}
         className="min-h-[90px] w-full resize-y rounded border-0 bg-transparent text-[12px] text-slate-800 placeholder:text-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 read-only:text-slate-700"
       />
@@ -251,10 +256,10 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
         ) : (
           <>
             <div className="grid gap-2 md:grid-cols-2">
-              {field("subjective", "Subjective (S)", "Chief complaint, history of present illness, review of systems…", "text-blue-600")}
-              {field("objective", "Objective (O)", "Vital signs, exam findings, lab and imaging results…", "text-emerald-600")}
-              {field("assessment", "Assessment (A)", "Diagnoses, differentials, clinical impression…", "text-amber-600")}
-              {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-purple-600")}
+              {field("subjective", "Subjective (S)", "Chief complaint, history of present illness, review of systems…", "text-blue-600", "HPI")}
+              {field("objective", "Objective (O)", "Vital signs, exam findings, lab and imaging results…", "text-emerald-600", "PE")}
+              {field("assessment", "Assessment (A)", "Diagnoses, differentials, clinical impression…", "text-amber-600", "A&P")}
+              {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-purple-600", "Plan")}
             </div>
             <p className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-400">
               {readOnly ? (

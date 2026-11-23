@@ -30,11 +30,29 @@
  * filling only what the chart is missing. Before 2026-11-20 the DOB stayed in
  * component state, so a patient registered from the schedule kept showing
  * "DOB Invalid Date (0y)" in the banner and an empty box 3 on the claim.
+ *
+ * PHASE 2 (owner, 2026-11-23): the student transcribes, then sees the answer.
+ * The form used to open pre-filled from the patient's own coverage record, so
+ * pressing Verify copied the answer back and taught nothing. It now opens blank:
+ * the student reads the member ID, group, plan and payer ID off the two documents
+ * on screen and types them. Verify is the moment the app compares each field with
+ * the card on file (`transcriptionChecks`), names the claim box and the denial a
+ * wrong value would earn, and locks the score for that patient for good
+ * (`lockRegistrationScore`) — a retry can correct the chart, never the mark.
+ * A card already on the chart wins over a transcription that disagrees with it
+ * (`transcriptionKeepsCard`), so a typo is flagged and never written onto the
+ * patient where the banner, the 271 and box 1a would print it.
  */
 
 import { useEffect, useRef, useState } from "react";
-import { CreditCard, IdCard, CheckCircle2, Star } from "lucide-react";
-import { scoreRegistration, updateStageScore, getStudentName } from "../../utils/scoring";
+import { CreditCard, IdCard, CheckCircle2, Star, Lock } from "lucide-react";
+import {
+  scoreRegistration,
+  updateStageScore,
+  getStudentName,
+  loadLockedRegistrationScore,
+  lockRegistrationScore,
+} from "../../utils/scoring";
 import { usePatientStore } from "../../store/patientStore";
 import { useEhrStore } from "../../store/ehrStore";
 import {
@@ -45,8 +63,10 @@ import {
   caseMismatch,
   onFileOr,
   patientCard,
-  registrationCardFor,
   registrationExpectations,
+  transcriptionChecks,
+  transcriptionKeepsCard,
+  type TranscriptionCheck,
 } from "../../domain/patientCard";
 
 /**
@@ -93,6 +113,7 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
     payerName: "",
     subscriberId: "",
     groupNumber: "",
+    planName: "",
     payerId: "",
     relationship: "Self",
     secondaryPayerName: "",
@@ -120,65 +141,50 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
    * decision made on one chart never follows the next patient.
    */
   const [selfPayWanted, setSelfPay] = useState(false);
-  /** The patient's own saved coverage — the source of the form below. */
+  /** The patient's own saved coverage — what the transcription is checked against. */
   const cardNamesPayer = Boolean(card.payerName.trim());
   const selfPay = selfPayWanted && !cardNamesPayer;
 
-  // Re-open a patient that already has a card: show the card THIS patient owns,
-  // so re-verifying corrects it instead of silently replacing it with blanks.
+  // The transcription form opens BLANK for every patient (owner phase 2): the two
+  // documents on screen are what the student reads, and pre-filling the boxes from
+  // the record turned Verify into a copy of the answer.
   //
-  // The form is rebuilt from the selected patient on every patient change, and
-  // never from the values already in it: the patient opened before this one may
-  // have had a different card, and carrying its member ID over would both print
-  // a neighbour's card and — on Verify — write it onto this patient's chart
-  // (`domain/patientCard.ts`).
-  const prefilledFor = useRef<string | null>(null);
+  // It is rebuilt on every patient change and never from the values already in it:
+  // the patient opened before this one may have had a different card, and carrying
+  // its member ID over would both print a neighbour's card and — on Verify — write
+  // it onto this patient's chart (`domain/patientCard.ts`).
+  const openedFor = useRef<string | null>(null);
   useEffect(() => {
     const id = patient?.id ?? null;
-    if (prefilledFor.current === id) {
-      // Same patient: the store hydrates after the first render, so a card that
-      // lands late fills the boxes the student has not filled themselves.
-      const record = patient?.insuranceRecord;
-      if (!record) return;
-      setForm((prev) => ({
-        ...prev,
-        payerName: prev.payerName || record.primary.payerName,
-        subscriberId: prev.subscriberId || record.primary.subscriberId,
-        groupNumber: prev.groupNumber || record.primary.groupNumber,
-        payerId: prev.payerId || record.primary.ediPayerId,
-        relationship: record.primary.relationshipToSubscriber || prev.relationship,
-        secondaryPayerName: record.secondary?.payerName ?? "",
-        secondaryPayerId: record.secondary?.ediPayerId ?? "",
-        secondarySubscriberId: record.secondary?.subscriberId ?? "",
-        secondaryGroupNumber: record.secondary?.groupNumber ?? "",
-      }));
-      return;
-    }
-    prefilledFor.current = id;
-    const card = registrationCardFor(patient);
-    const hasCard = Boolean(card.payerName || card.subscriberId || card.groupNumber || card.payerId);
+    if (openedFor.current === id) return;
+    openedFor.current = id;
     // The self-pay decision belongs to the chart, not to the last one opened: a
     // tick left on a patient with no card never carries onto this patient.
     setSelfPay(false);
-    setForm((prev) => ({
-      ...prev,
-      // A patient with no card on file starts from the blank form — never from
-      // the patient opened before them.
-      ...(hasCard
-        ? card
-        : {
-            payerName: "",
-            subscriberId: "",
-            groupNumber: "",
-            payerId: "",
-            relationship: "Self",
-            secondaryPayerName: "",
-            secondaryPayerId: "",
-            secondarySubscriberId: "",
-            secondaryGroupNumber: "",
-          }),
-    }));
-  }, [patient?.id, patient?.insuranceRecord]);
+    setForm({
+      firstName: "",
+      lastName: "",
+      dob: "",
+      payerName: "",
+      subscriberId: "",
+      groupNumber: "",
+      planName: "",
+      payerId: "",
+      relationship: "Self",
+      secondaryPayerName: "",
+      secondaryPayerId: "",
+      secondarySubscriberId: "",
+      secondaryGroupNumber: "",
+      nameAgrees: "",
+    });
+    // A new patient is a new attempt: the previous chart's reveal and its
+    // "Verified" badge never carry over.
+    setSubmitted(false);
+    setSavedToChart(false);
+    setErrors({});
+    setReveal(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient?.id]);
 
   // The insurance card carries this case's one deliberate misspelling and the
   // government ID does not. Both documents are on screen, so the student makes
@@ -211,9 +217,34 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
 
   const [registrationScore, setRegistrationScore] = useState<number | null>(null);
 
+  /**
+   * What Verify revealed: each field the student typed beside the value the card
+   * on file holds, the score in force, and whether that score was already locked.
+   * `null` until the student has committed — this is the answer key (rule 6).
+   */
+  const [reveal, setReveal] = useState<{
+    checks: TranscriptionCheck[];
+    score: number;
+    locked: boolean;
+    lockedAt: string;
+  } | null>(null);
+
   const handleSubmit = () => {
     if (validate()) {
-      const score = scoreRegistration(
+      const typed = {
+        payerName: form.payerName,
+        memberId: form.subscriberId,
+        groupNumber: form.groupNumber,
+        planName: form.planName,
+        payerId: form.payerId,
+      };
+      // Compared against the card on file as it stands right now — captured
+      // before anything is written back, so the reveal cannot compare the typing
+      // with itself.
+      const checks = transcriptionChecks(patient, typed);
+
+      // The mark is the first verification's, for good.
+      const raw = scoreRegistration(
         {
           firstName: form.firstName,
           lastName: form.lastName,
@@ -224,7 +255,16 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
         },
         expectations,
       );
+      const alreadyLocked = loadLockedRegistrationScore(patient?.id);
+      const lock = alreadyLocked ?? lockRegistrationScore(patient?.id, raw);
+      const score = lock?.score ?? raw;
       setRegistrationScore(score);
+      setReveal({
+        checks: selfPay ? [] : checks,
+        score,
+        locked: Boolean(lock),
+        lockedAt: lock?.at ?? "",
+      });
       updateStageScore(getStudentName(), "registration", score);
       setSubmitted(true);
 
@@ -234,14 +274,20 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
       if (patient?.id) {
         // The identity the student transcribed goes onto the chart too, so the
         // banner, the summary and the claim stop showing a patient with no date
-        // of birth after Registration has been worked.
+        // of birth after Registration has been worked — but a chart that already
+        // holds a name or a date of birth keeps it: a transcription that copied
+        // the card's misspelling must not rename the patient.
         const isoDob = toIsoDate(form.dob);
+        const chartHoldsName = Boolean(patient.firstName?.trim() || patient.lastName?.trim());
+        const chartHoldsDob = Boolean((patient.dateOfBirth ?? "").trim());
         updatePatientIdentity(patient.id, {
-          firstName: form.firstName,
-          lastName: form.lastName,
-          ...(isoDob ? { dateOfBirth: isoDob } : {}),
+          ...(chartHoldsName ? {} : { firstName: form.firstName, lastName: form.lastName }),
+          ...(chartHoldsDob || !isoDob ? {} : { dateOfBirth: isoDob }),
         });
 
+        // The card on file wins over a transcription that disagrees with it, so a
+        // typo is flagged in the reveal and never written onto the patient.
+        const kept = transcriptionKeepsCard(patient, typed);
         const secondaryFilled =
           form.secondaryPayerName.trim() ||
           form.secondaryPayerId.trim() ||
@@ -251,12 +297,12 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
           patient.id,
           buildInsuranceRecord({
             primary: {
-              payerName: selfPay ? "Self-pay" : form.payerName,
-              ediPayerId: selfPay ? "" : form.payerId,
-              subscriberId: selfPay ? "" : form.subscriberId,
-              groupNumber: selfPay ? "" : form.groupNumber,
+              payerName: selfPay ? "Self-pay" : kept.payerName,
+              ediPayerId: selfPay ? "" : kept.payerId,
+              subscriberId: selfPay ? "" : kept.memberId,
+              groupNumber: selfPay ? "" : kept.groupNumber,
               relationshipToSubscriber: form.relationship,
-              planName: selfPay ? "Self-pay" : form.payerName,
+              planName: selfPay ? "Self-pay" : kept.planName || kept.payerName,
             },
             secondary: secondaryFilled
               ? {
@@ -378,6 +424,12 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
             {errors.groupNumber && <p className="mt-0.5 text-[10px] text-red-500">{errors.groupNumber}</p>}
           </div>
           <div>
+            <label className="text-[11px] font-medium text-slate-500">Plan</label>
+            <input type="text" value={form.planName} onChange={e => setForm({ ...form, planName: e.target.value })}
+              className="mt-1 input-field" placeholder="As printed on the card" />
+            <p className="mt-0.5 text-[10px] text-slate-400">Fills claim box 11c — insurance plan name.</p>
+          </div>
+          <div>
             <label className="text-[11px] font-medium text-slate-500">Payer ID (EDI)</label>
             <input type="text" value={form.payerId} onChange={e => setForm({ ...form, payerId: e.target.value })}
               className="mt-1 input-field" placeholder="As printed on the card" />
@@ -496,12 +548,51 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
               </div>
             )}
             {registrationScore !== null && (
-              <div className="flex items-center gap-1.5 text-amber-700">
-                <Star className="h-3.5 w-3.5" />
-                Score: <strong>{registrationScore}/10</strong>
-                {registrationScore < 10 && (
-                  <span className="text-amber-500">— {registrationScore >= 5 ? "Good, but check the name mismatch!" : "Try again for a higher score"}</span>
+              <div className="flex flex-wrap items-center gap-1.5 text-amber-700">
+                {reveal?.locked ? (
+                  <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <Star className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
+                Score: <strong>{registrationScore}/10</strong>
+                {reveal?.locked ? (
+                  <span className="text-amber-500">
+                    — locked on your first verification{reveal.lockedAt ? ` (${reveal.lockedAt.slice(0, 10)})` : ""}.
+                    Re-verifying corrects the chart but cannot change the mark.
+                  </span>
+                ) : registrationScore < 10 ? (
+                  <span className="text-amber-500">
+                    — {registrationScore >= 5 ? "Good, but check the name mismatch!" : "Check the card field by field below."}
+                  </span>
+                ) : null}
+              </div>
+            )}
+
+            {/* Field by field, against the card on file — the answer, printed only
+                after the student committed (rule 6). */}
+            {reveal && reveal.checks.length > 0 && (
+              <div className="rounded bg-white/60 p-2 text-slate-700">
+                <p className="font-semibold">Card transcription — what you typed against the card on file</p>
+                <ul className="mt-1 space-y-1">
+                  {reveal.checks.map((check) => (
+                    <li key={check.field}>
+                      <span className="font-medium">{check.label}:</span>{" "}
+                      {check.uncorroborated ? (
+                        <>
+                          the card holds no value here, so “{check.typed || "—"}” is what the chart keeps.
+                        </>
+                      ) : check.matches ? (
+                        <>matches the card (“{check.onCard}”).</>
+                      ) : (
+                        <>
+                          <span className="font-semibold">differs</span> — you typed “{check.typed || "—"}”,
+                          the card holds “{check.onCard}”. {check.consequence} The chart keeps the card&apos;s
+                          value.
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
