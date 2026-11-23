@@ -47,7 +47,7 @@
 import type { ClaimFormData, ClaimServiceLine, PipelineState } from "../store/pipelineStore";
 import type { Patient } from "../store/patientStore";
 import { patientCard } from "../domain/patientCard";
-import { box11Value, lastFirstName } from "../domain/claimParties";
+import { box11Value, lastFirstName, NO_GROUP_NUMBER } from "../domain/claimParties";
 import { CPT_CODES } from "../components/CodingQueue/cptData";
 import {
   MEDICAL_PROVIDER_PROFILE,
@@ -62,6 +62,14 @@ import {
 } from "../data/claims/typeOfBill";
 
 const today = (): string => new Date().toISOString().slice(0, 10);
+
+/**
+ * What boxes 9 and 9c print when the patient carries no other coverage: `N/A`,
+ * the same word box 11 uses for a payer that issues no group number. A biller
+ * types it on a one-payer claim; leaving the box empty is an edit check waiting
+ * to bounce.
+ */
+const NO_OTHER_COVERAGE = NO_GROUP_NUMBER;
 
 /** A completely blank paper — the starting point before anything is known. */
 export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROFILE): ClaimFormData {
@@ -102,7 +110,11 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
     payerEdiId: "",
     patientSignature: true,
     insuredSignature: false,
-    currentIllnessDate: today(),
+    // Box 14 and box 31's date are **not** `today()`. A date made at render time
+    // hides from every grep and freezes at the day the student first opened the
+    // chart, contradicting box 24A. `buildClaimForm` fills 14 from the encounter's
+    // date of service and 31 from the note's own signature (`specs/blank-field-sweep.md` §C).
+    currentIllnessDate: "",
     similarIllnessQualifier: "",
     similarIllnessDate: "",
     unableToWorkFrom: "",
@@ -127,7 +139,8 @@ export function blankClaimForm(provider: ProviderProfile = MEDICAL_PROVIDER_PROF
     amountPaid: 0,
     balanceDue: 0,
     providerSignature: provider.signatureName,
-    providerSignatureDate: today(),
+    // Box 31's date half: the note's own signature, filled by `buildClaimForm`.
+    providerSignatureDate: "",
     facilityName: provider.legalName,
     facilityAddress: `${provider.address}, ${provider.cityStateZip}`,
     facilityNpi: provider.facilityNpi,
@@ -316,6 +329,24 @@ function encounterDateFor(
 }
 
 /**
+ * The date the progress note was signed — box 31's date half.
+ *
+ * Read from the encounter's own `NOTE_SIGNED` timeline entry, which
+ * `domain/signNote.ts` writes, so the paper's signature date is the note's
+ * signature date rather than whatever day the claim happened to be built on.
+ * "" when the note is not signed yet: an unsigned note has no signature date,
+ * and `buildClaimForm` falls back to the encounter's date of service.
+ */
+function noteSignedDate(pipeline: PipelineState): string {
+  const signed = (pipeline.statusEvents ?? [])
+    .filter((event) => event.reasonCode === "NOTE_SIGNED")
+    .map((event) => String(event.at ?? "").slice(0, 10))
+    .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date))
+    .sort();
+  return signed[signed.length - 1] ?? "";
+}
+
+/**
  * The identity boxes — 1, 1a, 2, 3, 4, 5, 6, 7, 9, 9a, 11, 11a, 11c, 11d, 26 —
  * from the patient record and its insurance record. Split out so a claim that
  * was opened before its patient was known can have exactly these boxes filled
@@ -384,11 +415,18 @@ export function patientIdentityBoxes(
     payerEdiId: card.payerId,
     // Boxes 9 / 9a / 9b / 9d — other coverage, when registration captured any.
     // 9d is the plan name only; the group number has its own box (9a) now.
-    otherInsuranceName: secondary?.payerName?.trim() ?? "",
+    // A patient with no other coverage prints `N/A` in box 9 and box 9c, which is
+    // what a biller types on a claim with one payer: a blank there is an edit
+    // check waiting to bounce, and box 11d already says "No" beside it
+    // (`specs/blank-field-sweep.md` §B). No employer field exists anywhere in the
+    // chart, so a secondary plan without one keeps the honest blank and its
+    // stated reason.
+    otherInsuranceName: secondary?.payerName?.trim() || NO_OTHER_COVERAGE,
     otherInsurancePlan: secondary?.planName?.trim() ?? "",
     otherInsuredPolicyGroup: secondary?.groupNumber?.trim() ?? "",
     otherInsuredDob: secondary?.subscriberDob?.trim() ?? "",
     otherInsuredSex: secondary?.subscriberSex?.trim().charAt(0).toUpperCase() ?? "",
+    insuredEmployer: secondary ? "" : NO_OTHER_COVERAGE,
     otherBenefitPlan: secondary ? "Yes" : "No",
     patientAccountNumber: patient?.mrn ?? "",
   };
@@ -575,13 +613,21 @@ export function buildClaimForm({
 }: AutoFillArgs): ClaimFormData {
   const base = blankClaimForm(provider);
 
+  const dateOfService = encounterDateFor(patient, encounterDate);
   const serviceLines = buildServiceLines(
     pipeline,
     provider,
-    encounterDateFor(patient, encounterDate),
+    dateOfService,
     String(placeOfService ?? "").trim(),
   );
-  const totalCharge = serviceLines.reduce((sum, l) => sum + (l.charge || 0), 0);
+  // Box 28 is the sum of box 24F **times box 24G** — the paper prints the charge
+  // per unit in 24F and the unit count in 24G, so a line of 3 units at $100 is
+  // $300 on the bill. Summing the bare charge printed $100 in box 28 while the
+  // Coding screen showed "$100 × 3 = $300" (`specs/blank-field-sweep.md` §D).
+  const totalCharge = serviceLines.reduce(
+    (sum, l) => sum + (l.charge || 0) * (Number.isFinite(l.units) && l.units > 0 ? l.units : 1),
+    0,
+  );
   const identityBoxes = patientIdentityBoxes(patient, displayName);
   const seedKey = identitySeedFor(patient, displayName);
 
@@ -620,6 +666,13 @@ export function buildClaimForm({
     insuredSignature: identityBoxes.patientRelationship === "Self",
     diagnosisCodes,
     priorAuthNumber: paNumber ?? "",
+    // Box 14 — the encounter's own date of service, never `today()`. The note
+    // dates the current illness on the day of the visit; with no encounter date
+    // either the box stays blank and the claim's grey strip says so.
+    currentIllnessDate: dateOfService,
+    // Box 31's date half — the note's signature, or the visit's date when the
+    // claim is built before the note is signed.
+    providerSignatureDate: noteSignedDate(pipeline) || dateOfService,
     serviceLines,
     totalCharge,
     typeOfBill,

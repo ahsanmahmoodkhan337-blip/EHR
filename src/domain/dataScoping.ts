@@ -233,7 +233,12 @@ export function carryCodingIntoClaim(
     });
   }
 
-  const lineTotal = lines.reduce((sum, line) => sum + cents(line.charge), 0);
+  // Box 28 is 24F × 24G per line, the same arithmetic the paper and the edit
+  // check use — a bare-charge total printed $100 for 3 units at $100.
+  const lineTotal = lines.reduce(
+    (sum, line) => sum + cents(line.charge) * (line.units > 0 ? line.units : 1),
+    0,
+  );
   let totalCharge = form.totalCharge;
   // Box 28 — filled from the lines only when the claim's own total is zero.
   if (cents(totalCharge) <= 0 && lineTotal > 0) totalCharge = lineTotal / 100;

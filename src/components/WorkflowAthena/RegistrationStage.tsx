@@ -47,7 +47,9 @@ import {
   patientCard,
   registrationCardFor,
   registrationExpectations,
+  registrationIdentityFor,
 } from "../../domain/patientCard";
+import { box11Value, payerIssuesGroupNumber } from "../../domain/claimParties";
 
 /**
  * Turn the form's MM/DD/YYYY date of birth into the ISO `YYYY-MM-DD` the chart
@@ -142,22 +144,34 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
   const prefilledFor = useRef<string | null>(null);
   useEffect(() => {
     const id = patient?.id ?? null;
+    // The identity half is read from the chart, not the card: the name and date
+    // of birth are already on the record, and the government ID's spelling is
+    // the one that wins. A box the student has typed is never overwritten.
+    const identity = registrationIdentityFor(patient);
     if (prefilledFor.current === id) {
       // Same patient: the store hydrates after the first render, so a card that
       // lands late fills the boxes the student has not filled themselves.
       const record = patient?.insuranceRecord;
-      if (!record) return;
       setForm((prev) => ({
         ...prev,
-        payerName: prev.payerName || record.primary.payerName,
-        subscriberId: prev.subscriberId || record.primary.subscriberId,
-        groupNumber: prev.groupNumber || record.primary.groupNumber,
-        payerId: prev.payerId || record.primary.ediPayerId,
-        relationship: record.primary.relationshipToSubscriber || prev.relationship,
-        secondaryPayerName: record.secondary?.payerName ?? "",
-        secondaryPayerId: record.secondary?.ediPayerId ?? "",
-        secondarySubscriberId: record.secondary?.subscriberId ?? "",
-        secondaryGroupNumber: record.secondary?.groupNumber ?? "",
+        firstName: prev.firstName || identity.firstName,
+        lastName: prev.lastName || identity.lastName,
+        dob: prev.dob || identity.dateOfBirth,
+        ...(record
+          ? {
+              payerName: prev.payerName || record.primary.payerName,
+              subscriberId: prev.subscriberId || record.primary.subscriberId,
+              groupNumber:
+                prev.groupNumber ||
+                box11Value(record.primary.groupNumber, record.primary.payerName),
+              payerId: prev.payerId || record.primary.ediPayerId,
+              relationship: record.primary.relationshipToSubscriber || prev.relationship,
+              secondaryPayerName: record.secondary?.payerName ?? "",
+              secondaryPayerId: record.secondary?.ediPayerId ?? "",
+              secondarySubscriberId: record.secondary?.subscriberId ?? "",
+              secondaryGroupNumber: record.secondary?.groupNumber ?? "",
+            }
+          : {}),
       }));
       return;
     }
@@ -169,6 +183,9 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
     setSelfPay(false);
     setForm((prev) => ({
       ...prev,
+      firstName: identity.firstName,
+      lastName: identity.lastName,
+      dob: identity.dateOfBirth,
       // A patient with no card on file starts from the blank form — never from
       // the patient opened before them.
       ...(hasCard
@@ -209,7 +226,13 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
     if (!selfPay) {
       if (!form.payerName.trim()) errs.payerName = "Payer name is required";
       if (!form.subscriberId.trim()) errs.subscriberId = "Subscriber ID is required";
-      if (!form.groupNumber.trim()) errs.groupNumber = "Group number is required";
+      // A payer that issues no group number (original Medicare) prints N/A, and
+      // the box is not required on its claims — the same rule box 11 follows
+      // (`domain/claimParties.ts`). Requiring one made a Medicare chart
+      // unverifiable without inventing a number.
+      if (!form.groupNumber.trim() && payerIssuesGroupNumber(form.payerName)) {
+        errs.groupNumber = "Group number is required";
+      }
       if (!form.payerId.trim()) errs.payerId = "Payer ID is required";
     }
     setErrors(errs);
