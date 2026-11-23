@@ -28,7 +28,11 @@ import { AlertTriangle, CheckCircle2, FileDown, Info, Loader2, Printer, Save, Se
 import { toast } from "sonner";
 import type { ClaimIssue } from "../../utils/claimValidation";
 import { applyDemoFill, applyLineDemoFill, demoFillSummary, unfilledBoxes, type DemoFilledBox } from "../../utils/demoClaimFill";
-import { READ_ONLY_REASON_ID, ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
+
+/** The reason drawn under the claim's Submit button, at the point of the click. */
+const CLAIM_SUBMIT_REASON = readOnlyNoteId("claim-submit");
+const CLAIM_SAVE_REASON = readOnlyNoteId("claim-save");
 import { READ_ONLY_REASON } from "../../domain/tutorialReadOnly";
 
 export interface ClaimPaperApi {
@@ -332,32 +336,40 @@ export function ClaimFormShell({
 
       {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-3 py-2">
-        <button
-          onClick={handleSave}
-          className={btnGhost}
-          {...(readOnly ? readOnlyAttrs(readOnly) : { title: "Write the current edits to the claim record" })}
-        >
-          <Save className="h-3.5 w-3.5" /> Save
-        </button>
+        <div className="flex flex-col">
+          <button
+            onClick={handleSave}
+            className={btnGhost}
+            {...(readOnly ? readOnlyAttrs(readOnly, CLAIM_SAVE_REASON) : { title: "Write the current edits to the claim record" })}
+          >
+            <Save className="h-3.5 w-3.5" /> Save
+          </button>
+          <ReadOnlyNote readOnly={readOnly} id={CLAIM_SAVE_REASON} />
+        </div>
         <button onClick={handleValidate} className={btnGhost} title="Run the claim edit checks">
           <CheckCircle2 className="h-3.5 w-3.5" /> Validate
         </button>
-        <button
-          onClick={handleSubmit}
-          disabled={readOnly || blocked || submitting}
-          className={btn}
-          title={
-            readOnly
-              ? READ_ONLY_REASON
-              : blocked
-                ? `${errors.length} edit check(s) must clear before submission`
-                : "Submit to the clearinghouse"
-          }
-          {...(readOnly ? { "aria-describedby": READ_ONLY_REASON_ID } : {})}
-        >
-          {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-          Submit
-        </button>
+        {/* Submit, and the reason directly under it: the standard chart cannot
+            send this claim, and says so where the student presses. */}
+        <div className="flex flex-col">
+          <button
+            onClick={handleSubmit}
+            disabled={readOnly || blocked || submitting}
+            className={btn}
+            title={
+              readOnly
+                ? READ_ONLY_REASON
+                : blocked
+                  ? `${errors.length} edit check(s) must clear before submission`
+                  : "Submit to the clearinghouse"
+            }
+            {...(readOnly ? { "aria-describedby": CLAIM_SUBMIT_REASON } : {})}
+          >
+            {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            Submit
+          </button>
+          <ReadOnlyNote readOnly={readOnly} id={CLAIM_SUBMIT_REASON} />
+        </div>
         <button onClick={() => window.print()} className={btnGhost} title="Print the paper at letter proportions">
           <Printer className="h-3.5 w-3.5" /> Print
         </button>
@@ -373,9 +385,6 @@ export function ClaimFormShell({
         </span>
       </div>
 
-      {/* The standard chart cannot be submitted, and says so where the student
-          clicked rather than only at the top of the page. */}
-      {readOnly && <ReadOnlyReason className="mx-3 mt-2" />}
 
       {/* ── Demo-data strip ──────────────────────────────────────────
           Counted apart from the edit checks: a demo box is not a clean box,

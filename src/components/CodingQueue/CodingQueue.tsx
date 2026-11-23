@@ -112,12 +112,15 @@ const CONVENTIONS = [
 
 // ─── Component ────────────────────────────────────────────────────
 
-import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
+
+/** The reason drawn under the Submit button, at the point of the click. */
+const CODING_SUBMIT_REASON = readOnlyNoteId("coding-submit");
 
 interface CodingQueueProps {
-  medications?: { id: string; name: string; dosage: string; frequency: string   /** The standard reference chart: codes cannot be added, removed or sent. */
+  medications?: { id: string; name: string; dosage: string; frequency: string }[];
+  /** The standard reference chart: codes cannot be added, removed or sent. */
   readOnly?: boolean;
-}[];
 }
 
 /**
@@ -428,11 +431,12 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
     return total;
   }, [selectedCPTs, cptDataMap]);
 
-  // The standard chart: codes are shown, never changed.
-  const readOnlyBanner = readOnly ? <ReadOnlyReason className="mb-3" /> : null;
+  // The standard chart: codes are shown, never changed. The reason is drawn
+  // under the Submit button itself (below), not in a banner at the top of the
+  // stage — the owner measured that banner at 1,170 px above the button, which
+  // left Submit reading as a dead control.
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {readOnlyBanner}
       {/* Header */}
       <div className="border-b border-slate-200 bg-white px-4 py-3">
         <div className="flex items-center gap-2">
@@ -1177,15 +1181,18 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
               </div>
             ) : (<>
               {selectedICDs.length > 0 && selectedCPTs.length > 0 && (
-                <button
-                  onClick={handleSubmitToBilling}
-                  {...readOnlyAttrs(readOnly)}
-                  className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-brand-600 transition-colors"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Submit Coded Encounter to Billing ({selectedICDs.length} ICD-10, {selectedCPTs.length} CPT)
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+                <div className="mt-4">
+                  <button
+                    onClick={handleSubmitToBilling}
+                    {...readOnlyAttrs(readOnly, CODING_SUBMIT_REASON)}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-brand-600 transition-colors"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Submit Coded Encounter to Billing ({selectedICDs.length} ICD-10, {selectedCPTs.length} CPT)
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                  <ReadOnlyNote readOnly={readOnly} id={CODING_SUBMIT_REASON} />
+                </div>
               )}
             </>)}
           </div>

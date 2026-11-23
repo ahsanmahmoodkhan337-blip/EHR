@@ -6,7 +6,7 @@
 // Inspired by: CoverMyMeds + Epic PA Hub
 // ──────────────────────────────────────────────────────────────────────
 
-import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
 import { useState, useMemo, useEffect } from "react";
 import {
   Shield,
@@ -101,6 +101,9 @@ const PAYER_REQUIREMENTS: Record<string, { label: string; requirements: string[]
 };
 
 // Document attachment simulation
+
+/** The reason drawn under the e-PA submit button, at the point of the click. */
+const PA_SUBMIT_REASON = readOnlyNoteId("prior-auth-submit");
 
 export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boolean }) {
   const { state, submitPA, addPARecord, setRole, paRecords } = usePipeline();
@@ -387,7 +390,8 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
     );
   }
 
-  const readOnlyBanner = readOnly ? <ReadOnlyReason className="mb-2" /> : null;
+  // The reason is drawn under the e-PA button itself, at the point of the click.
+  const readOnlyBanner = null;
   return (
     <div className="flex flex-1 flex-col h-full">{readOnlyBanner}
       {/* ── CoverMyMeds-style Header ── */}
@@ -1102,13 +1106,14 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
                 </div>
 
                 {/* CoverMyMeds-style submit button */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-start gap-2">
+                <div className="flex flex-1 flex-col">
                 <button
                   type="button"
                   onClick={handleSubmit}
                   disabled={!procedure || Boolean(paScope)}
                   aria-label={paScope ? `${paScope.message} ${paScope.nextStep}` : undefined}
-                  {...readOnlyAttrs(readOnly)}
+                  {...readOnlyAttrs(readOnly, PA_SUBMIT_REASON)}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium text-white transition-colors ${
                     procedure && !paScope
                       ? `${CMM_PRIMARY} ${CMM_PRIMARY_HOVER}`
@@ -1119,6 +1124,8 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
                   Submit e-PA Request to {payerLabel}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
+                <ReadOnlyNote readOnly={readOnly} id={PA_SUBMIT_REASON} />
+                </div>
                 <button
                   onClick={() => {
                     exportPAFormPDF({

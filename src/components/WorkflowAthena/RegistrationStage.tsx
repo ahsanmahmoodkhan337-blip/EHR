@@ -70,7 +70,10 @@ function toIsoDate(dob: string): string | null {
   return `${year}-${month}-${day}`;
 }
 
-import { readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
+
+/** The reason drawn under Verify, at the point of the click. */
+const VERIFY_REASON = readOnlyNoteId("registration-verify");
 
 interface RegistrationStageProps {
   /** The standard reference chart: a control that would write is disabled and says why. */
@@ -457,14 +460,15 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
           )}
         </fieldset>
         )}
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex flex-col items-end">
           <button
             onClick={handleSubmit}
             className="btn-primary disabled:cursor-not-allowed disabled:bg-slate-300"
-            {...readOnlyAttrs(readOnly)}
+            {...readOnlyAttrs(readOnly, VERIFY_REASON)}
           >
             {isComplete ? "Re-verify" : "Verify Identity & Insurance"}
           </button>
+          <ReadOnlyNote readOnly={readOnly} id={VERIFY_REASON} className="max-w-md text-right" />
         </div>
         {isComplete && (
           <div className="mt-3 flex flex-col gap-2 rounded-lg bg-green-50 p-3 text-xs text-green-700">

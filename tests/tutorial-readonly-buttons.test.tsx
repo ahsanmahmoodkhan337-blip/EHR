@@ -141,7 +141,7 @@ function reasonCarryingControls(root: ParentNode): Element[] {
   return [...root.querySelectorAll(INTERACTIVE)].filter(
     (el) =>
       el.getAttribute("title") === READ_ONLY_REASON ||
-      el.getAttribute("aria-describedby") === READ_ONLY_REASON_ID,
+      (el.getAttribute("aria-describedby") ?? "").startsWith(READ_ONLY_REASON_ID),
   );
 }
 
@@ -214,7 +214,7 @@ describe("a Tutorial Patient write control is disabled and carries the reason", 
 
       // ── Where the stage draws write controls, the reason is on it ──
       if (REASON_STAGES.includes(stageId)) {
-        const reason = screen.container.querySelector(`#${READ_ONLY_REASON_ID}`);
+        const reason = screen.container.querySelector(`[id^="${READ_ONLY_REASON_ID}"]`);
         expect({ stage: stageId, reason: reason !== null }).toEqual({ stage: stageId, reason: true });
         expect({ stage: stageId, text: (reason?.textContent ?? "").includes(READ_ONLY_REASON) }).toEqual({
           stage: stageId,
@@ -254,12 +254,12 @@ describe("a Tutorial Patient write control is disabled and carries the reason", 
     );
     expect(submit).not.toBeUndefined();
     expect(submit!.getAttribute("title")).toBe(READ_ONLY_REASON);
-    expect(submit!.getAttribute("aria-describedby")).toBe(READ_ONLY_REASON_ID);
+    expect((submit!.getAttribute("aria-describedby") ?? "").startsWith(READ_ONLY_REASON_ID)).toBe(true);
     expect(isBlocked(submit!)).toBe(true);
 
     // A disabled control that says nothing reads as a broken one. What it says
     // is on the screen, not only in the attribute.
-    const reason = screen.container.querySelector(`#${READ_ONLY_REASON_ID}`);
+    const reason = screen.container.querySelector(`[id^="${READ_ONLY_REASON_ID}"]`);
     expect((reason?.textContent ?? "").includes(READ_ONLY_REASON)).toBe(true);
 
     await screen.unmount();
@@ -285,7 +285,7 @@ describe("a Tutorial Patient write control is disabled and carries the reason", 
     }
 
     // And the queue says why, in its own panel, not only at the top of the page.
-    const reason = screen.container.querySelector(`#${READ_ONLY_REASON_ID}`);
+    const reason = screen.container.querySelector(`[id^="${READ_ONLY_REASON_ID}"]`);
     expect((reason?.textContent ?? "").includes(READ_ONLY_REASON)).toBe(true);
 
     await screen.unmount();
@@ -314,7 +314,7 @@ describe("a student's own booked visit keeps its controls", () => {
         stage: stageId,
         notice: null,
       });
-      expect({ stage: stageId, reason: screen.container.querySelector(`#${READ_ONLY_REASON_ID}`) }).toEqual({
+      expect({ stage: stageId, reason: screen.container.querySelector(`[id^="${READ_ONLY_REASON_ID}"]`) }).toEqual({
         stage: stageId,
         reason: null,
       });
