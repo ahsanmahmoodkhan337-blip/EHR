@@ -133,6 +133,20 @@ export function useReadOnlyChart(patientId: string | null | undefined): boolean 
   return isTutorialChart(patientId);
 }
 
+/**
+ * True when this chart's note must not be autosaved.
+ *
+ * The standard chart's note is filled by the seed and refuses student writes, so
+ * an autosave — the 5-second timer, a blur, page hide, a panel closing — has
+ * nothing to save. Attempting it anyway publishes the refusal, and the student
+ * who typed nothing reads *"The note was not saved"* on a chart they never tried
+ * to change (owner report, 2026-11-23). Skip the attempt instead: no write, no
+ * sentence. A seed write is not a student write, so it is still allowed through.
+ */
+export function skipNoteAutosave(patientId: string | null | undefined): boolean {
+  return isTutorialChart(patientId) && !isSeedWrite();
+}
+
 /** Say the refusal out loud, for a handler that was reached anyway. */
 export function refuseReadOnly(what: string): true {
   publish(refusalSentence(what));

@@ -34,6 +34,7 @@ import type { ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { AppHeader } from "./shell/AppHeader";
 import { HelpLauncher } from "./shell/HelpLauncher";
+import { NewVersionBar } from "./shell/NewVersionBar";
 import { PageBreadcrumb } from "./shell/PageBreadcrumb";
 import { breadcrumbForPath, type Crumb } from "../domain/breadcrumb";
 import type { ShellNavId, ShellTrack } from "./shell/navItems";
@@ -133,6 +134,9 @@ export function AppShell({
         {/* Every page but the dashboard: Back + the trail. */}
         {trail && <PageBreadcrumb trail={trail} />}
         {banner}
+        {/* A tab opened before a deploy still runs the old bundle: one line,
+            one Reload, and the student decides (19 Nov tokens). */}
+        <NewVersionBar />
       </div>
 
       <div className="app-shell-main">
