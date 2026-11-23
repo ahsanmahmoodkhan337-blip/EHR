@@ -44,6 +44,7 @@ export function CMS1500Form({
   issues,
   demoFields,
   demoLineFields,
+  readOnly,
 }: ClaimPaperApi) {
   const rows = lines as unknown as ClaimServiceLine[];
   const maxLines = CMS1500_LAYOUT.maxLines;
@@ -265,6 +266,7 @@ export function CMS1500Form({
       table={table}
       note={DEMO_PROVIDER_NOTE}
       demoFields={demoFields}
+      readOnly={readOnly}
     />
   );
 }

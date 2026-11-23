@@ -42,6 +42,7 @@ export function Ub04Form({
   removeLine,
   issues,
   demoFields,
+  readOnly,
 }: ClaimPaperApi) {
   const rows = lines as unknown as ClaimServiceLine[];
   const maxLines = UB04_LAYOUT.maxLines;
@@ -231,6 +232,7 @@ export function Ub04Form({
       set={set}
       table={table}
       demoFields={demoFields}
+      readOnly={readOnly}
     />
   );
 }

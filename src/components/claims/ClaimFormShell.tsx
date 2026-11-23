@@ -28,6 +28,8 @@ import { AlertTriangle, CheckCircle2, FileDown, Info, Loader2, Printer, Save, Se
 import { toast } from "sonner";
 import type { ClaimIssue } from "../../utils/claimValidation";
 import { applyDemoFill, applyLineDemoFill, demoFillSummary, unfilledBoxes, type DemoFilledBox } from "../../utils/demoClaimFill";
+import { READ_ONLY_REASON_ID, ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { READ_ONLY_REASON } from "../../domain/tutorialReadOnly";
 
 export interface ClaimPaperApi {
   values: Record<string, unknown>;
@@ -43,6 +45,11 @@ export interface ClaimPaperApi {
   demoLineFields: Record<string, DemoFilledBox>;
   /** The same boxes as a list, for the paper's footer / the panel. */
   demoBoxes: DemoFilledBox[];
+  /**
+   * The standard reference chart refuses writes: the paper's boxes, Save and
+   * Submit are disabled and say why. Read-only, not "unsaved".
+   */
+  readOnly?: boolean;
 }
 
 export interface ClaimFormShellProps {
@@ -72,6 +79,12 @@ export interface ClaimFormShellProps {
    * assessment, so the paper shows only what the student captured.
    */
   demoFillEnabled?: boolean;
+  /**
+   * The Tutorial Patient's chart is the standard reference and cannot be
+   * changed: every control here that would write (a box, Save, Submit) is
+   * disabled, with the reason and the way to Schedule beside it.
+   */
+  readOnly?: boolean;
   children: (api: ClaimPaperApi) => ReactNode;
 }
 
@@ -95,6 +108,7 @@ export function ClaimFormShell({
   accent = "brand",
   note,
   demoFillEnabled = true,
+  readOnly = false,
   children,
 }: ClaimFormShellProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(values);
@@ -240,12 +254,16 @@ export function ClaimFormShell({
       clearTimeout(timer.current);
       timer.current = null;
     }
+    // The standard chart refuses the write, so the shell never makes one: a
+    // commit here would be silently dropped by the store.
+    if (readOnly) return;
     commitRef.current(draftRef.current, linesRef.current);
     setSavedAt(new Date().toLocaleTimeString());
     setDirty(false);
   };
 
   const handleSave = () => {
+    if (readOnly) return;
     flush();
     toast.success(`${formCode} saved`);
   };
@@ -265,6 +283,7 @@ export function ClaimFormShell({
   };
 
   const handleSubmit = () => {
+    if (readOnly) return;
     setShowAll(true);
     if (blocked) {
       toast.error(`Cannot submit — ${errors.length} edit check${errors.length === 1 ? "" : "s"} failed`);
@@ -313,7 +332,11 @@ export function ClaimFormShell({
 
       {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-3 py-2">
-        <button onClick={handleSave} className={btnGhost} title="Write the current edits to the claim record">
+        <button
+          onClick={handleSave}
+          className={btnGhost}
+          {...(readOnly ? readOnlyAttrs(readOnly) : { title: "Write the current edits to the claim record" })}
+        >
           <Save className="h-3.5 w-3.5" /> Save
         </button>
         <button onClick={handleValidate} className={btnGhost} title="Run the claim edit checks">
@@ -321,9 +344,16 @@ export function ClaimFormShell({
         </button>
         <button
           onClick={handleSubmit}
-          disabled={blocked || submitting}
+          disabled={readOnly || blocked || submitting}
           className={btn}
-          title={blocked ? `${errors.length} edit check(s) must clear before submission` : "Submit to the clearinghouse"}
+          title={
+            readOnly
+              ? READ_ONLY_REASON
+              : blocked
+                ? `${errors.length} edit check(s) must clear before submission`
+                : "Submit to the clearinghouse"
+          }
+          {...(readOnly ? { "aria-describedby": READ_ONLY_REASON_ID } : {})}
         >
           {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           Submit
@@ -342,6 +372,10 @@ export function ClaimFormShell({
           {errors.length} error{errors.length === 1 ? "" : "s"} · {warnings.length} advisory
         </span>
       </div>
+
+      {/* The standard chart cannot be submitted, and says so where the student
+          clicked rather than only at the top of the page. */}
+      {readOnly && <ReadOnlyReason className="mx-3 mt-2" />}
 
       {/* ── Demo-data strip ──────────────────────────────────────────
           Counted apart from the edit checks: a demo box is not a clean box,
@@ -436,6 +470,7 @@ export function ClaimFormShell({
           demoFields: demo.byField,
           demoLineFields: demoLines.byField,
           demoBoxes: [...demo.boxes, ...demoLines.boxes],
+          readOnly,
         })}
       </div>
 

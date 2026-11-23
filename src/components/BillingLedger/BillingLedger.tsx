@@ -38,6 +38,8 @@ import { CMS1500Form } from "./CMS1500Form";
 import { Ub04Form } from "./Ub04Form";
 import { UB04_LAYOUT, UB04_PDF_COLUMNS } from "../../data/claims/ub04Layout";
 import { REVENUE_CODES as UB04_REVENUE_CODES } from "../../data/claims/revenueCodes";
+import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
+import { useReadOnlyChart, useReadOnlyGuard } from "../../domain/tutorialReadOnly";
 import { CMS1500_LAYOUT, CMS1500_LINE_COLUMNS } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE, MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
 import { providerProfileFor } from "../../data/claims/renderingProviders";
@@ -164,6 +166,11 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
   // path can reach this screen with it unset, which left boxes 1a, 2, 3, 4, 5,
   // 6 and 7 blank on the paper.
   const patientId = useEncounterPatientId(state.patientId) || "";
+  // The standard reference chart refuses writes. One signal, from the chart this
+  // desk is working on: every control below that would write is disabled with
+  // the reason, and the handlers that could still be reached say it out loud.
+  const readOnly = useReadOnlyChart(patientId);
+  const guard = useReadOnlyGuard(patientId);
   const patient = patientId ? getPatientById(patientId) : undefined;
   const cs = patientId ? caseStates[patientId] : undefined;
 
@@ -541,6 +548,9 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
   /** Submit: edit checks already passed in the shell → run the 837P simulation. */
   const handleSubmitClaim = useCallback(
     (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
+      // The owner's click: Submit on the Tutorial Patient must say why, never
+      // look live and do nothing.
+      if (guard("The claim")) return;
       const patientPaRecords = paRecords.filter((r) => r.patientId === patientId);
 
       // Rule 6 — the PA question belongs to the student. If a line on this claim
@@ -734,6 +744,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
   };
 
   const simulateDenial = () => {
+    if (guard("The denial")) return;
     handleDenial(`${CARC_BY_CODE["CO-4"].code} — ${CARC_BY_CODE["CO-4"].description}`, {
       amount: calcPayment().billed,
       patientName: state.displayName || (patient ? `${patient.firstName} ${patient.lastName}` : "Unknown"),
@@ -1105,6 +1116,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       onDownload={downloadPdf}
                       submitting={isTransmitting}
                       demoFillEnabled={demoFillEnabled}
+                      readOnly={readOnly}
                     >
                       {(api) => <CMS1500Form {...api} />}
                     </ClaimFormShell>
@@ -1152,6 +1164,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       onDownload={downloadUb04Pdf}
                       submitting={isTransmitting}
                       demoFillEnabled={demoFillEnabled}
+                      readOnly={readOnly}
                     >
                       {(api) => <Ub04Form {...api} />}
                     </ClaimFormShell>
@@ -1178,8 +1191,13 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                 )}
 
                 {/* Actions */}
+                {readOnly && <ReadOnlyReason className="mb-2" />}
                 <div className="flex flex-wrap gap-3">
-                  <button onClick={simulateDenial} className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 hover:bg-red-100">
+                  <button
+                    onClick={simulateDenial}
+                    className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    {...readOnlyAttrs(readOnly)}
+                  >
                     <AlertTriangle className="h-3.5 w-3.5" /> Simulate Denial (Path B)
                   </button>
                   {/* The only scrub control on this screen. */}
@@ -1193,7 +1211,11 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   </button>
                   {/* Phase 3: Route to PA */}
                   {cs?.paStatus === "REQUIRED_MISSING" && (
-                    <button onClick={() => setShowRoutingModal(true)} className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                    <button
+                      onClick={() => setShowRoutingModal(true)}
+                      className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...readOnlyAttrs(readOnly)}
+                    >
                       <Route className="h-3.5 w-3.5" /> Route Claim to PA Specialist
                     </button>
                   )}
@@ -1245,6 +1267,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       <div className="mt-4 flex justify-end gap-2">
                         <button onClick={() => setShowRoutingModal(false)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
                         <button onClick={() => {
+                          if (guard("The routing note")) return;
                           addRoutingNote(patientId, { timestamp: new Date().toISOString(), fromRole: "biller", toRole: "prior-auth", noteText: routingMemo || "PA required — routing for approval" });
                           setBillingStatus(patientId, "PENDING_PA_ROUTE");
                           setPaStatus(patientId, "PENDING_REVIEW");
@@ -1317,9 +1340,13 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                     </div>
                     <button
                       type="button"
-                      onClick={() => adjudicateClaim({ payerName: payer })}
+                      onClick={() => {
+                        if (guard("The adjudication")) return;
+                        adjudicateClaim({ payerName: payer });
+                      }}
                       aria-label={`Adjudicate claim ${state.claimNumber} against the plan's rules`}
-                      className="mt-2 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                      className="mt-2 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      {...readOnlyAttrs(readOnly)}
                     >
                       <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
                       Adjudicate this claim
@@ -1327,7 +1354,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   </div>
                 ) : (
                   <>
-                    <RemittancePanel remittance={remittance} onPost={postRemittance} />
+                    <RemittancePanel remittance={remittance} onPost={postRemittance} readOnly={readOnly} />
                     <PatientLedgerPanel
                       entries={state.ledger}
                       remittance={remittance}
