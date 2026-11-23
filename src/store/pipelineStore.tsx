@@ -60,6 +60,7 @@ import {
   type TutorialPatientSource,
 } from "../domain/tutorialEncounter";
 import { selectPatientById, useEhrStore } from "./ehrStore";
+import { applyTutorialMoneySeed, tutorialMoneyPending } from "../domain/tutorialClaim";
 import { applyCodingPlaceOfService, hasLineForCpt } from "../domain/codingPlaceOfService";
 import {
   compileNoteText,
@@ -366,6 +367,44 @@ function remittanceReason(remittance: Remittance835): string {
   )} in total adjustments). Nothing is owed by the patient.`;
 }
 
+/**
+ * The Tutorial Patient's worked example, applied to one store state.
+ *
+ * The two pure builders — the clinical half (`domain/tutorialEncounter.ts`) and
+ * the money half (`domain/tutorialClaim.ts`) — run here, on the state the caller
+ * is already writing, so the encounter and its claim land in the *same* write.
+ * That is the whole point: a seed that runs in its own later write can be undone
+ * by any write that lands between the two, which is exactly what left the chart
+ * blank in the mounted app (a cross-device load replaced the store after the
+ * seed had written to it).
+ *
+ * Guarded twice, per half: a chart the student has worked is never re-filled, and
+ * a record that already carries `tutorial-2` is returned untouched. The claim
+ * number is minted from the state's own numbers, so the function is pure and a
+ * second call with the same state yields the same record.
+ */
+function seedTutorialInto(
+  state: PipelineStoreState,
+  patient: TutorialPatientSource,
+  at: string,
+): PipelineStoreState {
+  const key = encounterKey(TUTORIAL_PATIENT_ID);
+  const current = state.encounters[key];
+  const clinicalPending = tutorialSeedPending(current);
+  const moneyPending = tutorialMoneyPending(current);
+  if (!clinicalPending && !moneyPending) return state;
+  let enc = current ?? createEncounter(TUTORIAL_PATIENT_ID);
+  if (clinicalPending) enc = applyTutorialSeed(enc, patient, at);
+  if (tutorialMoneyPending(enc)) {
+    const claimNumber = mintNextClaimNumber(
+      Object.values(state.encounters).map((e) => e.claimNumber),
+    );
+    enc = applyTutorialMoneySeed(enc, patient, at, claimNumber);
+  }
+  if (enc === current) return state;
+  return { ...state, encounters: { ...state.encounters, [key]: enc } };
+}
+
 /** Initial store — read straight from localStorage so the first render has it. */
 function initialState(): PipelineStoreState {
   const phone = getLoggedInPhone();
@@ -396,7 +435,44 @@ export function rememberActivePatient(patientId: string | null): void {
   const local = loadUserData(phone);
   const saved = normalizePipelineStore(local?.pipeline, local?.currentRole ?? "scribe");
   if (saved.activePatientId === patientId) return;
-  saveUserData(phone, { pipeline: { ...saved, activePatientId: patientId } });
+  // Carry the record forward as it is about to be saved — with the worked
+  // example on it when the chart being opened is the Tutorial Patient's — so
+  // this write never puts a pre-seed snapshot back over the chart on screen.
+  saveUserData(phone, { pipeline: { ...withTutorialSeed(saved), activePatientId: patientId } });
+}
+
+/**
+ * The record to save, with the Tutorial Patient's worked example applied.
+ *
+ * The seed is written here, on the way to storage, because the screen paints the
+ * example the moment the chart is opened — and a save taken from the state as it
+ * was *before* that open stores a blank chart the student never saw. The same
+ * guards decide: a chart that already holds the seed, or work the student did,
+ * comes back untouched, and the claim number is minted from the student's own
+ * sequence. Nothing is invented.
+ */
+function withTutorialSeed(prev: PipelineStoreState): PipelineStoreState {
+  const key = encounterKey(TUTORIAL_PATIENT_ID);
+  const current = prev.encounters[key];
+  // Nothing pending means nothing to write: the state comes back as it went in,
+  // so a save of a chart the student worked never looks like a change.
+  if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return prev;
+  let patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID);
+  if (!patient) return prev;
+  const at = new Date().toISOString();
+  // The card and the 271 are what the claim's box 1a and the payer's member
+  // match read, so they are written before the example is built — and the
+  // patient is read back afterwards, because box 1a is the member ID just saved.
+  if (tutorialCardPending(patient)) {
+    const ehr = useEhrStore.getState();
+    ehr.updatePatientInsurance(patient.id, tutorialCardFor(patient));
+    ehr.recordEligibility(patient.id, "primary", tutorialEligibilityFor(patient, at));
+    patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? patient;
+  }
+  // One builder for both paths: the same `seedTutorialInto` that the open path
+  // writes with, so a chart saved from here and a chart seeded on open are the
+  // same record.
+  return seedTutorialInto(prev, patient, at);
 }
 
 /**
@@ -443,7 +519,16 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     void syncUserDataFromSupabase(phone).then((remote) => {
       if (!remote) return;
       if (remote.pipeline && (remote.updatedAt || "") > (local?.updatedAt || "")) {
-        setStore(normalizePipelineStore(remote.pipeline, remote.currentRole ?? "scribe"));
+        // Loading a saved record is one of the writes that must carry the
+        // example: this load lands after a seed written a moment earlier, and
+        // replacing the store without it is what left the chart blank.
+        const at = new Date().toISOString();
+        const tutorialPatient = prepareTutorialChart(at);
+        setStore((prev) => {
+          const loaded = normalizePipelineStore(remote.pipeline, remote.currentRole ?? "scribe");
+          void prev;
+          return tutorialPatient ? seedTutorialInto(loaded, tutorialPatient, at) : loaded;
+        });
       }
       if (remote.deniedClaims) setDeniedClaims(remote.deniedClaims);
       if (remote.arCalls) setArCalls(remote.arCalls);
@@ -474,7 +559,19 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     const phone = getLoggedInPhone();
     if (!phone) return;
     const t = setTimeout(
-      () => saveUserData(phone, { pipeline: store, currentRole: store.currentRole, deniedClaims, arCalls, paRecords }),
+      () =>
+        saveUserData(phone, {
+          // The saved record is the seeded one: the Tutorial Patient's worked
+          // example is applied to the record being written, so the write that
+          // saves a chart is the same write that carries its seed. A snapshot
+          // taken before the seed would save a blank chart the screen was not
+          // showing.
+          pipeline: withTutorialSeed(store),
+          currentRole: store.currentRole,
+          deniedClaims,
+          arCalls,
+          paRecords,
+        }),
       400
     );
     return () => clearTimeout(t);
@@ -503,73 +600,114 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   const getEncounter = (patientId: string | null) => store.encounters[encounterKey(patientId)];
 
-  // The Tutorial Patient's worked example, written onto its own encounter once.
+  // ── The Tutorial Patient's worked example ────────────────────────
   //
   // Spec `tutorial-patient-prefill.md` (owner, 2026-11-22): the tutorial chart is
-  // the standard that shows which datum belongs in which stage, so its note,
-  // signature, codes and prior authorisation are seeded from the patient's own
-  // record by `domain/tutorialEncounter.ts`. The write is guarded by the record's
-  // own seed key, so a later open never overwrites work the student has done since
-  // — and it targets the patient named, never whoever happens to be active.
-  const seedTutorialEncounter = (
-    patientId: string,
-    patient: TutorialPatientSource,
-    at: string = new Date().toISOString(),
-  ) => {
-    const key = encounterKey(patientId);
-    setStore((prev) => {
-      const current = prev.encounters[key] ?? createEncounter(patientId);
-      const next = applyTutorialSeed(current, patient, at);
-      if (next === current) return prev;
-      return { ...prev, encounters: { ...prev.encounters, [key]: next } };
-    });
+  // the standard that shows which datum belongs in which stage, so its note, its
+  // signature, the codes with their charge, the decided authorisation and the
+  // money — the claim, the 277CA, the 835, the posting and the denied line in the
+  // AR queue — are built from the patient's own record by
+  // `domain/tutorialEncounter.ts` and `domain/tutorialClaim.ts`.
+  //
+  // WHERE THE SEED RUNS: in the state write itself.
+  // Never in a screen's effect and never queued. The pure builders are applied to
+  // the state that creates or loads that encounter — `selectPatient` (the store's
+  // own open path), the cross-device load, and the arrival of the patient record
+  // itself — so the chart and its claim land in one write and no write that lands
+  // afterwards can leave the chart blank. Three earlier attempts failed exactly
+  // there: a gate inside a loader the new Patients route never called, a queued
+  // seed that lost a boot-order race, and a component effect that never fired.
+  const storeRef = useRef(store);
+  storeRef.current = store;
+
+  /**
+   * The chart the example is built from, written before the example itself: the
+   * patient's own coverage card with the member ID the 271 needs, the 271 that
+   * matches it, and the PA desk's row for the decided authorisation — that queue
+   * is its own list, so a decided authorisation has to exist in both places to be
+   * the same fact on both screens.
+   *
+   * Returns the patient as the chart store now holds them, read back after the
+   * card is written (the claim's box 1a is the member ID just saved), or
+   * `undefined` when there is no such patient to build the example from or the
+   * chart no longer needs it.
+   */
+  const prepareTutorialChart = (at: string): TutorialPatientSource | undefined => {
+    const current = storeRef.current.encounters[encounterKey(TUTORIAL_PATIENT_ID)];
+    if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return undefined;
+    let patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID);
+    if (!patient) return undefined;
+    if (tutorialCardPending(patient)) {
+      const ehr = useEhrStore.getState();
+      ehr.updatePatientInsurance(patient.id, tutorialCardFor(patient));
+      ehr.recordEligibility(patient.id, "primary", tutorialEligibilityFor(patient, at));
+      patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? patient;
+    }
+    const prepared = patient;
+    setPaRecords((prev) =>
+      prev.some((record) => record.patientId === prepared.id && record.id === TUTORIAL_PA_ID)
+        ? prev
+        : [...prev, tutorialPaRecord(prepared, at)],
+    );
+    return prepared;
   };
 
   /**
    * Seed the Tutorial Patient's worked example when its chart is opened.
    *
-   * `selectPatient` is the store's own open path, so the example is written here
+   * `selectPatient` is the store's own open path, so the example is written there
    * rather than by one screen's effect — that is what makes it work however the
    * chart is opened: the inbox, `/patients`, Start Visit or a pasted link.
    *
-   * The patient is read from the central chart store by id (`selectPatientById`),
-   * so the record is built from the chart it is filed under: the patient's own
-   * coverage card and the 271 that matches it, then the signed note, the codes
-   * with their charge and place of service, and the decided prior authorisation
-   * (`domain/tutorialEncounter.ts`). The PA desk keeps its own queue, so the
-   * authorisation is filed there too through `setPaRecords` — one number, one
-   * visit date, written once.
-   *
-   * Returns true when this chart is showing the example: it was seeded now, or it
-   * already holds the seed and nothing the student did. A chart the student worked
+   * Returns true when this chart is showing the example — it was seeded now, or it
+   * already holds it and nothing the student did. A chart the student worked
    * answers false and is left exactly as it is.
    */
   const seedTutorialOnOpen = (patientId: string | null): boolean => {
     if (patientId !== TUTORIAL_PATIENT_ID) return false;
-    if (!tutorialSeedPending(store.encounters[encounterKey(patientId)])) return false;
-    const patient = selectPatientById(useEhrStore.getState(), patientId);
+    const current = store.encounters[encounterKey(patientId)];
+    // Two halves, two guards. A chart on the clinical half only (`tutorial-1`)
+    // still needs the money half, and a guard that asked one question would read
+    // it as finished.
+    if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return false;
+    const at = new Date().toISOString();
+    const patient = prepareTutorialChart(at);
     if (!patient) return false;
-    const seededAt = new Date().toISOString();
-    if (tutorialCardPending(patient)) {
-      const ehr = useEhrStore.getState();
-      ehr.updatePatientInsurance(patient.id, tutorialCardFor(patient));
-      ehr.recordEligibility(patient.id, "primary", tutorialEligibilityFor(patient, seededAt));
-    }
-    seedTutorialEncounter(patient.id, patient, seededAt);
-    setPaRecords((prev) =>
-      prev.some((record) => record.patientId === patient.id && record.id === TUTORIAL_PA_ID)
-        ? prev
-        : [...prev, tutorialPaRecord(patient, seededAt)],
-    );
+    setStore((prev) => seedTutorialInto(prev, patient, at));
     return true;
   };
 
+  // A patient record that arrives after the chart was opened is a write of its
+  // own — the chart store's, not a screen's — and the example is written in that
+  // same step. That is what makes opening the Tutorial Patient before its record
+  // is registered safe: nothing is queued, and nothing waits for a render.
+  const seedingRef = useRef(false);
+  useEffect(() => {
+    return useEhrStore.subscribe(() => {
+      if (seedingRef.current) return;
+      const current = storeRef.current.encounters[encounterKey(TUTORIAL_PATIENT_ID)];
+      if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return;
+      seedingRef.current = true;
+      try {
+        const at = new Date().toISOString();
+        const patient = prepareTutorialChart(at);
+        if (patient) setStore((prev) => seedTutorialInto(prev, patient, at));
+      } finally {
+        seedingRef.current = false;
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** Load a patient's encounter. Creates a blank one the first time only. */
   const selectPatient = (patientId: string | null) => {
-    // Opening the Tutorial Patient's chart is what seeds it, so the worked
-    // example is there however the chart was opened — not only from the screen
-    // that used to seed it.
-    seedTutorialOnOpen(patientId);
+    // Opening the Tutorial Patient's chart is what seeds it. The card and the
+    // example are built here, and the example is applied inside this same state
+    // write — the encounter this call creates or loads and its claim land
+    // together, so no later write can leave the chart blank.
+    const at = new Date().toISOString();
+    const patient =
+      patientId === TUTORIAL_PATIENT_ID ? prepareTutorialChart(at) : undefined;
     setStore((prev) => {
       const key = encounterKey(patientId);
       const existing = prev.encounters[key];
@@ -577,15 +715,18 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       // Reopen the patient where they were left: their own role when the
       // student picked one, otherwise the stage their work reached.
       const restoredRole = restoredRoleFor(encounter);
-      if (prev.activePatientId === patientId && existing) {
-        return prev.currentRole === restoredRole ? prev : { ...prev, currentRole: restoredRole };
-      }
-      return {
-        ...prev,
-        activePatientId: patientId,
-        encounters: existing ? prev.encounters : { ...prev.encounters, [key]: encounter },
-        currentRole: restoredRole,
-      };
+      const next =
+        prev.activePatientId === patientId && existing
+          ? prev.currentRole === restoredRole
+            ? prev
+            : { ...prev, currentRole: restoredRole }
+          : {
+              ...prev,
+              activePatientId: patientId,
+              encounters: existing ? prev.encounters : { ...prev.encounters, [key]: encounter },
+              currentRole: restoredRole,
+            };
+      return patient ? seedTutorialInto(next, patient, at) : next;
     });
     // Write the pick through before the screen changes, so the page the student
     // opens next reads the same patient this one is showing.

@@ -19,6 +19,7 @@ const read = (path: string) => readFileSync(join(root, path), "utf8");
 
 const STORE = read("src/store/pipelineStore.tsx");
 const SEED = read("src/domain/tutorialEncounter.ts");
+const MONEY = read("src/domain/tutorialClaim.ts");
 const INDEX = read("src/routes/index.tsx");
 const SHELL = read("src/components/AppShell.tsx");
 const SIDEBAR = read("src/components/shell/AppHeader.tsx");
@@ -41,10 +42,18 @@ describe("the Tutorial patient opens at the beginning", () => {
   // opens on step 1, and that the example is written once and never over a
   // student's own work.
   test("the worked example is written once, guarded by the record's own seed key", () => {
-    expect(STORE).toContain("seedTutorialEncounter");
+    // The seed runs in the store write itself (`seedTutorialInto`), so the
+    // encounter and its claim land together and no later write can drop them.
+    expect(STORE).toContain("seedTutorialInto");
     expect(STORE).toContain("applyTutorialSeed");
-    expect(SEED).toContain("encounter.tutorialSeed === TUTORIAL_SEED_VERSION");
+    expect(STORE).toContain("applyTutorialMoneySeed");
+    expect(SEED).toContain("if (encounter.tutorialSeed) return false;");
     expect(SEED).toContain("return !encounterHasWork(encounter);");
+    // The money half asks its own question of the same record: a chart that
+    // already carries a claim, a remittance or an AR item is never filled over.
+    expect(MONEY).toContain(
+      "if (encounter.claimNumber || encounter.claimForm || encounter.claimStatus) return false;",
+    );
   });
 
   test("the note is signed through the one signature the app has", () => {
@@ -65,9 +74,10 @@ describe("the Tutorial patient opens at the beginning", () => {
     // they are editing in this session — is left alone.
     // The guard moved into the store with the seed: `seedTutorialOnOpen` reads
     // the record and refuses anything that is not pending.
-    expect(STORE).toContain("patientId !== TUTORIAL_PATIENT_ID) return false;");
-    expect(STORE).toContain("tutorialSeedPending(store.encounters[encounterKey(patientId)])");
-    expect(INDEX).toContain("const showingTutorialExample = seedTutorialOnOpen(patientId);");
+    expect(STORE).toContain("if (patientId !== TUTORIAL_PATIENT_ID) return false;");
+    expect(STORE).toContain("const clinicalPending = tutorialSeedPending(current);");
+    expect(STORE).toContain("const moneyPending = tutorialMoneyPending(current);");
+    expect(INDEX).toContain("seedTutorialOnOpen(patientId)");
     expect(INDEX).not.toContain("const hasPipelineWork =");
   });
 });
