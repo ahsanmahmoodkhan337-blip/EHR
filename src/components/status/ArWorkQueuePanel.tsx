@@ -36,6 +36,7 @@ import { CARC_BY_CODE } from "../../data/claims/carc";
 import { usePipeline } from "../../store/pipelineStore";
 import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
 import { refuseReadOnly } from "../../domain/tutorialReadOnly";
+import { MoneyNotYet } from "./MoneyNotYet";
 
 function money(cents: number): string {
   return `$${(Math.abs(cents) / 100).toFixed(2)}`;
@@ -61,10 +62,16 @@ export interface ArWorkQueuePanelProps {
    * click and dropping it.
    */
   readOnly?: boolean;
+  /**
+   * True once the active claim has left draft. With no item in the queue, the
+   * panel then names the step still missing (adjudicate, then post) rather than
+   * asking for a Submit the student has already pressed.
+   */
+  claimSubmitted?: boolean;
   className?: string;
 }
 
-export function ArWorkQueuePanel({ readOnly = false, className = "" }: ArWorkQueuePanelProps) {
+export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, className = "" }: ArWorkQueuePanelProps) {
   const headingId = useId();
   const { arWorkItems, resolveArItem, updateArItemWork, getEncounter } = usePipeline();
   const [filter, setFilter] = useState<Filter>("open");
@@ -126,21 +133,25 @@ export function ArWorkQueuePanel({ readOnly = false, className = "" }: ArWorkQue
         </span>
       </header>
 
-      {/* Two totals, never added together: refused money is not patient money. */}
-      <dl className="grid grid-cols-1 gap-2 border-b border-slate-100 px-3 py-2 text-[10px] sm:grid-cols-2">
-        <div className="flex items-baseline gap-1.5">
-          <dt className="text-slate-400">Denied lines</dt>
-          <dd className="font-semibold tabular-nums text-slate-700">
-            {totals.denialCount} · {money(totals.denialCents)}
-          </dd>
-        </div>
-        <div className="flex items-baseline gap-1.5">
-          <dt className="text-slate-400">Patient balances</dt>
-          <dd className="font-semibold tabular-nums text-slate-700">
-            {totals.balanceCount} · {money(totals.balanceCents)}
-          </dd>
-        </div>
-      </dl>
+      {/* Two totals, never added together: refused money is not patient money.
+          With no posted 835 there is no money to total, and "0 · $0.00" is a
+          figure with nothing behind it — the not-yet sentence below says why. */}
+      {arWorkItems.length > 0 && (
+        <dl className="grid grid-cols-1 gap-2 border-b border-slate-100 px-3 py-2 text-[10px] sm:grid-cols-2">
+          <div className="flex items-baseline gap-1.5">
+            <dt className="text-slate-400">Denied lines</dt>
+            <dd className="font-semibold tabular-nums text-slate-700">
+              {totals.denialCount} · {money(totals.denialCents)}
+            </dd>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <dt className="text-slate-400">Patient balances</dt>
+            <dd className="font-semibold tabular-nums text-slate-700">
+              {totals.balanceCount} · {money(totals.balanceCents)}
+            </dd>
+          </div>
+        </dl>
+      )}
 
       <div role="group" aria-label="Filter the work queue" className="flex flex-wrap gap-1 border-b border-slate-100 px-3 py-2">
         {FILTERS.map((f) => (
@@ -159,10 +170,16 @@ export function ArWorkQueuePanel({ readOnly = false, className = "" }: ArWorkQue
       </div>
 
       {visible.length === 0 ? (
-        <p className="px-3 py-4 text-[10px] leading-relaxed text-slate-500">
-          Nothing in this queue. An item appears here only after an 835 is posted: a line the payer
-          refused, or a balance the ledger says the patient still owes.
-        </p>
+        arWorkItems.length === 0 ? (
+          /* No posted 835 anywhere yet: the queue names the step that produces
+             its first row instead of printing an empty table of zeroes. */
+          <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} variant="inline" />
+        ) : (
+          <p className="px-3 py-4 text-[10px] leading-relaxed text-slate-500">
+            Nothing in this filter. The queue holds {arWorkItems.length} item
+            {arWorkItems.length === 1 ? "" : "s"} — switch the filter above to see them.
+          </p>
+        )
       ) : (
         <ul className="divide-y divide-slate-100">
           {visible.map((item) => {
