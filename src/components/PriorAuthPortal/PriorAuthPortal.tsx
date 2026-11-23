@@ -6,7 +6,7 @@
 // Inspired by: CoverMyMeds + Epic PA Hub
 // ──────────────────────────────────────────────────────────────────────
 
-import { ReadOnlyReason } from "../shell/ReadOnlyStage";
+import { ReadOnlyReason, readOnlyAttrs } from "../shell/ReadOnlyStage";
 import { useState, useMemo, useEffect } from "react";
 import {
   Shield,
@@ -1108,6 +1108,7 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
                   onClick={handleSubmit}
                   disabled={!procedure || Boolean(paScope)}
                   aria-label={paScope ? `${paScope.message} ${paScope.nextStep}` : undefined}
+                  {...readOnlyAttrs(readOnly)}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium text-white transition-colors ${
                     procedure && !paScope
                       ? `${CMM_PRIMARY} ${CMM_PRIMARY_HOVER}`

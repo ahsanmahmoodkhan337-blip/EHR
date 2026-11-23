@@ -1360,7 +1360,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       remittance={remittance}
                       className="mt-3"
                     />
-                    <ArWorkQueuePanel className="mt-3" />
+                    <ArWorkQueuePanel className="mt-3" readOnly={readOnly} />
                   </>
                 )}
               </div>

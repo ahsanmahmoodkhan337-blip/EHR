@@ -2573,10 +2573,10 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
           {currentRole === "ar-voice" && (
             <div className="flex flex-1 flex-col overflow-y-auto">
               <div className="shrink-0 p-3">
-                <ArWorkQueuePanel />
+                <ArWorkQueuePanel readOnly={tutorialChartOpen} />
               </div>
               <div className="flex min-h-0 flex-1 flex-col">
-                <ARVoiceSimulator />
+                <ARVoiceSimulator readOnly={tutorialChartOpen} />
               </div>
             </div>
           )}
