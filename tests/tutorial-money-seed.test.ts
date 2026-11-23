@@ -164,7 +164,11 @@ describe("the Tutorial Patient's claim opens as a filled draft", () => {
     }
     // Box 28 follows the lines it prices; boxes 31 / 32 / 33 are filled.
     expect(form.totalCharge).toBe(form.serviceLines.reduce((sum, line) => sum + line.charge, 0));
-    expect(String(form.physicianSignature ?? "").trim()).not.toBe("");
+    // Box 31 is `providerSignature` on the paper (`data/claims/cms1500Layout.ts`,
+    // "31. SIGNATURE OF PHYSICIAN OR SUPPLIER") — the signature on file, with the
+    // date half beside it. Never a blank box on the reference claim.
+    expect(String(form.providerSignature ?? "").trim()).not.toBe("");
+    expect(String(form.providerSignatureDate ?? "").trim()).not.toBe("");
     expect(String(form.federalTaxId ?? "").trim()).not.toBe("");
   });
 

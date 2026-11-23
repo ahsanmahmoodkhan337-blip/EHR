@@ -22,6 +22,7 @@ import { applyTutorialSeed, tutorialCardFor, type TutorialPatientSource } from "
 import { applyTutorialMoneySeed } from "../src/domain/tutorialClaim";
 import { eligibility271 } from "../src/domain/eligibility";
 import { buildArWorkQueue } from "../src/domain/arWorkQueue";
+import { submitReferenceClaim } from "./support/referenceSubmit";
 
 const AT = "2026-11-22T10:00:00.000Z";
 const NOW = "2026-11-22T12:00:00.000Z";
@@ -62,6 +63,20 @@ function seededRecord() {
   return normalizeEncounter(JSON.parse(JSON.stringify(seeded)), "DEMO");
 }
 
+/**
+ * The record after the student's own Submit — the claim opens filled and
+ * unsent, and the 835 the payer sends back exists only because the student
+ * pressed Submit on the Billing stage (owner, 2026-11-23).
+ */
+function submittedRecord() {
+  const draft = seededRecord();
+  // The draft is what the chart opens: nothing sent, priced or posted yet.
+  expect(draft.claimStatus).toBe("draft");
+  expect(draft.remittances).toHaveLength(0);
+  const submitted = submitReferenceClaim(draft, PATIENT, AT);
+  return normalizeEncounter(JSON.parse(JSON.stringify(submitted)), "DEMO");
+}
+
 describe("the 271 answers the card's own payer", () => {
   test("names Medicare Part B and never another product", () => {
     const benefits = eligibility271(tutorialCardFor(TUTORIAL).primary);
@@ -73,7 +88,7 @@ describe("the 271 answers the card's own payer", () => {
 
 describe("the 835 names the same payer as the paper", () => {
   test("the header and the plan row both read Medicare Part B", () => {
-    const remittance = seededRecord().remittances[0];
+    const remittance = submittedRecord().remittances[0];
     expect(remittance.payerName).toBe("Medicare Part B");
     expect(remittance.planName).toBe("Medicare Part B");
     // The internal plan key may exist for traceability; it is never the name printed.
@@ -81,7 +96,7 @@ describe("the 835 names the same payer as the paper", () => {
   });
 
   test("the payer id is the one the claim's box carries", () => {
-    const enc = seededRecord();
+    const enc = submittedRecord();
     expect(enc.claimForm?.payerEdiId).toBe("00102");
     expect(enc.remittances[0].payerId).toBe("00102");
     expect(enc.remittances[0].payerId).toBe(enc.claimForm?.payerEdiId);
@@ -90,7 +105,7 @@ describe("the 835 names the same payer as the paper", () => {
 
 describe("the AR row names the same payer", () => {
   test("the posted CO-236 denial is Medicare Part B's", () => {
-    const enc = seededRecord();
+    const enc = submittedRecord();
     const items = buildArWorkQueue(
       [
         {
@@ -113,7 +128,7 @@ describe("the AR row names the same payer", () => {
 
 describe("no sentence calls the same-day edit the plan's", () => {
   test("the seeded chart's own denial text names the payer", () => {
-    const enc = seededRecord();
+    const enc = submittedRecord();
     const remittance = enc.remittances[0];
     const denied = remittance.lines.find((line) => line.denied);
     expect(denied?.explanation).toContain("payer");

@@ -109,6 +109,7 @@ const { loadUserData } = await import("../src/store/persistence");
 const { ENCOUNTER_FLOW_STAGES } = await import("../src/domain/encounterFlow");
 const { TUTORIAL_READ_ONLY_LINE } = await import("../src/domain/tutorialReadOnly");
 const { TUTORIAL_NOTICE_ID } = await import("../src/components/TabsEpic/TutorialReadOnlyNotice");
+const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
 
 /** The seven stages of the encounter, in the order the stepper draws them. */
 const STAGES = ENCOUNTER_FLOW_STAGES.map((stage) => stage.id);
@@ -173,6 +174,20 @@ describe("every stage of the Tutorial Patient's chart is locked", () => {
       expect({ stage: stageId, notice: notice !== null }).toEqual({ stage: stageId, notice: true });
       expect(notice?.textContent ?? "").toContain(TUTORIAL_READ_ONLY_LINE);
       expect(notice?.getAttribute("role")).toBe("status");
+
+      // ── Billing keeps exactly one live control: Submit ─────────
+      // Owner, 2026-11-23: the claim opens filled and the student sends it
+      // himself, so Billing's Submit is the one pressable control on the whole
+      // reference chart — and nothing else on that stage is.
+      if (stageId === "billing") {
+        const live = [...screen.container.querySelectorAll(INTERACTIVE)].filter((el) => !isBlocked(el));
+        expect({
+          stage: stageId,
+          pressable: live.map((el) => `${el.tagName}:${(el.textContent ?? "").trim()}`),
+        }).toEqual({ stage: stageId, pressable: ["BUTTON:Submit"] });
+        await screen.unmount();
+        continue;
+      }
 
       // ── The lock itself ────────────────────────────────────────
       // The stage's content sits in a fieldset that is disabled for this chart,
@@ -239,9 +254,22 @@ describe("a student write to the standard chart is refused where it happens", ()
       await new Promise((resolve) => setTimeout(resolve, 600));
     });
 
+    const draft = pipeline?.getEncounter("DEMO");
+    expect(draft?.tutorialSeed).toBe("tutorial-5");
+    expect(draft?.claimNumber).toBeTruthy();
+    // The claim opens filled and unsent — the student's own Submit is the one
+    // write the reference chart allows (owner, 2026-11-23).
+    expect(draft?.claimStatus).toBe("draft");
+    expect(draft?.remittances).toHaveLength(0);
+
+    await act(async () => {
+      pressSubmitOnReferenceClaim(pipeline!);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
     const seeded = pipeline?.getEncounter("DEMO");
-    expect(seeded?.tutorialSeed).toBe("tutorial-4");
-    expect(seeded?.claimNumber).toBeTruthy();
+    expect(seeded?.claimStatus).toBe("partially_paid");
     const before = JSON.stringify(loadUserData(PHONE)?.pipeline?.encounters?.DEMO);
     expect(before).toContain(seeded!.claimNumber!);
 
@@ -284,7 +312,7 @@ describe("a student write to the standard chart is refused where it happens", ()
     const now = pipeline?.getEncounter("DEMO");
     expect(now?.claimNumber).toBe(seeded!.claimNumber);
     expect(now?.scribeNote).toBe(seeded!.scribeNote);
-    expect(now?.tutorialSeed).toBe("tutorial-4");
+    expect(now?.tutorialSeed).toBe("tutorial-5");
     expect(now?.icdCodes).toEqual(seeded!.icdCodes);
     expect(now?.codingLines).toEqual(seeded!.codingLines);
     expect(now?.remittances).toHaveLength(1);

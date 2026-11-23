@@ -2,15 +2,17 @@
  * The Tutorial Patient's money stages open prefilled and read-only.
  *
  * Owner report, 2026-11-23: Coding showed its codes, but Payments (835) showed no
- * remittance at all — no Allowed, Paid, Adjustment or Check — behind an "Open the
- * 835 and the ledger" button, and Billing badged "Partially paid" beside copy
- * saying nothing had been paid.
+ * remittance at all — no Allowed, Paid, Adjustment or Check — and Billing badged
+ * "Partially paid" beside copy saying nothing had been paid.
  *
- * The money was already on the record (`domain/tutorialClaim.ts`): the screen was
- * showing the claim-transmitted panel on the posting stage, which hid the 835, and
- * the button that was supposed to reveal it switched a tab the claim stage filters
- * out. These tests mount the real app at each money stage and read what a student
- * sees, so a screen that hides the money fails here.
+ * Since the owner's ruling of the same day — *"in billing section it should not
+ * be submitted, the CMS-1500 should be filled and student should submit too …
+ * himself"* — the money is not on the chart until the student presses **Submit**
+ * on the Billing stage. So each test opens Billing, asserts the filled draft
+ * (nothing sent, nothing paid), presses the real Submit button, and only then
+ * reads the stage it is about. These tests mount the real app and read what a
+ * student sees, so a screen that hides the money — or a Submit that changes
+ * nothing — fails here.
  *
  * Inspiration: Epic's reference patient — the worked example is shown whole.
  */
@@ -97,12 +99,46 @@ async function openStage(stageId: string) {
     await new Promise((resolve) => setTimeout(resolve, 700));
   });
   return {
+    container,
     text: () => (container.textContent ?? "").replace(/\s+/g, " "),
     async unmount() {
       await act(async () => root.unmount());
       container.remove();
     },
   };
+}
+
+/**
+ * The student's own Submit, pressed on the Billing stage: the real button, in
+ * the real screen. The claim transmits, the payer answers and the money posts in
+ * the same press, and the store saves it before the screen goes away.
+ */
+async function pressSubmitOnBilling() {
+  const screen = await openStage("billing");
+  const text = screen.text();
+  // The draft: the paper is filled and nothing has been sent or paid.
+  expect(text).toContain("Draft");
+  expect(text).not.toContain("835 remittance");
+
+  const submit = [...screen.container.querySelectorAll("button")].find(
+    (el) => (el.textContent ?? "").trim() === "Submit",
+  );
+  expect(submit).not.toBeUndefined();
+  expect(submit!.disabled).toBe(false);
+
+  await act(async () => {
+    submit!.dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
+  });
+  // The transmission bar runs for ~800 ms, then the 835 and the posting land.
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  });
+  expect(screen.text()).toContain("Partially paid");
+  // Let the store save the money before this screen goes away.
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+  });
+  await screen.unmount();
 }
 
 beforeEach(() => {
@@ -114,6 +150,7 @@ beforeEach(() => {
 
 describe("the Tutorial Patient's money stages", () => {
   test("Payments (835) draws the 835, its allowed/paid/adjustment money and the ledger", async () => {
+    await pressSubmitOnBilling();
     const screen = await openStage("payments");
     const text = screen.text();
 
@@ -123,7 +160,7 @@ describe("the Tutorial Patient's money stages", () => {
     for (const column of ["Billed", "Allowed", "Paid", "Patient", "Adjustments"]) {
       expect({ column, shown: text.includes(column) }).toEqual({ column, shown: true });
     }
-    // The money the seed priced, and the posting that put it on the ledger.
+    // The money the payer priced, and the posting that put it on the ledger.
     expect(text).toContain("$280.00"); // billed — the claim's own box 28 total
     expect(text).toContain("$225.00"); // allowed
     expect(text).toContain("$140.00"); // paid
@@ -140,6 +177,7 @@ describe("the Tutorial Patient's money stages", () => {
   }, 40000);
 
   test("Billing does not call a part-paid claim unpaid", async () => {
+    await pressSubmitOnBilling();
     const screen = await openStage("billing");
     const text = screen.text();
     expect(text).toContain("Partially paid");
@@ -150,6 +188,7 @@ describe("the Tutorial Patient's money stages", () => {
   }, 40000);
 
   test("Denials & AR carries the denied ECG line", async () => {
+    await pressSubmitOnBilling();
     const screen = await openStage("denials-ar");
     const text = screen.text();
     expect(text).toContain("CO-236");

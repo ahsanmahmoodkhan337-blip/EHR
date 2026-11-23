@@ -675,12 +675,19 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * 837P, the 277CA, the 835, the posting and the AR row it creates are written.
    */
   const studentStore = (update: (prev: PipelineStoreState) => PipelineStoreState) => {
+    // Provenance is read **here**, at the call, and not inside the updater: a
+    // React state updater runs when the next render happens, which is after the
+    // call-scoped windows (`withSeedWrite`, `withClaimSubmit`) have closed. Read
+    // inside the updater, the student's own Submit looked like an ordinary
+    // student write and the backstop below dropped the 837P, the 835 and the
+    // posting — a button that reported success and changed nothing.
+    const provenanced = isSeedWrite() || isClaimSubmit();
     setStore((prev) => {
       const next = update(prev);
       if (next === prev) return prev;
       const key = encounterKey(TUTORIAL_PATIENT_ID);
       if (next.encounters[key] === prev.encounters[key]) return next;
-      if (isSeedWrite() || isClaimSubmit()) return next;
+      if (provenanced) return next;
       return tutorialContentChanged(prev.encounters[key], next.encounters[key]) ? prev : next;
     });
   };

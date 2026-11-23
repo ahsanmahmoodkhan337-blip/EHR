@@ -1,11 +1,11 @@
 /**
- * A fresh store still seeds the Tutorial Patient to `tutorial-4`.
+ * A fresh store still seeds the Tutorial Patient to `tutorial-5`.
  *
- * Spec `specs/tutorial-patient-prefill.md` § C2, third regression test: "one that
- * a fresh store still seeds to `tutorial-4`". § C also says the seed is not a
- * student write — the read-only guard must let the worked example fill a locked
- * chart — so the two halves are checked together here: a store that refuses every
- * student write still arrives holding the whole example.
+ * Spec `specs/tutorial-patient-prefill.md` § C2, third regression test. § C also
+ * says the seed is not a student write — the read-only guard must let the worked
+ * example fill a locked chart — so the two halves are checked together here: a
+ * store that refuses every student write still arrives holding the whole example,
+ * with its claim filled and waiting for the student's own Submit.
  *
  * It lives in a file of its own on purpose. "A fresh store" means a store module
  * that has never been written to, and the pipeline store is a module singleton:
@@ -13,12 +13,12 @@
  * number behind. Loading this file with an empty `localStorage` is what a student
  * on a new browser gets.
  *
- * The version is asserted as the literal string `tutorial-4`, not as the
- * `TUTORIAL_SEED_VERSION` constant — a bump of the constant must not let a seed
- * that stopped upgrading pass this test. The literal moved from `tutorial-2` to
- * `tutorial-4` when the example note's revision was bumped and the version ladder
- * (`SEED_VERSION_LADDER`, `domain/tutorialEncounter.ts`) was introduced: that
- * bump is the deliberate act this literal exists to make visible.
+ * The version is asserted as the literal string, not as the `TUTORIAL_SEED_VERSION`
+ * constant — a bump of the constant must not let a seed that stopped upgrading
+ * pass this test. The literal moved from `tutorial-4` to `tutorial-5` when the
+ * claim half changed from "already sent" to "filled draft, the student presses
+ * Submit" (owner, 2026-11-23): that bump is the deliberate act this literal
+ * exists to make visible.
  *
  * Inspiration: Epic's Playground patient — open the training chart for the first
  * time and the whole worked example is already in it.
@@ -57,6 +57,7 @@ const { useEhrStore } = await import("../src/store/ehrStore");
 const { SEED_PATIENTS } = await import("../src/store/patientStore");
 const { loadUserData } = await import("../src/store/persistence");
 const { buildArWorkQueue } = await import("../src/domain/arWorkQueue");
+const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
 
 let pipeline: ReturnType<typeof usePipeline> | null = null;
 
@@ -84,6 +85,15 @@ async function mount() {
         await new Promise((resolve) => setTimeout(resolve, 40));
       });
     },
+    /** The student's own Submit on the Billing stage. */
+    async pressSubmit() {
+      await act(async () => {
+        pressSubmitOnReferenceClaim(pipeline!);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+    },
     async settle() {
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 700));
@@ -102,37 +112,44 @@ beforeEach(() => {
 });
 
 describe("a fresh store", () => {
-  test("seeds the Tutorial Patient to tutorial-4, whole, on the first open", async () => {
+  test("seeds the Tutorial Patient to tutorial-5, whole, on the first open", async () => {
     const screen = await mount();
     // Nothing on the chart before it is opened.
     expect(pipeline?.getEncounter("DEMO")).toBeUndefined();
 
     await screen.open("DEMO");
-    const enc = pipeline?.getEncounter("DEMO");
+    const draft = pipeline?.getEncounter("DEMO");
 
     // The version the seed upgrades to, as a literal.
-    expect(enc?.tutorialSeed).toBe("tutorial-4");
-    // The money half: a claim number minted by the store's own sequence (never a
-    // blank or invented one), its 835 and the denial — the worked example, not a
-    // blank chart with a stamp on it. The exact number is the store's next one,
-    // which a high-water mark carried per student decides, so what is asserted is
-    // that it is a real minted number and that no other chart holds it.
-    expect(enc?.claimNumber).toMatch(/^CLM-\d{6}$/);
+    expect(draft?.tutorialSeed).toBe("tutorial-5");
+    // The claim half: a claim number minted by the store's own sequence (never a
+    // blank or invented one) and the paper filled from the chart — and nothing
+    // sent, priced or posted until the student presses Submit.
+    expect(draft?.claimNumber).toMatch(/^CLM-\d{6}$/);
     const others = Object.entries(pipeline?.allEncounters ?? {})
       .filter(([key]) => key !== "DEMO")
       .map(([, record]) => record.claimNumber);
-    expect(others).not.toContain(enc?.claimNumber);
+    expect(others).not.toContain(draft?.claimNumber);
+    expect(draft?.claimStatus).toBe("draft");
+    expect(draft?.claimForm?.serviceLines.map((line) => line.cpt)).toEqual(["99214", "93000"]);
+    expect(draft?.remittances).toHaveLength(0);
+    expect(draft?.ledger).toHaveLength(0);
+    // The clinical half the seed is built on.
+    expect(draft?.icdCodes).toEqual(["R07.9", "I10", "I25.10"]);
+    expect(draft?.cptCodes).toEqual(["99214", "93000"]);
+
+    // ── The student's own Submit ──────────────────────────────────
+    await screen.pressSubmit();
+    const enc = pipeline?.getEncounter("DEMO");
+    expect(enc?.claimStatus).toBe("partially_paid");
     expect(enc?.remittances).toHaveLength(1);
     expect(enc?.remittances[0].postedAt).toBeTruthy();
     expect(enc?.ledger.length).toBeGreaterThan(0);
-    // The clinical half the seed is built on.
-    expect(enc?.icdCodes).toEqual(["R07.9", "I10", "I25.10"]);
-    expect(enc?.cptCodes).toEqual(["99214", "93000"]);
 
     // Let the store write itself, then read the record back the way a reload does.
     await screen.settle();
     const saved = loadUserData(PHONE)?.pipeline?.encounters?.DEMO;
-    expect(saved?.tutorialSeed).toBe("tutorial-4");
+    expect(saved?.tutorialSeed).toBe("tutorial-5");
     expect(saved?.claimNumber).toBe(enc!.claimNumber);
     expect(saved?.claimStatus).toBe("partially_paid");
     expect(saved?.remittances[0]?.postedAt).toBeTruthy();

@@ -48,6 +48,7 @@ const { SEED_PATIENTS } = await import("../src/store/patientStore");
 const { TUTORIAL_PA_ID, TUTORIAL_SEED_VERSION } = await import(
   "../src/domain/tutorialEncounter"
 );
+const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
 
 const PHONE = "+920000000002";
 /** The late-patient test's own student, so no earlier save can be read back. */
@@ -80,6 +81,15 @@ async function mount() {
       });
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+    },
+    /** The student's own Submit on the Billing stage. */
+    async pressSubmit() {
+      await act(async () => {
+        pressSubmitOnReferenceClaim(pipeline!);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
       });
     },
     async unmount() {
@@ -161,9 +171,16 @@ describe("a patient list that arrives after the chart was opened", () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
 
+    const draft = pipeline?.getEncounter("DEMO");
+    expect(draft?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+    expect(draft?.claimNumber).toBeTruthy();
+    // The claim opens filled and unsent; the money is the student's own Submit.
+    expect(draft?.claimStatus).toBe("draft");
+    expect(draft?.remittances).toHaveLength(0);
+    expect(draft?.ledger).toHaveLength(0);
+
+    await screen.pressSubmit();
     const enc = pipeline?.getEncounter("DEMO");
-    expect(enc?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
-    expect(enc?.claimNumber).toBeTruthy();
     expect(enc?.remittances).toHaveLength(1);
     expect(enc?.remittances[0].postedAt).toBeTruthy();
     expect(enc?.remittances[0].claimNumber).toBe(enc?.claimNumber);
