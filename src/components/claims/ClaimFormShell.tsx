@@ -140,6 +140,12 @@ export function ClaimFormShell({
 
   commitRef.current = onCommit;
 
+  // Read at commit time, not at keystroke time: the 300 ms timer fires after the
+  // render that scheduled it, and the reference chart must refuse the write then
+  // too (spec `tutorial-dead-buttons.md` §3).
+  const readOnlyRef = useRef(readOnly);
+  readOnlyRef.current = readOnly;
+
   // A different claim (patient) opens → reload the draft from the store.
   useEffect(() => {
     if (resetRef.current === resetKey) return;
@@ -182,6 +188,9 @@ export function ClaimFormShell({
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       timer.current = null;
+      // The standard chart refuses writes: a draft edit never reaches the store,
+      // not even 300 ms after the keystroke that caused it.
+      if (readOnlyRef.current) return;
       commitRef.current(draftRef.current, linesRef.current);
       setSavedAt(new Date().toLocaleTimeString());
       setDirty(false);
@@ -189,6 +198,7 @@ export function ClaimFormShell({
   };
 
   const set = (field: string, value: unknown) => {
+    if (readOnly) return;
     setDraft((prev) => {
       const next = { ...prev, [field]: value };
       draftRef.current = next;
@@ -199,6 +209,7 @@ export function ClaimFormShell({
   };
 
   const setLine = (index: number, patch: Record<string, unknown>) => {
+    if (readOnly) return;
     setDraftLines((prev) => {
       const next = prev.map((l, i) => (i === index ? { ...l, ...patch } : l));
       linesRef.current = next;
@@ -209,6 +220,7 @@ export function ClaimFormShell({
   };
 
   const addLine = () => {
+    if (readOnly) return;
     if (draftLines.length >= maxLines) return;
     setDraftLines((prev) => {
       const next = [...prev, { ...emptyLine }];
@@ -220,6 +232,7 @@ export function ClaimFormShell({
   };
 
   const removeLine = (index: number) => {
+    if (readOnly) return;
     setDraftLines((prev) => {
       const next = prev.filter((_, i) => i !== index);
       linesRef.current = next;

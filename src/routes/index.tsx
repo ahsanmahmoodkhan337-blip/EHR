@@ -59,6 +59,8 @@ import { completedStagesOf } from "../domain/stageProgress";
 import { postedCopayForPatient } from "../domain/checkIn";
 import { TUTORIAL_PATIENT_ID, tutorialNoteFields } from "../domain/tutorialEncounter";
 import { skipNoteAutosave } from "../domain/tutorialReadOnly";
+// The one sentence the read-only chart prints, used by the Sign & Lock handler.
+import { READ_ONLY_REASON } from "../domain/tutorialReadOnly";
 import { TutorialReadOnlyNotice, TUTORIAL_NOTICE_ID } from "../components/TabsEpic/TutorialReadOnlyNotice";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
@@ -2192,6 +2194,20 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
 
   // Handle sign & lock — one write: the note and its signature on the encounter
   const handleSignAndLock = () => {
+    // The standard reference chart's note is signed and locked already, and the
+    // store refuses a second signature. Without this guard the handler toasted
+    // "Note Submitted to Coding!" over a write that never landed
+    // (`specs/tutorial-dead-buttons.md` §3).
+    const referenceChart =
+      activePatientId === TUTORIAL_PATIENT_ID || selectedPatientId === TUTORIAL_PATIENT_ID;
+    if (referenceChart) {
+      addToast({
+        type: "error",
+        title: "This note cannot be signed here",
+        description: READ_ONLY_REASON,
+      });
+      return;
+    }
     setIsSubmittingNote(true);
     // Simulate brief submission delay for UX
     setTimeout(() => {
@@ -2561,23 +2577,24 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       {/* ─── Role-Based Workspace ─── */}
       {selectedPatient && currentRole !== "scribe" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
-          {/* `fieldset disabled` disables every control under it — the one switch
-              that cannot miss a stage's own inputs. The **Billing stage alone** is
-              the exception: on the standard reference chart its claim opens filled
-              and unsubmitted, and pressing Submit is the exercise the student is
-              there for (owner, 2026-11-23). Every other write control on that
-              stage disables itself and prints its reason under it — the paper's
-              box-24 cells and the prior-authorisation answer included — so the
-              claim's Submit is the only live write. The Payments stage is the
-              biller's too, but nothing on it is the student's to do on this chart,
-              so it stays inside the lock. */}
-          <fieldset
-            disabled={tutorialChartOpen && flowStageId !== "billing"}
-            aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
-            className="contents"
-          >
+          {/* The standard reference chart refuses writes **where the write
+              happens**, not with one blanket `fieldset disabled` over the whole
+              workspace (spec `tutorial-dead-buttons.md` §2): that fieldset also
+              killed Print, Download PDF, the Billing tabs, the calculator, the AR
+              filters and "Back to Billing", so the worked example could be walked
+              but not inspected or printed. Each stage guards its own write
+              controls with `readOnly` and prints the reason under them; the
+              controls the student needs in order to *read* the chart stay live.
+              Coding is the one workbench left inside a fieldset — every control in
+              it writes a code, and its Submit already carries the sentence. */}
           {currentRole === "coder" && (
-            <CodingQueue medications={editablePatientData.medications} readOnly={tutorialChartOpen} />
+            <fieldset
+              disabled={tutorialChartOpen}
+              aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
+              className="contents"
+            >
+              <CodingQueue medications={editablePatientData.medications} readOnly={tutorialChartOpen} />
+            </fieldset>
           )}
           {currentRole === "biller" && (
             <BillingLedger openTab={billingTab} onOpenPayments={() => openFlowStage("payments")} />
@@ -2604,7 +2621,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
               <p className="mt-2 text-sm text-slate-500">All stages have been completed. Great work!</p>
             </div>
           )}
-          </fieldset>
           {/* Every stage carries Back and Continue to the next stage (owner's
               audit, item 1). Navigation only: no note, code, claim or posting is
               touched. The last stage's button ends the encounter. */}
@@ -2695,27 +2711,44 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                     }
                   />
                   <div className="flex-1 overflow-y-auto p-4 animate-slide-in" key={activeStage}>
-                  <fieldset
-                    disabled={tutorialChartOpen}
-                    aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
-                    className="contents"
-                  >
                     {activeStage === "registration" && (
                       <>
-                        <RegistrationStage patientId={selectedPatientId} readOnly={tutorialChartOpen} />
+                        {/* The registration card is a form of writes only — there is
+                            nothing on it the student needs in order to *read* the
+                            chart, and its Verify button carries its own sentence — so
+                            it keeps a fieldset of its own (spec
+                            `tutorial-dead-buttons.md` §2). */}
+                        <fieldset
+                          disabled={tutorialChartOpen}
+                          aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
+                          className="contents"
+                        >
+                          <RegistrationStage patientId={selectedPatientId} readOnly={tutorialChartOpen} />
+                        </fieldset>
                         {/* The 270/271 writes the stored record the banner reads,
                             so the Front Desk stage and the banner cannot disagree. */}
                         <div className="mt-4">
-                          <EligibilityStage patientId={selectedPatientId} />
+                          <EligibilityStage patientId={selectedPatientId} readOnly={tutorialChartOpen} />
                         </div>
                       </>
                     )}
+                    {/* Vitals are a write and there is nothing here the student
+                        needs in order to *read* the chart, so this stage keeps a
+                        fieldset of its own rather than the whole Progress Note
+                        workspace wearing one (spec `tutorial-dead-buttons.md` §2). */}
                     {activeStage === "intake-vitals" && (
-                      <IntakeVitalsStage patientId={selectedPatientId} editableVitals={editableVitals} onVitalsChange={setEditableVitals} />
+                      <fieldset
+                        disabled={tutorialChartOpen}
+                        aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
+                        className="contents"
+                      >
+                        <IntakeVitalsStage patientId={selectedPatientId} editableVitals={editableVitals} onVitalsChange={setEditableVitals} />
+                      </fieldset>
                     )}
                     {/* A signed note is read-only everywhere, so the three
-                        sections that are the note lock with it. */}
-                    <fieldset disabled={noteLocked} className="m-0 min-w-0 border-0 p-0">
+                        sections that are the note lock with it — and so does the
+                        standard reference chart. */}
+                    <fieldset disabled={noteLocked || tutorialChartOpen} className="m-0 min-w-0 border-0 p-0">
                     {activeStage === "hpi" && (
                       <HPIStage
                         patientName={displayName || `${selectedPatient.firstName} ${selectedPatient.lastName}`}
@@ -2752,7 +2785,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         readOnly={tutorialChartOpen}
                       />
                     )}
-                    </fieldset>
                     {activeStage === "sign-lock" && noteSigned && (
                       <div className="flex flex-col items-center justify-center py-12">
                         <div className="rounded-full bg-green-100 p-4">
