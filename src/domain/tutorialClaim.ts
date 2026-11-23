@@ -38,12 +38,14 @@
  * one rule, one denied line, and the AR queue has real money to work.
  *
  * SEEDED ONCE, AND UPGRADED IN PLACE
- * `tutorialMoneyPending` is the guard. A record that already carries
- * `tutorial-2` is left exactly as it is. A record still on `tutorial-1` — the
- * clinical half, written by a browser that saw the previous build — is upgraded
- * with the money half only: the note, the codes, the signature, the authorisation
- * and the stage the chart opens on are never touched. A chart holding money work
- * of the student's own is never filled over, whatever its seed key says.
+ * `tutorialMoneyPending` is the guard. A record whose seed version already wrote
+ * the money half — `tutorial-2`, `tutorial-4` — is left exactly as it is. A
+ * record that carries the clinical half only — `tutorial-1`, `tutorial-3` — is
+ * upgraded with the money half: the note, the codes, the signature, the
+ * authorisation and the stage the chart opens on are never touched (the note
+ * refresh is `applyTutorialClinicalRefresh`, `domain/tutorialEncounter.ts`). A
+ * chart holding money work of the student's own is never filled over, whatever
+ * its seed key says.
  */
 
 import type { Patient } from "../store/patientStore";
@@ -58,9 +60,9 @@ import { appendLedgerEntries, postRemittanceToLedger } from "./ledger";
 import { priorAuthForClaim } from "./priorAuthNumber";
 import { appendStatusEvent, makeStatusEvent } from "./statusEvent";
 import {
-  TUTORIAL_CLINICAL_SEED_VERSION,
   TUTORIAL_PATIENT_ID,
   TUTORIAL_SEED_VERSION,
+  tutorialSeedState,
 } from "./tutorialEncounter";
 
 /** The staff member a seed is written as: the engine itself, not a student. */
@@ -73,15 +75,20 @@ function dollars(cents: number): string {
 /**
  * True when this record still needs the money half written onto it.
  *
- * Only a record that already carries the clinical half is upgraded, so the
- * upgrade can never land on a chart that was never seeded. A record at
- * `tutorial-2` is done, and a chart that holds money work of its own — a claim
+ * Only a record that carries the clinical half is upgraded, so the upgrade can
+ * never land on a chart that was never seeded. What the record's `tutorialSeed`
+ * says about it is read from the one version ladder
+ * (`tutorialSeedState`, `domain/tutorialEncounter.ts`): a record whose version
+ * already wrote the money half — `tutorial-2`, `tutorial-4` — is done, and the
+ * note refresh that moves `tutorial-1`/`tutorial-2` forward cannot make the
+ * money half run twice. A chart that holds money work of its own — a claim
  * number, a claim paper, a remittance, a ledger entry or AR state — is the
- * student's and is left alone.
+ * student's and is left alone whatever its version says.
  */
 export function tutorialMoneyPending(encounter: PipelineEncounter | null | undefined): boolean {
   if (!encounter) return false;
-  if (encounter.tutorialSeed !== TUTORIAL_CLINICAL_SEED_VERSION) return false;
+  const state = tutorialSeedState(encounter);
+  if (!state || state.money) return false;
   if (encounter.claimNumber || encounter.claimForm || encounter.claimStatus) return false;
   if (encounter.remittances.length > 0 || encounter.ledger.length > 0) return false;
   if (encounter.arItems.length > 0) return false;

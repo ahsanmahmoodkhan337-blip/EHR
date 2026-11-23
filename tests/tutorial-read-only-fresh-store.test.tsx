@@ -1,8 +1,8 @@
 /**
- * A fresh store still seeds the Tutorial Patient to `tutorial-2`.
+ * A fresh store still seeds the Tutorial Patient to `tutorial-4`.
  *
  * Spec `specs/tutorial-patient-prefill.md` § C2, third regression test: "one that
- * a fresh store still seeds to `tutorial-2`". § C also says the seed is not a
+ * a fresh store still seeds to `tutorial-4`". § C also says the seed is not a
  * student write — the read-only guard must let the worked example fill a locked
  * chart — so the two halves are checked together here: a store that refuses every
  * student write still arrives holding the whole example.
@@ -13,9 +13,12 @@
  * number behind. Loading this file with an empty `localStorage` is what a student
  * on a new browser gets.
  *
- * The version is asserted as the literal string `tutorial-2`, not as the
+ * The version is asserted as the literal string `tutorial-4`, not as the
  * `TUTORIAL_SEED_VERSION` constant — a bump of the constant must not let a seed
- * that stopped upgrading pass this test.
+ * that stopped upgrading pass this test. The literal moved from `tutorial-2` to
+ * `tutorial-4` when the example note's revision was bumped and the version ladder
+ * (`SEED_VERSION_LADDER`, `domain/tutorialEncounter.ts`) was introduced: that
+ * bump is the deliberate act this literal exists to make visible.
  *
  * Inspiration: Epic's Playground patient — open the training chart for the first
  * time and the whole worked example is already in it.
@@ -99,7 +102,7 @@ beforeEach(() => {
 });
 
 describe("a fresh store", () => {
-  test("seeds the Tutorial Patient to tutorial-2, whole, on the first open", async () => {
+  test("seeds the Tutorial Patient to tutorial-4, whole, on the first open", async () => {
     const screen = await mount();
     // Nothing on the chart before it is opened.
     expect(pipeline?.getEncounter("DEMO")).toBeUndefined();
@@ -108,7 +111,7 @@ describe("a fresh store", () => {
     const enc = pipeline?.getEncounter("DEMO");
 
     // The version the seed upgrades to, as a literal.
-    expect(enc?.tutorialSeed).toBe("tutorial-2");
+    expect(enc?.tutorialSeed).toBe("tutorial-4");
     // The money half: a claim number minted by the store's own sequence (never a
     // blank or invented one), its 835 and the denial — the worked example, not a
     // blank chart with a stamp on it. The exact number is the store's next one,
@@ -129,7 +132,7 @@ describe("a fresh store", () => {
     // Let the store write itself, then read the record back the way a reload does.
     await screen.settle();
     const saved = loadUserData(PHONE)?.pipeline?.encounters?.DEMO;
-    expect(saved?.tutorialSeed).toBe("tutorial-2");
+    expect(saved?.tutorialSeed).toBe("tutorial-4");
     expect(saved?.claimNumber).toBe(enc!.claimNumber);
     expect(saved?.claimStatus).toBe("partially_paid");
     expect(saved?.remittances[0]?.postedAt).toBeTruthy();
