@@ -134,6 +134,35 @@ beforeEach(() => {
   pipeline = null;
 });
 
+/**
+ * Leave this build's own record on the machine, written by the app's own path.
+ *
+ * The two tests share one store and one `localStorage` blob, so a test that just
+ * mounts inherits whatever the test above it left behind — a chart already sent,
+ * priced and posted. This writes the previous build's record first, opens the
+ * chart the way `/patients` → **Open encounter** does, lets the save land and
+ * unmounts: the record in storage is then at `TUTORIAL_SEED_VERSION` with the
+ * claim as the filled, unsent draft, which is the record the test below is about.
+ */
+async function writeCurrentVersionRecord() {
+  saveUserData(PHONE, {
+    pipeline: {
+      activePatientId: "DEMO",
+      encounters: { DEMO: clinicalHalf },
+      demoFillMissingBoxes: true,
+      currentRole: "scribe",
+    },
+    currentRole: "scribe",
+  });
+  const screen = await mount();
+  await screen.open("DEMO");
+  await screen.settle();
+  await screen.unmount();
+  const saved = loadUserData(PHONE)?.pipeline?.encounters?.DEMO;
+  expect(saved?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+  expect(saved?.claimStatus).toBe("draft");
+}
+
 describe("a record holding the clinical half is upgraded in place", () => {
   test("opening it adds the claim, the 835, the posting and the denial", async () => {
     const screen = await mount();
@@ -198,7 +227,14 @@ describe("a record holding the clinical half is upgraded in place", () => {
   });
 
   test("a record already at the current version is left exactly as it is", async () => {
+    // Its own record, at this build's version — not the one the test above left
+    // behind, already sent and posted.
+    await writeCurrentVersionRecord();
+
     const screen = await mount();
+    // The record on the machine before anything is opened is this build's own.
+    expect(pipeline?.getEncounter("DEMO")?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+
     await screen.open("DEMO");
     const draft = pipeline?.getEncounter("DEMO");
     expect(draft?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);

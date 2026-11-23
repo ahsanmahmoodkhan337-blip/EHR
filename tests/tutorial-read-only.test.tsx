@@ -141,7 +141,25 @@ const INTERACTIVE = "button,input,select,textarea,a[href]";
  * changes the claim or the money.
  */
 const WRITE_BUTTON = /^(Save|Submit|Add line|Simulate|Route|Adjudicate|Post|Remove)/;
+
+/**
+ * A control that changes only how the chart is *read*, never what it holds.
+ *
+ * Billing's "Demo-fill missing boxes" switch paints a grey italic DEMO value over
+ * a box nothing captured and is never saved to the claim, so it is a reading
+ * setting like Print, Download and the form tabs — it stays enabled on the locked
+ * chart, because a student has to be able to read the standard chart. It is named
+ * here, not switched off in the component.
+ */
+const READ_SETTING = /Demo-fill missing boxes/;
+function isReadSetting(el: Element): boolean {
+  if (el.tagName !== "INPUT") return false;
+  const label = el.closest("label")?.textContent ?? "";
+  return READ_SETTING.test(`${label} ${el.getAttribute("aria-label") ?? ""}`);
+}
+
 function isWriteControl(el: Element): boolean {
+  if (isReadSetting(el)) return false;
   if (["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName)) return true;
   return el.tagName === "BUTTON" && WRITE_BUTTON.test((el.textContent ?? "").trim());
 }
