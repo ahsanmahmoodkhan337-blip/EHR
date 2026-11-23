@@ -10,7 +10,7 @@
  * top is missing, and a test that calls a student write path and asserts the saved
  * record is unchanged afterwards.
  *
- * The third test § C2 asks for — a fresh store still seeds to `tutorial-2` —
+ * The third test § C2 asks for — a fresh store still seeds to `tutorial-4` —
  * lives in `tutorial-read-only-fresh-store.test.tsx`, because a fresh store means
  * a store module that has never been written to, and this file's two tests mount
  * the app and seed the record on purpose.
@@ -240,7 +240,7 @@ describe("a student write to the standard chart is refused where it happens", ()
     });
 
     const seeded = pipeline?.getEncounter("DEMO");
-    expect(seeded?.tutorialSeed).toBe("tutorial-2");
+    expect(seeded?.tutorialSeed).toBe("tutorial-4");
     expect(seeded?.claimNumber).toBeTruthy();
     const before = JSON.stringify(loadUserData(PHONE)?.pipeline?.encounters?.DEMO);
     expect(before).toContain(seeded!.claimNumber!);
@@ -284,7 +284,7 @@ describe("a student write to the standard chart is refused where it happens", ()
     const now = pipeline?.getEncounter("DEMO");
     expect(now?.claimNumber).toBe(seeded!.claimNumber);
     expect(now?.scribeNote).toBe(seeded!.scribeNote);
-    expect(now?.tutorialSeed).toBe("tutorial-2");
+    expect(now?.tutorialSeed).toBe("tutorial-4");
     expect(now?.icdCodes).toEqual(seeded!.icdCodes);
     expect(now?.codingLines).toEqual(seeded!.codingLines);
     expect(now?.remittances).toHaveLength(1);

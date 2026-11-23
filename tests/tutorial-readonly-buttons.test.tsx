@@ -376,7 +376,7 @@ describe("the Submit path refuses with a message rather than silently", () => {
     });
 
     const seeded = pipeline?.getEncounter("DEMO");
-    expect(seeded?.tutorialSeed).toBe("tutorial-2");
+    expect(seeded?.tutorialSeed).toBe("tutorial-4");
     expect(seeded?.claimNumber).toBeTruthy();
     const savedBefore = loadUserData(PHONE)?.pipeline?.encounters?.DEMO;
     expect(savedBefore?.claimNumber).toBe(seeded!.claimNumber);

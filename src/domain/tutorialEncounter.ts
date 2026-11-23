@@ -49,7 +49,7 @@ import {
 } from "../store/pipelineEncounter";
 import { buildInsuranceRecord } from "../utils/insuranceRecord";
 import { runEligibility270, type EligibilityRecord } from "./eligibility";
-import type { NoteFields } from "./noteStatus";
+import { compileNoteText, normalizeNoteFields, type NoteFields } from "./noteStatus";
 import { patientCard } from "./patientCard";
 import { signNote } from "./signNote";
 import { TUTORIAL_PATIENT_ID } from "./tutorialIdentity";
@@ -61,8 +61,15 @@ import { TUTORIAL_PATIENT_ID } from "./tutorialIdentity";
  * It is deliberately its own constant. A chart that already carries it must
  * still receive the money half, and a guard that only knew "the seed version"
  * would read that chart as finished and skip the rest of the example.
+ *
+ * It is also the *revision of the note itself*. Owner report, 2026-11-23: the
+ * rewritten example note (a real cardiology visit) only appeared in a browser
+ * that had never opened the chart, because a record already carrying a seed key
+ * was read as finished. The note's revision is now part of the version ladder
+ * (`SEED_VERSION_LADDER`), so a record seeded by an older build is refreshed —
+ * `applyTutorialClinicalRefresh` — instead of keeping the old text for good.
  */
-export const TUTORIAL_CLINICAL_SEED_VERSION = "tutorial-1";
+export const TUTORIAL_CLINICAL_SEED_VERSION = "tutorial-3";
 
 /**
  * The version of the whole worked example, written onto the record once both
@@ -73,7 +80,49 @@ export const TUTORIAL_CLINICAL_SEED_VERSION = "tutorial-1";
  * receive — a changed seed re-fills a chart a student may have worked, so it is a
  * deliberate act, not a side effect of a rebuild.
  */
-export const TUTORIAL_SEED_VERSION = "tutorial-2";
+export const TUTORIAL_SEED_VERSION = "tutorial-4";
+
+/**
+ * Every version a saved `tutorialSeed` may carry, oldest first, with what that
+ * version wrote. A record is only ever moved forward along this list; a version
+ * this build does not know (a newer one, from a build rolled back) is left alone.
+ *
+ * - `clinical` — the revision of the example note/vitals/labs the record holds.
+ *   A record below `CLINICAL_SEED_REVISION` gets the note refreshed.
+ * - `money` — whether the money half (claim, 835, posting, AR) is on the record.
+ */
+const SEED_VERSION_LADDER: { version: string; clinical: number; money: boolean }[] = [
+  // The first example note, the clinical half only.
+  { version: "tutorial-1", clinical: 1, money: false },
+  // The same note with the money half added (#183).
+  { version: "tutorial-2", clinical: 1, money: true },
+  // The cardiology example note (#185), money half not yet on it.
+  { version: "tutorial-3", clinical: 2, money: false },
+  // The cardiology note and the money half: the current whole example.
+  { version: "tutorial-4", clinical: 2, money: true },
+];
+
+/** The note revision this build writes — the clinical half's own version. */
+const CLINICAL_SEED_REVISION =
+  SEED_VERSION_LADDER.find((entry) => entry.version === TUTORIAL_CLINICAL_SEED_VERSION)?.clinical ?? 0;
+
+/**
+ * What a saved record's `tutorialSeed` says about it, or `null` when the record
+ * carries no seed, or a version this build does not know.
+ *
+ * This is the one place a version string is turned into a decision, so the note
+ * refresh (`tutorialClinicalRefreshPending`) and the money guard
+ * (`tutorialMoneyPending`, `domain/tutorialClaim.ts`) can never disagree about
+ * what a record at a given version already holds.
+ */
+export function tutorialSeedState(
+  encounter: PipelineEncounter | null | undefined,
+): { clinical: number; money: boolean } | null {
+  const version = encounter?.tutorialSeed;
+  if (!version) return null;
+  const entry = SEED_VERSION_LADDER.find((candidate) => candidate.version === version);
+  return entry ? { clinical: entry.clinical, money: entry.money } : null;
+}
 
 /**
  * The Tutorial Patient's id — the one chart that is a worked example, not
@@ -543,6 +592,63 @@ export function applyTutorialSeed(
     status: "coded",
     chartStage: "sign-lock",
     tutorialSeed: TUTORIAL_CLINICAL_SEED_VERSION,
+  };
+}
+
+// ─── The note refresh: a chart seeded by an older build ──────────
+
+/**
+ * True when this record carries a seed from an older note revision.
+ *
+ * Owner report, 2026-11-23: the rewritten example note only reached a browser
+ * that had never opened the chart, because `tutorialSeedPending` reads any seed
+ * key as "already seeded". A record at a version whose clinical revision is
+ * older than this build's is refreshed instead — the note, the vitals and the
+ * labs the note reports, and nothing else.
+ */
+export function tutorialClinicalRefreshPending(
+  encounter: PipelineEncounter | null | undefined,
+): boolean {
+  const state = tutorialSeedState(encounter);
+  return !!state && state.clinical < CLINICAL_SEED_REVISION;
+}
+
+/**
+ * The Tutorial Patient's encounter with the example note brought up to this
+ * build's revision.
+ *
+ * Only the note is rewritten: `noteFields`, the text compiled from it, and the
+ * timestamp when the record never had one. The signature, the `NOTE_SIGNED`
+ * timeline, the codes, the authorisation, the claim, the typed boxes on it, the
+ * remittances, the ledger and the AR queue are carried forward exactly as they
+ * are — the note's vitals and labs are reported from the patient's own chart, so
+ * refreshing the note is what refreshes them.
+ *
+ * The version is moved one step forward along `SEED_VERSION_LADDER`: a record
+ * that already holds the money half is stamped as the whole example
+ * (`TUTORIAL_SEED_VERSION`), one that does not is stamped as the clinical half
+ * alone (`TUTORIAL_CLINICAL_SEED_VERSION`) so the money guard still fills it.
+ * A record whose note is already this revision is returned untouched.
+ */
+export function applyTutorialClinicalRefresh(
+  encounter: PipelineEncounter,
+  patient: TutorialPatientSource,
+  at: string,
+): PipelineEncounter {
+  if (!tutorialClinicalRefreshPending(encounter)) return encounter;
+  if ((patient.id ?? "") !== TUTORIAL_PATIENT_ID) return encounter;
+
+  const state = tutorialSeedState(encounter);
+  const fields = normalizeNoteFields(tutorialNoteFields(patient));
+
+  return {
+    ...encounter,
+    noteFields: fields,
+    scribeNote: compileNoteText(fields),
+    // The record's own timestamp is kept: the example's text is the seed's, and
+    // re-stamping it on every open would make the note look freshly edited.
+    noteUpdatedAt: encounter.noteUpdatedAt ?? at,
+    tutorialSeed: state?.money ? TUTORIAL_SEED_VERSION : TUTORIAL_CLINICAL_SEED_VERSION,
   };
 }
 

@@ -49,9 +49,11 @@ import { resolveEncounterPatientId } from "../utils/encounterPatient";
 import { buildSubmissionEvents } from "../domain/clearinghouse";
 import { signNote } from "../domain/signNote";
 import {
+  applyTutorialClinicalRefresh,
   applyTutorialSeed,
   tutorialCardFor,
   tutorialCardPending,
+  tutorialClinicalRefreshPending,
   tutorialEligibilityFor,
   tutorialPaRecord,
   tutorialSeedPending,
@@ -416,10 +418,15 @@ function seedTutorialInto(
   const key = encounterKey(TUTORIAL_PATIENT_ID);
   const current = state.encounters[key];
   const clinicalPending = tutorialSeedPending(current);
+  const refreshPending = tutorialClinicalRefreshPending(current);
   const moneyPending = tutorialMoneyPending(current);
-  if (!clinicalPending && !moneyPending) return state;
+  if (!clinicalPending && !refreshPending && !moneyPending) return state;
   let enc = current ?? createEncounter(TUTORIAL_PATIENT_ID);
   if (clinicalPending) enc = applyTutorialSeed(enc, patient, at);
+  // A chart seeded by a build with an older example note gets the note refreshed
+  // — the note, its vitals and its labs, and nothing else — before the money half
+  // is considered, so the record's version moves forward exactly once.
+  if (tutorialClinicalRefreshPending(enc)) enc = applyTutorialClinicalRefresh(enc, patient, at);
   if (tutorialMoneyPending(enc)) {
     const claimNumber = mintNextClaimNumber(
       Object.values(state.encounters).map((e) => e.claimNumber),
@@ -506,7 +513,13 @@ function withTutorialSeed(prev: PipelineStoreState): PipelineStoreState {
   // card above is checked on every save, not only while the example is pending —
   // a chart whose example landed but whose card did not used to keep printing
   // "Not on file" for good.
-  if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return prev;
+  if (
+    !tutorialSeedPending(current) &&
+    !tutorialClinicalRefreshPending(current) &&
+    !tutorialMoneyPending(current)
+  ) {
+    return prev;
+  }
   // One builder for both paths: the same `seedTutorialInto` that the open path
   // writes with, so a chart saved from here and a chart seeded on open are the
   // same record.
@@ -703,7 +716,10 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    */
   const prepareTutorialChart = (at: string): TutorialPatientSource | undefined => {
     const current = storeRef.current.encounters[encounterKey(TUTORIAL_PATIENT_ID)];
-    const pending = tutorialSeedPending(current) || tutorialMoneyPending(current);
+    const pending =
+      tutorialSeedPending(current) ||
+      tutorialClinicalRefreshPending(current) ||
+      tutorialMoneyPending(current);
     let patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID);
     if (!patient) return undefined;
     const seededPatient = patient;
