@@ -142,9 +142,14 @@ export function applyTutorialMoneySeed(
   if (billable.length === 0) return encounter;
 
   // The claim's timeline starts here and holds one entry until the student acts.
-  // Everything an older build recorded for this claim was the seed's, so the
-  // list is rebuilt rather than appended to — a 277CA the student never asked
-  // for must not sit above the draft they are about to send.
+  // Everything an older build recorded *for this claim* was the seed's, so the
+  // claim's own entries are dropped — a 277CA the student never asked for must
+  // not sit above the draft they are about to send. The encounter's own entries
+  // (the note's signature, the codes, the authorisation) are not the claim's and
+  // are kept exactly as the clinical half wrote them.
+  // The encounter's own entries stay, so the claim's first entry takes its
+  // sequence number from them — two entries can never share an id.
+  const keptEvents = encounter.statusEvents.filter((event) => event.entityType !== "claim");
   const created = makeStatusEvent(
     {
       entityType: "claim",
@@ -159,7 +164,7 @@ export function applyTutorialMoneySeed(
       reasonCode: "CLAIM_CREATED",
       reason: DRAFT_REASON,
     },
-    [],
+    keptEvents,
   );
 
   return {
@@ -168,7 +173,7 @@ export function applyTutorialMoneySeed(
     claimNumber,
     claimStatus: "draft" as ClaimStatus,
     claimStatusMigrated: false,
-    statusEvents: appendStatusEvent([], created),
+    statusEvents: appendStatusEvent(keptEvents, created),
     // Nothing has been sent, so nothing has been priced, posted or queued.
     remittances: [],
     ledger: [],

@@ -44,7 +44,12 @@ import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlySt
 const SIMULATE_DENIAL_REASON = readOnlyNoteId("billing-simulate-denial");
 const ROUTE_PA_REASON = readOnlyNoteId("billing-route-pa");
 const ADJUDICATE_REASON = readOnlyNoteId("billing-adjudicate");
-import { useReadOnlyChart, useReadOnlyGuard, withClaimSubmit } from "../../domain/tutorialReadOnly";
+import {
+  skipClaimAutosave,
+  useReadOnlyChart,
+  useReadOnlyGuard,
+  withClaimSubmit,
+} from "../../domain/tutorialReadOnly";
 import { CMS1500_LAYOUT, CMS1500_LINE_COLUMNS } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE, MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
 import { providerProfileFor } from "../../data/claims/renderingProviders";
@@ -328,6 +333,11 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
     // Data scoping (audit item 5): no patient, no claim. Nothing is seeded and
     // no claim number is minted; the desk below names what is missing.
     if (!patientId) return;
+    // The standard reference chart's claim is the seed's and is already whole:
+    // carrying the chart onto it is a write the read-only chart refuses, and the
+    // refusal would print *"The claim was not saved"* under a claim that is
+    // saved, on a chart the student never tried to change (`skipClaimAutosave`).
+    if (skipClaimAutosave(patientId)) return;
     // Box 23 carries THIS encounter's own authorisation and nothing else
     // (`domain/priorAuthNumber.ts`). Until 2026-11-21 it printed another
     // patient's `PA-2026-004418` as a demo value, and the seeded number was the
@@ -1037,7 +1047,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                     with no PA answer. */}
                 <div className="clinical-card">
                   <p className="text-xs font-semibold text-slate-700">Prior authorization</p>
-                  <fieldset className="mt-2">
+                  <fieldset className="mt-2" disabled={readOnly}>
                     <legend className="text-[10px] text-slate-600">
                       Does this encounter require <strong>Prior Authorization</strong>?{" "}
                       <span className="text-slate-400">

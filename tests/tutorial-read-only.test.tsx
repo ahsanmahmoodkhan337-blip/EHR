@@ -107,7 +107,7 @@ const { useEhrStore } = await import("../src/store/ehrStore");
 const { SEED_PATIENTS } = await import("../src/store/patientStore");
 const { loadUserData } = await import("../src/store/persistence");
 const { ENCOUNTER_FLOW_STAGES } = await import("../src/domain/encounterFlow");
-const { TUTORIAL_READ_ONLY_LINE } = await import("../src/domain/tutorialReadOnly");
+const { TUTORIAL_READ_ONLY_LINE, clearTutorialRefusal } = await import("../src/domain/tutorialReadOnly");
 const { TUTORIAL_NOTICE_ID } = await import("../src/components/TabsEpic/TutorialReadOnlyNotice");
 const { pressSubmitOnReferenceClaim } = await import("./support/referenceSubmit");
 
@@ -128,6 +128,23 @@ function isBlocked(el: Element): boolean {
 }
 
 const INTERACTIVE = "button,input,select,textarea,a[href]";
+
+/**
+ * A control that would write to the chart, the claim or the money.
+ *
+ * The reference chart leaves the student one write — Billing's Submit — and keeps
+ * the controls that only *read* live: the tabs, Validate, Print, Download, the
+ * stepper, Back and Continue. Reading the standard chart is the point of it, so
+ * the question asked below is the one the owner set — which **write** is
+ * pressable — not "which pixel can be clicked", which would count the app's own
+ * header links. A form field always writes; a button writes when its handler
+ * changes the claim or the money.
+ */
+const WRITE_BUTTON = /^(Save|Submit|Add line|Simulate|Route|Adjudicate|Post|Remove)/;
+function isWriteControl(el: Element): boolean {
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName)) return true;
+  return el.tagName === "BUTTON" && WRITE_BUTTON.test((el.textContent ?? "").trim());
+}
 
 /** Mount the app at one encounter address, the way a pasted link opens it. */
 async function openStage(stageId: string) {
@@ -158,6 +175,9 @@ beforeEach(() => {
   win.localStorage.setItem("hh_logged_in_phone", PHONE);
   win.localStorage.setItem("hh_approved_phones", JSON.stringify([PHONE]));
   useEhrStore.getState().registerSeedPatients(SEED_PATIENTS);
+  // One sentence, one chart: a refusal published by an earlier test is not this
+  // stage's.
+  clearTutorialRefusal();
 });
 
 describe("every stage of the Tutorial Patient's chart is locked", () => {
@@ -175,16 +195,32 @@ describe("every stage of the Tutorial Patient's chart is locked", () => {
       expect(notice?.textContent ?? "").toContain(TUTORIAL_READ_ONLY_LINE);
       expect(notice?.getAttribute("role")).toBe("status");
 
-      // ── Billing keeps exactly one live control: Submit ─────────
+      // ── Billing keeps exactly one live write: Submit ───────────
       // Owner, 2026-11-23: the claim opens filled and the student sends it
-      // himself, so Billing's Submit is the one pressable control on the whole
-      // reference chart — and nothing else on that stage is.
+      // himself, so Billing's Submit is the one pressable **write** on the whole
+      // reference chart — every box, the box-24 cells, the prior-authorisation
+      // answer and every other writing control is locked, and nothing on that
+      // stage is a control that silently does nothing.
       if (stageId === "billing") {
-        const live = [...screen.container.querySelectorAll(INTERACTIVE)].filter((el) => !isBlocked(el));
+        const live = [...screen.container.querySelectorAll(INTERACTIVE)].filter(
+          // A drawer that is closed is `aria-hidden`: its controls are not on
+          // screen for the student, so they are not asked about here.
+          (el) => !el.closest('[aria-hidden="true"]') && isWriteControl(el) && !isBlocked(el),
+        );
         expect({
           stage: stageId,
           pressable: live.map((el) => `${el.tagName}:${(el.textContent ?? "").trim()}`),
         }).toEqual({ stage: stageId, pressable: ["BUTTON:Submit"] });
+
+        // ── And nothing was refused behind the student's back ─────
+        // The claim's own auto-fill is not a student write: it is skipped on this
+        // chart, so the page never says "The claim was not saved" about a claim
+        // that is saved (lead's walk, 2026-11-23).
+        expect({
+          stage: stageId,
+          refusal: screen.container.querySelector('[data-testid="tutorial-refusal"]')?.textContent ?? null,
+        }).toEqual({ stage: stageId, refusal: null });
+
         await screen.unmount();
         continue;
       }
@@ -277,7 +313,7 @@ describe("a student write to the standard chart is refused where it happens", ()
     // Not through a disabled button: straight at the store, which is where the
     // spec says the refusal has to live. A disabled-looking screen whose store
     // still accepts the write is not read-only.
-    const { clearTutorialRefusal, tutorialRefusal } = await import("../src/domain/tutorialReadOnly");
+    const { tutorialRefusal } = await import("../src/domain/tutorialReadOnly");
     clearTutorialRefusal();
 
     await act(async () => {

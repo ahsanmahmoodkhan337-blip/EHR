@@ -72,6 +72,12 @@ export function ClaimPaper({ layout, values, issues, table, set, note, demoField
         <p className="text-[8px] font-semibold uppercase tracking-wide text-form-red">Demo data — not a real claim</p>
       </div>
 
+      {/* A few structural boxes are checkboxes rather than text, so the paper's
+          read-only rendering does not reach them. On the standard reference chart
+          the whole paper is wrapped in a disabled fieldset, in the same shape the
+          stages use: nothing on it can be typed into or ticked. `contents` keeps
+          the printed layout untouched. */}
+      <fieldset disabled={readOnly} className="contents m-0 min-w-0 border-0 p-0">
       {layout.rows.map((row, rowIndex) => (
         <div key={`row-${rowIndex}`} className="flex" style={{ minHeight: row.heightMm * MM }}>
           {row.cells.map((cell) => (
@@ -89,6 +95,7 @@ export function ClaimPaper({ layout, values, issues, table, set, note, demoField
           ))}
         </div>
       ))}
+      </fieldset>
 
       {note && <p className="border-t border-form-red/40 px-1 pt-1 text-[7px] text-ink-muted">{note}</p>}
     </div>

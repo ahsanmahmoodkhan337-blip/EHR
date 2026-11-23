@@ -57,6 +57,11 @@ export function CMS1500Form({
     issues.some((i) => i.severity === "error" && i.box === box && i.message.includes(`line ${index + 1}`));
 
   const table = (
+    // Box 24 is a table of controls, so the paper's own read-only rendering does
+    // not reach it: on the standard reference chart the cells and the add/remove
+    // line controls are disabled here, in the same `fieldset disabled` shape the
+    // stages use. `contents` keeps the printed layout untouched.
+    <fieldset disabled={readOnly} className="contents m-0 min-w-0 border-0 p-0">
     <div className="mt-0.5">
       <div className="flex gap-0.5 border-b border-form-red/40 pb-0.5">
         {COLUMNS.map((col) => (
@@ -255,6 +260,7 @@ export function CMS1500Form({
         )}
       </div>
     </div>
+    </fieldset>
   );
 
   return (

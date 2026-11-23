@@ -2562,14 +2562,17 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       {selectedPatient && currentRole !== "scribe" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
           {/* `fieldset disabled` disables every control under it — the one switch
-              that cannot miss a stage's own inputs. The biller stage is the
-              exception: on the standard reference chart its claim opens filled
+              that cannot miss a stage's own inputs. The **Billing stage alone** is
+              the exception: on the standard reference chart its claim opens filled
               and unsubmitted, and pressing Submit is the exercise the student is
               there for (owner, 2026-11-23). Every other write control on that
-              stage disables itself and prints its reason under it; the claim's
-              Submit is the only live action. */}
+              stage disables itself and prints its reason under it — the paper's
+              box-24 cells and the prior-authorisation answer included — so the
+              claim's Submit is the only live write. The Payments stage is the
+              biller's too, but nothing on it is the student's to do on this chart,
+              so it stays inside the lock. */}
           <fieldset
-            disabled={tutorialChartOpen && currentRole !== "biller"}
+            disabled={tutorialChartOpen && flowStageId !== "billing"}
             aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
             className="contents"
           >

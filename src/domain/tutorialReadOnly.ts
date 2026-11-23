@@ -183,6 +183,21 @@ export function skipNoteAutosave(patientId: string | null | undefined): boolean 
   return isTutorialChart(patientId) && !isSeedWrite();
 }
 
+/**
+ * True when this chart's claim auto-fill must not be attempted.
+ *
+ * The same false-failure class as the note's, one stage later: the Billing stage
+ * carries the coded lines and the parties onto the claim in an effect, and on the
+ * standard chart that write is refused — which printed *"The claim was not
+ * saved"* under a claim that is saved, on a chart the student never tried to
+ * change (lead's walk, 2026-11-23). The reference claim is the seed's, so there
+ * is nothing to carry onto it: skip the attempt and say nothing. A seed write and
+ * the student's own Submit are still allowed through.
+ */
+export function skipClaimAutosave(patientId: string | null | undefined): boolean {
+  return isTutorialChart(patientId) && !isSeedWrite() && !isClaimSubmit();
+}
+
 /** Say the refusal out loud, for a handler that was reached anyway. */
 export function refuseReadOnly(what: string): true {
   publish(refusalSentence(what));
