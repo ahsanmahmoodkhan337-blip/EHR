@@ -58,6 +58,7 @@ import { inboxCount } from "../domain/inbasket";
 import { completedStagesOf } from "../domain/stageProgress";
 import { postedCopayForPatient } from "../domain/checkIn";
 import { TUTORIAL_PATIENT_ID, tutorialNoteFields } from "../domain/tutorialEncounter";
+import { TutorialReadOnlyNotice, TUTORIAL_NOTICE_ID } from "../components/TabsEpic/TutorialReadOnlyNotice";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
 import { StageNav } from "../components/shell/StageNav";
@@ -2270,6 +2271,13 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // disagree and a reload cannot change the answer.
   const completedFlow = completedStagesOf(pipelineState);
 
+  // The Tutorial Patient's chart is the standard reference and is read-only
+  // (spec `tutorial-patient-prefill.md` § C, owner 2026-11-22 and 2026-11-23).
+  // The stores refuse the write; this flag is the second layer — the one line at
+  // the top of every stage and the disabled controls underneath it.
+  const tutorialChartOpen =
+    activePatientId === TUTORIAL_PATIENT_ID || selectedPatientId === TUTORIAL_PATIENT_ID;
+
   const flowNext = nextFlowStage(flowStageId);
   const flowPrevious = previousFlowStage(flowStageId);
   const onLastFlowStage = flowStageId === lastFlowStageId();
@@ -2540,9 +2548,19 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
         />
       )}
 
+      {/* One line at the top of every stage: the Tutorial Patient's chart is the
+          standard reference and is read-only. Not a modal, not a banner over the
+          stepper — it sits under it, in the 19 November type scale. */}
+      {tutorialChartOpen && <TutorialReadOnlyNotice />}
+
       {/* ─── Role-Based Workspace ─── */}
       {selectedPatient && currentRole !== "scribe" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
+          <fieldset
+            disabled={tutorialChartOpen}
+            aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
+            className="contents"
+          >
           {currentRole === "coder" && (
             <CodingQueue medications={editablePatientData.medications} />
           )}
@@ -2571,6 +2589,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
               <p className="mt-2 text-sm text-slate-500">All stages have been completed. Great work!</p>
             </div>
           )}
+          </fieldset>
           {/* Every stage carries Back and Continue to the next stage (owner's
               audit, item 1). Navigation only: no note, code, claim or posting is
               touched. The last stage's button ends the encounter. */}
@@ -2661,6 +2680,11 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                     }
                   />
                   <div className="flex-1 overflow-y-auto p-4 animate-slide-in" key={activeStage}>
+                  <fieldset
+                    disabled={tutorialChartOpen}
+                    aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
+                    className="contents"
+                  >
                     {activeStage === "registration" && (
                       <>
                         <RegistrationStage patientId={selectedPatientId} />
@@ -2712,6 +2736,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         isSubmitting={isSubmittingNote}
                       />
                     )}
+                    </fieldset>
                     {activeStage === "sign-lock" && noteSigned && (
                       <div className="flex flex-col items-center justify-center py-12">
                         <div className="rounded-full bg-green-100 p-4">
@@ -2765,6 +2790,11 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                     onTabChange={setActiveTab}
                   />
                   <div className="flex-1 overflow-y-auto p-4">
+                    <fieldset
+                      disabled={tutorialChartOpen}
+                      aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
+                      className="contents"
+                    >
                     <TabPanel id="summary" activeTab={activeTab}>
                       <SummaryTab
                         patientId={selectedPatientId}
@@ -3166,6 +3196,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         )}
                       </div>
                     </TabPanel>
+                    </fieldset>
                   </div>
                 </>
               )}

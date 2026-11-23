@@ -42,6 +42,7 @@ import {
   type DocumentRecord,
 } from "../domain/documents";
 import { markFailed, markSaved, markSaving } from "./autosave";
+import { refuseStudentWrite } from "../domain/tutorialReadOnly";
 import { deleteGroupStores, resetInMemory, type ResetGroupId } from "./resetData";
 
 // ─── Types ─────────────────────────────────────────────────────────
@@ -1087,6 +1088,10 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
   },
 
   updatePatientInsurance: (patientId, insurance) => {
+    // The Tutorial Patient's card is the standard reference — read-only
+    // (`domain/tutorialReadOnly.ts`, spec § C). Refused at the store, and it
+    // says why; the seed writes through `withSeedWrite` and is not refused.
+    if (refuseStudentWrite(patientId, "The registration card")) return;
     const state = get();
     const existing = mergeById(state.seedPatients, state.user.patients).find(
       (p) => p.id === patientId,
@@ -1137,6 +1142,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
   },
 
   updatePatientIdentity: (patientId, identity) => {
+    if (refuseStudentWrite(patientId, "The registration card")) return;
     const state = get();
     const existing = mergeById(state.seedPatients, state.user.patients).find(
       (p) => p.id === patientId,
@@ -1195,6 +1201,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
    * mutated in place (section 2).
    */
   updatePatientDemographics: (patientId, patch) => {
+    if (refuseStudentWrite(patientId, "The patient's demographics")) return;
     const state = get();
     const existing = mergeById(state.seedPatients, state.user.patients).find(
       (p) => p.id === patientId,
@@ -1254,6 +1261,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
   },
 
   addDocument: (input) => {
+    if (refuseStudentWrite(input.patientId, "The document")) return null;
     const document = makeAddedDocument({
       ...input,
       at: new Date().toISOString(),
@@ -1377,6 +1385,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
   },
 
   recordEligibility: (patientId, coverage, record) => {
+    if (refuseStudentWrite(patientId, "The 271 eligibility response")) return;
     const state = get();
     const existing = mergeById(state.seedPatients, state.user.patients).find(
       (p) => p.id === patientId,
@@ -1446,6 +1455,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
   },
 
   saveNoteDraft: (patientId, fields, options) => {
+    if (refuseStudentWrite(patientId, "The note")) return null;
     const state = get();
     const previous = state.user.noteDrafts[patientId];
     if (previous && sameNoteFields(previous.fields, fields)) return previous.savedAt;
@@ -1495,6 +1505,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
   },
 
   updateCase: (patientId, updater) => {
+    if (refuseStudentWrite(patientId, "The case progress")) return;
     set((s) => ({
       user: {
         ...s.user,

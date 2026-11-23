@@ -59,6 +59,7 @@ import {
   TUTORIAL_PATIENT_ID,
   type TutorialPatientSource,
 } from "../domain/tutorialEncounter";
+import { isSeedWrite, refuseStudentWrite, withSeedWrite } from "../domain/tutorialReadOnly";
 import { selectPatientById, useEhrStore } from "./ehrStore";
 import { applyTutorialMoneySeed, tutorialMoneyPending } from "../domain/tutorialClaim";
 import { applyCodingPlaceOfService, hasLineForCpt } from "../domain/codingPlaceOfService";
@@ -368,6 +369,30 @@ function remittanceReason(remittance: Remittance835): string {
 }
 
 /**
+ * Does this write change the Tutorial Patient's chart?
+ *
+ * `role` and `chartStage` are navigation bookkeeping — which role the chart was
+ * opened in and the furthest step reached — not chart data, so they are not an
+ * edit. Everything else (note, vitals, codes, PA, claim, remittances, ledger,
+ * AR items, the seeded keys) is.
+ */
+function tutorialContentChanged(
+  before: PipelineEncounter | undefined,
+  after: PipelineEncounter | undefined,
+): boolean {
+  if (!before || !after) return true;
+  const navigation = new Set(["role", "chartStage"]);
+  const fields = new Set([...Object.keys(before), ...Object.keys(after)]);
+  for (const field of fields) {
+    if (navigation.has(field)) continue;
+    if ((before as unknown as Record<string, unknown>)[field] !== (after as unknown as Record<string, unknown>)[field]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * The Tutorial Patient's worked example, applied to one store state.
  *
  * The two pure builders — the clinical half (`domain/tutorialEncounter.ts`) and
@@ -463,11 +488,16 @@ function withTutorialSeed(prev: PipelineStoreState): PipelineStoreState {
   // The card and the 271 are what the claim's box 1a and the payer's member
   // match read, so they are written before the example is built — and the
   // patient is read back afterwards, because box 1a is the member ID just saved.
-  if (tutorialCardPending(patient)) {
-    const ehr = useEhrStore.getState();
-    ehr.updatePatientInsurance(patient.id, tutorialCardFor(patient));
-    ehr.recordEligibility(patient.id, "primary", tutorialEligibilityFor(patient, at));
-    patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? patient;
+  const known = patient;
+  if (tutorialCardPending(known)) {
+    // A seed write, not a student write: `withSeedWrite` is what lets the card
+    // and the 271 land on a chart that refuses student edits (`tutorialReadOnly.ts`).
+    patient = withSeedWrite(() => {
+      const ehr = useEhrStore.getState();
+      ehr.updatePatientInsurance(known.id, tutorialCardFor(known as never));
+      ehr.recordEligibility(known.id, "primary", tutorialEligibilityFor(known as never, at));
+      return selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? known;
+    });
   }
   // One builder for both paths: the same `seedTutorialInto` that the open path
   // writes with, so a chart saved from here and a chart seeded on open are the
@@ -589,12 +619,43 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   const currentRole: Role = store.currentRole;
 
-  /** Every mutation goes through here, so it always lands on the active patient. */
-  const updateActive = (fn: (enc: PipelineEncounter) => PipelineEncounter) => {
+  /**
+   * Every student mutation goes through here, so it always lands on the active
+   * patient — and, because it lands here, this is also where the Tutorial
+   * Patient's chart refuses a student write (`domain/tutorialReadOnly.ts` § C).
+   * The refusal happens before the store is touched and says why, so the saved
+   * record is unchanged. `what` names the stage in that sentence; pass `null`
+   * for navigation bookkeeping (the step reached), which writes no chart data.
+   */
+  const updateActive = (
+    fn: (enc: PipelineEncounter) => PipelineEncounter,
+    what: string | null = "The chart",
+  ) => {
+    if (what !== null && refuseStudentWrite(store.activePatientId, what)) return;
     setStore((prev) => {
       const key = encounterKey(prev.activePatientId);
       const current = prev.encounters[key] ?? createEncounter(prev.activePatientId);
       return { ...prev, encounters: { ...prev.encounters, [key]: fn(current) } };
+    });
+  };
+
+  /**
+   * The backstop for the writes that do not go through `updateActive`.
+   *
+   * Same rule, applied to the state about to be written: a student write that
+   * would change the Tutorial Patient's encounter is dropped here even if a
+   * caller forgot its own guard. Navigation bookkeeping (`role`, the chart step
+   * reached) is not chart content and passes; the seed's own writes do not come
+   * through this function at all — they use `setStore` directly.
+   */
+  const studentStore = (update: (prev: PipelineStoreState) => PipelineStoreState) => {
+    setStore((prev) => {
+      const next = update(prev);
+      if (next === prev) return prev;
+      const key = encounterKey(TUTORIAL_PATIENT_ID);
+      if (next.encounters[key] === prev.encounters[key]) return next;
+      if (isSeedWrite()) return next;
+      return tutorialContentChanged(prev.encounters[key], next.encounters[key]) ? prev : next;
     });
   };
 
@@ -637,11 +698,15 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     if (!tutorialSeedPending(current) && !tutorialMoneyPending(current)) return undefined;
     let patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID);
     if (!patient) return undefined;
-    if (tutorialCardPending(patient)) {
-      const ehr = useEhrStore.getState();
-      ehr.updatePatientInsurance(patient.id, tutorialCardFor(patient));
-      ehr.recordEligibility(patient.id, "primary", tutorialEligibilityFor(patient, at));
-      patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? patient;
+    const seededPatient = patient;
+    if (tutorialCardPending(seededPatient)) {
+      // A seed write, not a student write (see `tutorialReadOnly.ts`).
+      patient = withSeedWrite(() => {
+        const ehr = useEhrStore.getState();
+        ehr.updatePatientInsurance(seededPatient.id, tutorialCardFor(seededPatient as never));
+        ehr.recordEligibility(seededPatient.id, "primary", tutorialEligibilityFor(seededPatient as never, at));
+        return selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? seededPatient;
+      });
     }
     const prepared = patient;
     setPaRecords((prev) =>
@@ -748,13 +813,16 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   };
 
   const setPatientDisplayName = (name: string | null) => {
-    updateActive((enc) => ({ ...enc, displayName: name }));
+    updateActive((enc) => ({ ...enc, displayName: name }), "The patient's name");
   };
 
   // Start an encounter over. A plain patient switch must never call this.
+  // The Tutorial Patient's chart has no blank-visit reset at all (spec § C):
+  // the store refuses it before it writes, and says why.
   const resetEncounter = (patientId?: string | null) => {
-    setStore((prev) => {
-      const target = patientId === undefined ? prev.activePatientId : patientId;
+    const target = patientId === undefined ? store.activePatientId : patientId;
+    if (refuseStudentWrite(target, "Start over")) return;
+    studentStore((prev) => {
       const key = encounterKey(target);
       return {
         ...prev,
@@ -774,7 +842,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     updateActive((enc) => {
       const next = furthestChartStep(enc.chartStage, stage);
       return next === enc.chartStage ? enc : { ...enc, chartStage: next };
-    });
+    }, null);
   };
 
   /**
@@ -789,6 +857,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * Returns when it was saved, or null when nothing was written.
    */
   const writeNoteFor = (patientId: string | null, fields: NoteFields): string | null => {
+    // The Tutorial Patient's note is the worked example: the store refuses the
+    // write here, before the record is touched, and says why (spec § C).
+    if (refuseStudentWrite(patientId, "The note")) return null;
     const key = encounterKey(patientId);
     const current = store.encounters[key];
     if (current && noteReadOnly(current)) return null;
@@ -798,7 +869,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       current && text === current.scribeNote && JSON.stringify(nextFields) === JSON.stringify(current.noteFields);
     if (unchanged) return null;
     const at = new Date().toISOString();
-    setStore((prev) => {
+    studentStore((prev) => {
       const base = prev.encounters[key] ?? createEncounter(patientId);
       if (noteReadOnly(base)) return prev;
       return {
@@ -817,7 +888,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     // The signature itself lives in `domain/signNote.ts`, so the record the
     // Coding queue reads is written by the same function the tests use. A note
     // that is already signed is left exactly as it was: a note is signed once.
-    updateActive((enc) => (noteReadOnly(enc) ? enc : signNote(enc, { note, by: getLoggedInPhone() ?? "system" })));
+    updateActive((enc) => (noteReadOnly(enc) ? enc : signNote(enc, { note, by: getLoggedInPhone() ?? "system" })), "The note's signature");
   };
 
   // Auto-advance: Coder → Prior Auth (PA first)
@@ -829,7 +900,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       codingLines: lines ?? enc.codingLines,
       stage: "prior-auth",
       status: "coded",
-    }));
+    }), "The codes");
   };
 
   /**
@@ -839,12 +910,13 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    */
   const setCodingLinePlaceOfService = (cpt: string, placeOfService: string) => {
     if (!hasLineForCpt(activeEncounter, cpt)) return;
-    updateActive((enc) => applyCodingPlaceOfService(enc, cpt, placeOfService));
+    updateActive((enc) => applyCodingPlaceOfService(enc, cpt, placeOfService), "The place of service");
   };
 
   // ── Structured CMS-1500 record ──────────────────────────────────
   const setClaimForm = (form: ClaimFormData | null) => {
-    setStore((prev) => {
+    if (refuseStudentWrite(store.activePatientId ?? resolveEncounterPatientId(null), "The claim")) return;
+    studentStore((prev) => {
       // ── Data scoping (audit item 5) ────────────────────────────────
       // A claim belongs to the patient and the encounter on screen. The
       // pipeline's own id can be unset on two real paths (a restored session and
@@ -939,7 +1011,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * A claim transition moves the claim's status in the same write.
    */
   const appendStatusEvent = (input: StatusEventInput) => {
-    setStore((prev) => {
+    if (refuseStudentWrite(input.patientId ?? store.activePatientId, "The claim's timeline")) return;
+    studentStore((prev) => {
       const patientId = input.patientId ?? prev.activePatientId;
       const key = encounterKey(patientId);
       const enc = prev.encounters[key] ?? createEncounter(patientId);
@@ -970,7 +1043,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * claim on the biller's desk: it never becomes a denial, and no money moves.
    */
   const transmitClaim: PipelineContextValue["transmitClaim"] = (input) => {
-    setStore((prev) => {
+    if (refuseStudentWrite(store.activePatientId, "The claim submission")) return;
+    studentStore((prev) => {
       const key = encounterKey(prev.activePatientId);
       const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
       // No claim number, no claim: the paper mints it when it first opens.
@@ -1016,7 +1090,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * nothing on this screen invents an amount, and no money moves yet.
    */
   const adjudicateClaim: PipelineContextValue["adjudicateClaim"] = (input) => {
-    setStore((prev) => {
+    if (refuseStudentWrite(store.activePatientId, "The 835")) return;
+    studentStore((prev) => {
       const key = encounterKey(prev.activePatientId);
       const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
       if (!enc.claimNumber) return prev;
@@ -1095,7 +1170,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * write, so a status never exists without the entries behind it.
    */
   const postRemittance: PipelineContextValue["postRemittance"] = () => {
-    setStore((prev) => {
+    if (refuseStudentWrite(store.activePatientId, "The posting")) return;
+    studentStore((prev) => {
       const key = encounterKey(prev.activePatientId);
       const enc = prev.encounters[key] ?? createEncounter(prev.activePatientId);
       const remittance = remittanceForClaim(enc.remittances, enc.claimNumber);
@@ -1189,7 +1265,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     updateActive((enc) => ({
       ...enc,
       claimForm: enc.claimForm ? { ...enc.claimForm, ...patch } : enc.claimForm,
-    }));
+    }), "The claim");
   };
 
   // Instructor / exam-mode switch. Persisted with the rest of the store, so an
@@ -1212,7 +1288,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       stage: "biller",
       // Keep existing status (typically "coded") — status = "paid" only after actual claim settlement
       denialInfo: null,
-    }));
+    }), "The prior authorisation");
   };
 
   // Auto-advance: Biller submits claim → AR Voice
@@ -1230,12 +1306,13 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       claimData,
       stage: "ar-voice",
       status: "billed",
-    }));
+    }), "The claim submission");
   };
 
   // Denial from Biller stage — routes to the active patient's AR row
   const handleDenial = (denialCode: string, meta?: { amount?: number; patientName?: string }) => {
     const patientId = store.activePatientId;
+    if (refuseStudentWrite(patientId, "The denial")) return;
     const denial: DeniedClaim = {
       id: `denial-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       encounterId: patientId ?? "unknown",
@@ -1254,7 +1331,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       ...enc,
       status: "denied",
       denialInfo: { code: denialCode, reason: "Claim denied", amount: meta?.amount ?? 0 },
-    }));
+    }), "The denial");
   };
 
   // Complete pipeline — called when all stages are done
@@ -1263,7 +1340,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       ...enc,
       stage: "complete",
       status: "paid",
-    }));
+    }), "The encounter");
   };
 
   // ── AR work queue (money cycle slice 3) ──────────────────────────
@@ -1297,7 +1374,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * encounter the first time so the money has somewhere honest to land.
    */
   const postPatientPayment: PipelineContextValue["postPatientPayment"] = (patientId, entry) => {
-    setStore((prev) => {
+    if (refuseStudentWrite(patientId, "The ledger")) return;
+    studentStore((prev) => {
       const key = encounterKey(patientId);
       const current = prev.encounters[key] ?? createEncounter(patientId);
       const ledger = appendLedgerEntries(current.ledger, [{ ...entry, patientId }]);
@@ -1309,7 +1387,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   const resolveArItem: PipelineContextValue["resolveArItem"] = (input) => {
     const at = new Date().toISOString();
     const by = getLoggedInPhone() ?? "system";
-    setStore((prev) => {
+    studentStore((prev) => {
       const queue = buildArWorkQueue(
         Object.values(prev.encounters).map((enc) => ({
           patientId: enc.patientId,
@@ -1401,7 +1479,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   const updateArItemWork: PipelineContextValue["updateArItemWork"] = (input) => {
     const at = new Date().toISOString();
     const by = getLoggedInPhone() ?? "system";
-    setStore((prev) => {
+    studentStore((prev) => {
       const queue = buildArWorkQueue(
         Object.values(prev.encounters).map((enc) => ({
           patientId: enc.patientId,
@@ -1448,6 +1526,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   };
 
   const addCallRecord = (record: ARCallRecord) => {
+    if (refuseStudentWrite(store.activePatientId, "The AR call record")) return;
     setArCalls((prev) => [...prev, record]);
   };
 
@@ -1473,6 +1552,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
 
   // PA lifecycle functions
   const addPARecord = (record: PARecordStore) => {
+    // The Tutorial Patient's authorisation is part of the worked example: the
+    // store refuses a student write and says why (spec § C).
+    if (refuseStudentWrite(record.patientId, "The prior authorisation")) return;
     // Data scoping (audit item 5): a prior auth belongs to a patient. A record
     // with no patient is not stored — it would show in every patient's queue as
     // an authorisation nobody owns. The PA screen refuses first and says why.
@@ -1492,6 +1574,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   };
 
   const updatePAStatus = (id: string, status: string) => {
+    const owned = paRecords.find((r) => r.id === id);
+    if (refuseStudentWrite(owned?.patientId, "The prior authorisation")) return;
     setPaRecords((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status } : r))
     );
