@@ -44,7 +44,7 @@ import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlySt
 const SIMULATE_DENIAL_REASON = readOnlyNoteId("billing-simulate-denial");
 const ROUTE_PA_REASON = readOnlyNoteId("billing-route-pa");
 const ADJUDICATE_REASON = readOnlyNoteId("billing-adjudicate");
-import { useReadOnlyChart, useReadOnlyGuard } from "../../domain/tutorialReadOnly";
+import { useReadOnlyChart, useReadOnlyGuard, withClaimSubmit } from "../../domain/tutorialReadOnly";
 import { CMS1500_LAYOUT, CMS1500_LINE_COLUMNS } from "../../data/claims/cms1500Layout";
 import { DEMO_PROVIDER_NOTE, MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
 import { providerProfileFor } from "../../data/claims/renderingProviders";
@@ -200,6 +200,11 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
   // this screen's memory, so a reload shows the same claim header and the same
   // 277CA (owner's work order, `specs/phase1-data-integrity.md` item 1).
   const transmitted = state.claimStatus !== null && state.claimStatus !== "draft";
+  // The one control the standard reference chart leaves the student: its claim
+  // opens filled and unsubmitted, and pressing Submit is the exercise (owner,
+  // 2026-11-23). Once the claim has left draft there is nothing left to send, so
+  // the control goes back to being disabled with its reason under it.
+  const submitLive = readOnly && !transmitted;
   // True while the student has asked to look at the paper again after submitting.
   const [paperOpen, setPaperOpen] = useState(false);
   const [billingScore, setBillingScore] = useState<number | null>(null);
@@ -553,9 +558,12 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
   /** Submit: edit checks already passed in the shell → run the 837P simulation. */
   const handleSubmitClaim = useCallback(
     (values: Record<string, unknown>, lines: Record<string, unknown>[]) => {
-      // The owner's click: Submit on the Tutorial Patient must say why, never
-      // look live and do nothing.
-      if (guard("The claim")) return;
+      // No `guard("The claim")` here on purpose. This is the one control the
+      // standard reference chart leaves the student: the claim opens filled and
+      // unsubmitted, and pressing Submit is the exercise (owner, 2026-11-23 —
+      // *"the CMS-1500 should be filled and student should submit too …
+      // himself"*). `withClaimSubmit` below is the window that lets exactly this
+      // write through the chart's read-only lock.
       const patientPaRecords = paRecords.filter((r) => r.patientId === patientId);
 
       // Rule 6 — the PA question belongs to the student. If a line on this claim
@@ -580,7 +588,10 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
         return;
       }
 
-      commitClaim(values, lines);
+      // The reference chart's paper is already the claim on the record: every box
+      // was filled from the chart, so there is nothing of the student's to write
+      // back onto it. Commit only where the student is the one editing.
+      if (!readOnly) commitClaim(values, lines);
       const total = Number(values.totalCharge) || 0;
       addAuditLog(patientId, {
         timestamp: new Date().toISOString(),
@@ -628,47 +639,61 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
         if (progress < 100) return;
         clearInterval(interval);
 
-        transmitClaim({
-          subscriberId: submissionFacts.subscriberId,
-          subscriberIdOnFile: submissionFacts.subscriberIdOnFile,
-          patientDob: submissionFacts.patientDob,
-          patientDobOnFile: submissionFacts.patientDobOnFile,
-          lineCount: lines.length,
-          payerName: payer,
-        });
-        setIsTransmitting(false);
-        setModifierWarning(willAccept && missingMod25);
+        // The student's Submit, and nothing else: this window is the one write
+        // the standard reference chart lets through (`withClaimSubmit`,
+        // `domain/tutorialReadOnly.ts`). On an ordinary chart it is a no-op
+        // wrapper — that chart was never locked.
+        withClaimSubmit(() => {
+          transmitClaim({
+            subscriberId: submissionFacts.subscriberId,
+            subscriberIdOnFile: submissionFacts.subscriberIdOnFile,
+            patientDob: submissionFacts.patientDob,
+            patientDobOnFile: submissionFacts.patientDobOnFile,
+            lineCount: lines.length,
+            payerName: payer,
+          });
+          setIsTransmitting(false);
+          setModifierWarning(willAccept && missingMod25);
 
-        if (!willAccept) {
-          // A rejection is not a denial: the claim comes back to this desk for
-          // correction. It does not advance a stage and no money moves.
+          if (!willAccept) {
+            // A rejection is not a denial: the claim comes back to this desk for
+            // correction. It does not advance a stage and no money moves.
+            addAuditLog(patientId, {
+              timestamp: new Date().toISOString(),
+              role: "biller",
+              message: `837P transmitted to ${payerLabel} — 277CA rejected, claim returned for correction`,
+              status: "error",
+            });
+            return;
+          }
+
+          // Accepted by the clearinghouse. Acceptance is not payment: the payer
+          // adjudicates next, and its 835 is what pays or denies the claim.
+          setBillingStatus(patientId, "CLEARED_AND_SENT");
           addAuditLog(patientId, {
             timestamp: new Date().toISOString(),
             role: "biller",
-            message: `837P transmitted to ${payerLabel} — 277CA rejected, claim returned for correction`,
-            status: "error",
+            message: `837P transmitted to ${payerLabel} — 277CA accepted, claim with the payer for adjudication`,
+            status: "success",
           });
-          return;
-        }
-
-        // Accepted by the clearinghouse. Acceptance is not payment: the payer
-        // adjudicates next, and its 835 is what pays or denies the claim.
-        setBillingStatus(patientId, "CLEARED_AND_SENT");
-        addAuditLog(patientId, {
-          timestamp: new Date().toISOString(),
-          role: "biller",
-          message: `837P transmitted to ${payerLabel} — 277CA accepted, claim with the payer for adjudication`,
-          status: "success",
+          submitClaim({ ...legacyBoxMap(values), payer, posCode: claimPos, submittedAt: new Date().toISOString() });
+          setPaperOpen(false);
+          // On the standard reference chart the same press carries the cycle the
+          // student is being shown: the payer's 835 is adjudicated and posted, so
+          // the 835 and the AR row appear from this one action. They were seeded
+          // before 2026-11-23; now nothing is priced or posted until this click.
+          if (readOnly) {
+            adjudicateClaim({ payerName: payer });
+            postRemittance();
+          }
+          // The modifier-25 trap still costs the student its score; it is not a
+          // clearinghouse rejection, so it is reported as an edit check, not an outcome.
+          if (!missingMod25) {
+            const score = scoreBiller(true, false, false);
+            setBillingScore(score);
+            updateStageScore(getStudentName(), "biller", score);
+          }
         });
-        submitClaim({ ...legacyBoxMap(values), payer, posCode: claimPos, submittedAt: new Date().toISOString() });
-        setPaperOpen(false);
-        // The modifier-25 trap still costs the student its score; it is not a
-        // clearinghouse rejection, so it is reported as an edit check, not an outcome.
-        if (!missingMod25) {
-          const score = scoreBiller(true, false, false);
-          setBillingScore(score);
-          updateStageScore(getStudentName(), "biller", score);
-        }
       }, 80);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1122,6 +1147,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       submitting={isTransmitting}
                       demoFillEnabled={demoFillEnabled}
                       readOnly={readOnly}
+                      submitLive={submitLive}
                     >
                       {(api) => <CMS1500Form {...api} />}
                     </ClaimFormShell>
@@ -1170,6 +1196,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       submitting={isTransmitting}
                       demoFillEnabled={demoFillEnabled}
                       readOnly={readOnly}
+                      submitLive={submitLive}
                     >
                       {(api) => <Ub04Form {...api} />}
                     </ClaimFormShell>

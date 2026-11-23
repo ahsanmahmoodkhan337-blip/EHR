@@ -2561,8 +2561,15 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       {/* ─── Role-Based Workspace ─── */}
       {selectedPatient && currentRole !== "scribe" ? (
         <FadeTransition key={`${selectedPatientId}-${currentRole}`} id={currentRole} className="flex flex-1 flex-col overflow-hidden">
+          {/* `fieldset disabled` disables every control under it — the one switch
+              that cannot miss a stage's own inputs. The biller stage is the
+              exception: on the standard reference chart its claim opens filled
+              and unsubmitted, and pressing Submit is the exercise the student is
+              there for (owner, 2026-11-23). Every other write control on that
+              stage disables itself and prints its reason under it; the claim's
+              Submit is the only live action. */}
           <fieldset
-            disabled={tutorialChartOpen}
+            disabled={tutorialChartOpen && currentRole !== "biller"}
             aria-describedby={tutorialChartOpen ? TUTORIAL_NOTICE_ID : undefined}
             className="contents"
           >

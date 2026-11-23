@@ -61,7 +61,7 @@ import {
   TUTORIAL_PATIENT_ID,
   type TutorialPatientSource,
 } from "../domain/tutorialEncounter";
-import { isSeedWrite, refuseStudentWrite, withSeedWrite } from "../domain/tutorialReadOnly";
+import { isClaimSubmit, isSeedWrite, refuseStudentWrite, withSeedWrite } from "../domain/tutorialReadOnly";
 import { selectPatientById, useEhrStore } from "./ehrStore";
 import { applyTutorialMoneySeed, tutorialMoneyPending } from "../domain/tutorialClaim";
 import { applyCodingPlaceOfService, hasLineForCpt } from "../domain/codingPlaceOfService";
@@ -668,6 +668,11 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
    * caller forgot its own guard. Navigation bookkeeping (`role`, the chart step
    * reached) is not chart content and passes; the seed's own writes do not come
    * through this function at all — they use `setStore` directly.
+   *
+   * The one exception is the student's own Submit on the reference claim
+   * (`isClaimSubmit`, `domain/tutorialReadOnly.ts`): the claim opens filled and
+   * unsubmitted, and sending it is the exercise the chart exists for, so the
+   * 837P, the 277CA, the 835, the posting and the AR row it creates are written.
    */
   const studentStore = (update: (prev: PipelineStoreState) => PipelineStoreState) => {
     setStore((prev) => {
@@ -675,7 +680,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       if (next === prev) return prev;
       const key = encounterKey(TUTORIAL_PATIENT_ID);
       if (next.encounters[key] === prev.encounters[key]) return next;
-      if (isSeedWrite()) return next;
+      if (isSeedWrite() || isClaimSubmit()) return next;
       return tutorialContentChanged(prev.encounters[key], next.encounters[key]) ? prev : next;
     });
   };

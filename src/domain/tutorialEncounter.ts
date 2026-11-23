@@ -80,7 +80,7 @@ export const TUTORIAL_CLINICAL_SEED_VERSION = "tutorial-3";
  * receive — a changed seed re-fills a chart a student may have worked, so it is a
  * deliberate act, not a side effect of a rebuild.
  */
-export const TUTORIAL_SEED_VERSION = "tutorial-4";
+export const TUTORIAL_SEED_VERSION = "tutorial-5";
 
 /**
  * Every version a saved `tutorialSeed` may carry, oldest first, with what that
@@ -89,22 +89,36 @@ export const TUTORIAL_SEED_VERSION = "tutorial-4";
  *
  * - `clinical` — the revision of the example note/vitals/labs the record holds.
  *   A record below `CLINICAL_SEED_REVISION` gets the note refreshed.
- * - `money` — whether the money half (claim, 835, posting, AR) is on the record.
+ * - `money` — whether the claim half (the CMS-1500 and its claim number) is on
+ *   the record.
+ * - `claim` — *what* that claim half is: `0` nothing, `1` a claim the seed sent
+ *   all the way through the clearinghouse (every build before 2026-11-23), `2`
+ *   the filled **draft** this build opens — every box filled from the chart and
+ *   the coded lines, and nothing transmitted, priced or posted until the student
+ *   presses Submit. Owner, 2026-11-23: *"in billing section it should not be
+ *   submitted, the CMS-1500 should be filled and student should submit too …
+ *   himself."*
  */
-const SEED_VERSION_LADDER: { version: string; clinical: number; money: boolean }[] = [
+const SEED_VERSION_LADDER: { version: string; clinical: number; money: boolean; claim: number }[] = [
   // The first example note, the clinical half only.
-  { version: "tutorial-1", clinical: 1, money: false },
+  { version: "tutorial-1", clinical: 1, money: false, claim: 0 },
   // The same note with the money half added (#183).
-  { version: "tutorial-2", clinical: 1, money: true },
+  { version: "tutorial-2", clinical: 1, money: true, claim: 1 },
   // The cardiology example note (#185), money half not yet on it.
-  { version: "tutorial-3", clinical: 2, money: false },
-  // The cardiology note and the money half: the current whole example.
-  { version: "tutorial-4", clinical: 2, money: true },
+  { version: "tutorial-3", clinical: 2, money: false, claim: 0 },
+  // The cardiology note and the money half, already submitted.
+  { version: "tutorial-4", clinical: 2, money: true, claim: 1 },
+  // The claim opens as a filled draft; the student's Submit is what sends it.
+  { version: "tutorial-5", clinical: 2, money: true, claim: 2 },
 ];
 
 /** The note revision this build writes — the clinical half's own version. */
 const CLINICAL_SEED_REVISION =
   SEED_VERSION_LADDER.find((entry) => entry.version === TUTORIAL_CLINICAL_SEED_VERSION)?.clinical ?? 0;
+
+/** The claim revision this build writes — the filled, unsubmitted draft. */
+const CLAIM_SEED_REVISION =
+  SEED_VERSION_LADDER.find((entry) => entry.version === TUTORIAL_SEED_VERSION)?.claim ?? 0;
 
 /**
  * What a saved record's `tutorialSeed` says about it, or `null` when the record
@@ -117,11 +131,25 @@ const CLINICAL_SEED_REVISION =
  */
 export function tutorialSeedState(
   encounter: PipelineEncounter | null | undefined,
-): { clinical: number; money: boolean } | null {
+): { clinical: number; money: boolean; claim: number } | null {
   const version = encounter?.tutorialSeed;
   if (!version) return null;
   const entry = SEED_VERSION_LADDER.find((candidate) => candidate.version === version);
-  return entry ? { clinical: entry.clinical, money: entry.money } : null;
+  return entry ? { clinical: entry.clinical, money: entry.money, claim: entry.claim } : null;
+}
+
+/**
+ * True when a saved record's claim half is the filled draft this build opens.
+ *
+ * `tutorialClaimDraftPending` (`domain/tutorialClaim.ts`) is its inverse with the
+ * guards on top; the two read the same ladder entry, so a record can never be
+ * read as "already a draft" by one and "still submitted" by the other.
+ */
+export function tutorialClaimDraftOnRecord(
+  encounter: PipelineEncounter | null | undefined,
+): boolean {
+  const state = tutorialSeedState(encounter);
+  return !!state && state.claim >= CLAIM_SEED_REVISION;
 }
 
 /**
@@ -648,7 +676,14 @@ export function applyTutorialClinicalRefresh(
     // The record's own timestamp is kept: the example's text is the seed's, and
     // re-stamping it on every open would make the note look freshly edited.
     noteUpdatedAt: encounter.noteUpdatedAt ?? at,
-    tutorialSeed: state?.money ? TUTORIAL_SEED_VERSION : TUTORIAL_CLINICAL_SEED_VERSION,
+    // Only a record that already carries *this* build's claim draft is stamped
+    // as the whole example. A record whose claim half is an older, already
+    // submitted one (`claim: 1`) is stamped clinical-only, so the claim guard
+    // below still opens it as a draft instead of leaving it sent for good.
+    tutorialSeed:
+      state && state.claim >= CLAIM_SEED_REVISION
+        ? TUTORIAL_SEED_VERSION
+        : TUTORIAL_CLINICAL_SEED_VERSION,
   };
 }
 
