@@ -153,8 +153,11 @@ describe("item 3 — demo-fill never imports another patient's world", () => {
     // Box 15 is one printed box with two fields and box 16 likewise: each is
     // listed once. Boxes 1a, 9, 11, 11c, 15 and 19 joined this list on
     // 2026-11-21 (slice J item 4b) — they used to print the tutorial case's
-    // member ID, group, plan, symptom date and training note.
-    expect(boxes).toEqual(["1a", "9", "11", "11c", "15", "19", "9c", "16", "17", "17b", "23"]);
+    // member ID, group, plan, symptom date and training note. Boxes 11b and 17a
+    // joined on 2026-11-23 (`specs/blank-field-sweep.md` §E): each has a field on
+    // the paper and no stage that captures it, so it reads "Undetermined" rather
+    // than sitting unnamed.
+    expect(boxes).toEqual(["1a", "9", "11", "11b", "11c", "15", "19", "9c", "16", "17", "17a", "17b", "23"]);
     const box23 = blank.find((b) => b.box === "23");
     expect(box23?.stage).toContain("Prior authorization");
     expect(box23?.value).toBe("");
