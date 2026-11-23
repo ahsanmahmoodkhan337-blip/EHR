@@ -15,6 +15,10 @@ import { getLoggedInPhone } from "./accessStore";
 import { deriveInsuranceRecord } from "../utils/insuranceRecord";
 import type { EligibilityRecord } from "../domain/eligibility";
 import {
+  TUTORIAL_PATIENT_FIRST_NAME,
+  TUTORIAL_PATIENT_LAST_NAME,
+} from "../domain/tutorialIdentity";
+import {
   useEhrStore,
   useAllPatients,
   bootstrapEhrStore,
@@ -226,8 +230,10 @@ const mockPatients: Patient[] = [
   {
     id: "DEMO",
     mrn: "TUTORIAL-001",
-    firstName: "Tutorial",
-    lastName: "Patient",
+    // One spelling for this chart: the same constants the insurance card prints
+    // (`domain/tutorialIdentity.ts`), so the seed and the card cannot disagree.
+    firstName: TUTORIAL_PATIENT_FIRST_NAME,
+    lastName: TUTORIAL_PATIENT_LAST_NAME,
     dateOfBirth: "1971-06-20",
     age: 55,
     gender: "Male",

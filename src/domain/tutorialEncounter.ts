@@ -52,6 +52,7 @@ import { runEligibility270, type EligibilityRecord } from "./eligibility";
 import type { NoteFields } from "./noteStatus";
 import { patientCard } from "./patientCard";
 import { signNote } from "./signNote";
+import { TUTORIAL_PATIENT_ID } from "./tutorialIdentity";
 
 /**
  * The version the clinical half stamps on the record: registration, the signed
@@ -74,8 +75,13 @@ export const TUTORIAL_CLINICAL_SEED_VERSION = "tutorial-1";
  */
 export const TUTORIAL_SEED_VERSION = "tutorial-2";
 
-/** The Tutorial Patient's id — the one chart that is a worked example, not practice. */
-export const TUTORIAL_PATIENT_ID = "DEMO";
+/**
+ * The Tutorial Patient's id — the one chart that is a worked example, not
+ * practice. Declared in `domain/tutorialIdentity.ts` (with the name its card
+ * prints) so `domain/patientCard.ts` can read it without importing this module
+ * back, and re-exported here because every reader already asks this module for it.
+ */
+export { TUTORIAL_PATIENT_ID };
 
 /**
  * The member ID on the Tutorial Patient's Medicare card.

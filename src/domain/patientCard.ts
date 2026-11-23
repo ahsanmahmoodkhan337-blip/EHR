@@ -30,11 +30,15 @@
  * One deliberate mismatch per case (`caseMismatch`): the insurance card prints a
  * name spelling the government ID does not have. It is generated from that
  * patient's own name — never a constant string — and the caller must not print
- * it until the student has committed an answer (standing rule 6).
+ * it until the student has committed an answer (standing rule 6). The Tutorial
+ * Patient is the one chart that carries none: it is the standard reference, so
+ * its two documents agree (`domain/tutorialIdentity.ts`).
  *
  * Nothing here writes. The card returned is a copy, so a caller that edits a
  * field cannot reach back into the patient record.
  */
+
+import { TUTORIAL_PATIENT_ID } from "./tutorialIdentity";
 
 /** What every screen prints when the selected patient has no card on file. */
 export const NOT_ON_FILE = "Not on file";
@@ -302,6 +306,14 @@ function misspell(word: string, salt: string): string | null {
 export function caseMismatch(patient: CardHolder | null | undefined): CardMismatch | null {
   const card = patientCard(patient);
   if (!patient || !card.onFile || !card.fullName) return null;
+
+  // The Tutorial Patient is the standard reference chart, so its two documents
+  // must agree: the worked example is what a student reads to learn which datum
+  // belongs where, and a card printing "Tutorial Pateint" beside a licence
+  // printing "Tutorial Patient" is a typo there, not a lesson
+  // (`domain/tutorialIdentity.ts`). The trap stays on every chart the student
+  // works — their own bookings and the Practice Cases.
+  if (patient.id === TUTORIAL_PATIENT_ID) return null;
 
   const firstName = (patient.firstName ?? "").trim();
   const lastName = (patient.lastName ?? "").trim();

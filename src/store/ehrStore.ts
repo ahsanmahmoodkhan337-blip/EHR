@@ -42,7 +42,8 @@ import {
   type DocumentRecord,
 } from "../domain/documents";
 import { markFailed, markSaved, markSaving } from "./autosave";
-import { refuseStudentWrite } from "../domain/tutorialReadOnly";
+import { refuseStudentWrite, isSeedWrite } from "../domain/tutorialReadOnly";
+import { TUTORIAL_PATIENT_ID, tutorialNameRepair } from "../domain/tutorialIdentity";
 import { deleteGroupStores, resetInMemory, type ResetGroupId } from "./resetData";
 
 // ─── Types ─────────────────────────────────────────────────────────
@@ -818,6 +819,18 @@ interface EhrState {
     identity: { firstName?: string; lastName?: string; dateOfBirth?: string },
   ) => void;
   /**
+   * Correct the Tutorial Patient's own name, and the subscriber name on its
+   * card, on open — for a chart saved by a build whose insurance card printed
+   * the hand-transcription error (`domain/tutorialIdentity.ts`).
+   *
+   * Seed-only (`withSeedWrite`): the standard chart refuses student edits, and
+   * this is the seed's own repair. Nothing is replaced except a value one
+   * adjacent letter-swap away from the name this chart is seeded with, so a name
+   * the student typed is left exactly as it is. Does nothing when there is
+   * nothing to correct, so it is safe to call on every open.
+   */
+  repairTutorialPatientName: () => void;
+  /**
    * Write the contact details the front desk corrected on the Demographics tab
    * (`specs/patient-hub.md` § Demographics). One writer for every remaining
    * field — preferred name, phone, email, address, emergency contact and PCP —
@@ -1188,6 +1201,59 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
       const patients = inUser
         ? s.user.patients.map((p) => (p.id === patientId ? { ...p, ...patch } : p))
         : [...s.user.patients, { ...existing, isSeed: false, ...patch }];
+      return {
+        user: { ...s.user, patients, activity: appendActivity(s.user.activity, entry) },
+      };
+    });
+  },
+
+  repairTutorialPatientName: () => {
+    // A seed write, not a student write: the standard chart refuses student
+    // edits, and the caller opens the chart through `withSeedWrite`.
+    if (!isSeedWrite()) return;
+    const state = get();
+    const existing = mergeById(state.seedPatients, state.user.patients).find(
+      (p) => p.id === TUTORIAL_PATIENT_ID,
+    );
+    if (!existing) return;
+    const patch = tutorialNameRepair(existing);
+    if (!patch) return;
+
+    const now = new Date().toISOString();
+    const entry: ActivityEntry = {
+      time: now,
+      role: "front-desk",
+      user: state.phone ?? "unknown",
+      patientId: TUTORIAL_PATIENT_ID,
+      entity: "patient",
+      action: "update",
+      before: { name: `${existing.firstName ?? ""} ${existing.lastName ?? ""}`.trim() },
+      after: {
+        name: `${patch.firstName ?? existing.firstName ?? ""} ${
+          patch.lastName ?? existing.lastName ?? ""
+        }`.trim(),
+      },
+    };
+
+    const apply = (p: Patient): Patient => ({
+      ...p,
+      ...(patch.firstName ? { firstName: patch.firstName } : {}),
+      ...(patch.lastName ? { lastName: patch.lastName } : {}),
+      ...(patch.subscriberName && p.insuranceRecord?.primary
+        ? {
+            insuranceRecord: {
+              ...p.insuranceRecord,
+              primary: { ...p.insuranceRecord.primary, subscriberName: patch.subscriberName },
+            },
+          }
+        : {}),
+    });
+
+    set((s) => {
+      const inUser = s.user.patients.some((p) => p.id === TUTORIAL_PATIENT_ID);
+      const patients = inUser
+        ? s.user.patients.map((p) => (p.id === TUTORIAL_PATIENT_ID ? apply(p) : p))
+        : [...s.user.patients, apply({ ...existing, isSeed: false })];
       return {
         user: { ...s.user, patients, activity: appendActivity(s.user.activity, entry) },
       };

@@ -719,6 +719,14 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     // The card is repaired on every open, even when the example itself is already
     // on the record: a chart seeded before its card landed would otherwise print
     // "Not on file" on the Front Desk card and the 271 for good.
+    //
+    // The chart's own name is repaired on the same open. A record saved by a
+    // build whose card printed the transposed surname ("Tutorial Pateint") holds
+    // that spelling, and the card, the banner and box 2 print it until it is put
+    // right (`domain/tutorialIdentity.ts`). Only that one known error is
+    // replaced; a name the student typed is left exactly as it is.
+    withSeedWrite(() => useEhrStore.getState().repairTutorialPatientName());
+    patient = selectPatientById(useEhrStore.getState(), TUTORIAL_PATIENT_ID) ?? patient;
     if (!pending) return undefined;
     const prepared = patient;
     setPaRecords((prev) =>
