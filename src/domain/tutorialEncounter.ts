@@ -530,7 +530,9 @@ export function tutorialCardFor(patient: TutorialPatientSource): PatientInsuranc
 
 /** The 271 this card earns: active, naming the payer and the member ID it matched. */
 export function tutorialEligibilityFor(patient: TutorialPatientSource, at: string): EligibilityRecord {
-  return runEligibility270(tutorialCardFor(patient).primary, at);
+  // The patient is passed as well, so the reference chart's 271 runs the same
+  // name check every other chart's does — and finds its card and its chart agree.
+  return runEligibility270(tutorialCardFor(patient).primary, at, patient);
 }
 
 // ─── The encounter record ────────────────────────────────────────

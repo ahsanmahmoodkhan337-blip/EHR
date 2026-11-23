@@ -29,6 +29,7 @@ import {
   ELIGIBILITY_LABELS,
   eligibility271,
   eligibilityDate,
+  eligibilityNameCheckLabel,
   eligibilityOf,
   runEligibility270,
 } from "../../domain/eligibility";
@@ -74,7 +75,9 @@ export function EligibilityStage({
     setRunning(true);
     // The 271 is written from the record, not from a timer: the short wait is
     // only the round trip, and the answer is the same one the banner will show.
-    const record = runEligibility270(coverage, new Date().toISOString());
+    // The patient is passed too, so the reply runs its name check against the
+    // registration card instead of only promising one.
+    const record = runEligibility270(coverage, new Date().toISOString(), patient);
     setTimeout(() => {
       recordEligibility(patient.id, "primary", record);
       setRunning(false);
@@ -152,6 +155,23 @@ export function EligibilityStage({
                 </p>
                 <p>
                   <span className="font-medium">Received:</span> {eligibilityDate(stored) || "—"}
+                </p>
+                {/* The name check the 271 runs: the payer's file against the
+                    registration card. A mismatch is a result the student reads —
+                    nothing is corrected here (standing rule 6). */}
+                <p>
+                  <span className="font-medium">Name check:</span>{" "}
+                  <span
+                    className={
+                      stored.nameCheck === "mismatch"
+                        ? "font-semibold text-red-700"
+                        : stored.nameCheck === "match"
+                          ? "font-semibold text-green-700"
+                          : "text-slate-500"
+                    }
+                  >
+                    {eligibilityNameCheckLabel(stored)}
+                  </span>
                 </p>
                 <p>{stored.payerResponse}</p>
               </div>
