@@ -308,7 +308,7 @@ function hasModifier(modifiers: string[] | undefined, code: string): boolean {
 }
 
 /**
- * True when this line is the component of a pair the plan's same-day edit treats
+ * True when this line is the component of a pair the payer's same-day edit treats
  * as one service, with both codes on the claim. A separating modifier (59) on the
  * line answers the edit, and the caller checks that separately.
  */
@@ -385,7 +385,7 @@ function priceLine(
     };
   }
 
-  // (b) The plan's same-day edit: one code treated as part of another.
+  // (b) The payer's same-day edit: one code treated as part of another.
   if (cciComponentFor(input.cpt, plan, ctx.allCodes) && !hasModifier(modifiers, "59")) {
     const adj = [adjustment("CO-236", billedCents)];
     return {

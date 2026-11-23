@@ -47,6 +47,7 @@
 import type { ClaimFormData, ClaimServiceLine, PipelineState } from "../store/pipelineStore";
 import type { Patient } from "../store/patientStore";
 import { patientCard } from "../domain/patientCard";
+import { box11Value, lastFirstName } from "../domain/claimParties";
 import { CPT_CODES } from "../components/CodingQueue/cptData";
 import {
   MEDICAL_PROVIDER_PROFILE,
@@ -354,11 +355,18 @@ export function patientIdentityBoxes(
     patientDob: patient?.dateOfBirth ?? "",
     patientSex: patient?.gender ? patient.gender.charAt(0).toUpperCase() : "",
     // Box 4 is the INSURED, who is only the patient when the relationship is Self.
-    insuredName: coverage?.subscriberName?.trim() || (isSelf ? name : ""),
+    // On a SELF claim the insured *is* the patient, so box 4 prints exactly what
+    // box 2 prints — character for character, never the same person in a second
+    // spelling. A dependant's subscriber keeps the same `Last, First` format
+    // (`specs/claim-boxes-agree.md` §3).
+    insuredName: isSelf ? name : lastFirstName(coverage?.subscriberName),
     patientAddress: patient?.address ?? "",
     patientRelationship: relationship,
     insuredAddress: patient?.address ?? "",
-    insuredPolicyGroup: card.groupNumber,
+    // Box 11 is the insured's policy / group number. A payer that issues none
+    // (original Medicare) prints N/A — what a biller types — instead of a blank
+    // the edit check would call an error on a claim nobody could clear.
+    insuredPolicyGroup: box11Value(card.groupNumber, payerName),
     insuredDob: coverage?.subscriberDob?.trim() || (isSelf ? patient?.dateOfBirth ?? "" : ""),
     // Box 11a's SEX sits beside the insured's date of birth. For Self it is the
     // patient's own sex; for a dependant it stays blank until the subscriber's
@@ -513,6 +521,47 @@ export function reseedIdentityBoxes(
   return patch;
 }
 
+/**
+ * The parties on the paper agree with each other (`specs/claim-boxes-agree.md`).
+ *
+ * A claim written by an earlier build carries three contradictions that no
+ * student could clear — box 11 blank on a payer that issues no group number,
+ * box 4 in the subscriber's spelling while box 2 prints `Last, First`, and box
+ * 13 reading unsigned while box 12 is signed on a SELF claim. Each is repaired
+ * here, on open, from the patient's own record; a value the student typed that
+ * is not the old seeded spelling is left exactly as typed.
+ */
+export function repairClaimParties(
+  form: ClaimFormData,
+  patient: Patient | null | undefined,
+  displayName?: string | null,
+): Partial<ClaimFormData> {
+  const known = patientIdentityBoxes(patient, displayName);
+  const patch: Partial<ClaimFormData> = {};
+  const text = (value: unknown) => String(value ?? "").trim();
+
+  // Box 11 — a payer that issues no group number prints N/A, what a biller types.
+  const group = text(known.insuredPolicyGroup);
+  if (!text(form.insuredPolicyGroup) && group) patch.insuredPolicyGroup = group;
+
+  // Box 4 — one person, one spelling. The old build seeded the subscriber's own
+  // spelling here ("Tutorial Patient") while box 2 printed "Patient, Tutorial".
+  const insured = text(known.insuredName);
+  const currentInsured = text(form.insuredName);
+  const oldSpelling = text(patient?.insuranceRecord?.primary?.subscriberName);
+  if (insured && currentInsured !== insured) {
+    if (!currentInsured || currentInsured === oldSpelling) patch.insuredName = insured;
+  }
+
+  // Box 13 — on a SELF claim box 13 is box 12's signature, never a second one.
+  const isSelf = text(known.patientRelationship).toLowerCase() === "self";
+  if (isSelf && form.patientSignature === true && form.insuredSignature !== true) {
+    patch.insuredSignature = true;
+  }
+
+  return patch;
+}
+
 /** Build the claim record from the encounter. */
 export function buildClaimForm({
   patient,
@@ -564,6 +613,11 @@ export function buildClaimForm({
       ),
     ),
     ...identityBoxes,
+    // Box 13 — on a SELF claim the insured *is* the patient, so box 13 carries
+    // the same signature on file as box 12 instead of reading as a second
+    // signature still to collect. A dependant's insured signs separately
+    // (`specs/claim-boxes-agree.md` §2).
+    insuredSignature: identityBoxes.patientRelationship === "Self",
     diagnosisCodes,
     priorAuthNumber: paNumber ?? "",
     serviceLines,

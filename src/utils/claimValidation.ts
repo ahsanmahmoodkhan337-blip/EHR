@@ -13,6 +13,7 @@
 import type { ClaimFormData } from "../store/pipelineStore";
 import type { ADAFormData } from "../data/claims/adaLayout";
 import { isRoomAndBoardRevenueCode } from "../data/claims/revenueCodes";
+import { payerIssuesGroupNumber } from "../domain/claimParties";
 
 export interface ClaimIssue {
   box: string;
@@ -92,7 +93,12 @@ export function validateCMS1500(form: ClaimFormData, context: ValidationContext 
   if (blank(form.patientAddress)) err("5", "Box 5: patient address is required.");
   if (blank(form.patientRelationship)) err("6", "Box 6: patient relationship to insured is required.");
   if (blank(form.insuredAddress)) err("7", "Box 7: insured's address is required.");
-  if (blank(form.insuredPolicyGroup)) err("11", "Box 11: insured's policy / group number is required.");
+  // Box 11 is required only for a payer that issues a group number. Original
+  // Medicare issues none, so its claim prints N/A and the check passes rather
+  // than carrying an error no student could ever clear (`claimParties.ts`).
+  if (blank(form.insuredPolicyGroup) && payerIssuesGroupNumber(form.payerName)) {
+    err("11", "Box 11: insured's policy / group number is required.");
+  }
   if (blank(form.insuredSex)) warn("11a", "Box 11a: insured's sex is blank.");
   if (!form.patientSignature && !form.insuredSignature) {
     err("12", "Box 12 or 13: the claim needs a patient or insured signature on file.");
