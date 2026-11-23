@@ -424,7 +424,12 @@ function seedTutorialInto(
     const claimNumber = mintNextClaimNumber(
       Object.values(state.encounters).map((e) => e.claimNumber),
     );
-    enc = applyTutorialMoneySeed(enc, patient, at, claimNumber);
+    // `TutorialPatientSource` is the narrow shape the seed builders read from;
+    // `applyTutorialMoneySeed` is typed against `Patient` because the same
+    // function also prices a real student's claim. Every field the claim builder
+    // reads (id, name, date of birth, the coverage card) is on both, so the cast
+    // is the same one the two card writes above already make.
+    enc = applyTutorialMoneySeed(enc, patient as never, at, claimNumber);
   }
   if (enc === current) return state;
   return { ...state, encounters: { ...state.encounters, [key]: enc } };
