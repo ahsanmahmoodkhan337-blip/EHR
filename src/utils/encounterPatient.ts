@@ -18,7 +18,8 @@
  * and the encounter, not the screen, carries the patient.
  */
 
-import { useEhrStore, type EhrEncounter } from "../store/ehrStore";
+import { selectPatientById, useEhrStore, type EhrEncounter } from "../store/ehrStore";
+import { isFirstVisit } from "../domain/emDefault";
 
 /** The patient id for the encounter in progress, or null when there is none. */
 export function resolveEncounterPatientId(
@@ -112,6 +113,33 @@ export function useEncounterProvider(patientId: string | null): string | null {
     const provider = (appointment?.provider ?? "").trim();
     return provider || null;
   });
+}
+
+/**
+ * Is this the patient's first visit? — read reactively from the two records
+ * `domain/emDefault.ts` names: the patient's chart (`Patient.encounters`) and
+ * the student's encounter records (`ehrStore.user.encounters`).
+ *
+ * The encounter being coded is never counted as a visit before itself: the open
+ * encounter for this patient is identified first and skipped. Both selectors
+ * return a primitive, so the Coding stage re-renders when a visit is signed and
+ * not on every unrelated store write.
+ */
+export function useIsFirstVisit(patientId: string | null | undefined): boolean {
+  const chartVisits = useEhrStore((s) => {
+    if (!patientId) return 0;
+    return selectPatientById(s, patientId)?.encounters.length ?? 0;
+  });
+  const priorSignedEncounters = useEhrStore((s) => {
+    if (!patientId) return 0;
+    const own = s.user.encounters.filter((e) => e.patientId === patientId);
+    const current =
+      own.find((e) => !e.locked)?.id ?? own[own.length - 1]?.id ?? null;
+    return own.filter(
+      (e) => e.id !== current && Boolean(e.signedAt || e.locked),
+    ).length;
+  });
+  return isFirstVisit({ chartVisits, priorSignedEncounters });
 }
 
 /**

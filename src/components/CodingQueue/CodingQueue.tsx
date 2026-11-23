@@ -20,6 +20,12 @@ import { MODIFIER_REFERENCE, POS_REFERENCE } from "./modifierPosData";
 import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
 import { scoreCoder, updateStageScore, getStudentName } from "../../utils/scoring";
 import { noteFieldsOf, noteStatus } from "../../domain/noteStatus";
+import { useEncounterPatientId, useIsFirstVisit } from "../../utils/encounterPatient";
+import {
+  defaultEmPatientType,
+  emPatientTypeProvenance,
+  type EmPatientType,
+} from "../../domain/emDefault";
 
 // ─── PA Trigger Codes & Keywords ────────────────────────────────────
 
@@ -142,6 +148,11 @@ function ordinal(n: number): string {
 export function CodingQueue({ medications, readOnly = false }: CodingQueueProps) {
   const { state, submitToBilling, setRole, setCodingLinePlaceOfService } = usePipeline();
 
+  // The patient whose encounter is on screen, and whether this is their first
+  // visit — the E/M picker's default reads both (see the calculator below).
+  const patientId = useEncounterPatientId(state.patientId);
+  const firstVisit = useIsFirstVisit(patientId);
+
   // Code search state
   const [icdQuery, setIcdQuery] = useState("");
   const [cptQuery, setCptQuery] = useState("");
@@ -166,7 +177,13 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
   const [emProblems, setEmProblems] = useState<number>(1);
   const [emData, setEmData] = useState<number>(1);
   const [emRisk, setEmRisk] = useState<string>("Low");
-  const [emPatientType, setEmPatientType] = useState<"new" | "established">("established");
+  // Null until the student picks a patient type himself. The picker opens on
+  // `defaultEmPatientType(...)` — a new-patient code on a first visit, the
+  // established-patient default everywhere else — and a change here is the
+  // student's own choice, kept for as long as this screen is open.
+  const [emPatientTypeChoice, setEmPatientTypeChoice] = useState<EmPatientType | null>(null);
+  const emPatientType: EmPatientType =
+    emPatientTypeChoice ?? defaultEmPatientType(firstVisit);
 
   // Conventions panel
   const [showConventions, setShowConventions] = useState(false);
@@ -1209,12 +1226,18 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                 <select
                   id="em-patient-type"
                   value={emPatientType}
-                  onChange={(e) => setEmPatientType(e.target.value === "new" ? "new" : "established")}
+                  onChange={(e) => setEmPatientTypeChoice(e.target.value === "new" ? "new" : "established")}
+                  aria-describedby="em-patient-type-provenance"
                   className="min-h-[40px] w-full rounded border border-slate-200 px-2 py-1 text-[10px]"
                 >
                   <option value="established">Established patient</option>
                   <option value="new">New patient</option>
                 </select>
+                {/* Why the picker opened where it did — the chart's own record of
+                    an earlier signed visit, or the student's own change. */}
+                <p id="em-patient-type-provenance" className="mt-1 text-[9px] text-slate-400">
+                  {emPatientTypeProvenance(emPatientType, emPatientTypeChoice !== null)}
+                </p>
               </div>
               <div>
                 <label htmlFor="em-problems" className="text-[10px] text-slate-500">Problems Addressed</label>
