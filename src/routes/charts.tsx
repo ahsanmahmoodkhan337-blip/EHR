@@ -34,6 +34,7 @@ import { useAllAppointments } from "../store/ehrStore";
 import { PatientProvider, usePatientStore, type Patient } from "../store/patientStore";
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
 import { NOTE_STATUS_LABEL, noteFieldsOf, noteReadOnly, noteStatus } from "../domain/noteStatus";
+import { skipNoteAutosave } from "../domain/tutorialReadOnly";
 
 export const Route = createFileRoute("/charts")({
   component: () => (
@@ -389,12 +390,19 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
   const latest = useRef(fields);
   latest.current = fields;
 
+  // The standard reference chart refuses student writes: its note is the worked
+  // example, filled by the seed. Autosaving it would only report a refusal.
+  const saveNote = (fields: typeof latest.current) => {
+    if (skipNoteAutosave(patient.id)) return;
+    if (writeNoteFor(patient.id, fields)) setSaveState("saved");
+  };
+
   const flush = () => {
     if (timer.current) {
       clearTimeout(timer.current);
       timer.current = null;
     }
-    if (writeNoteFor(patient.id, latest.current)) setSaveState("saved");
+    saveNote(latest.current);
   };
 
   const edit = (key: keyof typeof fields, value: string) => {
@@ -406,7 +414,7 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       timer.current = null;
-      if (writeNoteFor(patient.id, next)) setSaveState("saved");
+      saveNote(next);
     }, 1200);
   };
 
@@ -415,7 +423,7 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
     () => () => {
       if (timer.current) {
         clearTimeout(timer.current);
-        writeNoteFor(patient.id, latest.current);
+        saveNote(latest.current);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

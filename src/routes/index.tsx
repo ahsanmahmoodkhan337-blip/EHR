@@ -58,6 +58,7 @@ import { inboxCount } from "../domain/inbasket";
 import { completedStagesOf } from "../domain/stageProgress";
 import { postedCopayForPatient } from "../domain/checkIn";
 import { TUTORIAL_PATIENT_ID, tutorialNoteFields } from "../domain/tutorialEncounter";
+import { skipNoteAutosave } from "../domain/tutorialReadOnly";
 import { TutorialReadOnlyNotice, TUTORIAL_NOTICE_ID } from "../components/TabsEpic/TutorialReadOnlyNotice";
 import { consumeRequestedPatient } from "../components/shell/pendingPatient";
 import type { ShellNavId } from "../components/shell/navItems";
@@ -1724,6 +1725,10 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   const saveNoteDraftNow = () => {
     const snap = noteSnapshot.current;
     if (!snap.patientId) return;
+    // The standard reference chart refuses student writes, so there is nothing
+    // to autosave and no refusal to report: skip the attempt rather than raise
+    // "The note was not saved" on a chart the student never tried to change.
+    if (skipNoteAutosave(snap.patientId)) return;
     const fields = {
       subjective: snap.note.subjective ?? "",
       objective: snap.note.objective ?? "",

@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Eye, FileEdit, History } from "lucide-react";
 
 import { usePipeline } from "../../store/pipelineStore";
+import { skipNoteAutosave } from "../../domain/tutorialReadOnly";
 import {
   NOTE_STATUS_LABEL,
   noteFieldsOf,
@@ -67,12 +68,23 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
   const latest = useRef(fields);
   latest.current = fields;
 
+  /**
+   * Write the note — unless this chart refuses student writes. The standard
+   * reference chart's note is the worked example and is filled by the seed, so
+   * an autosave there has nothing to save and must not report a refusal the
+   * student never asked for.
+   */
+  const saveNote = (fields: NoteFields) => {
+    if (!patientId || skipNoteAutosave(patientId)) return;
+    if (writeNoteFor(patientId, fields)) setSaveState("saved");
+  };
+
   const flush = () => {
     if (timer.current) {
       clearTimeout(timer.current);
       timer.current = null;
     }
-    if (patientId && writeNoteFor(patientId, latest.current)) setSaveState("saved");
+    saveNote(latest.current);
   };
 
   const edit = (key: keyof NoteFields, value: string) => {
@@ -84,7 +96,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       timer.current = null;
-      if (patientId && writeNoteFor(patientId, next)) setSaveState("saved");
+      saveNote(next);
     }, 1200);
   };
 
@@ -93,7 +105,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
     () => () => {
       if (timer.current) {
         clearTimeout(timer.current);
-        if (patientId) writeNoteFor(patientId, latest.current);
+        saveNote(latest.current);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
