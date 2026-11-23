@@ -109,8 +109,20 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
   const [submitted, setSubmitted] = useState(false);
   const [savedToChart, setSavedToChart] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  /** No insurance: the patient pays cash. Coverage is then "Self-pay". */
-  const [selfPay, setSelfPay] = useState(false);
+  /**
+   * No insurance: the patient pays cash. Coverage is then "Self-pay".
+   *
+   * Only ever on offer for a patient whose own card names no payer. The chart
+   * this stage is opened on holds Medicare Part B, and a screen that offers to
+   * record it as self-pay contradicts its own card and banner (owner rule,
+   * 2026-11-23: one screen must not call a patient self-pay while its card names
+   * a payer). The tick is also cleared whenever the patient changes, so a
+   * decision made on one chart never follows the next patient.
+   */
+  const [selfPayWanted, setSelfPay] = useState(false);
+  /** The patient's own saved coverage — the source of the form below. */
+  const cardNamesPayer = Boolean(card.payerName.trim());
+  const selfPay = selfPayWanted && !cardNamesPayer;
 
   // Re-open a patient that already has a card: show the card THIS patient owns,
   // so re-verifying corrects it instead of silently replacing it with blanks.
@@ -145,6 +157,9 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
     prefilledFor.current = id;
     const card = registrationCardFor(patient);
     const hasCard = Boolean(card.payerName || card.subscriberId || card.groupNumber || card.payerId);
+    // The self-pay decision belongs to the chart, not to the last one opened: a
+    // tick left on a patient with no card never carries onto this patient.
+    setSelfPay(false);
     setForm((prev) => ({
       ...prev,
       // A patient with no card on file starts from the blank form — never from
@@ -312,15 +327,19 @@ export function RegistrationStage({ patientId }: RegistrationStageProps) {
       {/* ─── Transcription Form ─── */}
       <div className="clinical-card">
         <h4 className="mb-3 text-sm font-semibold text-slate-700">Transcribe Patient Information</h4>
-        <label className="mb-3 flex items-center gap-2 text-[11px] font-medium text-slate-600">
-          <input
-            type="checkbox"
-            checked={selfPay}
-            onChange={(e) => setSelfPay(e.target.checked)}
-            className="h-3.5 w-3.5 accent-brand-600"
-          />
-          Record as self-pay — no insurance to bill (coverage is saved as Self-pay)
-        </label>
+        {/* Offered only to a patient whose own card names no payer: a chart that
+            holds Medicare Part B is never recorded as self-pay (owner rule). */}
+        {!cardNamesPayer && (
+          <label className="mb-3 flex items-center gap-2 text-[11px] font-medium text-slate-600">
+            <input
+              type="checkbox"
+              checked={selfPay}
+              onChange={(e) => setSelfPay(e.target.checked)}
+              className="h-3.5 w-3.5 accent-brand-600"
+            />
+            Record as self-pay — no insurance to bill (coverage is saved as Self-pay)
+          </label>
+        )}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label className="text-[11px] font-medium text-slate-500">First Name</label>
