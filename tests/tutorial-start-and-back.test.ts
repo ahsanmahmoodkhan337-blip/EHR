@@ -50,10 +50,10 @@ describe("the Tutorial patient opens at the beginning", () => {
     expect(SEED).toContain("if (encounter.tutorialSeed) return false;");
     expect(SEED).toContain("return !encounterHasWork(encounter);");
     // The money half asks its own question of the same record: a chart that
-    // already carries a claim, a remittance or an AR item is never filled over.
-    expect(MONEY).toContain(
-      "if (encounter.claimNumber || encounter.claimForm || encounter.claimStatus) return false;",
-    );
+    // already carries this build's filled draft is left alone, and a claim a
+    // person submitted is the student's own work and is never rewritten.
+    expect(MONEY).toContain("if (tutorialClaimDraftOnRecord(encounter)) return false;");
+    expect(MONEY).toContain("if (claimSubmittedByStudent(encounter)) return false;");
   });
 
   test("the note is signed through the one signature the app has", () => {

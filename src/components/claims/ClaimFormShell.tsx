@@ -89,6 +89,16 @@ export interface ClaimFormShellProps {
    * disabled, with the reason and the way to Schedule beside it.
    */
   readOnly?: boolean;
+  /**
+   * Submit stays live on the standard reference chart.
+   *
+   * Owner, 2026-11-23: *"in billing section it should not be submitted, the
+   * CMS-1500 should be filled and student should submit too … himself."* The
+   * claim opens filled and unsent; pressing Submit is the one action the
+   * read-only chart leaves the student, so this control is not disabled and its
+   * note says what the press does instead of why it cannot.
+   */
+  submitLive?: boolean;
   children: (api: ClaimPaperApi) => ReactNode;
 }
 
@@ -113,6 +123,7 @@ export function ClaimFormShell({
   note,
   demoFillEnabled = true,
   readOnly = false,
+  submitLive = false,
   children,
 }: ClaimFormShellProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(values);
@@ -287,13 +298,17 @@ export function ClaimFormShell({
   };
 
   const handleSubmit = () => {
-    if (readOnly) return;
+    // On the standard reference chart Submit is the exercise: it is live, and it
+    // is the only control on this paper that writes.
+    if (readOnly && !submitLive) return;
     setShowAll(true);
     if (blocked) {
       toast.error(`Cannot submit — ${errors.length} edit check${errors.length === 1 ? "" : "s"} failed`);
       return;
     }
-    flush();
+    // Nothing to flush on the read-only chart: its boxes are the seed's, and the
+    // store would refuse the commit anyway.
+    if (!readOnly) flush();
     onSubmit(draftRef.current, linesRef.current);
   };
 
@@ -350,25 +365,33 @@ export function ClaimFormShell({
           <CheckCircle2 className="h-3.5 w-3.5" /> Validate
         </button>
         {/* Submit, and the reason directly under it: the standard chart cannot
-            send this claim, and says so where the student presses. */}
+            send this claim — except when Submit is the exercise itself, and then
+            the note says what the press does rather than why it cannot. */}
         <div className="flex flex-col">
           <button
             onClick={handleSubmit}
-            disabled={readOnly || blocked || submitting}
+            disabled={submitting || (readOnly ? !submitLive : blocked)}
             className={btn}
             title={
-              readOnly
+              readOnly && !submitLive
                 ? READ_ONLY_REASON
                 : blocked
                   ? `${errors.length} edit check(s) must clear before submission`
                   : "Submit to the clearinghouse"
             }
-            {...(readOnly ? { "aria-describedby": CLAIM_SUBMIT_REASON } : {})}
+            {...(readOnly && !submitLive ? { "aria-describedby": CLAIM_SUBMIT_REASON } : {})}
           >
             {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Submit
           </button>
-          <ReadOnlyNote readOnly={readOnly} id={CLAIM_SUBMIT_REASON} />
+          {readOnly && submitLive ? (
+            <p className="mt-1.5 max-w-[260px] text-[10px] leading-snug text-slate-500">
+              The reference claim is filled and waiting: pressing Submit is yours to do — it sends the
+              837P, and the 277CA, the 835 and the AR row follow from it.
+            </p>
+          ) : (
+            <ReadOnlyNote readOnly={readOnly} id={CLAIM_SUBMIT_REASON} />
+          )}
         </div>
         <button onClick={() => window.print()} className={btnGhost} title="Print the paper at letter proportions">
           <Printer className="h-3.5 w-3.5" /> Print

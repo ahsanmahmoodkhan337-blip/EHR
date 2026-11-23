@@ -102,6 +102,10 @@ const { READ_ONLY_REASON, clearTutorialRefusal, refuseReadOnly, tutorialRefusal 
   "../src/domain/tutorialReadOnly"
 );
 const { READ_ONLY_REASON_ID } = await import("../src/components/shell/ReadOnlyStage");
+const {
+  pressSubmitOnReferenceClaim,
+  pressAdjudicateOnReferenceClaim,
+} = await import("./support/referenceSubmit");
 const { TUTORIAL_NOTICE_ID } = await import("../src/components/TabsEpic/TutorialReadOnlyNotice");
 
 /** Every stage of the encounter after the note, in stepper order. */
@@ -173,6 +177,62 @@ async function openStage(patientId: string, stageId: string) {
   };
 }
 
+/**
+ * The student's own Submit on the reference chart, pressed before a stage is
+ * opened.
+ *
+ * The money stages only offer their write controls once the claim has been sent
+ * and the payer has answered: an unsent claim has no 835 to post and no denial to
+ * work, so Payments and Denials & AR hold nothing to lock. The chart is opened
+ * first and the filled draft asserted — nothing sent, priced, posted or queued —
+ * and only then is Submit pressed, exactly as the student presses it.
+ */
+async function pressSubmitOnDemo() {
+  let pipeline: ReturnType<typeof usePipeline> | null = null;
+  function Probe() {
+    pipeline = usePipeline();
+    return null;
+  }
+  const container = win.document.createElement("div");
+  win.document.body.appendChild(container);
+  const root = createRoot(container as unknown as HTMLElement);
+  await act(async () => {
+    root.render(React.createElement(PipelineProvider, null, React.createElement(Probe)));
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+  // Open the chart the way `/patients` → Open encounter does: the seed runs.
+  await act(async () => {
+    pipeline?.selectPatient("DEMO");
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+  });
+  const draft = pipeline?.getEncounter("DEMO");
+  expect(draft?.claimStatus).toBe("draft");
+  expect(draft?.remittances).toHaveLength(0);
+  await act(async () => {
+    pressSubmitOnReferenceClaim(pipeline!);
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+  });
+  // Submit earns the 277CA; the 835 and the posting are the student's own next
+  // decision on Payments, and the money stages draw their controls from it.
+  expect(pipeline?.getEncounter("DEMO")?.claimStatus).toBe("accepted");
+  expect(pipeline?.getEncounter("DEMO")?.remittances).toHaveLength(0);
+  await act(async () => {
+    pressAdjudicateOnReferenceClaim(pipeline!);
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+  });
+  expect(pipeline?.getEncounter("DEMO")?.remittances).toHaveLength(1);
+  await act(async () => root.unmount());
+  container.remove();
+}
+
 beforeEach(() => {
   win.localStorage.clear();
   win.localStorage.setItem("hh_logged_in_phone", PHONE);
@@ -195,6 +255,11 @@ describe("a Tutorial Patient write control is disabled and carries the reason", 
       "payments",
       "denials-ar",
     ]);
+
+    // The claim opens as the filled draft and the student's own Submit is what
+    // produces the 835, the posting and the denial — the money stages only draw
+    // their write controls once that money exists.
+    await pressSubmitOnDemo();
 
     for (const stageId of WRITE_STAGES) {
       const screen = await openStage("DEMO", stageId);
@@ -266,6 +331,10 @@ describe("a Tutorial Patient write control is disabled and carries the reason", 
   }, 60000);
 
   test("the Denials & AR queue is wired to the same signal", async () => {
+    // The queue is derived from a posted 835, so the student's own Submit runs
+    // first: the reference chart's claim opens unsent and the denial exists only
+    // after it has been transmitted, adjudicated and posted.
+    await pressSubmitOnDemo();
     const screen = await openStage("DEMO", "denials-ar");
 
     // The queue's own actions — the ones that move money — are write controls.
@@ -344,12 +413,17 @@ describe("a student's own booked visit keeps its controls", () => {
   }, 180000);
 });
 
-// ─── 3. Submit refuses with a message, never silently ───────────────
+// ─── 3. Submit sends the claim — the one write the chart allows ─────
+//
+// Owner, 2026-11-23 — *"in billing section it should not be submitted, the
+// CMS-1500 should be filled and student should submit too … himself."* The old
+// test here asserted the opposite (the press was refused); it is inverted, not
+// dropped: the press must produce the 277CA, and the 835, the posting and the AR
+// row follow the adjudication, with no refusal sentence anywhere.
 
-describe("the Submit path refuses with a message rather than silently", () => {
-  test("the claim submission is refused, said out loud, and changes nothing", async () => {
-    // The student's screen, on the standard chart: this is where the sentence
-    // has to appear, so it is mounted first and kept mounted.
+describe("the Submit path sends the claim rather than refusing silently", () => {
+  test("the press produces the 277CA, and the 835, the posting and the AR row follow it", async () => {
+    // The student's screen, on the standard chart: the paper he presses on.
     const screen = await openStage("DEMO", "billing");
 
     // The store the Submit button writes to, reached the way a stage reaches it.
@@ -375,47 +449,89 @@ describe("the Submit path refuses with a message rather than silently", () => {
       await new Promise((resolve) => setTimeout(resolve, 600));
     });
 
-    const seeded = pipeline?.getEncounter("DEMO");
-    expect(seeded?.tutorialSeed).toBe("tutorial-4");
-    expect(seeded?.claimNumber).toBeTruthy();
+    // ── The draft the student is handed ────────────────────────────
+    const draft = pipeline?.getEncounter("DEMO");
+    expect(draft?.tutorialSeed).toBe("tutorial-5");
+    expect(draft?.claimNumber).toBeTruthy();
+    expect(draft?.claimStatus).toBe("draft");
+    expect(draft?.remittances).toHaveLength(0);
+    expect(draft?.ledger).toHaveLength(0);
+    expect(draft?.statusEvents.some((event) => event.reasonCode === "277CA_ACCEPTED")).toBe(false);
     const savedBefore = loadUserData(PHONE)?.pipeline?.encounters?.DEMO;
-    expect(savedBefore?.claimNumber).toBe(seeded!.claimNumber);
+    expect(savedBefore?.claimNumber).toBe(draft!.claimNumber);
 
-    // ── The call the Submit button makes ───────────────────────────
+    // ── The press ──────────────────────────────────────────────────
     clearTutorialRefusal();
     await act(async () => {
-      pipeline?.submitClaim({ box1: "typed over the standard chart" });
+      pressSubmitOnReferenceClaim(pipeline!);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
     });
 
-    // Said out loud, in one sentence, naming what was not saved.
-    expect(tutorialRefusal()).toContain("The claim submission");
-    expect(tutorialRefusal()).toContain("read-only");
-    expect(tutorialRefusal()).toContain("was not saved");
+    // Nothing was refused: this is the one write the reference chart allows, so
+    // no "was not saved" sentence is published by it.
+    expect(tutorialRefusal()).toBeNull();
 
-    // ── And the student sees it, not only the store ────────────────
+    // The submit path's own case-progress mirror (`addAuditLog`,
+    // `setBillingStatus` …) is bookkeeping that follows an allowed action, so on
+    // the reference chart it is skipped in silence — never refused out loud. A
+    // refusal here printed "The case progress was not saved" under a Submit that
+    // had worked (`specs/pr189-submit-evidence.md`, defect 2).
+    clearTutorialRefusal();
+    await act(async () => {
+      useEhrStore
+        .getState()
+        .updateCase("DEMO", (cs) => ({ ...cs, billingStatus: "CLEARED_AND_SENT" }));
+    });
+    expect(tutorialRefusal()).toBeNull();
+
+    // ── What the press did, and what it left to the student ───────
+    const sent = pipeline?.getEncounter("DEMO");
+    // The 277CA: the clearinghouse accepted this claim.
+    expect(sent?.statusEvents.some((event) => event.reasonCode === "277CA_ACCEPTED")).toBe(true);
+    // And the press stops there: Submit does not adjudicate, post or queue a
+    // denial — those follow the student's own decision on Payments.
+    expect(sent?.claimStatus).toBe("accepted");
+    expect(sent?.remittances).toHaveLength(0);
+    expect(sent?.ledger).toHaveLength(0);
+    expect(
+      (pipeline?.arWorkItems ?? []).filter((item) => item.claimNumber === sent!.claimNumber),
+    ).toHaveLength(0);
+
+    // ── The student's own adjudication and posting on Payments ─────
+    await act(async () => {
+      pressAdjudicateOnReferenceClaim(pipeline!);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    const adjudicated = pipeline?.getEncounter("DEMO");
+    // The payer's 835, priced line by line, and the posting that writes the ledger.
+    expect(adjudicated?.remittances).toHaveLength(1);
+    expect(adjudicated?.remittances[0]?.postedAt).toBeTruthy();
+    expect((adjudicated?.ledger ?? []).length).toBeGreaterThan(0);
+    // And the denied ECG line is a row in the AR queue.
+    expect(
+      (pipeline?.arWorkItems ?? []).filter(
+        (item) => item.claimNumber === adjudicated!.claimNumber && item.kind === "denial",
+      ),
+    ).toHaveLength(1);
+
+    // ── And the student sees it, not only the store ─────────────────
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
     });
-    const shown = screen.container.querySelector('[data-testid="tutorial-refusal"]');
-    expect(shown).not.toBeNull();
-    expect(shown?.textContent ?? "").toContain("The claim submission");
+    expect(screen.container.querySelector('[data-testid="tutorial-refusal"]')).toBeNull();
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-    });
-
-    // ── Nothing moved ─────────────────────────────────────────────
+    // ── A reload keeps the student there ───────────────────────────
     const savedAfter = loadUserData(PHONE)?.pipeline?.encounters?.DEMO;
-    expect(savedAfter?.claimData).toEqual(savedBefore?.claimData);
-    expect(savedAfter?.status).toBe(savedBefore?.status);
-    expect(savedAfter?.stage).toBe(savedBefore?.stage);
-    const now = pipeline?.getEncounter("DEMO");
-    expect(now?.claimData).toEqual(seeded?.claimData);
-    expect(now?.status).toBe(seeded?.status);
-    expect(now?.stage).toBe(seeded?.stage);
+    expect(savedAfter?.claimNumber).toBe(draft!.claimNumber);
+    expect(savedAfter?.remittances).toHaveLength(1);
+    expect(savedAfter?.statusEvents.some((event) => event.reasonCode === "277CA_ACCEPTED")).toBe(true);
 
-    // The guard a stage handler calls says the same sentence — one refusal, one
-    // wording, whether the click reached the store or was stopped at the button.
+    // The guard a stage handler calls still says one sentence, in one wording,
+    // for the writes this chart does not allow.
     clearTutorialRefusal();
     await act(async () => {
       refuseReadOnly("The claim submission");

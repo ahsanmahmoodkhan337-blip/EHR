@@ -5,11 +5,11 @@
  * only appeared in a browser that had never opened the chart, because the seed
  * guard reads any `tutorialSeed` key as "already seeded". This test writes the
  * record the previous build left behind — the old note text, stamped
- * `tutorial-2`, with its claim, typed boxes, 835, ledger and AR state on it —
- * imports the store on top of it, opens the chart through
- * `selectPatient("DEMO")` (what `/patients` → **Open encounter** makes) and reads
- * the saved record back: the note is the new one, and every piece of money is
- * exactly as it was.
+ * `tutorial-2`, with its claim on it — imports the store on top of it, opens the
+ * chart through `selectPatient("DEMO")` (what `/patients` → **Open encounter**
+ * makes) and reads the saved record back: the note is the new one, and the claim
+ * is the filled draft the student sends himself (owner, 2026-11-23 — *"the
+ * CMS-1500 should be filled and student should submit too … himself"*).
  *
  * Inspiration: Epic's Playground patient, and a training environment that fixes
  * a seeded chart in place rather than asking the student to start over.
@@ -50,6 +50,10 @@ const { applyTutorialSeed, TUTORIAL_SEED_VERSION } = await import(
   "../src/domain/tutorialEncounter"
 );
 const { applyTutorialMoneySeed } = await import("../src/domain/tutorialClaim");
+const {
+  pressSubmitOnReferenceClaim,
+  pressAdjudicateOnReferenceClaim,
+} = await import("./support/referenceSubmit");
 
 const demoPatient = SEED_PATIENTS.find((patient) => patient.id === "DEMO")!;
 
@@ -70,9 +74,8 @@ const oldClinical = {
 };
 
 /**
- * The same record after the money half landed on it: the claim, its typed boxes,
- * the 835, the posting and the AR state — stamped `tutorial-2`, the version the
- * previous build left on a browser that had opened the chart.
+ * The same record after the money half landed on it — stamped `tutorial-2`, the
+ * version the previous build left on a browser that had opened the chart.
  */
 const oldRecord = {
   ...applyTutorialMoneySeed(oldClinical, demoPatient, SEEDED_AT, "CLM-000001"),
@@ -128,6 +131,24 @@ async function mount() {
         await new Promise((resolve) => setTimeout(resolve, 500));
       });
     },
+    /** The student's own Submit on the Billing stage. */
+    async pressSubmit() {
+      await act(async () => {
+        pressSubmitOnReferenceClaim(pipeline!);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+    },
+    /** The student's own adjudication, then posting, on the Payments stage. */
+    async pressAdjudicate() {
+      await act(async () => {
+        pressAdjudicateOnReferenceClaim(pipeline!);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+    },
     async unmount() {
       await act(async () => root.unmount());
       container.remove();
@@ -148,42 +169,66 @@ describe("a chart seeded by an older build receives the new note", () => {
     expect(pipeline?.getEncounter("DEMO")?.tutorialSeed).toBe("tutorial-2");
 
     await screen.open("DEMO");
-    const enc = pipeline?.getEncounter("DEMO");
+    const draft = pipeline?.getEncounter("DEMO");
 
     // The new note is on the record, section by section.
-    expect(enc?.scribeNote).not.toBe(compileNoteText(OLD_NOTE));
-    expect(enc?.scribeNote).toContain("HPI: Onset — sudden, about two hours before this visit");
-    expect(enc?.scribeNote).toContain("troponin I 0.085 ng/mL");
-    expect(enc?.noteFields.subjective).toContain("two hours of chest pressure");
-    expect(enc?.noteFields.assessment).toContain("R07.9");
-    expect(enc?.noteFields.plan).toContain("CPT 93000");
-    expect(enc?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+    expect(draft?.scribeNote).not.toBe(compileNoteText(OLD_NOTE));
+    expect(draft?.scribeNote).toContain("HPI: Onset — sudden, about two hours before this visit");
+    expect(draft?.scribeNote).toContain("troponin I 0.085 ng/mL");
+    expect(draft?.noteFields.subjective).toContain("two hours of chest pressure");
+    expect(draft?.noteFields.assessment).toContain("R07.9");
+    expect(draft?.noteFields.plan).toContain("CPT 93000");
+    expect(draft?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
 
-    // Everything that is not the note survives untouched: the signature, the
-    // codes, the authorisation, the claim with its typed boxes, the 835, the
-    // posting, the ledger and the AR state.
-    expect(enc?.claimNumber).toBe(oldRecord.claimNumber);
-    expect(enc?.claimStatus).toBe(oldRecord.claimStatus);
-    expect(enc?.claimForm).toEqual(oldRecord.claimForm);
-    expect(enc?.remittances).toEqual(oldRecord.remittances);
-    expect(enc?.ledger).toEqual(oldRecord.ledger);
-    expect(enc?.arItems).toEqual(oldRecord.arItems);
-    expect(enc?.icdCodes).toEqual(oldRecord.icdCodes);
-    expect(enc?.cptCodes).toEqual(oldRecord.cptCodes);
-    expect(enc?.codingLines).toEqual(oldRecord.codingLines);
-    expect(enc?.paData).toEqual(oldRecord.paData);
-    expect(enc?.stage).toBe(oldRecord.stage);
-    expect(enc?.statusEvents).toEqual(oldRecord.statusEvents);
-    // No second claim, no second 835: the money seed did not re-run.
+    // The claim an older build had already sent is brought back to the filled
+    // draft: every box answered, nothing transmitted, priced or posted.
+    expect(draft?.claimStatus).toBe("draft");
+    expect(draft?.claimNumber).toMatch(/^CLM-\d{6}$/);
+    expect(draft?.claimForm).not.toBeNull();
+    expect(draft?.remittances).toHaveLength(0);
+    expect(draft?.ledger).toHaveLength(0);
+    expect(draft?.statusEvents.some((event) => event.reasonCode === "277CA_ACCEPTED")).toBe(false);
+
+    // Everything that is not the note survives the refresh untouched: the
+    // signature, the codes, the authorisation and the stage the chart opens on.
+    expect(draft?.icdCodes).toEqual(oldRecord.icdCodes);
+    expect(draft?.cptCodes).toEqual(oldRecord.cptCodes);
+    expect(draft?.codingLines).toEqual(oldRecord.codingLines);
+    expect(draft?.paData).toEqual(oldRecord.paData);
+    expect(draft?.stage).toBe(oldRecord.stage);
+    expect(draft?.statusEvents.find((event) => event.reasonCode === "NOTE_SIGNED")?.id).toBe(
+      oldRecord.statusEvents.find((event) => event.reasonCode === "NOTE_SIGNED")?.id,
+    );
+
+    // ── The student's own Submit ──────────────────────────────────
+    await screen.pressSubmit();
+    const sent = pipeline?.getEncounter("DEMO");
+    // Submit sends the claim and earns its 277CA. It does not adjudicate it.
+    expect(sent?.claimStatus).toBe("accepted");
+    expect(sent?.remittances).toHaveLength(0);
+    expect(sent?.ledger).toHaveLength(0);
+
+    // ── The student's own adjudication and posting on Payments ────
+    await screen.pressAdjudicate();
+    const enc = pipeline?.getEncounter("DEMO");
+    expect(enc?.claimStatus).toBe("partially_paid");
+    // One 835, posted, with the denial the plan's own same-day edit earns.
     expect(enc?.remittances).toHaveLength(1);
+    const remittance = enc!.remittances[0];
+    expect(remittance.postedAt).toBeTruthy();
+    const denied = remittance.lines.filter((line) => line.denied);
+    expect(denied).toHaveLength(1);
+    expect(denied[0].adjustments.map((a) => a.carc)).toContain("CO-236");
+    expect((enc?.ledger ?? []).length).toBeGreaterThan(0);
+    expect(enc?.claimForm).toEqual(draft!.claimForm);
 
-    // The saved record holds the new note, so a reload keeps it.
+    // The saved record holds the new note and the money, so a reload keeps it.
     await screen.settle();
     const saved = loadUserData(PHONE)?.pipeline?.encounters?.DEMO;
     expect(saved?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
     expect(saved?.scribeNote).toContain("HPI: Onset — sudden, about two hours before this visit");
-    expect(saved?.claimForm).toEqual(oldRecord.claimForm);
-    expect(saved?.remittances).toEqual(oldRecord.remittances);
+    expect(saved?.remittances).toHaveLength(1);
+    expect(saved?.remittances[0]?.postedAt).toBeTruthy();
 
     await screen.unmount();
   });
@@ -191,6 +236,10 @@ describe("a chart seeded by an older build receives the new note", () => {
   test("opening the chart again changes nothing", async () => {
     const screen = await mount();
     await screen.open("DEMO");
+    // The student's own Submit, then his adjudication, so there is money on the
+    // record to be left alone.
+    await screen.pressSubmit();
+    await screen.pressAdjudicate();
     const refreshed = pipeline?.getEncounter("DEMO");
 
     await screen.open("DEMO");
@@ -221,10 +270,16 @@ describe("a chart seeded by an older build receives the new note", () => {
 
     const second = await mount();
     await second.open("DEMO");
+    const draft = pipeline?.getEncounter("DEMO");
+    expect(draft?.scribeNote).toContain("troponin I 0.085 ng/mL");
+    expect(draft?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
+    expect(draft?.claimNumber).toMatch(/^CLM-\d{6}$/);
+    // Still a draft: the money is the student's to earn.
+    expect(draft?.remittances).toHaveLength(0);
+
+    await second.pressSubmit();
+    await second.pressAdjudicate();
     const enc = pipeline?.getEncounter("DEMO");
-    expect(enc?.scribeNote).toContain("troponin I 0.085 ng/mL");
-    expect(enc?.tutorialSeed).toBe(TUTORIAL_SEED_VERSION);
-    expect(enc?.claimNumber).toMatch(/^CLM-\d{6}$/);
     expect(enc?.remittances).toHaveLength(1);
     await second.unmount();
   });

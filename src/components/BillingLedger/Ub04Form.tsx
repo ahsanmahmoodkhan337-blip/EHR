@@ -51,8 +51,13 @@ export function Ub04Form({
   const totalNonCovered = rows.reduce((sum, l) => sum + (Number(l.nonCovered) || 0), 0);
 
   const table = (
-    // Eight columns on a 360 px screen: the table scrolls inside its own
-    // container rather than pushing the page sideways (standing rule 4).
+    // The revenue-code rows are controls, so the paper's read-only rendering does
+    // not reach them: on the standard reference chart they are disabled here, in
+    // the same `fieldset disabled` shape the stages use (rule 10 keeps the UB-04
+    // live on every chart — this only stops it being typed over).
+    <fieldset disabled={readOnly} className="contents m-0 min-w-0 border-0 p-0">
+    {/* Eight columns on a 360 px screen: the table scrolls inside its own
+        container rather than pushing the page sideways (standing rule 4). */}
     <div className="mt-0.5 overflow-x-auto print:overflow-visible">
       <div className="min-w-[560px]">
         <div className="flex gap-0.5 border-b border-form-red/40 pb-0.5">
@@ -222,6 +227,7 @@ export function Ub04Form({
         </div>
       </div>
     </div>
+    </fieldset>
   );
 
   return (

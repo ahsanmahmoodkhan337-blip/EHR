@@ -56,6 +56,40 @@ export function isSeedWrite(): boolean {
   return seedDepth > 0;
 }
 
+// ─── The one student write the reference chart allows: Submit ─────
+//
+// Owner, 2026-11-23: *"in billing section it should not be submitted, the
+// CMS-1500 should be filled and student should submit too … himself."* The
+// claim is filled by the seed and locked like the rest of the chart; pressing
+// **Submit** on it is the exercise, so that one click — the 837P and its 277CA,
+// the payer's 835, the posting and the AR row it creates — is let through.
+//
+// It is deliberately a call-scoped window, not a flag on the chart: the store
+// refuses every other write the moment the click's handler returns, and only
+// the submission path opens the window (`components/BillingLedger`).
+
+let claimSubmitDepth = 0;
+
+/**
+ * Run the student's claim submission on the reference chart.
+ *
+ * Every write inside the call is allowed through — the submission is one
+ * deliberate action by the person learning, not the seed filling the chart.
+ */
+export function withClaimSubmit<T>(fn: () => T): T {
+  claimSubmitDepth += 1;
+  try {
+    return fn();
+  } finally {
+    claimSubmitDepth -= 1;
+  }
+}
+
+/** True while the student's own Submit is writing. */
+export function isClaimSubmit(): boolean {
+  return claimSubmitDepth > 0;
+}
+
 // ─── The refusal, said out loud ────────────────────────────────────
 //
 // A refused write must say why. The message lives here rather than in a store
@@ -102,7 +136,9 @@ export function refuseStudentWrite(
   what: string,
 ): boolean {
   if (!isTutorialChart(patientId)) return false;
-  if (isSeedWrite()) return false;
+  // The seed fills the chart; the student's own Submit is the one action the
+  // reference chart exists to let them take.
+  if (isSeedWrite() || isClaimSubmit()) return false;
   publish(refusalSentence(what));
   return true;
 }
@@ -144,6 +180,38 @@ export function useReadOnlyChart(patientId: string | null | undefined): boolean 
  * sentence. A seed write is not a student write, so it is still allowed through.
  */
 export function skipNoteAutosave(patientId: string | null | undefined): boolean {
+  return isTutorialChart(patientId) && !isSeedWrite();
+}
+
+/**
+ * True when this chart's claim auto-fill must not be attempted.
+ *
+ * The same false-failure class as the note's, one stage later: the Billing stage
+ * carries the coded lines and the parties onto the claim in an effect, and on the
+ * standard chart that write is refused — which printed *"The claim was not
+ * saved"* under a claim that is saved, on a chart the student never tried to
+ * change (lead's walk, 2026-11-23). The reference claim is the seed's, so there
+ * is nothing to carry onto it: skip the attempt and say nothing. A seed write and
+ * the student's own Submit are still allowed through.
+ */
+export function skipClaimAutosave(patientId: string | null | undefined): boolean {
+  return isTutorialChart(patientId) && !isSeedWrite() && !isClaimSubmit();
+}
+
+/**
+ * True when this chart's case-progress mirror must not be attempted.
+ *
+ * The same false-failure class as the note's autosave and the claim's auto-fill,
+ * one layer down: the patient store's per-case bookkeeping (`addAuditLog`,
+ * `setBillingStatus`, `setQueueStage`, `setPaStatus`, `setArStatus` …) is a
+ * mirror of what the chart already holds, written *after* an action was allowed.
+ * On the standard chart those writes were refused, and the student's own Submit
+ * printed *"The case progress was not saved"* under a claim that had just been
+ * sent (lead's walk, 2026-11-23). Nothing of the chart's is lost by skipping
+ * them — the mirror is bookkeeping, not content — so skip the attempt and say
+ * nothing. A seed write still goes through.
+ */
+export function skipCaseProgressMirror(patientId: string | null | undefined): boolean {
   return isTutorialChart(patientId) && !isSeedWrite();
 }
 
