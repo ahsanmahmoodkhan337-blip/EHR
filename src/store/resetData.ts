@@ -86,6 +86,8 @@ export const UNTOUCHED_STORES = [
   "hh_student_name",
   "hh_dark_mode",
   "hh_help_open",
+  // Where the student parked the floating help head — a UI preference.
+  "hh_help_pos",
   "hh_reference_open",
   "hh_reference_tab",
   "hh_shell_sidebar_collapsed",

@@ -446,3 +446,9 @@ British "authorisation" spelling across the UI (a grader matches on it).
   the printed forms; "BREAK GLASS" and "GOOD FAITH ESTIMATE" stay as written.
 - Settings no longer prints the student's phone number in its title block.
 
+
+## 14. Floating help head with the built-in guide (2026-11-25)
+
+- `src/components/shell/HelpLauncher.tsx` — a 52 px round help head, fixed on screen, that the student can drag anywhere. It snaps to the nearer side edge and remembers where it was left (`hh_help_pos`, a UI preference, not student work). Tap opens the panel beside it (bottom sheet on phones); Escape closes.
+- Panel: **Ask a question** (answered offline), suggested questions, the six how-to guides, keyboard shortcuts, WhatsApp support, simulated-data line. Replaces the old `hh_help_open` docked button in the footer strip.
+- `src/domain/helpGuide.ts` — `askHelpGuide()` answers from the app's own content only: a how-to FAQ (on-screen button names), an RCM glossary (270/271, 837P, 277CA, 835, copay/deductible/coinsurance, allowed, PA, modifiers, POS, NPI, timely filing, E/M…), the CARC table (`co45`, `CO 45`, `CO-45` all match) and the how-to guides. No AI service; an unknown question says so.
