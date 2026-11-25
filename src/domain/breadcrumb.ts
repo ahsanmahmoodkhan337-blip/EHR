@@ -112,11 +112,12 @@ export function breadcrumbForPath(pathname: string, tail?: Crumb[] | null): Crum
  * (spec item 4). `null` where the page is not one of the header's four — the
  * encounter workspace has its own stepper and is not a header destination.
  */
-export function headerNavForPath(pathname: string): "dashboard" | "schedule" | "patients" | "settings" | null {
+export function headerNavForPath(pathname: string): "dashboard" | "schedule" | "patients" | "cases" | "settings" | null {
   const head = segmentsOf(pathname)[0] ?? "";
   if (head === "dashboard") return "dashboard";
   if (head === "schedule") return "schedule";
   if (head === "patients") return "patients";
+  if (head === "cases" || head === "practice-ar" || head === "medical-cases" || head === "dental") return "cases";
   if (head === "settings") return "settings";
   return null;
 }

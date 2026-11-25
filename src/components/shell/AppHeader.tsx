@@ -66,8 +66,22 @@ const HEADER_LINKS = [
   { id: "dashboard", label: "Dashboard", to: "/dashboard" },
   { id: "schedule", label: "Schedule", to: "/schedule" },
   { id: "patients", label: "Patients", to: "/patients" },
+  // Practice Cases has its own link: the Medical/Dental switch used to be the
+  // only way in, which made the switch do two jobs.
+  { id: "cases", label: "Practice cases", to: "/cases" },
   { id: "settings", label: "Settings", to: "/settings" },
 ] as const;
+
+/**
+ * True for a page that belongs to one track and cannot redraw for the other:
+ * the medical encounter (and its chart), a running practice case, the
+ * practice AR bench. Every other page reads `useActiveTrack()`.
+ */
+export function trackBoundPath(pathname: string): boolean {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  if (path === "/") return true;
+  return /^\/(encounter|charts|practice-ar|dental|medical-cases)(\/|$)/.test(path) || /^\/cases\/.+/.test(path);
+}
 
 function formatClock(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -122,10 +136,13 @@ export function AppHeader({
             track={track}
             compact
             onTrackChange={(next) => {
-              // The choice is remembered before the navigation, so the case list
-              // the student lands on is the one for the track they just picked.
+              // The switch only changes sides. A page that follows the track
+              // (schedule, claims, payments, reports, the case list…) redraws
+              // for the other side in place; a page that belongs to one track
+              // (an open encounter, a running case) cannot, so the student
+              // lands on the dashboard for the side they picked.
               setActiveTrack(next);
-              void navigate({ to: "/cases" });
+              if (trackBoundPath(pathname)) void navigate({ to: "/dashboard" });
             }}
           />
         </div>

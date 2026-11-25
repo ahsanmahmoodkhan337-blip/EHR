@@ -93,7 +93,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
   const visible = arWorkItems.filter((item) => {
     if (filter === "cleared") return item.status === "resolved";
     if (item.status === "resolved") return false;
-    if (filter === "denial") return item.kind === "denial";
+    if (filter === "denial") return item.kind === "denial" || item.kind === "appeal";
     if (filter === "balance") return item.kind === "balance";
     return true;
   });
@@ -215,10 +215,10 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600">
                   <span
                     className={`rounded px-1.5 py-0.5 font-semibold ${
-                      item.kind === "denial" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
+                      item.kind === "balance" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"
                     }`}
                   >
-                    {item.kind === "denial" ? "Denied line" : "Patient balance"}
+                    {item.kind === "denial" ? "Denied line" : item.kind === "appeal" ? "Appeal decision" : "Patient balance"}
                   </span>
                   {item.kind === "denial" ? (
                     <span className="font-mono">
@@ -231,7 +231,8 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                     <Clock3 className="h-3 w-3" aria-hidden="true" />
                     {item.ageDays} days · {item.bucket}
                   </span>
-                  <span>Appeal by {item.appealDeadline}</span>
+                  {/* Only a payer's refusal has an appeal window; a patient's balance is billed, not appealed. */}
+                  {item.kind === "denial" && <span>Appeal by {item.appealDeadline}</span>}
                   <span className="text-slate-400">
                     Patient balance on this claim {money(item.patientBalanceCents)}
                   </span>
@@ -240,6 +241,12 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                 {item.kind === "denial" && item.carc && CARC_BY_CODE[item.carc] ? (
                   <p className="mt-1 text-xs leading-relaxed text-slate-500">
                     {CARC_BY_CODE[item.carc].description}
+                  </p>
+                ) : null}
+                {item.kind === "appeal" && item.status !== "resolved" ? (
+                  <p className="mt-1 rounded-lg bg-red-50 px-2 py-1.5 text-xs leading-relaxed text-red-800">
+                    {item.carc ? <span className="font-mono font-semibold">{item.carc} · </span> : null}
+                    {item.carcDescription}
                   </p>
                 ) : null}
 
@@ -276,6 +283,13 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                     <p className="mt-0.5 text-xs leading-relaxed text-brand-900">
                       {AR_ACTION_EFFECTS[pending.action]}
                     </p>
+                    {pending.action === "transfer_to_patient" && item.carc?.startsWith("CO-") ? (
+                      <p role="alert" className="mt-1 rounded bg-red-50 px-2 py-1 text-xs leading-relaxed text-red-800">
+                        <span className="font-semibold">Check before you confirm:</span> {item.carc} is a CO (contractual
+                        obligation) denial. The payer contract does not let the practice bill the patient for it — on the
+                        job this is a compliance error.
+                      </p>
+                    ) : null}
                     {pending.action === "write_off" ? (
                       <label className="mt-1.5 block text-xs font-medium text-brand-900">
                         Reason code for the write-off

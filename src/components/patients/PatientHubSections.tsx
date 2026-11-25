@@ -20,6 +20,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { BadgeCheck, CalendarClock, CreditCard, ShieldCheck } from "lucide-react";
 import { useEhrStore, useAllAppointments } from "../../store/ehrStore";
 import { usePipeline } from "../../store/pipelineStore";
@@ -121,7 +122,15 @@ function CoverageCard({
         )}
         <button
           type="button"
-          onClick={() => onRun(runEligibility270(coverage, new Date().toISOString(), holder))}
+          onClick={() => {
+            const result = runEligibility270(coverage, new Date().toISOString(), holder);
+            onRun(result);
+            // A same-day re-run returns the same answer, so the card does not
+            // visibly change: say that the 271 came back.
+            toast(`271 received — ${ELIGIBILITY_LABELS[result.status]}`, {
+              description: result.payerResponse || undefined,
+            });
+          }}
           aria-label={`Run the 270/271 eligibility check for ${label.toLowerCase()} coverage for this patient`}
           className="min-h-10 rounded-lg bg-white px-3 text-[11px] font-semibold text-brand-700 ring-1 ring-brand-200 transition-colors hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
         >

@@ -161,14 +161,19 @@ describe("clearing an item moves money in the ledger", () => {
     const before = ledgerBalance(source.ledger).patientBalanceCents;
     const entries = arResolutionEntries(item, "rebill", RESOLVE_CTX);
 
-    expect(entries).toHaveLength(2);
-    expect(entries[0].amountCents).toBe(-46000);
-    expect(entries[1].amountCents).toBe(46000);
-    expect(entries[1].claimNumber).toBe("CLM-000001-R1");
-    expect(entries.every((e) => e.type === "transfer")).toBe(true);
+    // The refusal is reversed on the denied claim, then the money moves.
+    expect(entries).toHaveLength(3);
+    expect(entries[0]).toMatchObject({ type: "adjustment", code: item.carc, amountCents: 46000, claimNumber: "CLM-000001" });
+    expect(entries[1]).toMatchObject({ type: "transfer", amountCents: -46000, claimNumber: "CLM-000001" });
+    expect(entries[2]).toMatchObject({ type: "transfer", amountCents: 46000, claimNumber: "CLM-000001-R1" });
 
-    const after = ledgerBalance(appendLedgerEntries(source.ledger, entries)).patientBalanceCents;
-    expect(after).toBe(before);
+    const ledger = appendLedgerEntries(source.ledger, entries);
+    const after = ledgerBalance(ledger);
+    expect(after.patientBalanceCents).toBe(before);
+    // The payer has been asked again: it owes the money now, not the patient.
+    expect(after.insuranceBalanceCents).toBe(46000);
+    // The denied claim is settled at zero, never in credit.
+    expect(ledgerBalance(ledger.filter((e) => e.claimNumber === "CLM-000001")).patientBalanceCents).toBe(0);
     expect(arResolutionOutcome("rebill")).toEqual({ to: "replaced", reasonCode: "CORRECTED_CLAIM_FILED" });
   });
 
@@ -176,9 +181,10 @@ describe("clearing an item moves money in the ledger", () => {
     const { item, source } = denialItem();
     const before = ledgerBalance(source.ledger).patientBalanceCents;
     const entries = arResolutionEntries(item, "appeal", RESOLVE_CTX);
-    expect(entries[1].claimNumber).toBe("CLM-000001-A1");
-    const after = ledgerBalance(appendLedgerEntries(source.ledger, entries)).patientBalanceCents;
-    expect(after).toBe(before);
+    expect(entries[2].claimNumber).toBe("CLM-000001-A1");
+    const after = ledgerBalance(appendLedgerEntries(source.ledger, entries));
+    expect(after.patientBalanceCents).toBe(before);
+    expect(after.insuranceBalanceCents).toBe(46000);
     expect(arResolutionOutcome("appeal").to).toBe("appeal_pending");
   });
 

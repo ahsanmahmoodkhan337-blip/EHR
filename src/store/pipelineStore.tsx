@@ -78,17 +78,22 @@ import {
   remittanceForClaim,
   type Remittance835,
 } from "../domain/adjudication";
-import { appendLedgerEntries, postRemittanceToLedger, type LedgerEntry } from "../domain/ledger";
+import { chargeCarriedByTransfer, appendLedgerEntries, postRemittanceToLedger, type LedgerEntry } from "../domain/ledger";
 import {
   arResolutionEntries,
   arResolutionOutcome,
   arResolutionReason,
   buildArWorkQueue,
+  correctedClaimForm,
+  correctedClaimInstruction,
+  originalClaimNumberOf,
+  successorClaimNumber,
   type ArAction,
   type ArItemState,
   type ArQueueSource,
   type ArWorkItem,
 } from "../domain/arWorkQueue";
+import { carcAction } from "../data/claims/carc";
 import {
   appendStatusEvent as appendEvent,
   makeStatusEvent,
@@ -380,6 +385,27 @@ function money(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+/**
+ * One AR source per claim the encounter has carried: the current claim and any
+ * claim it replaced (a corrected claim keeps the denied original's cleared item
+ * in the queue's history, and the corrected claim's own balance shows once its
+ * 835 posts). Claim numbers come from the ledger, so nothing new is stored.
+ */
+function arSourcesFor(enc: PipelineEncounter): ArQueueSource[] {
+  const claims = new Set<string>();
+  for (const e of enc.ledger) if (e.claimNumber) claims.add(e.claimNumber);
+  if (enc.claimNumber) claims.add(enc.claimNumber);
+  if (claims.size === 0) claims.add("");
+  return [...claims].map((claimNumber) => ({
+    patientId: enc.patientId,
+    patientName: enc.displayName,
+    claimNumber: claimNumber || null,
+    remittances: enc.remittances,
+    ledger: enc.ledger,
+    arItems: enc.arItems,
+  }));
+}
+
 /** One plain sentence for the timeline, naming the money and who carries it. */
 function remittanceReason(remittance: Remittance835): string {
   const { paidCents, patientRespCents, writeOffCents, allowedCents, deniedCents } = remittance.totals;
@@ -396,9 +422,11 @@ function remittanceReason(remittance: Remittance835): string {
   if (remittance.outcome === "patient_responsibility") {
     return `Nothing paid by the plan: the whole ${money(patientRespCents)} allowed is the patient's responsibility and is on the ledger. No write-off.`;
   }
-  return `Denied with no patient balance: ${money(deniedCents)} written off as contractual (${money(
-    writeOffCents,
-  )} in total adjustments). Nothing is owed by the patient.`;
+  // A denial is not a write-off: the money is still owed by the payer once the
+  // claim is fixed or appealed, so it goes to Denials & AR — never bill the
+  // patient for a CO denial (button audit, 2026-11-25: this used to say
+  // "written off as contractual").
+  return `Denied: the plan paid nothing and refused ${money(deniedCents)}. This is not a write-off — work it in Denials & AR (correct and resubmit, or appeal). The patient owes nothing for a CO denial.`;
 }
 
 /**
@@ -1272,6 +1300,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         patientId: enc.patientId,
         userId: by,
         at,
+        // A corrected claim's charge came across with the transfer-in.
+        chargeCarried: chargeCarriedByTransfer(enc.ledger, remittance.claimNumber),
       });
       const ledger = appendLedgerEntries(enc.ledger, entries);
       if (ledger === enc.ledger) return prev; // already on the ledger — no second posting
@@ -1443,14 +1473,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
   const [arNow, setArNow] = useState(() => new Date().toISOString());
   const arSources = useMemo<ArQueueSource[]>(
     () =>
-      Object.values(store.encounters).map((enc) => ({
-        patientId: enc.patientId,
-        patientName: enc.displayName,
-        claimNumber: enc.claimNumber,
-        remittances: enc.remittances,
-        ledger: enc.ledger,
-        arItems: enc.arItems,
-      })),
+      Object.values(store.encounters).flatMap(arSourcesFor),
     [store.encounters],
   );
   const arWorkItems = useMemo(() => buildArWorkQueue(arSources, arNow), [arSources, arNow]);
@@ -1482,14 +1505,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     const by = getLoggedInPhone() ?? "system";
     studentStore((prev) => {
       const queue = buildArWorkQueue(
-        Object.values(prev.encounters).map((enc) => ({
-          patientId: enc.patientId,
-          patientName: enc.displayName,
-          claimNumber: enc.claimNumber,
-          remittances: enc.remittances,
-          ledger: enc.ledger,
-          arItems: enc.arItems,
-        })),
+        Object.values(prev.encounters).flatMap(arSourcesFor),
         at,
       );
       const item = queue.find((i) => i.id === input.itemId);
@@ -1550,18 +1566,60 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         },
         enc.statusEvents,
       );
+      let statusEvents = appendEvent(enc.statusEvents, event);
+      let next: PipelineEncounter = {
+        ...enc,
+        ledger,
+        arItems,
+        statusEvents,
+        claimStatus: outcome.to,
+        claimStatusMigrated: false,
+      };
+
+      // Correct and resubmit opens the corrected claim on the biller's desk:
+      // it becomes this encounter's claim, as a draft with Box 22 filled, so
+      // Billing / Claim → 277CA → 835 → posting run again on it and the visit
+      // can really close (owner's walkthrough, 2026-11-25: the corrected claim
+      // used to exist only as a ledger line nobody could work).
+      if (
+        input.action === "rebill" &&
+        (item.claimNumber === enc.claimNumber || item.kind === "appeal") &&
+        enc.claimForm
+      ) {
+        const successor = successorClaimNumber(item.claimNumber, "rebill");
+        const replaces = item.kind === "appeal" ? originalClaimNumberOf(item.claimNumber) : item.claimNumber;
+        const draftEvent = makeStatusEvent(
+          {
+            entityType: "claim",
+            entityId: successor,
+            patientId: enc.patientId,
+            claimNumber: successor,
+            at,
+            from: null,
+            to: "draft",
+            by,
+            jobRole: "biller",
+            reasonCode: "CLAIM_CREATED",
+            reason: correctedClaimInstruction(successor, replaces, item.carc, item.carc ? carcAction(item.carc) : null),
+            refs: { refNumber: item.id },
+          },
+          statusEvents,
+        );
+        statusEvents = appendEvent(statusEvents, draftEvent);
+        next = {
+          ...next,
+          statusEvents,
+          claimNumber: successor,
+          claimStatus: "draft" as ClaimStatus,
+          claimForm: correctedClaimForm(enc.claimForm, replaces),
+        };
+      }
+
       return {
         ...prev,
         encounters: {
           ...prev.encounters,
-          [key]: {
-            ...enc,
-            ledger,
-            arItems,
-            statusEvents: appendEvent(enc.statusEvents, event),
-            claimStatus: outcome.to,
-            claimStatusMigrated: false,
-          },
+          [key]: next,
         },
       };
     });
@@ -1574,14 +1632,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     const by = getLoggedInPhone() ?? "system";
     studentStore((prev) => {
       const queue = buildArWorkQueue(
-        Object.values(prev.encounters).map((enc) => ({
-          patientId: enc.patientId,
-          patientName: enc.displayName,
-          claimNumber: enc.claimNumber,
-          remittances: enc.remittances,
-          ledger: enc.ledger,
-          arItems: enc.arItems,
-        })),
+        Object.values(prev.encounters).flatMap(arSourcesFor),
         at,
       );
       const item = queue.find((i) => i.id === input.itemId);

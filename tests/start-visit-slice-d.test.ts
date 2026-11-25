@@ -88,7 +88,8 @@ describe("a saved session never overrides an explicit pick", () => {
   test("the address keeps winning when its patient arrives after hydration", () => {
     // A refresh on a student-registered patient's address renders before the
     // store has loaded their list; the address takes over once they appear.
-    expect(INDEX).toContain("if (!patients.some((p) => p.id === encounterIdFromRoute)) return;");
+    // The wait-until-loaded rule itself is `routePickDecision` (route-pick-once.test.ts).
+    expect(INDEX).toContain("routePatientLoaded: patients.some((p) => p.id === encounterIdFromRoute),");
     expect(INDEX).toContain("setSelectedPatientId(encounterIdFromRoute);");
     expect(INDEX).toContain("selectPatient(encounterIdFromRoute);");
   });

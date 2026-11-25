@@ -446,3 +446,52 @@ British "authorisation" spelling across the UI (a grader matches on it).
   the printed forms; "BREAK GLASS" and "GOOD FAITH ESTIMATE" stay as written.
 - Settings no longer prints the student's phone number in its title block.
 
+## 13. Track switch and Practice Cases link (2026-11-25)
+
+- The header's Medical/Dental switch only changes sides (`setActiveTrack`). Track-following pages stay
+  put; track-bound pages (`trackBoundPath()` in `shell/AppHeader.tsx`: `/`, `/encounter/*`, `/charts`,
+  `/cases/:track/...`, `/practice-ar`, `/dental`, `/medical-cases`) go to `/dashboard`. It no longer
+  navigates to `/cases`.
+- "Practice cases" is a fifth header link (`/cases`), highlighted on case pages and the practice AR bench
+  (`headerNavForPath` returns `"cases"`).
+
+
+## 14. Live view on the encounter (2026-11-25)
+
+- `src/domain/liveTracker.ts` — pure rules: `liveMilestones()` (Checked in → Eligibility → Note signed → Coded → 837P sent → 277CA → 835 received → Posted → Closed, with done/current/todo/problem) and `liveMoney()` (billed, allowed, paid, adjusted, patient owes — dashes until a remittance is posted). Read-only: derives from appointments, eligibility, `pipelineStore` status events, ledger and AR items; stores nothing new.
+- `src/components/live/LiveTracker.tsx` — strip under the encounter stepper: milestone pills with times, a "Next:" hint, money cells that flash when they change, Activity button.
+- `src/components/live/LiveEventCard.tsx` — "What just happened" card for each new status event (bottom-left on desktop, top on phones; hides after 9 s; motion off under reduced motion).
+- `src/components/live/ActivityDrawer.tsx` — side drawer with the full `StatusTimeline`.
+- `src/components/live/EncounterLiveView.tsx` — wires the three into `routes/index.tsx`.
+- The left-panel encounter timeline now shows for every role, not only the scribe.
+
+## 15. Switching patients from a booked visit (2026-11-25)
+
+- Bug: after Check In / Start Visit opened a newly booked patient at `/encounter/<id>/…`, clicking the Tutorial Patient (or anyone else) in the Inbox snapped straight back, so the banner, Registration (driver's license, card) and stages kept the booked patient.
+- Fix: `routePickDecision()` in `src/domain/encounterRoute.ts` — the address picks its patient once per navigation; a later click in the list wins. Used by `routes/index.tsx`.
+- `WorklistPanel` rows are now keyboard-reachable buttons (role, Tab, Enter/Space, `aria-current`).
+
+## 16. The denial loop closes: corrected claims (2026-11-25)
+
+- **Correct and resubmit** (AR `rebill`) now opens the corrected claim `…-R1` on Billing / Claim: it becomes the encounter's `claimNumber`, status `draft`, Box 22 = resubmission code **7** + original claim number (`correctedClaimForm`). The paper shows a "Corrected claim — replaces …" note with the CARC meaning and fix; its history strip shows only its own timeline. Submit → 277CA → 835 → posting → patient balance → closed run again on it.
+- Ledger (`domain/ledger.ts`): a rebill/appeal first **reverses** the posted denial adjustment, then transfers the money (no more credit balance on the denied claim). Money on a corrected claim/appeal with no posted 835 is `insuranceBalanceCents` (`awaitingPayerCents`), not patient balance. The corrected claim's 835 posts with `chargeCarried` so the charge is never billed twice.
+- AR queue sources are per claim number found on the ledger (`arSourcesFor` in `pipelineStore`) — the original's cleared item stays in history, the corrected claim's patient balance appears once its 835 posts. Balance items no longer show an "Appeal by" date.
+- Live tracker follows the current claim (`claimNumber` input): shows "Corrected claim" as the next step; "Closed" also requires nothing owed by the payer. Ticker: **With payer** cell.
+- AR Aging Ledger counts only outstanding items (open denials + open patient balances).
+- Shapes unchanged — no migration. Guarded by `tests/corrected-claim-loop.test.ts` (money reconciles at every step).
+
+## 17. Appeal decisions (2026-11-25)
+
+- After **Appeal**, the payer's answer arrives as a new AR item kind **`appeal`** ("Appeal decision") on the appeal record `…-A1` (`buildArWorkQueue`). `appealDecisionFor(carc)` explains why it is upheld: every denial this simulation produces (CO-31 name mismatch, CO-197 no auth in Box 23, CO-236 same-day edit) is an error on the claim, fixed by a corrected claim or written off — not won on appeal. Actions: **Correct and resubmit** (opens `…-R1` on Billing / Claim, Box 22 original ref = the original claim) or **Contractual write-off**. Either lets the visit close.
+- `successorClaimNumber` counts from the original claim: A1 → R1, R1 → R2 (never `…-A1-R1`). Upheld appeals count with the denied lines in the queue totals.
+- Guarded by `tests/corrected-claim-loop.test.ts`.
+
+## 18. Toast messages appear (2026-11-25)
+
+- `src/routes/__root.tsx` mounts sonner's `<Toaster />` once (bottom-right). Before this, the 18 `toast()` calls in `routes/index.tsx`, `ClaimFormShell`, `BillingLedger`, `DentalBillingLedger`, `PriorAuthPortal` and `HotkeyEngine` went nowhere — e.g. Validate on the claim showed nothing, and "Cannot submit — N edit checks failed" was silent. Guarded by `tests/toaster-mounted.test.ts`.
+
+## 19. Floating help head with the built-in guide (2026-11-25)
+
+- `src/components/shell/HelpLauncher.tsx` — a 52 px round help head, fixed on screen, that the student can drag anywhere. It snaps to the nearer side edge and remembers where it was left (`hh_help_pos`, a UI preference, not student work). Tap opens the panel beside it (bottom sheet on phones); Escape closes.
+- Panel: **Ask a question** (answered offline), suggested questions, the six how-to guides, keyboard shortcuts, WhatsApp support, simulated-data line. Replaces the old `hh_help_open` docked button in the footer strip.
+- `src/domain/helpGuide.ts` — `askHelpGuide()` answers from the app's own content only: a how-to FAQ (on-screen button names), an RCM glossary (270/271, 837P, 277CA, 835, copay/deductible/coinsurance, allowed, PA, modifiers, POS, NPI, timely filing, E/M…), the CARC table (`co45`, `CO 45`, `CO-45` all match) and the how-to guides. No AI service; an unknown question says so.

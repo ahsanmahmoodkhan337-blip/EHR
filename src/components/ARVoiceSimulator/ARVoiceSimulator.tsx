@@ -164,15 +164,22 @@ export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = fa
     () => arWorkItems.filter((item) => item.kind === "denial"),
     [arWorkItems],
   );
+  // Aging is money still outstanding: open denials and open patient balances.
+  // A cleared item is no longer AR (owner's walkthrough, 2026-11-25: the
+  // aging still showed the $175 after the visit was paid and closed).
+  const outstandingItems = useMemo(
+    () => arWorkItems.filter((item) => item.status !== "resolved"),
+    [arWorkItems],
+  );
   const claimsByAging = useMemo(() => {
     const buckets: Record<string, DeniedClaim[]> = { "0-30": [], "31-60": [], "61-90": [], "90+": [] };
-    denialItems.forEach((item) => {
+    outstandingItems.forEach((item) => {
       const bucket = (item.bucket === "91-120" || item.bucket === "120+" ? "90+" : item.bucket) as DeniedClaim["agingBucket"];
       (buckets[bucket] ??= []).push({
         id: item.id,
         encounterId: item.patientId ?? "",
         patientName: item.patientName ?? "",
-        reason: item.carc ? `${item.carc} — ${item.carcDescription ?? ""}`.trim() : "Denied line",
+        reason: item.kind === "balance" ? "Patient balance" : item.carc ? `${item.carc} — ${item.carcDescription ?? ""}`.trim() : "Denied line",
         amount: item.amountCents / 100,
         deniedAt: item.datedAt,
         agingBucket: bucket,
@@ -185,7 +192,7 @@ export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = fa
       });
     });
     return buckets;
-  }, [denialItems]);
+  }, [outstandingItems]);
 
   // ─── Real aging ledger — derived from actual denied claims ─────────
   // Never show demo figures as if they were the student's own AR.
@@ -331,7 +338,7 @@ export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = fa
                 {ledgerTotal.totalClaims > 0 ? (
                   <>Total AR: <span className="font-bold text-slate-700">${ledgerTotal.totalAmount.toLocaleString()}</span>{" "}| {ledgerTotal.totalClaims} Claim{ledgerTotal.totalClaims !== 1 ? "s" : ""}</>
                 ) : (
-                  <span className="italic text-slate-400">No claims yet</span>
+                  <span className="italic text-slate-400">Nothing outstanding</span>
                 )}
               </p>
             </div>
@@ -342,8 +349,8 @@ export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = fa
               remittancePosted ? (
                 <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-center text-xs text-green-800">
                 <CheckCircle2 className="mx-auto mb-1 h-6 w-6 text-green-500" />
-                No denied claims to call the payer about — the 835 is posted and nothing was denied.
-                Patient balances are worked in the AR work queue above.
+                Nothing outstanding — every denial and patient balance on your posted 835s has been worked.
+                New ones appear in the AR work queue above.
               </div>
               ) : (
                 <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} />
@@ -462,8 +469,8 @@ export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = fa
                 remittancePosted ? (
                   <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-center text-xs text-green-800">
                 <CheckCircle2 className="mx-auto mb-1 h-6 w-6 text-green-500" />
-                No denied claims to call the payer about — the 835 is posted and nothing was denied.
-                Patient balances are worked in the AR work queue above.
+                Nothing outstanding — every denial and patient balance on your posted 835s has been worked.
+                New ones appear in the AR work queue above.
               </div>
                 ) : (
                   <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} />
