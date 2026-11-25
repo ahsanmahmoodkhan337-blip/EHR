@@ -57,7 +57,7 @@ describe("the live tracker reads what the student has done", () => {
       { id: "a", type: "adjustment", amountCents: -3500 },
     ] as never;
     expect(liveMoney({ ledger, claimChargeCents: 17500, remitAllowedCents: 14000 })).toEqual({
-      billedCents: 17500, allowedCents: 14000, paidCents: 11200, adjustedCents: 3500, deniedCents: 0, patientOwesCents: 2800,
+      billedCents: 17500, allowedCents: 14000, paidCents: 11200, adjustedCents: 3500, deniedCents: 0, withPayerCents: 0, patientOwesCents: 2800,
     });
   });
 });

@@ -123,7 +123,7 @@ export function LiveTracker({
             ) : (
               <>
                 <span className="font-semibold text-slate-800">Next: </span>
-                {MILESTONE_NEXT_STEP[current.id]}
+                {current.note ?? MILESTONE_NEXT_STEP[current.id]}
               </>
             )}
           </p>
@@ -137,6 +137,7 @@ export function LiveTracker({
           <Money label="Paid" cents={money.paidCents} tone="text-green-700" />
           <Money label="Adjusted" cents={money.adjustedCents} tone="text-slate-600" />
           {money.deniedCents > 0 && <Money label="Denied (in AR)" cents={money.deniedCents} tone="text-red-700" />}
+          {money.withPayerCents > 0 && <Money label="With payer" cents={money.withPayerCents} tone="text-amber-700" />}
           <Money label="Patient owes" cents={money.patientOwesCents} tone="text-brand-900" />
         </dl>
 

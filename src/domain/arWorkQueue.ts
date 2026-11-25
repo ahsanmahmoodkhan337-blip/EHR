@@ -405,7 +405,25 @@ export function arResolutionEntries(item: ArWorkItem, action: ArAction, ctx: ArR
     const successor = successorClaimNumber(item.claimNumber, action);
     const verb = action === "rebill" ? "corrected claim" : "appeal";
     const code = action === "rebill" ? "REBILL" : "APPEAL";
+    // The 835 posted the refusal as an adjustment that took the money off the
+    // claim. Reverse it first, so the transfer moves money that is really
+    // there; otherwise the denied claim goes into credit and the corrected
+    // claim's payment can never reconcile.
+    const reversal: LedgerEntry[] =
+      item.kind === "denial" && item.carc
+        ? [
+            {
+              ...base,
+              id: `${idBase}-${action}-reverse`,
+              type: "adjustment",
+              code: item.carc,
+              description: `${item.carc} reversed — the refusal is being worked on the ${verb} ${successor}, not written off`,
+              amountCents: item.amountCents,
+            },
+          ]
+        : [];
     return [
+      ...reversal,
       {
         ...base,
         id: `${idBase}-${action}-out`,
@@ -545,4 +563,25 @@ export function arResolutionReason(
     } adjustment already removed this money from the patient's balance.`;
   }
   return `Write-off recorded against ${item.claimNumber}: ${money(written)} written off contractually. The patient balance fell by the same amount.`;
+}
+
+
+/**
+ * The corrected claim a rebill opens on the biller's desk: the same paper with
+ * Box 22 set to resubmission code 7 (replacement of a prior claim) and the
+ * original claim number, so the payer replaces the denied claim rather than
+ * reading the new one as a duplicate (CO-18).
+ */
+export function correctedClaimForm<T extends { resubmissionCode: string; originalClaimNumber: string }>(
+  form: T,
+  originalClaimNumber: string,
+): T {
+  return { ...form, resubmissionCode: "7", originalClaimNumber };
+}
+
+/** What the timeline tells the biller to do with the corrected claim. */
+export function correctedClaimInstruction(successor: string, original: string, carc: string | undefined, howToFix: string | null): string {
+  return `Corrected claim ${successor} is on Billing / Claim, replacing ${original} (Box 22: code 7, original ref ${original}). ${
+    carc ? `Fix what ${carc} refused${howToFix ? ` — ${howToFix}` : ""}` : "Fix what was refused"
+  } Then Validate and Submit it.`;
 }

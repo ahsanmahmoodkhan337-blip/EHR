@@ -231,7 +231,8 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                     <Clock3 className="h-3 w-3" aria-hidden="true" />
                     {item.ageDays} days · {item.bucket}
                   </span>
-                  <span>Appeal by {item.appealDeadline}</span>
+                  {/* Only a payer's refusal has an appeal window; a patient's balance is billed, not appealed. */}
+                  {item.kind === "denial" && <span>Appeal by {item.appealDeadline}</span>}
                   <span className="text-slate-400">
                     Patient balance on this claim {money(item.patientBalanceCents)}
                   </span>

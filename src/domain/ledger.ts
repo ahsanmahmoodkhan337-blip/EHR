@@ -86,6 +86,12 @@ export interface PostContext {
   userId: string;
   /** One clock read for the whole posting. */
   at?: string;
+  /**
+   * The claim is a corrected claim or appeal whose charge is already on the
+   * ledger as the transfer-in from the denied claim. Its 835 posts the payment
+   * and the adjustments only — posting the charge again would bill it twice.
+   */
+  chargeCarried?: boolean;
 }
 
 /**
@@ -112,7 +118,7 @@ export function postRemittanceToLedger(remittance: Remittance835, ctx: PostConte
       lineNumber: line.lineNumber,
     };
 
-    entries.push({
+    if (!ctx.chargeCarried) entries.push({
       ...base,
       id: `LEDG-${remittance.claimNumber}-charge-${line.lineNumber}-${line.cpt}`,
       type: "charge",
@@ -163,9 +169,9 @@ export interface LedgerBalance {
   /** What the patient still owes: the sum of every entry. */
   patientBalanceCents: number;
   /**
-   * What insurance still owes. A posted 835 settles the payer's share, so this
-   * is zero once the claim is adjudicated; it is here for the entries written
-   * before posting, and for the next slice's secondary claims.
+   * What insurance still owes: money moved onto a corrected claim or an appeal
+   * that the payer has not answered yet (`awaitingPayerCents`). A posted 835
+   * settles it.
    */
   insuranceBalanceCents: number;
 }
@@ -184,7 +190,8 @@ export function ledgerBalance(entries: LedgerEntry[] | null | undefined): Ledger
   const adjustmentsCents = -sumOf("adjustment") || 0;
   const patientPaidCents = -sumOf("patient_payment") || 0;
   const refundsCents = sumOf("refund");
-  const patientBalanceCents = list.reduce((sum, e) => sum + e.amountCents, 0);
+  const insuranceBalanceCents = awaitingPayerCents(list);
+  const patientBalanceCents = list.reduce((sum, e) => sum + e.amountCents, 0) - insuranceBalanceCents;
 
   return {
     chargesCents,
@@ -193,8 +200,42 @@ export function ledgerBalance(entries: LedgerEntry[] | null | undefined): Ledger
     patientPaidCents,
     refundsCents,
     patientBalanceCents,
-    insuranceBalanceCents: 0,
+    insuranceBalanceCents,
   };
+}
+
+/**
+ * Money the payer still owes on a corrected claim or an appeal: the claim
+ * carries a REBILL / APPEAL transfer-in and no 835 has been posted to it yet.
+ * Until then it is not the patient's balance — the payer has been asked again.
+ */
+export function awaitingPayerCents(entries: LedgerEntry[]): number {
+  const byClaim = new Map<string, LedgerEntry[]>();
+  for (const e of entries) {
+    const list = byClaim.get(e.claimNumber) ?? [];
+    list.push(e);
+    byClaim.set(e.claimNumber, list);
+  }
+  let cents = 0;
+  for (const list of byClaim.values()) {
+    const transferredIn = list.some(
+      (e) => e.type === "transfer" && e.amountCents > 0 && (e.code === "REBILL" || e.code === "APPEAL"),
+    );
+    if (!transferredIn || list.some((e) => e.eraId)) continue;
+    cents += list.reduce((sum, e) => sum + e.amountCents, 0);
+  }
+  return Math.max(0, cents);
+}
+
+/** Is this claim a corrected claim or appeal whose charge came in as a transfer? */
+export function chargeCarriedByTransfer(entries: LedgerEntry[] | null | undefined, claimNumber: string): boolean {
+  return (entries ?? []).some(
+    (e) =>
+      e.claimNumber === claimNumber &&
+      e.type === "transfer" &&
+      e.amountCents > 0 &&
+      (e.code === "REBILL" || e.code === "APPEAL"),
+  );
 }
 
 /** The entries posted from one claim, oldest first. */

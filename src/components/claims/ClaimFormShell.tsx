@@ -62,6 +62,8 @@ export interface ClaimFormShellProps {
   /** Status shown in the strip, e.g. "Draft — edits not submitted". */
   statusLabel: string;
   history?: { at: string; message: string }[];
+  /** A note shown above the toolbar — e.g. why this is a corrected claim. */
+  notice?: ReactNode;
   values: Record<string, unknown>;
   lines: Record<string, unknown>[];
   /** Shape of a new service line, used by the add-line control. */
@@ -109,6 +111,7 @@ export function ClaimFormShell({
   formTitle,
   statusLabel,
   history = [],
+  notice,
   values,
   lines,
   emptyLine,
@@ -361,6 +364,8 @@ export function ClaimFormShell({
           </div>
         )}
       </div>
+
+      {notice && <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">{notice}</div>}
 
       {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-3 py-2">

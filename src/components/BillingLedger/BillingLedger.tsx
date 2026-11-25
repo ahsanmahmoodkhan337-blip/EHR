@@ -32,7 +32,8 @@ import { PatientLedgerPanel } from "../status/PatientLedgerPanel";
 import { ArWorkQueuePanel } from "../status/ArWorkQueuePanel";
 import { MoneyNotYet } from "../status/MoneyNotYet";
 import { statusEventsFor } from "../../domain/statusEvent";
-import { CLAIM_STATUS_LABELS } from "../../domain/claimStatus";
+import { CLAIM_STATUS_LABELS, REASON_CODE_LABELS } from "../../domain/claimStatus";
+import { isRoutineAdjustmentCode } from "../../domain/arWorkQueue";
 import { ackForClaim, evaluateSubmission } from "../../domain/clearinghouse";
 import { remittanceForClaim } from "../../domain/adjudication";
 import { CMS1500Form } from "./CMS1500Form";
@@ -289,6 +290,37 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
   // The claim's own timeline — every recorded change to this claim, in order.
   // Read-only, and identified by the claim number the engine minted for it.
   const claimEvents = statusEventsFor(state.statusEvents, "claim", state.claimNumber);
+  // The strip's history is this claim's own timeline — a corrected claim does
+  // not show its original's 837P and 277CA as if it had been sent already.
+  const claimHistory = claimEvents
+    .filter((e) => e.reasonCode !== "CLAIM_CREATED")
+    .map((e) => ({ at: e.at, message: REASON_CODE_LABELS[e.reasonCode] ?? e.reasonCode }));
+
+  // A corrected claim (Box 22 code 7) says what it replaces and what the payer
+  // refused, so the biller knows what to fix before resubmitting.
+  const correctedNotice = (() => {
+    const original = (claimForm?.originalClaimNumber ?? "").trim();
+    if ((claimForm?.resubmissionCode ?? "").trim() !== "7" || !original) return null;
+    const refused = (state.remittances ?? [])
+      .filter((r) => r.claimNumber === original)
+      .flatMap((r) => r.lines.flatMap((l) => l.adjustments))
+      .find((a) => !isRoutineAdjustmentCode(a.carc));
+    const carc = refused ? CARC_BY_CODE[refused.carc] : undefined;
+    return (
+      <>
+        <p className="font-semibold">
+          Corrected claim — replaces {original} (Box 22: code 7 · original ref {original})
+        </p>
+        {carc ? (
+          <p className="mt-0.5">
+            {carc.code} {carc.description}: {carc.meaning} <span className="font-semibold">Fix:</span> {carc.howToFix}
+          </p>
+        ) : (
+          <p className="mt-0.5">Fix what the payer refused, then Validate and Submit.</p>
+        )}
+      </>
+    );
+  })();
 
   // The 277CA this claim last received — read off the timeline, never stored a
   // second time, so the panel and the timeline can never disagree.
@@ -1151,7 +1183,8 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       statusLabel={`${state.claimNumber ? `${state.claimNumber} · ` : ""}${
                         CLAIM_STATUS_LABELS[state.claimStatus ?? "draft"]
                       }`}
-                      history={(cs?.auditLogs ?? []).map((l) => ({ at: l.timestamp, message: l.message }))}
+                      history={claimHistory}
+                      notice={correctedNotice}
                       values={claimValues}
                       lines={claimLines}
                       emptyLine={blankServiceLine() as unknown as Record<string, unknown>}
@@ -1192,7 +1225,8 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       statusLabel={`${state.claimNumber ? `${state.claimNumber} · ` : ""}${
                         CLAIM_STATUS_LABELS[state.claimStatus ?? "draft"]
                       }`}
-                      history={(cs?.auditLogs ?? []).map((l) => ({ at: l.timestamp, message: l.message }))}
+                      history={claimHistory}
+                      notice={correctedNotice}
                       values={claimValues}
                       lines={claimLines}
                       emptyLine={blankServiceLine() as unknown as Record<string, unknown>}

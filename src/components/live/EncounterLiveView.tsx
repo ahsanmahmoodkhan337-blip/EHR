@@ -54,6 +54,7 @@ export function EncounterLiveView({ patient }: { patient: Patient }) {
     events,
     ledger: state.ledger ?? [],
     openArItems,
+    claimNumber: state.claimNumber,
   });
   const money = liveMoney({
     ledger: state.ledger ?? [],
