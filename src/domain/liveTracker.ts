@@ -15,6 +15,7 @@
 import type { StatusEvent } from "./statusEvent";
 import type { LedgerEntry } from "./ledger";
 import { ledgerBalance } from "./ledger";
+import { isRoutineAdjustmentCode } from "./arWorkQueue";
 
 export type MilestoneId =
   | "checked-in"
@@ -139,7 +140,13 @@ export interface LiveMoney {
   allowedCents: number | null;
   /** Null until a remittance is posted — nothing has been paid or adjusted yet. */
   paidCents: number | null;
+  /** Contractual and other routine write-offs only. */
   adjustedCents: number | null;
+  /**
+   * Refused by the payer on the 835 (CO-31, CO-197, CO-16…). A denial is not a
+   * write-off: the money is being worked in Denials & AR. Zero when none.
+   */
+  deniedCents: number;
   patientOwesCents: number | null;
 }
 
@@ -156,11 +163,17 @@ export function liveMoney(input: {
 }): LiveMoney {
   const b = ledgerBalance(input.ledger);
   const posted = b.chargesCents > 0;
+  // Adjustments posted from an 835 under a denial code; AR write-offs carry no
+  // ERA id and stay in Adjusted.
+  const deniedCents = input.ledger
+    .filter((e) => e.type === "adjustment" && e.eraId && !isRoutineAdjustmentCode(e.code))
+    .reduce((sum, e) => sum - e.amountCents, 0);
   return {
     billedCents: posted ? b.chargesCents : input.claimChargeCents,
     allowedCents: input.remitAllowedCents ?? null,
     paidCents: posted ? b.insurancePaidCents + b.patientPaidCents : null,
-    adjustedCents: posted ? b.adjustmentsCents : null,
+    adjustedCents: posted ? b.adjustmentsCents - deniedCents : null,
+    deniedCents: Math.max(0, deniedCents),
     patientOwesCents: posted ? b.patientBalanceCents : null,
   };
 }

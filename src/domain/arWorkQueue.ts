@@ -215,6 +215,11 @@ export function appealDeadlineFor(datedAt: string): string {
  */
 const ROUTINE_ADJUSTMENTS = new Set(["CO-45", "PR-1", "PR-2", "PR-3"]);
 
+/** A routine adjustment (contractual CO-45, or the PR deductible / coinsurance / copay) — not a denial. */
+export function isRoutineAdjustmentCode(carc: string): boolean {
+  return ROUTINE_ADJUSTMENTS.has(carc);
+}
+
 function isDenialAdjustment(adj: { group: AdjustmentGroup; carc: string }): boolean {
   if (ROUTINE_ADJUSTMENTS.has(adj.carc)) return false;
   return adj.group === "CO" || adj.group === "OA" || adj.group === "PR";

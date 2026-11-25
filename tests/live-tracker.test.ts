@@ -57,7 +57,29 @@ describe("the live tracker reads what the student has done", () => {
       { id: "a", type: "adjustment", amountCents: -3500 },
     ] as never;
     expect(liveMoney({ ledger, claimChargeCents: 17500, remitAllowedCents: 14000 })).toEqual({
-      billedCents: 17500, allowedCents: 14000, paidCents: 11200, adjustedCents: 3500, patientOwesCents: 2800,
+      billedCents: 17500, allowedCents: 14000, paidCents: 11200, adjustedCents: 3500, deniedCents: 0, patientOwesCents: 2800,
     });
+  });
+});
+
+describe("the money ticker tells a denial apart from a write-off", () => {
+  test("a CO-31 denial shows as Denied (in AR), not as Adjusted", () => {
+    const ledger = [
+      { id: "c", patientId: "P", claimNumber: "CLM-1", date: "2026-11-26", type: "charge", code: "99203", description: "", amountCents: 17500, userId: "system", eraId: "ERA-1" },
+      { id: "a", patientId: "P", claimNumber: "CLM-1", date: "2026-11-26", type: "adjustment", code: "CO-31", description: "", amountCents: -17500, userId: "system", eraId: "ERA-1" },
+    ] as const;
+    const m = liveMoney({ ledger: [...ledger], claimChargeCents: 17500 });
+    expect(m.deniedCents).toBe(17500);
+    expect(m.adjustedCents).toBe(0);
+  });
+
+  test("a contractual CO-45 stays in Adjusted and nothing is denied", () => {
+    const ledger = [
+      { id: "c", patientId: "P", claimNumber: "CLM-1", date: "2026-11-26", type: "charge", code: "99213", description: "", amountCents: 28000, userId: "system", eraId: "ERA-1" },
+      { id: "a", patientId: "P", claimNumber: "CLM-1", date: "2026-11-26", type: "adjustment", code: "CO-45", description: "", amountCents: -11879, userId: "system", eraId: "ERA-1" },
+    ] as const;
+    const m = liveMoney({ ledger: [...ledger], claimChargeCents: 28000 });
+    expect(m.deniedCents).toBe(0);
+    expect(m.adjustedCents).toBe(11879);
   });
 });

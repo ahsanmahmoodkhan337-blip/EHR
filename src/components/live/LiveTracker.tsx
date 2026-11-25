@@ -136,6 +136,7 @@ export function LiveTracker({
           <Money label="Allowed" cents={money.allowedCents} />
           <Money label="Paid" cents={money.paidCents} tone="text-green-700" />
           <Money label="Adjusted" cents={money.adjustedCents} tone="text-slate-600" />
+          {money.deniedCents > 0 && <Money label="Denied (in AR)" cents={money.deniedCents} tone="text-red-700" />}
           <Money label="Patient owes" cents={money.patientOwesCents} tone="text-brand-900" />
         </dl>
 
