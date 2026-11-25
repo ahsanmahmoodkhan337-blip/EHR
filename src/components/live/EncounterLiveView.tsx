@@ -67,6 +67,7 @@ export function EncounterLiveView({ patient }: { patient: Patient }) {
         milestones={milestones}
         money={money}
         activityCount={events.length}
+        referenceChart={patient.id === TUTORIAL_PATIENT_ID}
         onOpenActivity={() => setActivityOpen(true)}
       />
       <LiveEventCard events={events} scopeKey={patient.id} onOpenActivity={() => setActivityOpen(true)} />

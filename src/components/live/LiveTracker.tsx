@@ -46,7 +46,10 @@ export function LiveTracker({
   money,
   onOpenActivity,
   activityCount,
+  referenceChart = false,
 }: {
+  /** The read-only Tutorial Patient: the hint points through the chart, not at work. */
+  referenceChart?: boolean;
   milestones: Milestone[];
   money: LiveMoney;
   onOpenActivity: () => void;
@@ -108,7 +111,12 @@ export function LiveTracker({
       </ol>
 
       <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {current ? (
+        {referenceChart ? (
+          <p className="min-w-[16rem] flex-1 text-[13px] text-slate-600">
+            <span className="font-semibold text-slate-800">Reference chart: </span>
+            press Continue to see each finished stage. Book your own patient to do these steps yourself.
+          </p>
+        ) : current ? (
           <p className={`min-w-[16rem] flex-1 text-[13px] ${current.state === "problem" ? "text-red-700" : "text-slate-600"}`}>
             {current.state === "problem" ? (
               current.note
