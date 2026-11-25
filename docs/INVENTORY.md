@@ -503,3 +503,6 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - **Summary tab** (new RR card) and **Vitals tab** save through the shared `components/vitals/VitalsSaveBar.tsx` into the same flowsheet. All roles now see the chart's vitals, not the seed's.
 - Opening a chart seeds the live vitals (sidebar, note Objective, sign checklist) from the latest saved set (`routes/index.tsx`). The summary sidebar shows "saved HH:MM" or "(live — not saved)".
 - Tests: `tests/vitals-saved-to-chart.test.ts`.
+## 20. Rows opened from Claims / Payments / Denials land on the chart (2026-11-26)
+
+- `routes/index.tsx`: a patient handed over by a rail page ("Open this claim", money-cycle rows) now also switches the workspace to the chart, and an `/encounter/…` address starts on the chart. Before, the Tutorial claim opened from Claims showed the Daily Schedule with the CMS-1500 hidden.
