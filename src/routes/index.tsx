@@ -74,7 +74,7 @@ import {
   previousFlowStage,
   type BillingDeskTab,
 } from "../domain/encounterFlow";
-import {
+import { routePickDecision,
   ENCOUNTER_ROUTE_PREFIX,
   encounterPath,
   openingStageId,
@@ -1682,10 +1682,22 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * fall back to the remembered patient. When the named patient does appear, the
    * address takes over — a saved session never overrides an explicit pick.
    */
+  // The address picks its patient once per navigation. After that a click in
+  // the patient list wins: the address is then rewritten shallowly, so the
+  // router's `encounterIdFromRoute` keeps the old id and must not drag the
+  // student back to it (owner, 2026-11-25: after opening a newly booked patient,
+  // the Tutorial Patient would not open).
+  const routePickApplied = useRef<string | null>(null);
   useEffect(() => {
-    if (!encounterIdFromRoute) return;
-    if (selectedPatientId === encounterIdFromRoute) return;
-    if (!patients.some((p) => p.id === encounterIdFromRoute)) return;
+    const decision = routePickDecision({
+      routeId: encounterIdFromRoute,
+      appliedFor: routePickApplied.current,
+      selectedId: selectedPatientId,
+      routePatientLoaded: patients.some((p) => p.id === encounterIdFromRoute),
+    });
+    if (decision === "skip" || !encounterIdFromRoute) return;
+    routePickApplied.current = encounterIdFromRoute;
+    if (decision === "settled") return;
     explicitPick.current = true;
     setSelectedPatientId(encounterIdFromRoute);
     selectPatient(encounterIdFromRoute);

@@ -113,3 +113,26 @@ export function writeEncounterAddress(href: string, target: AddressTarget): bool
   }
   return true;
 }
+
+/**
+ * Should the encounter named in the address take over the chart?
+ *
+ * Once per navigation only. The address is rewritten shallowly when the student
+ * picks another patient, so the router keeps reporting the old id; treating
+ * that stale id as a fresh pick dragged the student back to the patient they
+ * had just left (owner, 2026-11-25).
+ *
+ * Returns "apply" (switch to the route's patient), "settled" (already showing
+ * it — remember that and do nothing) or "skip".
+ */
+export function routePickDecision(input: {
+  routeId: string | undefined;
+  appliedFor: string | null;
+  selectedId: string;
+  routePatientLoaded: boolean;
+}): "apply" | "settled" | "skip" {
+  const { routeId, appliedFor, selectedId, routePatientLoaded } = input;
+  if (!routeId || appliedFor === routeId) return "skip";
+  if (selectedId === routeId) return "settled";
+  return routePatientLoaded ? "apply" : "skip";
+}
