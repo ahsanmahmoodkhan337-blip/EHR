@@ -71,6 +71,7 @@ export interface CardHolder {
   insuranceRecord?: {
     primary?: CardCoverage | null;
     secondary?: CardCoverage | null;
+    cardIssued?: boolean;
   } | null;
 }
 
@@ -315,6 +316,12 @@ export function caseMismatch(patient: CardHolder | null | undefined): CardMismat
   // (`domain/tutorialIdentity.ts`). The trap stays on every chart the student
   // works — their own bookings and the Practice Cases.
   if (patient.id === TUTORIAL_PATIENT_ID) return null;
+
+  // No card existed when the student registered this patient: they typed the
+  // coverage themselves, so there was no printed card whose spelling they could
+  // have caught. Inventing a misspelt card afterwards marked a correct student
+  // wrong (and promised a denial the claim never got).
+  if (patient.insuranceRecord?.cardIssued === false) return null;
 
   const firstName = (patient.firstName ?? "").trim();
   const lastName = (patient.lastName ?? "").trim();

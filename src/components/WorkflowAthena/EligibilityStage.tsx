@@ -194,7 +194,9 @@ export function EligibilityStage({
                   <dd className="font-medium">
                     {benefits.deductibleRemainingUsd === null
                       ? "—"
-                      : `${usd(benefits.deductibleRemainingUsd)} (unmet — nothing posted against it yet)`}
+                      : benefits.deductibleRemainingUsd === 0
+                        ? "$0.00 — this plan has no deductible"
+                        : `${usd(benefits.deductibleRemainingUsd)} (unmet — nothing posted against it yet)`}
                   </dd>
                 </div>
                 <div>

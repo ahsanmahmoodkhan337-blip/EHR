@@ -30,6 +30,8 @@ import {
 } from "../../store/ehrStore";
 import { SEED_PATIENTS } from "../../store/patientStore";
 import { studentPatientList } from "../../domain/inbox";
+import { PAYER_DIRECTORY, payerDirectoryEntry } from "../../data/medical/payerDirectory";
+import { buildInsuranceRecord } from "../../utils/insuranceRecord";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -149,6 +151,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
   const updateAppointment = useEhrStore((s) => s.updateAppointment);
   const setAppointmentStatus = useEhrStore((s) => s.setAppointmentStatus);
   const registerPatient = useEhrStore((s) => s.registerPatient);
+  const updatePatientInsurance = useEhrStore((s) => s.updatePatientInsurance);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -162,6 +165,14 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
   const [newDob, setNewDob] = useState("");
   const [newSex, setNewSex] = useState("Female");
   const [newPhone, setNewPhone] = useState("");
+  // Address and coverage are taken at booking, as a front desk does: the claim
+  // needs the address (boxes 5 and 7), and the insurance card the patient brings
+  // to check-in is printed from what is captured here.
+  const [newAddress, setNewAddress] = useState("");
+  const [newPayer, setNewPayer] = useState("");
+  const [newPayerOther, setNewPayerOther] = useState("");
+  const [newMemberId, setNewMemberId] = useState("");
+  const [newGroup, setNewGroup] = useState("");
   const [modalType, setModalType] = useState("Follow-up");
   const [modalTime, setModalTime] = useState("09:00");
   const [modalDuration, setModalDuration] = useState(30);
@@ -233,6 +244,11 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
     setNewDob("");
     setNewSex("Female");
     setNewPhone("");
+    setNewAddress("");
+    setNewPayer("");
+    setNewPayerOther("");
+    setNewMemberId("");
+    setNewGroup("");
     setModalType("Follow-up");
     setModalTime("09:00");
     setModalDuration(30);
@@ -362,6 +378,24 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
         );
         return;
       }
+      if (!newAddress.trim()) {
+        setSaveError(
+          "Add the patient's address (street, city, state ZIP) — the claim prints it in boxes 5 and 7.",
+        );
+        return;
+      }
+      const payerName = newPayer === "__other" ? newPayerOther.trim() : newPayer;
+      const insured = payerName !== "" && payerName !== "Self-pay";
+      if (newPayer === "__other" && !payerName) {
+        setSaveError("Type the payer's name as it is printed on the card, or pick one from the list.");
+        return;
+      }
+      if (insured && !newMemberId.trim()) {
+        setSaveError(
+          `Add the member ID from the ${payerName} card — eligibility (270) and the claim (box 1a) are matched on it.`,
+        );
+        return;
+      }
       savingRef.current = true;
       try {
         const created = registerPatient({
@@ -370,7 +404,28 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
           dateOfBirth: newDob || undefined,
           sex: newSex,
           phone: newPhone || undefined,
+          address: newAddress.trim(),
         });
+        if (payerName) {
+          updatePatientInsurance(
+            created.id,
+            buildInsuranceRecord({
+              primary: insured
+                ? {
+                    payerName,
+                    ediPayerId: payerDirectoryEntry(payerName)?.ediPayerId ?? "",
+                    subscriberId: newMemberId,
+                    groupNumber: newGroup,
+                    relationshipToSubscriber: "Self",
+                    planName: payerName,
+                  }
+                : { payerName: "Self-pay", planName: "Self-pay", relationshipToSubscriber: "Self" },
+              // A card captured at booking is the card the patient hands over
+              // at check-in; self-pay has no card at all.
+              cardIssued: insured,
+            }),
+          );
+        }
         patientId = created.id;
         patientName = `${created.firstName} ${created.lastName}`;
       } catch (err) {
@@ -428,7 +483,16 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
   };
 
   // Start visit for a patient
+  // The front-desk order: Scheduled → Arrived (checked in: card read,
+  // insurance verified, 270 run on the chart's Registration step) → In Progress
+  // (the provider is in the room) → Completed.
   const startVisit = (apt: Appointment) => {
+    if (apt.status === "scheduled" || apt.status === "arrived") changeStatus(apt.id, "in-progress");
+    onSelectPatient?.(apt.patientId, apt.patientName);
+  };
+  const checkIn = (apt: Appointment) => {
+    changeStatus(apt.id, "arrived");
+    // Check-in is Registration: open the chart, which starts on that step.
     onSelectPatient?.(apt.patientId, apt.patientName);
   };
 
@@ -799,7 +863,8 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                       </button>
                       {apt.status === "scheduled" && (
                         <button
-                          onClick={() => changeStatus(apt.id, "in-progress")}
+                          onClick={() => checkIn(apt)}
+                          title="Mark the patient arrived and open Registration: read the card, verify insurance, run the 270"
                           className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-100"
                         >
                           Check In
@@ -943,6 +1008,8 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                       <button
                         onClick={() => {
                           setShowRegister(true);
+                          // A patient being registered has never been seen here.
+                          setModalType("New Patient");
                           const [first, ...rest] = patientQuery.trim().split(/\s+/);
                           setNewFirst(first ?? "");
                           setNewLast(rest.join(" "));
@@ -991,6 +1058,66 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                           placeholder="Phone (required)"
                           className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
                         />
+                        <input
+                          value={newAddress}
+                          onChange={(e) => setNewAddress(e.target.value)}
+                          placeholder="Address — street, city, state ZIP (required)"
+                          aria-label="Patient address"
+                          className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                        />
+                        <div className="rounded-lg border border-slate-200 bg-white p-2">
+                          <p className="mb-1.5 text-[10px] font-semibold text-slate-600">
+                            Insurance — the card the patient will bring to check-in
+                          </p>
+                          <select
+                            value={newPayer}
+                            onChange={(e) => setNewPayer(e.target.value)}
+                            aria-label="Payer"
+                            className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                          >
+                            <option value="">Not given yet — capture it at check-in</option>
+                            {PAYER_DIRECTORY.map((p) => (
+                              <option key={p.payerName} value={p.payerName}>
+                                {p.payerName} · {p.planType}
+                              </option>
+                            ))}
+                            <option value="Self-pay">Self-pay (no insurance)</option>
+                            <option value="__other">Other payer (type the name)</option>
+                          </select>
+                          {newPayer === "__other" && (
+                            <input
+                              value={newPayerOther}
+                              onChange={(e) => setNewPayerOther(e.target.value)}
+                              placeholder="Payer name as printed on the card"
+                              aria-label="Other payer name"
+                              className="mt-1.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                            />
+                          )}
+                          {newPayer === "__other" && (
+                            <p className="mt-1 text-[10px] text-amber-700">
+                              A payer outside the list has no benefit rules here: the 271 returns no copay or
+                              deductible, and the claim prices on standard commercial terms.
+                            </p>
+                          )}
+                          {newPayer !== "" && newPayer !== "Self-pay" && (
+                            <div className="mt-1.5 grid grid-cols-2 gap-2">
+                              <input
+                                value={newMemberId}
+                                onChange={(e) => setNewMemberId(e.target.value)}
+                                placeholder="Member ID (required)"
+                                aria-label="Member ID"
+                                className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                              />
+                              <input
+                                value={newGroup}
+                                onChange={(e) => setNewGroup(e.target.value)}
+                                placeholder="Group number"
+                                aria-label="Group number"
+                                className="rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </>

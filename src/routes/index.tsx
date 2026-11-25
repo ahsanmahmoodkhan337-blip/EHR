@@ -2806,6 +2806,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         onSignAndLock={handleSignAndLock}
                         isSubmitting={isSubmittingNote}
                         readOnly={tutorialChartOpen}
+                        vitals={editableVitals}
                       />
                     )}
                     {activeStage === "sign-lock" && noteSigned && (

@@ -175,6 +175,12 @@ export interface AdjudicationInput {
   benefitUsage?: { category: string; used: number; limit: number }[];
   /** One clock read for the whole remittance; the caller may pin it in tests. */
   at?: string;
+  /**
+   * The 271 found the subscriber name on the claim's coverage does not match
+   * the payer's member file. The payer cannot identify the patient, so every
+   * line denies CO-31 — the denial the registration lesson warns about.
+   */
+  subscriberNameMismatch?: { payerHolds: string; claimCarries: string } | null;
 }
 
 // ─── Contracted allowances ─────────────────────────────────────────
@@ -373,6 +379,7 @@ interface LineContext {
   /** Deductible left before this line. */
   deductibleRemainingCents: number;
   allCodes: string[];
+  subscriberNameMismatch?: AdjudicationInput["subscriberNameMismatch"];
 }
 
 interface PricedLine {
@@ -404,6 +411,24 @@ function priceLine(
     writeOffCents: 0,
     insuranceBalanceCents: 0,
   };
+
+  // (0) The payer cannot identify the patient: the subscriber name does not
+  //     match its member file. Nothing on the claim is priced.
+  if (ctx.subscriberNameMismatch) {
+    const { payerHolds, claimCarries } = ctx.subscriberNameMismatch;
+    return {
+      line: {
+        ...base,
+        allowedCents: 0,
+        adjustments: [adjustment("CO-31", billedCents)],
+        writeOffCents: billedCents,
+        denied: true,
+        allowanceSource: "billed",
+        explanation: `The payer's member file holds “${payerHolds}” and the claim carries “${claimCarries}”, so it cannot identify the patient as its insured: ${dollars(billedCents)} denied CO-31. Have the patient's insurer correct its record, then correct and resubmit.`,
+      },
+      deductibleLeftCents: ctx.deductibleRemainingCents,
+    };
+  }
 
   // (a) A required authorisation the payer has no number for.
   if (authRequiredFor(input.cpt, plan) && !ctx.priorAuthNumber.trim()) {
@@ -550,6 +575,7 @@ export function adjudicateClaim(input: AdjudicationInput): Remittance835 {
     priorAuthNumber: input.priorAuthNumber ?? "",
     deductibleRemainingCents: deductibleLeft,
     allCodes,
+    subscriberNameMismatch: input.subscriberNameMismatch ?? null,
   };
 
   const lines: RemittanceLine[] = input.lines.map((line, index) => {

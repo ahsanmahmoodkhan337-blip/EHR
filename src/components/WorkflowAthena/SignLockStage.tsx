@@ -13,6 +13,7 @@ import type { SoapNoteData } from "./AssessmentPlanStage";
 import { exportSOAPNotePDF } from "../../utils/pdfExport";
 import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
 import { localDay } from "../../utils/localDay";
+import { checkVitals, hasVital } from "../../utils/vitals";
 
 /** The reason drawn under the Sign & Lock button, at the point of the click. */
 const SIGN_LOCK_REASON = readOnlyNoteId("sign-lock");
@@ -24,9 +25,39 @@ interface SignLockStageProps {
   isSubmitting?: boolean;
   /** The standard reference chart: signing is a write, so it is disabled and says why. */
   readOnly?: boolean;
+  /** The vitals on the encounter, so the checklist can say whether they are usable. */
+  vitals?: { bloodPressure: string; heartRate: string; temperature: string; respiratoryRate: string; oxygenSaturation: string };
 }
 
-export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, readOnly = false }: SignLockStageProps) {
+export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, readOnly = false, vitals }: SignLockStageProps) {
+  // The checklist reads the note itself. It used to tick vitals whatever was
+  // typed and never tick the last three, while the note signed regardless.
+  const subjective = note?.subjective ?? "";
+  const hpiText = subjective.replace(/(?:\n+|^)ROS: [^\n]*$/, "").trim();
+  const rosDone = /(?:^|\n)ROS: /.test(subjective) || /^(All systems reviewed|Abnormal ROS findings)/.test(note?.objective ?? "");
+  const [sys, dia] = (vitals?.bloodPressure ?? "").split("/").map((n) => Number(n));
+  const vitalsCheck = checkVitals({
+    systolic: sys || 0,
+    diastolic: dia || 0,
+    heartRate: Number(vitals?.heartRate) || 0,
+    temperatureF: Number(vitals?.temperature) || 0,
+    respiratoryRate: Number(vitals?.respiratoryRate) || 0,
+    oxygenSaturation: Number(vitals?.oxygenSaturation) || 0,
+  });
+  const vitalsRecorded = vitals ? hasVital(vitals.heartRate) && hasVital(vitals.bloodPressure) : true;
+  const plan = note?.plan ?? "";
+  const checklist = [
+    { label: "Vital signs recorded and plausible", done: vitalsRecorded && vitalsCheck.impossible.length === 0, required: true },
+    { label: "HPI documented", done: hpiText.length > 0, required: true },
+    { label: "Review of Systems completed", done: rosDone, required: false },
+    { label: "Assessment documented", done: Boolean(note?.assessment?.trim()), required: true },
+    { label: "Plan documented", done: Boolean(plan.trim()), required: true },
+    { label: "Orders placed (if any)", done: /\b(order|ordered|lab|labs|x-?ray|ecg|ekg|cbc|cmp|imaging)\b/i.test(plan), required: false },
+    { label: "Follow-up stated", done: /\b(follow[- ]?up|return|recheck)\b/i.test(plan), required: false },
+  ];
+  const missingRequired = checklist.filter((c) => c.required && !c.done).map((c) => c.label);
+  const signBlocked = missingRequired.length > 0;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -45,15 +76,7 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
           <span className="text-sm font-semibold text-slate-700">Encounter Completion Checklist</span>
         </div>
         <div className="space-y-2">
-          {[
-            { label: "Vital signs recorded", done: true },
-            { label: "HPI documented", done: !!note?.subjective },
-            { label: "Review of Systems completed", done: !!note?.objective },
-            { label: "Assessment & Plan documented", done: !!(note?.assessment || note?.plan) },
-            { label: "Orders placed", done: false },
-            { label: "Patient instructions provided", done: false },
-            { label: "Follow-up scheduled", done: false },
-          ].map((item, i) => (
+          {checklist.map((item, i) => (
             <div key={i} className="flex items-center gap-3">
               {item.done ? (
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -63,6 +86,9 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
               <span className={`text-sm ${item.done ? "text-slate-500 line-through" : "text-slate-700"}`}>
                 {item.label}
               </span>
+              {item.required && !item.done && (
+                <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">Required</span>
+              )}
             </div>
           ))}
         </div>
@@ -75,8 +101,9 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
           <div>
             <p className="text-sm font-medium text-amber-800">Compliance & Billing Requirements</p>
             <p className="mt-1 text-xs text-amber-700">
-              All required fields must be completed before the note can be signed and locked.
-              ICD-10 coding and CPT billing codes will be required for finalization.
+              Items marked Required must be complete before the note can be signed — a claim can only be
+              coded from a note that documents the visit. Once signed, the note is locked; ICD-10 and CPT
+              codes are assigned next, on the Coding stage.
             </p>
           </div>
         </div>
@@ -94,10 +121,13 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
           <button
             onClick={onSignAndLock}
             {...readOnlyAttrs(readOnly, SIGN_LOCK_REASON)}
-            disabled={isSubmitting || readOnly}
+            disabled={isSubmitting || readOnly || signBlocked}
+            title={signBlocked && !readOnly ? `Still required: ${missingRequired.join(", ")}` : undefined}
             className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
               isSubmitting
                 ? "bg-blue-400 text-white cursor-wait"
+                : signBlocked && !readOnly
+                ? "bg-slate-300 text-white cursor-not-allowed"
                 : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md"
             }`}
           >
@@ -109,6 +139,11 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
             {isSubmitting ? "Signing & Locking..." : "Sign & Lock Note"}
           </button>
           <ReadOnlyNote readOnly={readOnly} id={SIGN_LOCK_REASON} />
+          {signBlocked && !readOnly && (
+            <p className="mt-1.5 max-w-xs text-left text-xs text-red-700">
+              Still required before signing: {missingRequired.join(", ")}.
+            </p>
+          )}
           </div>
           <button
             onClick={() => {

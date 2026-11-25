@@ -97,6 +97,36 @@ import {
 } from "../domain/statusEvent";
 
 // Re-exported so every existing import path keeps working.
+
+/**
+ * The payer's spelling and the claim's, when the 271 on file found the
+ * subscriber name does not match the payer's member file and the claim still
+ * carries a different spelling. Null otherwise — including when the claim
+ * prints the name exactly as the payer holds it.
+ */
+function subscriberNameMismatchFor(
+  patientId: string | null | undefined,
+  claimInsuredName: string,
+): { payerHolds: string; claimCarries: string } | null {
+  if (!patientId) return null;
+  const patient = selectPatientById(useEhrStore.getState(), patientId);
+  if (!patient) return null;
+  if (patient.insuranceRecord?.primary?.eligibility?.nameCheck !== "mismatch") return null;
+  const mismatch = caseMismatch(patient);
+  if (!mismatch || mismatch.kind !== "name") return null;
+  const onClaim = claimInsuredName.trim();
+  // Box 4 is written "LAST, FIRST"; the card prints "First Last". Compare the
+  // name parts exactly, in either order — a transposed letter is a mismatch.
+  const parts = (n: string) => n.toLowerCase().split(/[\s,]+/).filter(Boolean);
+  const sameName = (a: string, b: string) => {
+    const pa = parts(a);
+    const pb = parts(b);
+    return pa.length > 0 && (pa.join(" ") === pb.join(" ") || pa.join(" ") === [...pb].reverse().join(" "));
+  };
+  if (onClaim && sameName(onClaim, mismatch.onCard)) return null;
+  return { payerHolds: mismatch.onCard, claimCarries: onClaim || mismatch.onLicence };
+}
+
 export type {
   ClaimFormData,
   ClaimServiceLine,
@@ -106,6 +136,7 @@ export type {
   PipelineStoreState,
   Role,
 } from "./pipelineEncounter";
+import { caseMismatch } from "../domain/patientCard";
 export { encounterHasWork, encounterKey, UNASSIGNED_ENCOUNTER_KEY } from "./pipelineEncounter";
 
 export interface DeniedClaim {
@@ -1180,6 +1211,9 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         deductibleRemainingCents: Math.round((plan?.deductibleUsd ?? 0) * 100),
         // Box 23: the authorisation number the claim actually carries.
         priorAuthNumber: enc.claimForm?.priorAuthNumber ?? "",
+        // The 271 the front desk ran said the payer's member file spells the
+        // name differently: the payer cannot identify the patient (CO-31).
+        subscriberNameMismatch: subscriberNameMismatchFor(enc.patientId, enc.claimForm?.insuredName ?? ""),
       });
 
       const event = makeStatusEvent(

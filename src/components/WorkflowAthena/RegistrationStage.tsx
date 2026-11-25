@@ -136,6 +136,9 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
    * chart itself.
    */
   const [cardRead, setCardRead] = useState(false);
+  // Whether a card was on file at the moment it was read. A student who reads
+  // an empty card and types the coverage themselves is its only source.
+  const [cardOnFileAtRead, setCardOnFileAtRead] = useState<boolean | null>(null);
   /** The saved transcription's own count — null until the student saves. */
   const [transcription, setTranscription] = useState<TranscriptionScore | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -333,6 +336,9 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
                   relationshipToSubscriber: form.relationship,
                 }
               : null,
+            // Keep what an earlier save knew; otherwise, whether a card existed
+            // when the student read it.
+            cardIssued: patient.insuranceRecord?.cardIssued ?? cardOnFileAtRead ?? card.onFile,
           }),
         );
         setSavedToChart(true);
@@ -416,7 +422,10 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
               <>
                 <button
                   type="button"
-                  onClick={() => setCardRead(true)}
+                  onClick={() => {
+                    setCardOnFileAtRead(card.onFile);
+                    setCardRead(true);
+                  }}
                   aria-describedby={READ_CARD_REASON_ID}
                   className="btn-primary min-h-10 self-start"
                 >

@@ -176,6 +176,13 @@ export interface PatientInsurance {
   source: "registration" | "seed" | "migrated";
   /** ISO timestamp of the last registration write ("" for migrated records). */
   updatedAt: string;
+  /**
+   * False when the student typed this coverage at Registration with no card on
+   * file — they were the card's only source, so there was no card to misread.
+   * Absent or true: a card existed first (booking, seed data), and the
+   * registration name-mismatch trap applies.
+   */
+  cardIssued?: boolean;
 }
 
 export interface Patient {
