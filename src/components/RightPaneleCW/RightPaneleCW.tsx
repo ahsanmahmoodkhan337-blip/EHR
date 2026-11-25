@@ -15,6 +15,8 @@ import type { PARecordStore } from "../../store/pipelineStore";
 import { formatVital } from "../../utils/vitals";
 
 interface RightPaneleCWProps {
+  /** The latest set saved to the chart (Save Vitals), with its time. */
+  savedVitals?: { at: string; values: { bloodPressure: string; heartRate: string; temperature: string; respiratoryRate: string; oxygenSaturation: string } } | null;
   patient: Patient | null;
   /** Override display name when patient is a placeholder (e.g. new appointments) */
   displayName?: string;
@@ -48,7 +50,7 @@ interface RightPaneleCWProps {
   paRecords?: PARecordStore[];
 }
 
-export function RightPaneleCW({ patient, displayName, editableVitals, editablePatientData, sharedImmunizations, sharedLabs, sharedReferrals, sharedOrders, sharedImaging, soapNote, paRecords }: RightPaneleCWProps) {
+export function RightPaneleCW({ patient, displayName, editableVitals, savedVitals, editablePatientData, sharedImmunizations, sharedLabs, sharedReferrals, sharedOrders, sharedImaging, soapNote, paRecords }: RightPaneleCWProps) {
   if (!patient) {
     return (
       <aside className="w-72 shrink-0 border-l border-slate-200 bg-slate-50 p-4">
@@ -118,7 +120,25 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
           <span className="text-xs font-semibold text-slate-500">
             Latest Vitals
           </span>
-          {editableVitals && <span className="text-[11px] text-brand-500 italic">(live)</span>}
+          {(() => {
+            const typed = editableVitals && Object.values(editableVitals).some((v) => String(v ?? "").trim() !== "");
+            const matchesSaved =
+              savedVitals && editableVitals && JSON.stringify(savedVitals.values) === JSON.stringify({
+                bloodPressure: editableVitals.bloodPressure,
+                heartRate: editableVitals.heartRate,
+                temperature: editableVitals.temperature,
+                respiratoryRate: editableVitals.respiratoryRate,
+                oxygenSaturation: editableVitals.oxygenSaturation,
+              });
+            if (savedVitals && (matchesSaved || !typed)) {
+              return (
+                <span className="text-[11px] text-green-700">
+                  saved {new Date(savedVitals.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              );
+            }
+            return typed ? <span className="text-[11px] italic text-brand-500">(live — not saved)</span> : null;
+          })()}
         </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-sm">
           <span className="text-slate-500">BP:</span>

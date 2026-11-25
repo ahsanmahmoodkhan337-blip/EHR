@@ -495,3 +495,11 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - `src/components/shell/HelpLauncher.tsx` — a 52 px round help head, fixed on screen, that the student can drag anywhere. It snaps to the nearer side edge and remembers where it was left (`hh_help_pos`, a UI preference, not student work). Tap opens the panel beside it (bottom sheet on phones); Escape closes.
 - Panel: **Ask a question** (answered offline), suggested questions, the six how-to guides, keyboard shortcuts, WhatsApp support, simulated-data line. Replaces the old `hh_help_open` docked button in the footer strip.
 - `src/domain/helpGuide.ts` — `askHelpGuide()` answers from the app's own content only: a how-to FAQ (on-screen button names), an RCM glossary (270/271, 837P, 277CA, 835, copay/deductible/coinsurance, allowed, PA, modifiers, POS, NPI, timely filing, E/M…), the CARC table (`co45`, `CO 45`, `CO-45` all match) and the how-to guides. No AI service; an unknown question says so.
+
+## 20. Vitals are part of the chart (2026-11-26)
+
+- New `PipelineEncounter.vitals: RecordedVitals[]` — the vitals flowsheet (`src/domain/vitalsRecord.ts`). Additive: `normalizeEncounter` loads a record saved before it with `[]`; nothing is invented. Store action `recordVitals` (refused on the read-only Tutorial Patient like every chart write).
+- **Intake / Vitals**: boxes open empty (no 120/80 · 72 · 98.6 defaults); **Save Vitals** needs all six core vitals (BP sys/dia, HR, temp, RR, SpO2), refuses impossible values, appends a dated set, and shows "Saved to the chart · time". A **Vitals history** table lists every set with who recorded it.
+- **Summary tab** (new RR card) and **Vitals tab** save through the shared `components/vitals/VitalsSaveBar.tsx` into the same flowsheet. All roles now see the chart's vitals, not the seed's.
+- Opening a chart seeds the live vitals (sidebar, note Objective, sign checklist) from the latest saved set (`routes/index.tsx`). The summary sidebar shows "saved HH:MM" or "(live — not saved)".
+- Tests: `tests/vitals-saved-to-chart.test.ts`.

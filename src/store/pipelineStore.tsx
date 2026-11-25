@@ -16,6 +16,7 @@
  * its ledger and worklists are legitimately multi-patient, so they stay global.
  */
 
+import type { RecordedVitals } from "../domain/vitalsRecord";
 import { createContext, useContext, useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { getLoggedInPhone } from "./accessStore";
 import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persistence";
@@ -308,6 +309,8 @@ interface PipelineContextValue {
    * ledger entry ids are derived from the item, so a double press adds nothing.
    */
   resolveArItem: (input: { itemId: string; action: ArAction; reasonCode?: string; note?: string }) => void;
+  /** Save Vitals: append one dated set to the active encounter's flowsheet. */
+  recordVitals: (vitals: RecordedVitals) => void;
   /**
    * Record the work in progress on an item — assigned to, in progress,
    * escalated, or back to open. Moves no money and can never un-resolve one.
@@ -1380,6 +1383,10 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const recordVitals: PipelineContextValue["recordVitals"] = (vitals) => {
+    updateActive((enc) => ({ ...enc, vitals: [...(enc.vitals ?? []), vitals] }), "The vitals");
+  };
+
   const patchClaimForm = (patch: Partial<ClaimFormData>) => {
     updateActive((enc) => ({
       ...enc,
@@ -1759,6 +1766,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
         arCalls,
         arWorkItems,
         resolveArItem,
+        recordVitals,
         updateArItemWork,
         addCallRecord,
         assignDenial,

@@ -11,6 +11,7 @@
  * circular import.
  */
 
+import { normalizeVitalsList, type RecordedVitals } from "../domain/vitalsRecord";
 import {
   ENCOUNTER_OPENING_STEP,
   ENCOUNTER_STEPS,
@@ -428,6 +429,13 @@ export interface PipelineEncounter {
    * encounter except the Tutorial Patient's.
    */
   tutorialSeed: string | null;
+  /**
+   * The vitals flowsheet: every set Save Vitals recorded on this encounter,
+   * oldest first (`domain/vitalsRecord.ts`). The latest set feeds the summary
+   * sidebar, the note and the sign checklist. Additive: a record saved before
+   * it existed loads with an empty list — no vitals are invented for it.
+   */
+  vitals: RecordedVitals[];
 }
 
 /**
@@ -517,6 +525,7 @@ export function createEncounter(patientId: string | null): PipelineEncounter {
     remittances: [],
     ledger: [],
     arItems: [],
+    vitals: [],
     tutorialSeed: null,
   };
 }
@@ -593,6 +602,7 @@ export function normalizeEncounter(
     // A record saved before the Tutorial Patient's worked example existed carries
     // no seed key, so it reads as "never seeded" — which is what it is.
     tutorialSeed: typeof raw.tutorialSeed === "string" ? raw.tutorialSeed : null,
+    vitals: normalizeVitalsList(raw.vitals),
   };
 }
 
