@@ -479,3 +479,9 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - Live tracker follows the current claim (`claimNumber` input): shows "Corrected claim" as the next step; "Closed" also requires nothing owed by the payer. Ticker: **With payer** cell.
 - AR Aging Ledger counts only outstanding items (open denials + open patient balances).
 - Shapes unchanged — no migration. Guarded by `tests/corrected-claim-loop.test.ts` (money reconciles at every step).
+
+## 17. Appeal decisions (2026-11-25)
+
+- After **Appeal**, the payer's answer arrives as a new AR item kind **`appeal`** ("Appeal decision") on the appeal record `…-A1` (`buildArWorkQueue`). `appealDecisionFor(carc)` explains why it is upheld: every denial this simulation produces (CO-31 name mismatch, CO-197 no auth in Box 23, CO-236 same-day edit) is an error on the claim, fixed by a corrected claim or written off — not won on appeal. Actions: **Correct and resubmit** (opens `…-R1` on Billing / Claim, Box 22 original ref = the original claim) or **Contractual write-off**. Either lets the visit close.
+- `successorClaimNumber` counts from the original claim: A1 → R1, R1 → R2 (never `…-A1-R1`). Upheld appeals count with the denied lines in the queue totals.
+- Guarded by `tests/corrected-claim-loop.test.ts`.

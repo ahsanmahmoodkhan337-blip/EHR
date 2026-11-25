@@ -86,6 +86,7 @@ import {
   buildArWorkQueue,
   correctedClaimForm,
   correctedClaimInstruction,
+  originalClaimNumberOf,
   successorClaimNumber,
   type ArAction,
   type ArItemState,
@@ -1580,8 +1581,13 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       // Billing / Claim → 277CA → 835 → posting run again on it and the visit
       // can really close (owner's walkthrough, 2026-11-25: the corrected claim
       // used to exist only as a ledger line nobody could work).
-      if (input.action === "rebill" && item.claimNumber === enc.claimNumber && enc.claimForm) {
+      if (
+        input.action === "rebill" &&
+        (item.claimNumber === enc.claimNumber || item.kind === "appeal") &&
+        enc.claimForm
+      ) {
         const successor = successorClaimNumber(item.claimNumber, "rebill");
+        const replaces = item.kind === "appeal" ? originalClaimNumberOf(item.claimNumber) : item.claimNumber;
         const draftEvent = makeStatusEvent(
           {
             entityType: "claim",
@@ -1594,7 +1600,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
             by,
             jobRole: "biller",
             reasonCode: "CLAIM_CREATED",
-            reason: correctedClaimInstruction(successor, item.claimNumber, item.carc, item.carc ? carcAction(item.carc) : null),
+            reason: correctedClaimInstruction(successor, replaces, item.carc, item.carc ? carcAction(item.carc) : null),
             refs: { refNumber: item.id },
           },
           statusEvents,
@@ -1605,7 +1611,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
           statusEvents,
           claimNumber: successor,
           claimStatus: "draft" as ClaimStatus,
-          claimForm: correctedClaimForm(enc.claimForm, item.claimNumber),
+          claimForm: correctedClaimForm(enc.claimForm, replaces),
         };
       }
 

@@ -29,6 +29,7 @@ import {
   AR_ACTION_LABELS,
   type AgingBucket,
   type ArWorkItem,
+  type ArItemKind,
 } from "./arWorkQueue";
 import { CLAIM_STATUS_LABELS, type ClaimStatus } from "./claimStatus";
 import { buildCodingQueue } from "./codingQueue";
@@ -469,7 +470,7 @@ export function splitDenialRows(rows: DenialRow[]): { toWork: DenialRow[]; appea
 }
 
 export interface ArRow extends RailRow {
-  kind: "denial" | "balance";
+  kind: ArItemKind;
   bucket: AgingBucket;
   ageDays: number;
   followUp: string;

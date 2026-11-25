@@ -34,7 +34,12 @@ import { localDay } from "../utils/localDay";
 
 // ─── Vocabulary ────────────────────────────────────────────────────
 
-export type ArItemKind = "denial" | "balance";
+/**
+ * denial  — a line the payer refused on a posted 835;
+ * balance — the patient's share left after posting;
+ * appeal  — the payer's answer to an appeal the student filed.
+ */
+export type ArItemKind = "denial" | "balance" | "appeal";
 
 /** The four ways a biller clears an item. Each one moves money. */
 export type ArAction =
@@ -227,6 +232,7 @@ function isDenialAdjustment(adj: { group: AdjustmentGroup; carc: string }): bool
 
 /** The actions a queue item accepts. A patient balance is not the payer's. */
 export function actionsFor(kind: ArItemKind): ArAction[] {
+  if (kind === "appeal") return ["rebill", "write_off"];
   return kind === "denial"
     ? ["rebill", "appeal", "transfer_to_patient", "write_off"]
     : // Patient responsibility (PR) is the patient's to pay: bill it or post
@@ -299,6 +305,49 @@ export function buildArWorkQueue(sources: ArQueueSource[], nowIso: string): ArWo
       }
     }
 
+    // An appeal the student filed: the payer answers it here. The money sits on
+    // the appeal record (…-A1) as owed by the payer until the student acts on
+    // the decision — correct and resubmit, or write it off.
+    const appealIn = claimEntries.find((e) => e.type === "transfer" && e.code === "APPEAL" && e.amountCents > 0);
+    const appealOwed = claimEntries.reduce((sum, e) => sum + e.amountCents, 0);
+    if (appealIn && !claimEntries.some((e) => e.eraId) && appealOwed > 0) {
+      const original = originalClaimNumberOf(claimNumber);
+      const filed = states.find((st) => st.action === "appeal" && st.claimNumber === original);
+      const carc = filed?.id.match(/-((?:CO|PR|OA|PI)-\d+)$/)?.[1];
+      const decision = appealDecisionFor(carc);
+      const id = `AR-${claimNumber}-APPEAL`;
+      const state = stateFor(id);
+      const datedAt = appealIn.date;
+      const ageDays = daysBetween(datedAt, nowIso);
+      items.push({
+        id,
+        kind: "appeal",
+        patientId: source.patientId,
+        patientName: source.patientName ?? null,
+        claimNumber,
+        payerName: posted[posted.length - 1]?.payerName ?? source.remittances.find((r) => r.claimNumber === original)?.payerName ?? "",
+        lineNumber: appealIn.lineNumber,
+        carc,
+        carcDescription: decision.why,
+        amountCents: appealOwed,
+        patientBalanceCents: 0,
+        alreadyWrittenOffCents: 0,
+        // A write-off of an upheld appeal writes off the whole refused amount.
+        patientPortionCents: appealOwed,
+        datedAt,
+        ageDays,
+        bucket: agingBucketFor(ageDays),
+        appealDeadline: appealDeadlineFor(datedAt),
+        status: state?.status ?? "open",
+        action: state?.action,
+        reasonCode: state?.reasonCode,
+        note: state?.note,
+        assignedTo: state?.assignedTo,
+        resolvedAt: state?.status === "resolved" ? state.at : undefined,
+        actions: actionsFor("appeal"),
+      });
+    }
+
     // The patient's side of the same claim. Its own item, its own total — the
     // queue never adds the two together, because they are different money.
     if (patientBalanceCents > 0) {
@@ -352,9 +401,10 @@ export function arQueueTotals(items: ArWorkItem[]): ArQueueTotals {
   const open = items.filter((i) => i.status !== "resolved");
   const sum = (kind: ArItemKind) =>
     open.filter((i) => i.kind === kind).reduce((total, i) => total + i.amountCents, 0);
+  // An upheld appeal is still the payer's refused money, so it counts with the denials.
   return {
-    denialCount: open.filter((i) => i.kind === "denial").length,
-    denialCents: sum("denial"),
+    denialCount: open.filter((i) => i.kind === "denial" || i.kind === "appeal").length,
+    denialCents: sum("denial") + sum("appeal"),
     balanceCount: open.filter((i) => i.kind === "balance").length,
     balanceCents: sum("balance"),
   };
@@ -375,8 +425,42 @@ export interface ArResolutionContext {
 
 /** The claim number a rebill or an appeal moves the money to. */
 export function successorClaimNumber(claimNumber: string, action: ArAction): string {
-  const suffix = action === "rebill" ? "R1" : "A1";
-  return `${claimNumber}-${suffix}`;
+  // Always counted from the original claim: a corrected claim of an appeal is
+  // CLM-…-R1, and a second correction is R2 rather than CLM-…-R1-R1.
+  const m = claimNumber.match(/^(.*?)-(R|A)(\d+)$/);
+  const base = m ? m[1] : claimNumber;
+  const letter = action === "rebill" ? "R" : "A";
+  const n = m && m[2] === letter ? Number(m[3]) + 1 : 1;
+  return `${base}-${letter}${n}`;
+}
+
+/** The claim a corrected claim or appeal descends from (`CLM-…-A1` → `CLM-…`). */
+export function originalClaimNumberOf(claimNumber: string): string {
+  return claimNumber.replace(/-(R|A)\d+$/, "");
+}
+
+/**
+ * The payer's decision on an appeal. The denials this simulation produces are
+ * all errors on the claim itself — the payer could not match the member
+ * (CO-31), Box 23 had no authorisation (CO-197), or a same-day edit bundled the
+ * code (CO-236) — and a payer upholds an appeal of a claim that is still wrong.
+ * The fix is a corrected claim (or, when nothing can be corrected, a write-off).
+ */
+export function appealDecisionFor(carc: string | undefined): { upheld: true; why: string } {
+  const why: Record<string, string> = {
+    "CO-31":
+      "Appeal upheld: the payer still cannot match the member. A name mismatch is fixed by correcting Box 4 to the name the payer holds and sending a corrected claim, not by appealing.",
+    "CO-197":
+      "Appeal upheld: there is still no authorisation number on the claim. If an authorisation was obtained, put it in Box 23 and send a corrected claim; if none was obtained, the service is a contractual write-off.",
+    "CO-236":
+      "Appeal upheld: the same-day edit still applies. If the service was truly separate, add the supporting modifier (59 / XS) and send a corrected claim; otherwise it is a contractual write-off.",
+  };
+  return {
+    upheld: true,
+    why:
+      (carc && why[carc]) ??
+      "Appeal upheld: the payer stands by its decision. Correct what it refused and send a corrected claim, or write the line off.",
+  };
 }
 
 /**

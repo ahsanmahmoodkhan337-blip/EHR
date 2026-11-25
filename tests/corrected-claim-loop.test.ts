@@ -21,6 +21,7 @@ import {
   arResolutionEntries,
   buildArWorkQueue,
   correctedClaimForm,
+  successorClaimNumber,
   type ArQueueSource,
 } from "../src/domain/arWorkQueue";
 import { liveMilestones, liveMoney } from "../src/domain/liveTracker";
@@ -140,5 +141,51 @@ describe("a denied claim corrected and resubmitted closes with the money reconci
     reconciles(ledger);
     expect(ledgerBalance(ledger).insuranceBalanceCents).toBe(17500);
     expect(ledgerBalance(ledger).patientBalanceCents).toBe(0);
+  });
+});
+
+describe("an appeal gets the payer's answer, and the visit can still close", () => {
+  function appealed() {
+    const denied = adjudicate("CLM-000009", true);
+    let ledger = appendLedgerEntries([], postRemittanceToLedger(denied, CTX));
+    const item = buildArWorkQueue(sources(ledger, [denied]), NOW).find((i) => i.kind === "denial")!;
+    ledger = appendLedgerEntries(ledger, arResolutionEntries(item, "appeal", CTX));
+    const states = [{ id: item.id, claimNumber: item.claimNumber, status: "resolved" as const, action: "appeal" as const, at: NOW, by: "student" }];
+    const appeal = buildArWorkQueue(sources(ledger, [denied], states), NOW).find((i) => i.kind === "appeal")!;
+    return { denied, ledger, appeal };
+  }
+
+  test("an appealed CO-31 comes back upheld, saying a corrected claim is the fix", () => {
+    const { appeal } = appealed();
+    expect(appeal.claimNumber).toBe("CLM-000009-A1");
+    expect(appeal.carc).toBe("CO-31");
+    expect(appeal.carcDescription).toContain("Appeal upheld");
+    expect(appeal.carcDescription).toContain("corrected claim");
+    expect(appeal.actions).toEqual(["rebill", "write_off"]);
+    expect(appeal.amountCents).toBe(17500);
+  });
+
+  test("writing off an upheld appeal settles everything at zero", () => {
+    const { ledger: before, appeal } = appealed();
+    const ledger = appendLedgerEntries(before, arResolutionEntries(appeal, "write_off", { ...CTX, reasonCode: "CO-31" }));
+    reconciles(ledger);
+    const b = ledgerBalance(ledger);
+    expect(b.insuranceBalanceCents).toBe(0);
+    expect(b.patientBalanceCents).toBe(0);
+  });
+
+  test("correcting an upheld appeal moves the money to CLM-…-R1, not CLM-…-A1-R1", () => {
+    const { ledger: before, appeal } = appealed();
+    expect(successorClaimNumber(appeal.claimNumber, "rebill")).toBe("CLM-000009-R1");
+    const entries = arResolutionEntries(appeal, "rebill", CTX);
+    expect(entries.some((e) => e.type === "adjustment")).toBe(false); // nothing to reverse on the appeal record
+    const ledger = appendLedgerEntries(before, entries);
+    reconciles(ledger);
+    expect(ledgerBalance(ledger).insuranceBalanceCents).toBe(17500);
+    expect(ledgerBalance(ledger.filter((e) => e.claimNumber === "CLM-000009-A1")).patientBalanceCents).toBe(0);
+  });
+
+  test("a second correction is R2", () => {
+    expect(successorClaimNumber("CLM-000009-R1", "rebill")).toBe("CLM-000009-R2");
   });
 });

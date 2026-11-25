@@ -93,7 +93,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
   const visible = arWorkItems.filter((item) => {
     if (filter === "cleared") return item.status === "resolved";
     if (item.status === "resolved") return false;
-    if (filter === "denial") return item.kind === "denial";
+    if (filter === "denial") return item.kind === "denial" || item.kind === "appeal";
     if (filter === "balance") return item.kind === "balance";
     return true;
   });
@@ -215,10 +215,10 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600">
                   <span
                     className={`rounded px-1.5 py-0.5 font-semibold ${
-                      item.kind === "denial" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
+                      item.kind === "balance" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"
                     }`}
                   >
-                    {item.kind === "denial" ? "Denied line" : "Patient balance"}
+                    {item.kind === "denial" ? "Denied line" : item.kind === "appeal" ? "Appeal decision" : "Patient balance"}
                   </span>
                   {item.kind === "denial" ? (
                     <span className="font-mono">
@@ -241,6 +241,12 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                 {item.kind === "denial" && item.carc && CARC_BY_CODE[item.carc] ? (
                   <p className="mt-1 text-xs leading-relaxed text-slate-500">
                     {CARC_BY_CODE[item.carc].description}
+                  </p>
+                ) : null}
+                {item.kind === "appeal" && item.status !== "resolved" ? (
+                  <p className="mt-1 rounded-lg bg-red-50 px-2 py-1.5 text-xs leading-relaxed text-red-800">
+                    {item.carc ? <span className="font-mono font-semibold">{item.carc} · </span> : null}
+                    {item.carcDescription}
                   </p>
                 ) : null}
 
