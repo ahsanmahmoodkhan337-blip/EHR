@@ -21,7 +21,7 @@ import { mdmLevelFromElements } from "../../domain/mdm";
 import { clearCodingDraft, codingDraftKey, readCodingDraft, writeCodingDraft } from "./codingDraft";
 import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
 import { scoreCoder, updateStageScore, getStudentName } from "../../utils/scoring";
-import { noteFieldsOf, noteStatus } from "../../domain/noteStatus";
+import { noteFieldsOf } from "../../domain/noteStatus";
 import { useEncounterPatientId, useIsFirstVisit } from "../../utils/encounterPatient";
 import {
   defaultEmPatientType,
@@ -977,7 +977,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="h-5 w-5 text-amber-600" />
                           <span className="text-sm font-bold text-amber-700">
-                            {paAnswer === null ? "Prior Authorisation Check" : "Prior Authorization Required"}
+                            {paAnswer === null ? "Prior Authorization Check" : "Prior Authorization Required"}
                           </span>
                         </div>
                       </div>
@@ -988,7 +988,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                         {paAnswer === null ? (
                           <>
                             <p className="text-xs text-slate-600">
-                              Does anything in this encounter need prior authorisation?{" "}
+                              Does anything in this encounter need prior authorization?{" "}
                               <span className="text-slate-500">Check the plan's PA list — Yes / No</span>
                             </p>
                             <div className="flex gap-2">
@@ -1011,8 +1011,8 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                             <p className="text-xs text-slate-600">
                               {paAnswer === "yes"
                                 ? "One or more items require "
-                                : "You answered No. The payer's PA list still flags this encounter — a claim sent without the authorisation is at risk of "}
-                              <strong>{paAnswer === "yes" ? "Prior Authorization" : "CO-197 (prior authorisation)"}</strong>
+                                : "You answered No. The payer's PA list still flags this encounter — a claim sent without the authorization is at risk of "}
+                              <strong>{paAnswer === "yes" ? "Prior Authorization" : "CO-197 (prior authorization)"}</strong>
                               {paAnswer === "yes" ? " before billing." : "."}
                             </p>
                             {paTriggerReasons.length > 0 && (

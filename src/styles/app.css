@@ -16,6 +16,11 @@
 
 @import "tailwindcss";
 
+/* Dark styles apply only under a "dark" class, never from the device setting
+   (see src/index.css). The portal is light-only for now: the dark palette
+   covered too little of the UI to read well, so no "dark" class is set. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ------------------------------------------------------------------ */
 /*  Brand tokens (Tailwind v4 @theme) — the only palette              */
 /*  Source: specs/brand-palette.md · rules: specs/brand-tokens.md     */

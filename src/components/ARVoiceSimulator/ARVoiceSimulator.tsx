@@ -68,6 +68,11 @@ export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = fa
     addCallRecord,
     arCalls,
   } = pipeline;
+  // The open encounter's 835 is posted: the payer has answered. With no denied
+  // line there is nothing to call the payer about — say that, instead of the
+  // "adjudicate and post the 835" copy meant for a claim still out.
+  const activeEnc = pipeline.getEncounter(pipeline.state.patientId ?? null);
+  const remittancePosted = Boolean(activeEnc?.remittances?.some((r) => r.postedAt));
 
   const [activeTab, setActiveTab] = useState<TabView>("ledger");
   const [selectedBucket, setSelectedBucket] = useState<string>("0-30");
@@ -334,7 +339,15 @@ export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = fa
             {ledgerTotal.totalClaims === 0 ? (
               /* No posted 835 yet: the ledger names the step that fills it
                  rather than drawing four buckets of $0 (`status/MoneyNotYet.tsx`). */
-              <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} />
+              remittancePosted ? (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-center text-xs text-green-800">
+                <CheckCircle2 className="mx-auto mb-1 h-6 w-6 text-green-500" />
+                No denied claims to call the payer about — the 835 is posted and nothing was denied.
+                Patient balances are worked in the AR work queue above.
+              </div>
+              ) : (
+                <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} />
+              )
             ) : (
               <>
                 {/* Aging summary cards */}
@@ -446,7 +459,15 @@ export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = fa
             {/* Claims list */}
             {currentClaims.length === 0 ? (
               denialItems.length === 0 ? (
-                <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} />
+                remittancePosted ? (
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-center text-xs text-green-800">
+                <CheckCircle2 className="mx-auto mb-1 h-6 w-6 text-green-500" />
+                No denied claims to call the payer about — the 835 is posted and nothing was denied.
+                Patient balances are worked in the AR work queue above.
+              </div>
+                ) : (
+                  <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} />
+                )
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <CheckCircle2 className="mb-2 h-10 w-10 text-green-400" />

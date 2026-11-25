@@ -22,7 +22,6 @@ import { loadUserData, saveUserData, syncUserDataFromSupabase } from "./persiste
 import { registerResetHandler } from "./resetData";
 import {
   createEncounter,
-  encounterEventId,
   encounterHasWork,
   encounterKey,
   EMPTY_ENCOUNTER,

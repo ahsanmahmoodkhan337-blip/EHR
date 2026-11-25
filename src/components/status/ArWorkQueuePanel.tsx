@@ -37,6 +37,7 @@ import { usePipeline } from "../../store/pipelineStore";
 import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
 import { refuseReadOnly } from "../../domain/tutorialReadOnly";
 import { MoneyNotYet } from "./MoneyNotYet";
+import { selectPatientById, useEhrStore } from "../../store/ehrStore";
 
 function money(cents: number): string {
   return `$${(Math.abs(cents) / 100).toFixed(2)}`;
@@ -72,6 +73,15 @@ export interface ArWorkQueuePanelProps {
 }
 
 export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, className = "" }: ArWorkQueuePanelProps) {
+  // A student's own patients carry no display name on the encounter; read the
+  // chart's name instead of printing the internal patient id.
+  const ehrState = useEhrStore((st) => st);
+  const chartNameFor = (patientId: string | null | undefined): string => {
+    if (!patientId) return "";
+    const p = selectPatientById(ehrState, patientId);
+    return p ? `${p.firstName} ${p.lastName}`.trim() + (p.mrn ? ` · ${p.mrn}` : "") : "";
+  };
+
   const headingId = useId();
   const { arWorkItems, resolveArItem, updateArItemWork, getEncounter } = usePipeline();
   const [filter, setFilter] = useState<Filter>("open");
@@ -194,7 +204,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className="font-mono text-[11px] font-bold text-slate-800">{item.claimNumber}</span>
                   <span className="text-[10px] text-slate-500">
-                    {item.patientName || (item.patientId ? `Patient ${item.patientId}` : "No patient attached")}
+                    {item.patientName || chartNameFor(item.patientId) || (item.patientId ? "Patient" : "No patient attached")}
                     {item.payerName ? ` · ${item.payerName}` : ""}
                   </span>
                   <span className="ml-auto text-[11px] font-bold tabular-nums text-slate-800">

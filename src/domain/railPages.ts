@@ -33,7 +33,7 @@ import {
 import { CLAIM_STATUS_LABELS, type ClaimStatus } from "./claimStatus";
 import { buildCodingQueue } from "./codingQueue";
 import { claimRowTitle, isOrphanClaim } from "./dataScoping";
-import { formatWhen, usd } from "./homeWorkQueues";
+import { usd } from "./homeWorkQueues";
 import type { PipelineEncounter, Role } from "../store/pipelineEncounter";
 import { localDay } from "../utils/localDay";
 

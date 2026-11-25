@@ -88,7 +88,6 @@ import {
 import {
   ENCOUNTER_FLOW_STAGES,
   currentFlowStage,
-  flowStageIndex,
   flowStageLabel,
   stageOpenTarget,
   lastFlowStageId,
@@ -157,7 +156,7 @@ const NOTE_SECTIONS = SCRIBE_STAGES.filter((stage) => stage.id !== "sign-lock");
  * The stage before each role's screen, for the one Back control (spec item 3).
  * A role stage always has a previous stage; the scribe's first stage has none.
  */
-const ROLE_BACK: Partial<Record<Role, { label: string; role: Role; stage?: string }>> = {
+export const ROLE_BACK: Partial<Record<Role, { label: string; role: Role; stage?: string }>> = {
   coder: { label: "Sign & Lock Note", role: "scribe", stage: "sign-lock" },
   "prior-auth": { label: "Coding", role: "coder" },
   biller: { label: "Prior Auth", role: "prior-auth" },
@@ -1751,7 +1750,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * Call this BEFORE switching to a different patient.
    */
   function saveCurrentSession() {
-    console.log("saveCurrentSession: saving to key:", selectedPatientId);
     if (!selectedPatientId) return;
     patientDataStore.current[selectedPatientId] = {
       _patientId: selectedPatientId,
@@ -1803,10 +1801,8 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     // chart below is painted from the record the seed wrote and from the
     // patient's own chart, the same way every other chart is.
     const showingTutorialExample = seedTutorialOnOpen(patientId);
-    console.log("loadPatientSession called for:", patientId, "saved:", !!patientDataStore.current[patientId]);
     const saved = patientDataStore.current[patientId];
     const p = patients.find(pp => pp.id === patientId);
-    console.log("  patient found:", p?.firstName, p?.lastName, "| saved data:", !!saved);
 
     if (saved && saved._patientId === patientId) {
       // The note always comes from the encounter's own record, so a signed note
@@ -1889,9 +1885,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // the effect below retries the same load the moment the patient is resolvable.
   const chartOpenedFor = useRef<string | null>(null);
   function openPatientChart(patientId: string) {
-    console.log("useEffect[selectedPatientId] FIRED for:", patientId);
     const p = patients.find(pp => pp.id === patientId);
-    console.log("  patient found in useEffect:", p?.firstName, p?.lastName);
     if (!p) {
       // Handle case where patient not found (e.g. custom appointment mapped to placeholder)
       setSharedImmunizations([]);
@@ -2315,7 +2309,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     flowStageId === "coding" &&
     !tutorialChartOpen &&
     (pipelineState.cptCodes?.length ?? 0) === 0;
-  const flowIndex = flowStageIndex(flowStageId);
 
   // The one step back and the one step forward for the stage on screen
   // (spec `tutorial-start-and-back.md` item 3). The first stage has no Back.
@@ -2325,7 +2318,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     scribeStageIndex >= 0 && scribeStageIndex < SCRIBE_STAGES.length - 1
       ? SCRIBE_STAGES[scribeStageIndex + 1]
       : undefined;
-  const roleBack = ROLE_BACK[currentRole];
 
   const stageHints: Record<string, string> = {};
   if (!registrationComplete) {
@@ -2347,7 +2339,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     encounterEventId(activePatientId),
   );
 
-  console.log("render: selectedPatientId=", selectedPatientId, "selectedPatient=", selectedPatient?.firstName, selectedPatient?.lastName);
 
   // Safely load a patient — always clears loading state even on error
   const handlePatientSelect = (id: string) => {
