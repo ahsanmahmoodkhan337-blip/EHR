@@ -30,6 +30,7 @@
  */
 
 import type { Remittance835 } from "./adjudication";
+import { localDay } from "../utils/localDay";
 
 // ─── Entries ───────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ export interface PostContext {
  * patient's balance, which is the sum of what is left.
  */
 export function postRemittanceToLedger(remittance: Remittance835, ctx: PostContext): LedgerEntry[] {
-  const date = (ctx.at ?? remittance.paymentDate).slice(0, 10);
+  const date = localDay(ctx.at ?? remittance.paymentDate);
   const entries: LedgerEntry[] = [];
 
   for (const line of remittance.lines) {

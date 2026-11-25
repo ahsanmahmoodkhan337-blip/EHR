@@ -14,6 +14,7 @@
  */
 
 import type { LedgerEntry } from "./ledger";
+import { localDay } from "../utils/localDay";
 
 /** The code a check-in copay carries on the ledger. */
 export const COPAY_LEDGER_CODE = "COPAY";
@@ -48,7 +49,7 @@ export function copayLedgerEntry(input: CopayInput): LedgerEntry | null {
     id: `COPAY-${input.appointmentId}`,
     patientId: input.patientId,
     claimNumber: input.claimNumber ?? "",
-    date: input.at.slice(0, 10),
+    date: localDay(input.at),
     type: "patient_payment",
     code: COPAY_LEDGER_CODE,
     description: `Copay collected at check-in${input.appointmentType ? ` — ${input.appointmentType}` : ""}`,

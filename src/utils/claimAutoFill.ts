@@ -60,8 +60,9 @@ import {
   frequencyFromResubmissionCode,
   typeOfBillDefaultForPos,
 } from "../data/claims/typeOfBill";
+import { localDay } from "./localDay";
 
-const today = (): string => new Date().toISOString().slice(0, 10);
+const today = (): string => localDay();
 
 /**
  * What boxes 9 and 9c print when the patient carries no other coverage: `N/A`,

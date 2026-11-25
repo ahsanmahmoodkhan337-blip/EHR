@@ -15,6 +15,7 @@
 import { useMemo, useRef, useState } from "react";
 import { DOT_PHRASES, type DotPhrase, type NoteSection } from "../../data/medical";
 import { DOT_CODES } from "./SmartPhrases";
+import { dotPhraseQuery } from "./dotPhraseQuery";
 
 export interface DotPhraseTextareaProps {
   value: string;
@@ -107,9 +108,9 @@ export function DotPhraseTextarea({
     onChange(next);
     const cursor = e.target.selectionStart ?? next.length;
     const before = next.slice(0, cursor);
-    const match = before.match(/\.\w*$/);
-    if (match) {
-      setQuery(match[0]);
+    const typed = dotPhraseQuery(before);
+    if (typed) {
+      setQuery(typed);
       setActiveIndex(0);
     } else {
       close();
@@ -121,9 +122,9 @@ export function DotPhraseTextarea({
     if (!ta) return;
     const cursor = ta.selectionStart ?? value.length;
     const before = value.slice(0, cursor);
-    const match = before.match(/\.\w*$/);
-    if (!match || match.index == null) return;
-    const start = match.index;
+    const typed = dotPhraseQuery(before);
+    if (!typed) return;
+    const start = before.length - typed.length;
     const next = value.slice(0, start) + phrase.expansion + value.slice(cursor);
     onChange(next);
     close();
@@ -170,6 +171,10 @@ export function DotPhraseTextarea({
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        // Clicking anywhere else closes the list, so it never sits over the
+        // buttons below the box. Picking a phrase still works: the list's
+        // buttons cancel mousedown, so the textarea keeps focus for that click.
+        onBlur={close}
         placeholder={placeholder}
         className={className}
       />

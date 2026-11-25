@@ -21,13 +21,14 @@ import { buildDentalClaimRemittance } from "../../domain/dentalRemittance";
 import { adjudicateDentalClaim } from "./adjudication";
 import { DentalEraRemittance } from "./DentalEraRemittance";
 import { useDentalTrack } from "./DentalTrackStore";
+import { localDay } from "../../utils/localDay";
 
 export function DentalRemittance() {
   const { state, activeCase, planId, postRemittance, isRemittancePosted } = useDentalTrack();
   const adjudication = useMemo(() => adjudicateDentalClaim(state.lines, activeCase), [state.lines, activeCase]);
 
   const remittances = useMemo(() => ERA_REMITTANCES.filter((r) => r.payerPlanId === planId), [planId]);
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = useMemo(() => localDay(), []);
 
   /**
    * This claim's own 835. Built from the adjudication, never from a sample: one

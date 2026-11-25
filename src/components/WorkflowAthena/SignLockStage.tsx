@@ -12,6 +12,7 @@ import { Lock, Shield, AlertTriangle, CheckCircle2, Loader2, FileDown } from "lu
 import type { SoapNoteData } from "./AssessmentPlanStage";
 import { exportSOAPNotePDF } from "../../utils/pdfExport";
 import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
+import { localDay } from "../../utils/localDay";
 
 /** The reason drawn under the Sign & Lock button, at the point of the click. */
 const SIGN_LOCK_REASON = readOnlyNoteId("sign-lock");
@@ -116,7 +117,7 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
                 patientName: patientName || "Unknown Patient",
                 dob: "N/A",
                 mrn: "N/A",
-                date: new Date().toISOString().split("T")[0],
+                date: localDay(),
                 chiefComplaint: note.subjective?.split("\n")[0] || "N/A",
                 hpi: note.subjective || "N/A",
                 vitals: { bp: "N/A", hr: "N/A", temp: "N/A", rr: "N/A", o2: "N/A" },

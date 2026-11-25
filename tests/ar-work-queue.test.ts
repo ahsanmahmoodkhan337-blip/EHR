@@ -118,7 +118,7 @@ describe("the queue is built from money that exists", () => {
     expect(denial.amountCents).toBe(12000);
     expect(balance.amountCents).toBe(12000);
     // A patient balance is not the payer's to appeal or rebill.
-    expect(balance.actions).toEqual(["write_off"]);
+    expect(balance.actions).toEqual(["patient_statement", "patient_payment"]);
   });
 
   test("the two totals are kept apart and never added together", () => {
@@ -259,5 +259,23 @@ describe("a record saved before the work queue existed", () => {
       PATIENT,
     );
     expect(encounter.arItems).toEqual([]);
+  });
+});
+
+describe("a patient balance is billed to the patient, not written off", () => {
+  test("posting the patient's payment writes a patient payment that clears their share", async () => {
+    const { arResolutionEntries, arResolutionOutcome } = await import("../src/domain/arWorkQueue");
+    const item = {
+      id: "bal-1", kind: "balance", patientId: "P1", claimNumber: "CLM-9", status: "open",
+      amountCents: 3500, patientPortionCents: 3500, patientBalanceCents: 3500,
+      actions: ["patient_statement", "patient_payment"],
+    } as never;
+    const ctx = { userId: "u", at: "2026-11-26T10:00:00.000Z" };
+    const paid = arResolutionEntries(item, "patient_payment", ctx);
+    expect(paid).toHaveLength(1);
+    expect(paid[0].type).toBe("patient_payment");
+    expect(paid[0].amountCents).toBe(-3500);
+    expect(arResolutionOutcome("patient_payment")).toEqual({ to: "closed", reasonCode: "PATIENT_PAID" });
+    expect(arResolutionEntries(item, "patient_statement", ctx)).toEqual([]);
   });
 });

@@ -49,6 +49,7 @@ import {
 } from "../domain/tutorialReadOnly";
 import { TUTORIAL_PATIENT_ID, tutorialNameRepair } from "../domain/tutorialIdentity";
 import { deleteGroupStores, resetInMemory, type ResetGroupId } from "./resetData";
+import { localDay } from "../utils/localDay";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -1477,7 +1478,7 @@ export const useEhrStore = create<EhrState>()((set, get) => ({
       entity: "patient",
       action: "update",
       after: {
-        eligibility: `${coverage} ${record.status}${record.checkedAt ? ` on ${record.checkedAt.slice(0, 10)}` : ""}`,
+        eligibility: `${coverage} ${record.status}${record.checkedAt ? ` on ${localDay(record.checkedAt)}` : ""}`,
       },
     };
 

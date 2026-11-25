@@ -144,7 +144,7 @@ describe("reset deletes exactly the checked group", () => {
 
   test("a group is offered for every store it names, keyed by the phone", () => {
     const chart = storesForGroups(PHONE, ["chart"]).map((store) => store.key);
-    expect(chart).toEqual([`hh_ehr_${PHONE}`, `hh_ehr_ls_${PHONE}`]);
+    expect(chart).toEqual([`hh_ehr_${PHONE}`, `hh_ehr_ls_${PHONE}`, `hh_coding_draft_${PHONE}`]);
     // Another student's keys are never in the list.
     expect(storesForGroups("923009999999", ["encounters"]).map((s) => s.key)).toEqual([
       "hh_userdata_923009999999",

@@ -56,6 +56,7 @@ import {
 } from "./paData";
 import { exportPAFormPDF } from "../../utils/pdfExport";
 import { toast } from "sonner";
+import { localDay } from "../../utils/localDay";
 
 type TabView = "queue" | "insurance" | "form" | "criteria" | "docs" | "step-therapy" | "letter" | "followup" | "errors";
 
@@ -169,12 +170,12 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
   // Auth start/end date fields
   const [authStartDate, setAuthStartDate] = useState(() => {
     const d = new Date();
-    return d.toISOString().split("T")[0];
+    return localDay(d);
   });
   const [authEndDate, setAuthEndDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 90);
-    return d.toISOString().split("T")[0];
+    return localDay(d);
   });
 
       // Criteria checkboxes
@@ -241,7 +242,7 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
   const [verifyingInsurance, setVerifyingInsurance] = useState(false);
 
   // ── NEW: Follow-up tracking state ──
-  const [followupDate, setFollowupDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [followupDate, setFollowupDate] = useState(() => localDay());
   const [followupTracking, setFollowupTracking] = useState("");
   const [followupRep, setFollowupRep] = useState("");
   const [followupNotes, setFollowupNotes] = useState("");

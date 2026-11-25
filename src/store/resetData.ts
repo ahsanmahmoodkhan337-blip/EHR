@@ -69,6 +69,8 @@ export const RESET_GROUPS: readonly ResetGroup[] = [
     stores: (phone) => [
       { key: `hh_ehr_${phone}`, backend: "idb" },
       { key: `hh_ehr_ls_${phone}`, backend: "local" },
+      // Codes picked on the Coding stage but not yet submitted, per patient.
+      { key: `hh_coding_draft_${phone}`, backend: "local" },
     ],
   },
 ];

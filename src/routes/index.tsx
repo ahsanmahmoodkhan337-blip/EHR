@@ -132,6 +132,7 @@ import { CPT_CODES } from "../components/CodingQueue/cptData";
 import { ToastProvider, useToast } from "../components/Toast";
 import { Skeleton } from "../components/Skeleton";
 import { CommandPalette } from "../components/CommandPalette";
+import { localDay } from "../utils/localDay";
 
 /** Pipeline roles the working context may restore (section 4). */
 const PIPELINE_ROLES: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-voice"];
@@ -722,7 +723,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={immunInput} onChange={e => setImmunInput(e.target.value)} placeholder="+ Add vaccine..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (immunInput.trim()) { setImmunizations([...immunizations, { id: `imm-${Date.now()}`, vaccine: immunInput.trim(), dose: "—", date: new Date().toISOString().split("T")[0], status: "Given" }]); setImmunInput(""); } }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
+            <button onClick={() => { if (immunInput.trim()) { setImmunizations([...immunizations, { id: `imm-${Date.now()}`, vaccine: immunInput.trim(), dose: "—", date: localDay(), status: "Given" }]); setImmunInput(""); } }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
           </div>
         )}
       </div>
@@ -787,7 +788,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={orderInput} onChange={e => setOrderInput(e.target.value)} placeholder="+ Add order..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (orderInput.trim()) { setOrders([...orders, { id: `ord-${Date.now()}`, item: orderInput.trim(), status: "Ordered", provider: patient.primaryCareProvider, date: new Date().toISOString().split("T")[0] }]); setOrderInput(""); } }} className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700">Add</button>
+            <button onClick={() => { if (orderInput.trim()) { setOrders([...orders, { id: `ord-${Date.now()}`, item: orderInput.trim(), status: "Ordered", provider: patient.primaryCareProvider, date: localDay() }]); setOrderInput(""); } }} className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700">Add</button>
           </div>
         )}
       </div>
@@ -812,7 +813,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={imagingInput} onChange={e => setImagingInput(e.target.value)} placeholder="+ Add imaging..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (imagingInput.trim()) { setImaging([...imaging, { id: `img-${Date.now()}`, study: imagingInput.trim(), status: "Ordered", date: new Date().toISOString().split("T")[0] }]); setImagingInput(""); } }} className="rounded bg-accent-600 px-2 py-1 text-xs text-white hover:bg-accent-700">Add</button>
+            <button onClick={() => { if (imagingInput.trim()) { setImaging([...imaging, { id: `img-${Date.now()}`, study: imagingInput.trim(), status: "Ordered", date: localDay() }]); setImagingInput(""); } }} className="rounded bg-accent-600 px-2 py-1 text-xs text-white hover:bg-accent-700">Add</button>
           </div>
         )}
       </div>
@@ -838,7 +839,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={referralInput} onChange={e => setReferralInput(e.target.value)} placeholder="+ Add referral..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, { id: `ref-${Date.now()}`, specialty: referralInput.trim(), reason: "—", status: "Sent", date: new Date().toISOString().split("T")[0] }]); setReferralInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
+            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, { id: `ref-${Date.now()}`, specialty: referralInput.trim(), reason: "—", status: "Sent", date: localDay() }]); setReferralInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
           </div>
         )}
       </div>
@@ -903,7 +904,7 @@ function MedicationsTab({ patientId }: { patientId: string }) {
       frequency: medFreq || "—",
       route: "Oral",
       status: "active" as const,
-      prescribedDate: new Date().toISOString().split("T")[0],
+      prescribedDate: localDay(),
       prescribedBy: patient.primaryCareProvider,
     }]);
     setMedName(""); setMedDosage(""); setMedFreq("");
@@ -1676,7 +1677,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // The date the Daily Schedule tab is showing. The Inbox list beside it reads
   // the same date, so the calendar and the visit list never disagree.
   const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDay();
     if (appointments.some((a) => a.date === today)) return today;
     const dates = [...new Set(appointments.map((a) => a.date))].sort();
     return dates[0] || today;
@@ -2310,6 +2311,10 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   const flowNext = nextFlowStage(flowStageId);
   const flowPrevious = previousFlowStage(flowStageId);
   const onLastFlowStage = flowStageId === lastFlowStageId();
+  const codingNotSubmitted =
+    flowStageId === "coding" &&
+    !tutorialChartOpen &&
+    (pipelineState.cptCodes?.length ?? 0) === 0;
   const flowIndex = flowStageIndex(flowStageId);
 
   // The one step back and the one step forward for the stage on screen
@@ -2648,7 +2653,17 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                       : undefined
                 }
                 forwardLabel={onLastFlowStage ? "End encounter" : undefined}
+                // Codes only reach the claim through "Submit Coded Encounter to
+                // Billing". Continuing past Coding without it left Prior Auth and
+                // the claim saying coding was not done, with no hint why.
+                nextDisabled={codingNotSubmitted}
+                nextDisabledReason="Press “Submit Coded Encounter to Billing” first — the codes reach Prior Auth and the claim only once they are submitted."
               />
+              {codingNotSubmitted && (
+                <p className="mt-1 text-right text-[11px] text-slate-500 dark:text-slate-400">
+                  Submit the coded encounter above to continue.
+                </p>
+              )}
             </div>
           )}
         </FadeTransition>
@@ -3054,7 +3069,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                   item: itemEl.value.trim(),
                                   status: (statusEl?.value || "Ordered") as OrderEntry["status"],
                                   provider: selectedPatient.primaryCareProvider,
-                                  date: dateEl?.value || new Date().toISOString().split("T")[0],
+                                  date: dateEl?.value || localDay(),
                                 }]);
                                 itemEl.value = "";
                               }
@@ -3139,7 +3154,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                   id: `img-${Date.now()}`,
                                   study: studyEl.value.trim(),
                                   status: (statusEl?.value || "Ordered") as ImagingEntry["status"],
-                                  date: dateEl?.value || new Date().toISOString().split("T")[0],
+                                  date: dateEl?.value || localDay(),
                                 }]);
                                 studyEl.value = "";
                               }
@@ -3189,7 +3204,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                   id: `imm-${Date.now()}`,
                                   vaccine: vaccineEl.value.trim(),
                                   dose: doseEl?.value.trim() || "—",
-                                  date: dateEl?.value || new Date().toISOString().split("T")[0],
+                                  date: dateEl?.value || localDay(),
                                   status: "Given",
                                 }]);
                                 vaccineEl.value = "";
@@ -3243,7 +3258,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                   specialty: specEl.value.trim(),
                                   reason: reasonEl?.value.trim() || "—",
                                   status: (statusEl?.value || "Sent") as ReferralEntry["status"],
-                                  date: new Date().toISOString().split("T")[0],
+                                  date: localDay(),
                                 }]);
                                 specEl.value = "";
                               }

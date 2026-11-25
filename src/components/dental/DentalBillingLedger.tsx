@@ -70,6 +70,7 @@ import { buildADAForm } from "../../utils/claimAutoFill";
 import { validateADA, type ClaimIssue } from "../../utils/claimValidation";
 import { exportClaimFormPDF } from "../../utils/claimFormPdf";
 import { toast } from "sonner";
+import { localDay } from "../../utils/localDay";
 
 
 export function DentalBillingLedger({ embedded = false }: { embedded?: boolean } = {}) {
@@ -250,7 +251,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
           values={adaValues}
           lines={adaLines}
           emptyLine={{
-            dateOfService: new Date().toISOString().slice(0, 10),
+            dateOfService: localDay(),
             cdt: "",
             description: "",
             tooth: "",

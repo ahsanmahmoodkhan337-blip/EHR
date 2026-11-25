@@ -75,6 +75,7 @@ import {
 import {
   adjudicateClaim as adjudicateClaimDomain,
   planForPayerName,
+  planForPayerNameStrict,
   remittanceForClaim,
   type Remittance835,
 } from "../domain/adjudication";
@@ -1147,7 +1148,14 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
       if (remittanceForClaim(enc.remittances, enc.claimNumber)) return prev;
 
       const payerName = (input?.payerName || enc.claimForm?.payerName || "").trim();
-      const plan = planForPayerName(payerName);
+      // A payer missing from the plan table prices on the standard commercial
+      // terms; the 835 says so instead of naming another payer's plan as the
+      // patient's own.
+      const pricingPlan = planForPayerName(payerName);
+      const plan =
+        pricingPlan && !planForPayerNameStrict(payerName)
+          ? { ...pricingPlan, name: `Standard commercial terms (${payerName || "payer"} is not in the plan table)` }
+          : pricingPlan;
       const lines = (enc.claimForm?.serviceLines ?? [])
         .filter((line) => (line.cpt ?? "").trim() !== "")
         .map((line) => ({
