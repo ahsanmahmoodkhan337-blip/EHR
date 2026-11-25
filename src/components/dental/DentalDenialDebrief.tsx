@@ -125,7 +125,7 @@ export function DentalDenialDebrief({
               {revealed && (
                 <>
                   <div>
-                    <p className="mb-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                    <p className="mb-1 flex items-center gap-1 text-[11px] font-bold text-slate-500">
                       <ListChecks className="h-3 w-3" /> Correct action
                     </p>
                     <ol className="list-decimal space-y-0.5 pl-4 text-xs leading-snug text-slate-600">

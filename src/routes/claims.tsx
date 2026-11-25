@@ -126,7 +126,7 @@ function ClaimsPage() {
         {rows.length > 0 && (
           <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
             <label className="block">
-              <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <span className="mb-0.5 block text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Status
               </span>
               <select
@@ -145,7 +145,7 @@ function ClaimsPage() {
             </label>
 
             <label className="block">
-              <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <span className="mb-0.5 block text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Payer
               </span>
               <select
@@ -164,7 +164,7 @@ function ClaimsPage() {
             </label>
 
             <label className="block">
-              <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <span className="mb-0.5 block text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Date of service
               </span>
               <input

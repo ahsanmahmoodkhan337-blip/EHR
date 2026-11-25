@@ -44,7 +44,7 @@ export function PredeterminationEstimate({ scenario }: { scenario: Predeterminat
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold text-slate-800">{scenario.id}</span>
           <span className="text-xs text-slate-500">{scenario.planId} (fictional payer)</span>
-          <span className="ml-auto rounded-full bg-slate-200/70 px-2 py-0.5 text-[11px] font-semibold uppercase text-slate-600">
+          <span className="ml-auto rounded-full bg-slate-200/70 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
             {scenario.difficulty}
           </span>
         </div>

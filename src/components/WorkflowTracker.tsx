@@ -95,7 +95,7 @@ export function WorkflowTracker({}: WorkflowTrackerProps) {
       </div>
 
       {/* Role indicator label */}
-      <div className="mt-2 text-center text-xs font-medium uppercase tracking-wider text-slate-400">
+      <div className="mt-2 text-center text-xs font-medium text-slate-400">
         Current Role: {getRoleLabel(currentRole)}
       </div>
     </div>

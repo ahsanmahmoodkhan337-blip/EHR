@@ -500,7 +500,7 @@ export function DentalAR() {
                       <p className="text-xs text-brand-700">{objective.guidance}</p>
                       {objective.caseSpecific.length > 0 && (
                         <div className="mt-1">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-400">
+                          <p className="text-[11px] font-semibold text-brand-400">
                             {isPractice ? "Scenario call script" : "Case call script"}
                           </p>
                           <ol className="ml-4 list-decimal text-xs text-brand-700">

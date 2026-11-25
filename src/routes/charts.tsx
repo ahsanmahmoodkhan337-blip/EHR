@@ -35,6 +35,7 @@ import { PatientProvider, usePatientStore, type Patient } from "../store/patient
 import { PipelineProvider, usePipeline } from "../store/pipelineStore";
 import { NOTE_STATUS_LABEL, noteFieldsOf, noteReadOnly, noteStatus } from "../domain/noteStatus";
 import { skipNoteAutosave } from "../domain/tutorialReadOnly";
+import { PageTitle } from "../components/shell/PageTitle";
 
 export const Route = createFileRoute("/charts")({
   component: () => (
@@ -95,15 +96,12 @@ function ChartsPage() {
       footer={footer}
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Stethoscope className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-          <h1 className="text-sm font-bold text-slate-800">Charts</h1>
-          {patient && (
-            <p className="text-[11px] text-slate-500">
-              {patient.firstName} {patient.lastName} · MRN {patient.mrn || "—"}
-            </p>
-          )}
-        </div>
+        <PageTitle
+          icon={Stethoscope}
+          title="Charts"
+          description="The open patient's chart: vitals, medications, problems, labs and notes."
+          meta={patient ? `${patient.firstName} ${patient.lastName} · MRN ${patient.mrn || "—"}` : undefined}
+        />
 
         {!patient ? (
           <NoPatientOpen />
@@ -148,7 +146,7 @@ function PatientChart({ patient }: { patient: Patient }) {
     <div className="flex min-h-0 flex-1 flex-col">
       {/* ── Chart Review ─────────────────────────────────────────────── */}
       <section aria-labelledby="charts-review" className="flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
-        <h2 id="charts-review" className="border-b border-slate-100 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-600">
+        <h2 id="charts-review" className="border-b border-slate-100 px-3 py-2 text-[11px] font-bold text-slate-600">
           Chart Review
         </h2>
         <TabsEpic tabs={CHART_TABS} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -187,7 +185,7 @@ function PatientChart({ patient }: { patient: Patient }) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-wrap gap-x-2 border-b border-slate-100 py-1 last:border-0">
-      <span className="w-40 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <span className="w-40 shrink-0 text-xs font-semibold text-slate-500">
         {label}
       </span>
       <span className="text-[11px] text-slate-800">{value || "—"}</span>
@@ -216,7 +214,7 @@ function SummaryPanel({ patient }: { patient: Patient }) {
       <Row label="Group (box 11)" value={primary?.groupNumber ?? ""} />
       <Row label="Other coverage" value={secondary ? `${secondary.payerName} · ${secondary.subscriberId}` : "None on file"} />
       <div className="mt-2">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Allergies</p>
+        <p className="mb-1 text-xs font-semibold text-slate-500">Allergies</p>
         {(patient.allergies ?? []).length === 0 ? (
           <Empty>No allergy recorded on this chart.</Empty>
         ) : (
@@ -432,7 +430,7 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
 
   const field = (key: keyof typeof fields, label: string, placeholder: string, tone: string) => (
     <div className="rounded-lg border border-slate-200 p-2">
-      <label htmlFor={`note-${key}`} className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${tone}`}>
+      <label htmlFor={`note-${key}`} className={`mb-1 block text-xs font-semibold ${tone}`}>
         {label}
       </label>
       <textarea
@@ -451,11 +449,11 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h2 id="charts-note" className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
+        <h2 id="charts-note" className="text-[11px] font-bold text-slate-600">
           Active Progress Note
         </h2>
         <span
-          className={`rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase ${
+          className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${
             status === "signed"
               ? "bg-green-100 text-green-700"
               : status === "draft"

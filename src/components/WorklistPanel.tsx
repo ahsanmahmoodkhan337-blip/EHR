@@ -47,7 +47,7 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
     <div className="flex flex-col gap-1">
       <div className="mb-2 flex items-center gap-2 border-b border-slate-100 pb-2">
         <Clock className="h-4 w-4 text-slate-500" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Inbox</span>
+        <span className="text-xs font-semibold text-slate-500">Inbox</span>
         <span
           className="ml-auto rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600"
           aria-label={`${regularPatients.length} of your own patients in the Inbox`}
@@ -93,7 +93,7 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
         {demoPatient && regularPatients.length > 0 && (
           <div className="flex items-center gap-2 px-2 py-1">
             <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Patients</span>
+            <span className="text-[11px] font-medium text-slate-400">Patients</span>
             <div className="h-px flex-1 bg-slate-200" />
           </div>
         )}

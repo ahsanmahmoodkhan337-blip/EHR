@@ -40,6 +40,7 @@ import {
 } from "../store/ehrStore";
 import { RESET_GROUPS, buildResetExport, type ResetGroupId } from "../store/resetData";
 import { localDay } from "../utils/localDay";
+import { PageTitle } from "../components/shell/PageTitle";
 
 export const Route = createFileRoute("/settings")({
   // Same shell as every other page; the top bar's search needs the patient list.
@@ -218,12 +219,12 @@ function SettingsPage() {
     >
       <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50">
         <div className="mx-auto max-w-3xl space-y-4 p-5">
-          <div>
-            <h1 className="text-base font-bold leading-tight text-slate-800">Settings</h1>
-            <p className="text-[11px] text-slate-500">
-              Practice data for {phone} · schema v{SCHEMA_VERSION}
-            </p>
-          </div>
+          <PageTitle
+            title="Settings"
+            description="What this device stores for you, export and import of your practice data, and reset."
+            meta={`Schema v${SCHEMA_VERSION}`}
+            className="mb-0"
+          />
         {status && (
           <div
             className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-xs ${
@@ -428,7 +429,7 @@ function SettingsPage() {
             </p>
 
             <fieldset className="mt-3">
-              <legend className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              <legend className="text-[11px] font-semibold text-slate-400">
                 What to delete
               </legend>
               <ul className="mt-1 divide-y divide-slate-100">
@@ -519,7 +520,7 @@ function SettingsPage() {
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</dt>
+      <dt className="text-xs font-medium text-slate-400">{label}</dt>
       <dd className="mt-0.5 text-sm font-bold text-slate-800">{value}</dd>
     </div>
   );
@@ -565,7 +566,7 @@ function ActivityRow({ entry, patientName }: { entry: ActivityEntry; patientName
     <li className="py-2" title={`Recorded by ${entry.user}`}>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px]">
         <span className="font-mono text-xs text-slate-400">{time}</span>
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
           {entry.role}
         </span>
         <span className="font-medium text-slate-700">

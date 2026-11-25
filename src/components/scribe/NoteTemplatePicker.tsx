@@ -154,7 +154,7 @@ export function NoteTemplatePicker({
 
           {selected.usesShortcodes.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              <span className="text-[11px] font-semibold text-slate-400">
                 Uses:
               </span>
               {selected.usesShortcodes.map((sc) => (

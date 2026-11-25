@@ -349,7 +349,7 @@ export function MedicalCaseRunner() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mt-3">
-      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+      <p className="mb-1.5 text-xs font-semibold text-slate-500">{title}</p>
       {children}
     </div>
   );
@@ -396,7 +396,7 @@ function CaseSelect() {
       {/* Track identity banner — makes it unambiguous which RCM track this is. */}
       <div className="mb-3 flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 ring-1 ring-brand-100">
         <Stethoscope className="h-4 w-4 shrink-0 text-brand-600" />
-        <span className="text-xs font-bold uppercase tracking-wide text-brand-700">Medical RCM Track</span>
+        <span className="text-xs font-bold text-brand-700">Medical RCM Track</span>
         <span className="ml-auto text-xs font-medium text-brand-600">CPT / ICD-10 · CMS-1500</span>
       </div>
 
@@ -418,7 +418,7 @@ function CaseSelect() {
       {/* Benefit scenario legend — groups the graded cases by the adjudication
           outcome they teach (BenefitScenarioKind). */}
       <div className="mb-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <p className="text-xs font-semibold text-slate-400">
           Benefit scenarios
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -450,7 +450,7 @@ function CaseCard({ c, onBegin }: { c: MedicalCaseScenario; onBegin: () => void 
   return (
     <div className="flex flex-col clinical-card">
       <div className="flex items-start justify-between gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${difficultyTone(c.difficulty)}`}>{c.difficulty}</span>
+        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${difficultyTone(c.difficulty)}`}>{c.difficulty}</span>
         <span className="text-xs text-slate-400">~{c.estimatedMinutes} min</span>
       </div>
       <h4 className="mt-2 text-sm font-bold text-slate-800">{c.title}</h4>
@@ -521,7 +521,7 @@ function Briefing() {
               ))}
             </ul>
           )}
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Rep notes</p>
+          <p className="mt-1 text-[11px] font-semibold text-slate-400">Rep notes</p>
           <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {eligibilitySnapshot.representativeNotes.map((n, i) => (
               <li key={i}>{n}</li>
@@ -607,7 +607,7 @@ function RegistrationStage() {
 
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <div className="clinical-card">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Insurance card</p>
+          <p className="text-xs font-semibold text-slate-400">Insurance card</p>
           <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <p className="text-sm font-bold text-slate-800">{p.subscriberName}</p>
             <p className="text-[11px] text-slate-600">Member ID: {p.memberId}</p>
@@ -616,7 +616,7 @@ function RegistrationStage() {
         </div>
 
         <div className="clinical-card">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Your transcription</p>
+          <p className="text-xs font-semibold text-slate-400">Your transcription</p>
           <label className="mt-2 block text-xs text-slate-500">Patient last name</label>
           <input
             value={r.lastNameEntered}
@@ -714,7 +714,7 @@ function EligibilityStage() {
             <span className="text-[11px] text-slate-700">{confirmPrompt}</span>
           </label>
         )}
-        <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Representative notes</p>
+        <p className="mt-2 text-[11px] font-semibold text-slate-400">Representative notes</p>
         <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
           {e.representativeNotes.map((n, i) => (
             <li key={i}>{n}</li>
@@ -748,7 +748,7 @@ function ClinicalStage() {
       <div className="mt-3 space-y-2">
         {rows.map((r) => (
           <div key={r.label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{r.label}</p>
+            <p className="text-xs font-semibold text-slate-400">{r.label}</p>
             <p className="mt-0.5 text-xs leading-relaxed text-slate-700">{r.value}</p>
           </div>
         ))}
@@ -795,7 +795,7 @@ function CodingStage() {
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         {/* diagnoses */}
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Diagnoses (ICD-10)</p>
+          <p className="text-xs font-semibold text-slate-400">Diagnoses (ICD-10)</p>
           <div className="mt-2 flex items-center gap-1 rounded-lg border border-slate-200 px-2">
             <Search className="h-3.5 w-3.5 text-slate-400" />
             <input
@@ -827,7 +827,7 @@ function CodingStage() {
 
         {/* procedures */}
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Procedures (CPT)</p>
+          <p className="text-xs font-semibold text-slate-400">Procedures (CPT)</p>
           <div className="mt-2 flex items-center gap-1 rounded-lg border border-slate-200 px-2">
             <Search className="h-3.5 w-3.5 text-slate-400" />
             <input
@@ -998,7 +998,7 @@ function PriorAuthStage() {
         </label>
 
         <div className="rounded-lg border border-slate-200 bg-white p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">What did you do?</p>
+          <p className="text-xs font-semibold text-slate-400">What did you do?</p>
           {(
             [
               { v: "obtained", label: "Obtained the authorisation before billing" },

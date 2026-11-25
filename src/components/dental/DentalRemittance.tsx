@@ -68,7 +68,7 @@ export function DentalRemittance() {
                 ledger below.
               </p>
             </div>
-            <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
+            <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700">
               {claimRemittance.lines.length} line{claimRemittance.lines.length === 1 ? "" : "s"}
             </span>
           </div>
@@ -97,7 +97,7 @@ export function DentalRemittance() {
                 read-only — nothing here can be posted to this patient's ledger.
               </p>
             </div>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-600">
+            <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
               {remittances.length} sample{remittances.length === 1 ? "" : "s"}
             </span>
           </div>

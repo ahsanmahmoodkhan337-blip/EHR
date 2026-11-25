@@ -110,7 +110,7 @@ function PatientHubLayout() {
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" /> Patients
           </Link>
           <UserRound className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-          <h1 className="text-sm font-bold text-slate-800">
+          <h1 className="text-2xl font-bold tracking-[-0.01em] text-slate-900">
             {patient ? `${patient.firstName} ${patient.lastName}` : "Patient hub"}
           </h1>
           {patient && <p className="text-[11px] text-slate-500">MRN {patient.mrn || "—"}</p>}

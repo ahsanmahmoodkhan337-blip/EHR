@@ -601,7 +601,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
             {/* Weekday header row */}
             <div className="mb-1 grid grid-cols-7">
               {DAYS.map((d) => (
-                <div key={d} className="py-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <div key={d} className="py-1 text-center text-xs font-semibold text-slate-400">
                   {d}
                 </div>
               ))}

@@ -244,7 +244,7 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
                 Patient search results — {matches.length} of {totalMatches} shown. Use the up and down
                 arrows to move, Enter to open.
               </caption>
-              <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+              <thead className="sticky top-0 bg-slate-50 text-xs text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                 <tr>
                   <th scope="col" className="w-[38%] px-2 py-1.5 font-semibold sm:w-[30%]">
                     Name

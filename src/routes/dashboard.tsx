@@ -37,6 +37,7 @@ import {
   flowStageIndex,
 } from "../domain/encounterFlow";
 import type { DentalTrackState, DentalStageName } from "../components/dental/DentalTrackStore";
+import { PageTitle } from "../components/shell/PageTitle";
 
 export const Route = createFileRoute("/dashboard")({
   // The dashboard sits inside the same shell as every other page, so it needs
@@ -196,12 +197,7 @@ function DashboardPage() {
         <div className="mx-auto max-w-4xl px-4 py-8">
         {/* welcome */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-800">
-              <Sparkles className="h-5 w-5 text-brand-500" /> Welcome back
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">Pick a track and resume where you left off.</p>
-          </div>
+          <PageTitle title="Welcome back" description="Pick a track and resume where you left off." className="mb-0" />
           {subStatus !== "no-expiry" && (
             <span className={`status-badge ${
               subStatus === "expired" ? "is-danger" : subStatus === "expiring-soon" ? "is-warning" : "is-success"
@@ -276,7 +272,7 @@ function DashboardPage() {
             <div className="mt-4 flex-1 rounded-xl border border-slate-100 bg-slate-50 p-3">
               {dentalStarted ? (
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Current case</p>
+                  <p className="text-xs font-semibold text-slate-400">Current case</p>
                   <p className="mt-0.5 text-sm font-semibold text-slate-700">{dental?.caseId ?? "—"}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     Stage: <span className="font-semibold text-accent-700">{dentalStage ? DENTAL_STAGE_LABELS[dentalStage] : "—"}</span>

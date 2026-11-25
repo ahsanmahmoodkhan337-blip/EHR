@@ -133,7 +133,7 @@ export function DentalEraRemittance({
       {/* ── claim-level (PLB) adjustments + teaching points ───────────── */}
       {remittance.claimLevelAdjustments && remittance.claimLevelAdjustments.length > 0 && (
         <div className="border-t border-slate-100 bg-slate-50 px-3 py-2">
-          <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">Claim-level adjustments</p>
+          <p className="mb-1 text-[11px] font-bold text-slate-500">Claim-level adjustments</p>
           {remittance.claimLevelAdjustments.map((a, i) => (
             <ClaimAdjustment key={i} adj={a} />
           ))}
@@ -142,7 +142,7 @@ export function DentalEraRemittance({
 
       {remittance.teachingPoints.length > 0 && (
         <div className="border-t border-slate-100 px-3 py-2">
-          <p className="mb-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+          <p className="mb-1 flex items-center gap-1 text-[11px] font-bold text-slate-500">
             <BadgeCheck className="h-3 w-3 text-teal-600" /> Teaching points
           </p>
           <ul className="list-disc space-y-0.5 pl-4 text-xs leading-snug text-slate-600">

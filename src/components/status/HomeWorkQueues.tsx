@@ -129,7 +129,7 @@ export function HomeWorkQueues({ onOpenMedicalStage }: HomeWorkQueuesProps) {
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <ClipboardList className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
-        <h2 id="home-work-queues-heading" className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
+        <h2 id="home-work-queues-heading" className="text-[11px] font-bold text-slate-600">
           Work queues
         </h2>
         <p className="text-[11px] text-slate-500">
@@ -215,7 +215,7 @@ function TrackPanel({
         }`}
       >
         {icon}
-        <h3 className="text-[11px] font-bold uppercase tracking-wide">{title}</h3>
+        <h3 className="text-[11px] font-bold">{title}</h3>
         {count === 0 && <span className="text-[11px] font-medium opacity-80">No data yet — nothing waiting</span>}
       </div>
       <div className="space-y-1.5 p-3">

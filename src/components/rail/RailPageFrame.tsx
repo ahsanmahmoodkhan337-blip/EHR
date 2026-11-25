@@ -26,6 +26,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight, type LucideIcon } from "lucide-react";
 import type { RailRow } from "../../domain/railPages";
 import type { Role } from "../../store/pipelineEncounter";
+import { PageTitle } from "../shell/PageTitle";
 
 /** The simulated-data footer every rail page carries (STANDING-RULES 1). */
 export const railFooter = (
@@ -50,16 +51,16 @@ export function RailPageHeader({
   countLabel: string;
 }) {
   return (
-    <div className="mb-3">
-      <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-        <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">{title}</h1>
-      </div>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{purpose}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
-        <span className="tabular-nums">{count}</span> {countLabel}
-      </p>
-    </div>
+    <PageTitle
+      icon={Icon}
+      title={title}
+      description={purpose}
+      meta={
+        <>
+          <span className="tabular-nums">{count}</span> {countLabel}
+        </>
+      }
+    />
   );
 }
 

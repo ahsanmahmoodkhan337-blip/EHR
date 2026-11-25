@@ -33,6 +33,7 @@ import { isTutorialPatient, ownPatientList } from "../domain/inbox";
 import { flowStage, type EncounterFlowStageId } from "../domain/encounterFlow";
 import { openingStageId } from "../domain/encounterRoute";
 import { DEFAULT_HUB_TAB } from "../components/patients/PatientHubTabs";
+import { PageTitle } from "../components/shell/PageTitle";
 
 export const Route = createFileRoute("/patients")({
   component: () => (
@@ -105,15 +106,14 @@ function PatientsPage() {
       }
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <UserRound className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-          <h1 className="text-sm font-bold text-slate-800">Patients</h1>
-          <p className="text-[11px] text-slate-500">
-            {patients.length} {patients.length === 1 ? "chart" : "charts"} on file
-          </p>
-        </div>
+        <PageTitle
+          icon={UserRound}
+          title="Patients"
+          description="Your own charts, plus the pinned Tutorial Patient. Open one to see its hub."
+          meta={`${patients.length} ${patients.length === 1 ? "chart" : "charts"} on file`}
+        />
 
-        <label htmlFor="patient-directory-search" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <label htmlFor="patient-directory-search" className="mb-1 block text-xs font-semibold text-slate-500">
           Find a patient
         </label>
         <div className="relative mb-3 max-w-md">
@@ -175,7 +175,7 @@ function PatientsPage() {
                         {patient.firstName} {patient.lastName}
                         {tutorial && (
                           <span
-                            className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800"
+                            className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800"
                             title="The standard worked-example chart"
                           >
                             Tutorial

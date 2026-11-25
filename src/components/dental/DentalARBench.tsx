@@ -64,7 +64,7 @@ function ScenarioPicker({ onBack }: { onBack?: () => void }) {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 ring-1 ring-teal-100">
         <Phone className="h-4 w-4 shrink-0 text-teal-600" aria-hidden="true" />
-        <span className="text-xs font-bold uppercase tracking-wide text-teal-700">Dental AR — Practice bench</span>
+        <span className="text-xs font-bold text-teal-700">Dental AR — Practice bench</span>
         <span className="ml-auto text-xs font-medium text-teal-600">No case needed</span>
       </div>
 

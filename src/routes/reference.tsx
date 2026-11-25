@@ -18,6 +18,7 @@ import { AppShell } from "../components/AppShell";
 import { useActiveTrack } from "../components/shell/activeTrack";
 import { CodeLookup } from "../components/shell/referenceTabs";
 import { CARC_CODES, CARC_GROUP_MEANINGS, type CarcGroup } from "../data/claims/carc";
+import { PageTitle } from "../components/shell/PageTitle";
 
 export const Route = createFileRoute("/reference")({
   component: ReferencePage,
@@ -44,16 +45,16 @@ function ReferencePage() {
       }
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
-        <h1 className="text-sm font-bold text-slate-800">Reference</h1>
-        <p className="mt-0.5 text-[11px] text-slate-500">
-          Look up what a code means. Nothing here tells you which code a case expects.
-        </p>
+        <PageTitle
+          title="Reference"
+          description="Look up what a code means. Nothing here tells you which code a case expects."
+        />
 
         {/* ── Code sets ────────────────────────────────────────────────── */}
         <section aria-labelledby="reference-codes" className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
           <div className="flex flex-wrap items-center gap-2">
             <BookMarked className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-            <h2 id="reference-codes" className="text-xs font-bold uppercase tracking-wide text-slate-700">
+            <h2 id="reference-codes" className="text-xs font-bold text-slate-700">
               Code sets
             </h2>
             <div className="ml-auto flex gap-1" role="group" aria-label="Which code set to look up">
@@ -83,7 +84,7 @@ function ReferencePage() {
         <section aria-labelledby="reference-carc" className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
           <div className="flex flex-wrap items-center gap-2">
             <BadgeDollarSign className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-            <h2 id="reference-carc" className="text-xs font-bold uppercase tracking-wide text-slate-700">
+            <h2 id="reference-carc" className="text-xs font-bold text-slate-700">
               Claim adjustment reason codes
             </h2>
           </div>
