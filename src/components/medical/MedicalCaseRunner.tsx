@@ -82,20 +82,20 @@ const BENEFIT_KIND_LABEL: Record<BenefitScenarioKind, string> = {
 const BENEFIT_KIND_DOT: Record<BenefitScenarioKind, string> = {
   "clean-paid": "bg-emerald-500",
   "medical-necessity-denial": "bg-red-500",
-  "prior-auth-triggered": "bg-violet-500",
+  "prior-auth-triggered": "bg-brand-500",
   "bundling-cci-edit": "bg-amber-500",
   "benefit-exhausted": "bg-orange-500",
-  "deductible-coinsurance": "bg-sky-500",
+  "deductible-coinsurance": "bg-brand-500",
   "non-covered-service": "bg-rose-500",
 };
 
 const BENEFIT_KIND_TONE: Record<BenefitScenarioKind, string> = {
   "clean-paid": "border-emerald-200 bg-emerald-50 text-emerald-700",
   "medical-necessity-denial": "border-red-200 bg-red-50 text-red-700",
-  "prior-auth-triggered": "border-violet-200 bg-violet-50 text-violet-700",
+  "prior-auth-triggered": "border-brand-200 bg-brand-50 text-brand-700",
   "bundling-cci-edit": "border-amber-200 bg-amber-50 text-amber-700",
   "benefit-exhausted": "border-orange-200 bg-orange-50 text-orange-700",
-  "deductible-coinsurance": "border-sky-200 bg-sky-50 text-sky-700",
+  "deductible-coinsurance": "border-brand-200 bg-brand-50 text-brand-700",
   "non-covered-service": "border-rose-200 bg-rose-50 text-rose-700",
 };
 
@@ -371,7 +371,7 @@ function StageNav({ nextLabel = "Continue", onNext, nextDisabled = false }: { ne
       <button
         onClick={() => (onNext ? onNext() : goTo(next))}
         disabled={nextDisabled}
-        className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex items-center gap-1.5 rounded-lg bg-brand-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {nextLabel} <ArrowRight className="h-3.5 w-3.5" />
       </button>
@@ -394,10 +394,10 @@ function CaseSelect() {
   return (
     <div className="h-full overflow-y-auto p-4">
       {/* Track identity banner — makes it unambiguous which RCM track this is. */}
-      <div className="mb-3 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 ring-1 ring-blue-100">
-        <Stethoscope className="h-4 w-4 shrink-0 text-blue-600" />
-        <span className="text-xs font-bold uppercase tracking-wide text-blue-700">Medical RCM Track</span>
-        <span className="ml-auto text-[10px] font-medium text-blue-600">CPT / ICD-10 · CMS-1500</span>
+      <div className="mb-3 flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 ring-1 ring-brand-100">
+        <Stethoscope className="h-4 w-4 shrink-0 text-brand-600" />
+        <span className="text-xs font-bold uppercase tracking-wide text-brand-700">Medical RCM Track</span>
+        <span className="ml-auto text-[10px] font-medium text-brand-600">CPT / ICD-10 · CMS-1500</span>
       </div>
 
       <div className="mb-3 flex items-center justify-between">
@@ -467,7 +467,7 @@ function CaseCard({ c, onBegin }: { c: MedicalCaseScenario; onBegin: () => void 
       </div>
       <button
         onClick={onBegin}
-        className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500"
+        className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-brand-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-800"
       >
         Begin case <ArrowRight className="h-3.5 w-3.5" />
       </button>
@@ -488,7 +488,7 @@ function Briefing() {
         <span className="text-[10px] text-slate-400">{plan?.name} · {plan?.planType} (fictional payer)</span>
       </div>
 
-      <p className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-blue-800">{activeCase.briefing}</p>
+      <p className="rounded-xl border border-brand-100 bg-brand-50 p-3 text-xs leading-relaxed text-brand-800">{activeCase.briefing}</p>
 
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <Section title="Patient & registration">
@@ -621,21 +621,21 @@ function RegistrationStage() {
           <input
             value={r.lastNameEntered}
             onChange={(e) => editTranscription({ lastNameEntered: e.target.value })}
-            className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+            className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-brand-400 focus:outline-none"
             placeholder="Enter last name"
           />
           <label className="mt-2 block text-[10px] text-slate-500">Member ID</label>
           <input
             value={r.memberIdEntered}
             onChange={(e) => editTranscription({ memberIdEntered: e.target.value })}
-            className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+            className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-brand-400 focus:outline-none"
             placeholder="Enter member ID"
           />
 
           {/* Rule 6: nothing is compared until the student commits to a comparison. */}
           <button
             onClick={confirmTranscription}
-            className="mt-3 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            className="mt-3 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-700 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
           >
             <CheckCircle2 className="h-3.5 w-3.5" /> Confirm transcription
           </button>
@@ -709,7 +709,7 @@ function EligibilityStage() {
               type="checkbox"
               checked={state.eligibilityChecked}
               onChange={(e) => setEligibilityChecked(e.target.checked)}
-              className="h-3.5 w-3.5 accent-blue-600"
+              className="h-3.5 w-3.5 accent-brand-600"
             />
             <span className="text-[11px] text-slate-700">{confirmPrompt}</span>
           </label>
@@ -813,12 +813,12 @@ function CodingStage() {
                   key={c.code}
                   onClick={() => toggleDiagnosis(c.code)}
                   className={`flex w-full items-start gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors ${
-                    on ? "border-blue-300 bg-blue-50" : "border-slate-100 hover:bg-slate-50"
+                    on ? "border-brand-300 bg-brand-50" : "border-slate-100 hover:bg-slate-50"
                   }`}
                 >
-                  <span className={`mt-0.5 text-[10px] font-bold ${on ? "text-blue-600" : "text-slate-400"}`}>{c.code}</span>
+                  <span className={`mt-0.5 text-[10px] font-bold ${on ? "text-brand-600" : "text-slate-400"}`}>{c.code}</span>
                   <span className="text-[11px] text-slate-600">{c.description}</span>
-                  {on && <CheckCircle2 className="ml-auto h-3.5 w-3.5 shrink-0 text-blue-600" />}
+                  {on && <CheckCircle2 className="ml-auto h-3.5 w-3.5 shrink-0 text-brand-600" />}
                 </button>
               );
             })}
@@ -846,12 +846,12 @@ function CodingStage() {
                   onClick={() => addProcedure(c.code)}
                   disabled={added}
                   className={`flex w-full items-start gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors ${
-                    added ? "border-blue-300 bg-blue-50 opacity-70" : "border-slate-100 hover:bg-slate-50"
+                    added ? "border-brand-300 bg-brand-50 opacity-70" : "border-slate-100 hover:bg-slate-50"
                   }`}
                 >
-                  <span className={`mt-0.5 text-[10px] font-bold ${added ? "text-blue-600" : "text-slate-400"}`}>{c.code}</span>
+                  <span className={`mt-0.5 text-[10px] font-bold ${added ? "text-brand-600" : "text-slate-400"}`}>{c.code}</span>
                   <span className="text-[11px] text-slate-600">{c.description}</span>
-                  {added && <CheckCircle2 className="ml-auto h-3.5 w-3.5 shrink-0 text-blue-600" />}
+                  {added && <CheckCircle2 className="ml-auto h-3.5 w-3.5 shrink-0 text-brand-600" />}
                 </button>
               );
             })}
@@ -959,7 +959,7 @@ function PriorAuthStage() {
                   setPicked((prev) => ({ ...prev, [line.id]: e.target.checked }));
                   setCommitted(false);
                 }}
-                className="h-4 w-4 accent-blue-600"
+                className="h-4 w-4 accent-brand-600"
               />
               <span className="text-[11px] text-slate-700">
                 <span className="font-semibold">{line.code}</span>
@@ -971,7 +971,7 @@ function PriorAuthStage() {
         <button
           onClick={() => setCommitted(true)}
           disabled={lines.length === 0}
-          className="mt-2 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-2 flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-700 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <CheckCircle2 className="h-3.5 w-3.5" /> Commit my selection
         </button>
@@ -992,7 +992,7 @@ function PriorAuthStage() {
             type="checkbox"
             checked={pa.recognized}
             onChange={(e) => setPriorAuth({ recognized: e.target.checked })}
-            className="h-3.5 w-3.5 accent-blue-600"
+            className="h-3.5 w-3.5 accent-brand-600"
           />
           <span className="text-[11px] text-slate-700">I recognised this service as prior-auth required.</span>
         </label>
@@ -1012,7 +1012,7 @@ function PriorAuthStage() {
                 name="pa-choice"
                 checked={pa.choice === o.v}
                 onChange={() => setPriorAuth({ choice: o.v })}
-                className="accent-blue-600"
+                className="accent-brand-600"
               />
               <span className="text-[11px] text-slate-700">{o.label}</span>
             </label>
@@ -1026,7 +1026,7 @@ function PriorAuthStage() {
               value={pa.authNumber}
               onChange={(e) => setPriorAuth({ authNumber: e.target.value })}
               placeholder="e.g. AUTH-2027-1234"
-              className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+              className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-brand-400 focus:outline-none"
             />
           </div>
         )}
@@ -1158,7 +1158,7 @@ function ClaimStage() {
         <div className="mt-4 flex items-center gap-2">
           <button
             onClick={() => goTo("ar-follow-up")}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-600"
+            className="flex items-center gap-1.5 rounded-lg bg-brand-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-brand-800"
           >
             Work the claim <ArrowRight className="h-3.5 w-3.5" />
           </button>
@@ -1227,7 +1227,7 @@ function ARStage() {
             <button
               key={a.action}
               onClick={() => take(a.action)}
-              className="rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50"
+              className="rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
             >
               <p className="text-xs font-semibold text-slate-700">{a.label}</p>
               <p className="mt-0.5 text-[10px] text-slate-500">{a.hint}</p>
@@ -1239,7 +1239,7 @@ function ARStage() {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           rows={2}
-          className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+          className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-brand-400 focus:outline-none"
           placeholder="What did you tell the payer / patient?"
         />
       </Section>
@@ -1268,7 +1268,7 @@ function Debrief() {
     <div className="h-full overflow-y-auto p-4">
       {/* score header */}
       <div className="flex flex-wrap items-center gap-4 clinical-card">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-lg font-bold text-blue-700">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-lg font-bold text-brand-700">
           {scoreTally.earned}/{scoreTally.maxPoints}
         </div>
         <div className="min-w-0 flex-1">
@@ -1286,7 +1286,7 @@ function Debrief() {
           >
             Case list
           </Link>
-          <button onClick={resetTrack} className="rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600">
+          <button onClick={resetTrack} className="rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-800">
             Retake case
           </button>
         </div>

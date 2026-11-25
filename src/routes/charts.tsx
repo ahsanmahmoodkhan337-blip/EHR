@@ -133,7 +133,7 @@ function NoPatientOpen() {
       </p>
       <Link
         to="/patients"
-        className="mt-3 inline-flex min-h-10 items-center gap-1 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+        className="mt-3 inline-flex min-h-10 items-center gap-1 rounded-lg bg-brand-900 px-3 text-xs font-semibold text-white hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
       >
         Choose a patient <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
       </Link>
@@ -476,10 +476,10 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
         </span>
       </div>
       <div className="grid gap-2 md:grid-cols-2">
-        {field("subjective", "Subjective (S)", "Chief complaint, history of present illness, review of systems…", "text-blue-600")}
+        {field("subjective", "Subjective (S)", "Chief complaint, history of present illness, review of systems…", "text-brand-600")}
         {field("objective", "Objective (O)", "Vital signs, exam findings, lab and imaging results…", "text-emerald-600")}
         {field("assessment", "Assessment (A)", "Diagnoses, differentials, clinical impression…", "text-amber-600")}
-        {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-purple-600")}
+        {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-brand-600")}
       </div>
       <p className="mt-2 text-[10px] text-slate-400">
         {readOnly

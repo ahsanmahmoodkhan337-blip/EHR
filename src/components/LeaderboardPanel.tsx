@@ -139,7 +139,7 @@ export function LeaderboardPanel() {
                     <div className="w-16 shrink-0">
                       <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-700">
                         <div
-                          className={`h-1.5 rounded-full ${isCurrentUser ? "bg-amber-500" : "bg-indigo-500"}`}
+                          className={`h-1.5 rounded-full ${isCurrentUser ? "bg-amber-500" : "bg-brand-500"}`}
                           style={{ width: `${Math.min(100, (entry.score / 100) * 100)}%` }}
                         />
                       </div>

@@ -328,7 +328,7 @@ export function ClaimFormShell({
   const btn =
     accent === "accent"
       ? "inline-flex items-center gap-1.5 rounded-lg bg-accent-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-accent-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-      : "inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300";
+      : "inline-flex items-center gap-1.5 rounded-lg bg-brand-900 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-slate-300";
   const btnGhost =
     "inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50";
 

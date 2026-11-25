@@ -139,7 +139,7 @@ function PatientsPage() {
               <Link
                 to="/schedule"
                 aria-label="Open the Schedule to book your first appointment"
-                className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-brand-900 px-3 text-[11px] font-semibold text-white hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
               >
                 <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
                 Open the Schedule
@@ -195,7 +195,7 @@ function PatientsPage() {
                               ? `Open the Tutorial Patient encounter for ${name}`
                               : `Open the patient hub for ${name}`
                           }
-                          className="min-h-10 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                          className="min-h-10 rounded-lg bg-brand-900 px-3 text-xs font-semibold text-white hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                         >
                           {tutorial ? "Open encounter" : "Open patient"}
                         </button>

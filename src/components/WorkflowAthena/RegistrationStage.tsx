@@ -398,26 +398,26 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
       </div>
 
       {/* ─── The patient's own Insurance Card (Front) ─── */}
-      <div className="rounded-xl border-2 border-blue-300 bg-blue-50 p-4 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2 border-b border-blue-200 pb-2">
-          <CreditCard className="h-5 w-5 shrink-0 text-blue-700" />
-          <span className="text-sm font-bold uppercase tracking-wider text-blue-800">Insurance Card — Front</span>
-          <span className="ml-auto max-w-full truncate rounded bg-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800">{onFileOr(card.payerName)}</span>
+      <div className="rounded-xl border-2 border-brand-300 bg-brand-50 p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 border-b border-brand-200 pb-2">
+          <CreditCard className="h-5 w-5 shrink-0 text-brand-700" />
+          <span className="text-sm font-bold uppercase tracking-wider text-brand-800">Insurance Card — Front</span>
+          <span className="ml-auto max-w-full truncate rounded bg-brand-200 px-2 py-0.5 text-[10px] font-bold text-brand-800">{onFileOr(card.payerName)}</span>
         </div>
         <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           {/* What the card prints — the case's one deliberate misspelling lives here. */}
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Member Name</span><br /><span className="font-medium text-slate-800">{onFileOr(mismatch ? mismatch.onCard : card.fullName)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.memberId)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Group Number</span><br /><span className="font-medium text-slate-800">{onFileOr(card.groupNumber)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Payer ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.payerId)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Plan</span><br /><span className="font-medium text-slate-800">{onFileOr(card.planName)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-blue-700">Relationship</span><br /><span className="font-medium text-slate-800">{onFileOr(card.relationship)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Member Name</span><br /><span className="font-medium text-slate-800">{onFileOr(mismatch ? mismatch.onCard : card.fullName)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.memberId)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Group Number</span><br /><span className="font-medium text-slate-800">{onFileOr(card.groupNumber)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Payer ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.payerId)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Plan</span><br /><span className="font-medium text-slate-800">{onFileOr(card.planName)}</span></p>
+          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Relationship</span><br /><span className="font-medium text-slate-800">{onFileOr(card.relationship)}</span></p>
         </div>
         {/* Read the card, then the count. The two things this panel owes the
             student: the gate that unlocks the boxes below, and — only after they
             have saved — how many boxes hold what the documents print. */}
         {!readOnly && (
-          <div className="mt-3 flex flex-col gap-1.5 border-t border-blue-200 pt-3">
+          <div className="mt-3 flex flex-col gap-1.5 border-t border-brand-200 pt-3">
             {!cardRead ? (
               <>
                 <button
@@ -439,7 +439,7 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
               </>
             ) : (
               <>
-                <p className="flex items-center gap-1.5 text-[11px] font-medium text-blue-800">
+                <p className="flex items-center gap-1.5 text-[11px] font-medium text-brand-800">
                   <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                   Card read — transcribe the boxes below.
                 </p>

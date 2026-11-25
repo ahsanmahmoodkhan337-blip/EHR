@@ -93,7 +93,7 @@ export function CareGapAlerts() {
                     </div>
                     <p className="mt-1.5 text-[9px] text-slate-600"><span className="font-medium">Recommend:</span> {gap.recommendation}</p>
                     <div className="mt-2 flex gap-1.5">
-                      <button className="flex items-center gap-1 rounded bg-blue-600 px-2.5 py-1 text-[9px] font-medium text-white hover:bg-blue-500">
+                      <button className="flex items-center gap-1 rounded bg-brand-900 px-2.5 py-1 text-[9px] font-medium text-white hover:bg-brand-800">
                         <Syringe className="h-3 w-3" /> Order Now
                       </button>
                       <button onClick={() => dismiss(gap.id)} className="rounded border border-slate-200 px-2 py-1 text-[9px] text-slate-500 hover:bg-slate-50">

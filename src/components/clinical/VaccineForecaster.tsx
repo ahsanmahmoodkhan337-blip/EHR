@@ -104,7 +104,7 @@ export function VaccineForecaster() {
     switch (s) {
       case "overdue": return "border-red-200 bg-red-50";
       case "due-soon": return "border-amber-200 bg-amber-50";
-      case "upcoming": return "border-blue-200 bg-blue-50";
+      case "upcoming": return "border-brand-200 bg-brand-50";
       default: return "border-green-200 bg-green-50";
     }
   };
@@ -113,7 +113,7 @@ export function VaccineForecaster() {
     <div className="relative">
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-[10px] font-medium text-cyan-600 hover:bg-cyan-100 transition-colors"
+        className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
       >
         <Syringe className="h-3.5 w-3.5" />
         Vaccine Forecaster
@@ -138,7 +138,7 @@ export function VaccineForecaster() {
                   type="date"
                   value={birthdate}
                   onChange={(e) => setBirthdate(e.target.value)}
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-cyan-400"
+                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-400"
                 />
                 <button className="rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-500 hover:bg-slate-50">
                   <Printer className="h-3.5 w-3.5" />
@@ -178,7 +178,7 @@ export function VaccineForecaster() {
                             <span className={`rounded-full px-2 py-0.5 text-[8px] font-bold ${
                               v.status === "overdue" ? "bg-red-500 text-white" :
                               v.status === "due-soon" ? "bg-amber-500 text-white" :
-                              v.status === "upcoming" ? "bg-blue-100 text-blue-700" :
+                              v.status === "upcoming" ? "bg-brand-100 text-brand-700" :
                               "bg-green-500 text-white"
                             }`}>
                               {v.status === "overdue" ? "OVERDUE" : v.status === "due-soon" ? "DUE SOON" : v.status === "upcoming" ? "Upcoming" : "Complete"}

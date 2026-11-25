@@ -171,7 +171,7 @@ export function ChartSearch({ patientId, className = "" }: ChartSearchProps) {
             if (query.trim()) setIsOpen(true);
           }}
           placeholder="Search this chart..."
-          className="w-48 rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-7 text-xs text-slate-700 placeholder-slate-400 outline-none transition-colors focus:border-blue-400 focus:bg-white focus:ring-1 focus:ring-blue-400"
+          className="w-48 rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-7 text-xs text-slate-700 placeholder-slate-400 outline-none transition-colors focus:border-brand-400 focus:bg-white focus:ring-1 focus:ring-brand-400"
         />
         {query && (
           <button
@@ -202,7 +202,7 @@ export function ChartSearch({ patientId, className = "" }: ChartSearchProps) {
                   setIsOpen(false);
                   setQuery("");
                 }}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-blue-50"
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-brand-50"
               >
                 <span className="shrink-0 text-slate-400">{result.icon}</span>
                 <div className="min-w-0 flex-1">

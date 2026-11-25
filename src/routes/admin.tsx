@@ -740,7 +740,7 @@ function AdminPage() {
                   setSessionTimeoutMinutes(sessionTimeout);
                   setRefreshKey((k) => k + 1);
                 }}
-                className="mt-5 flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-xs font-medium text-white hover:bg-brand-500"
+                className="mt-5 flex items-center gap-1 rounded-lg bg-brand-900 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800"
               >
                 <Save className="h-3.5 w-3.5" />
                 Apply
@@ -907,7 +907,7 @@ function ScenarioBuilder() {
       </div>
       {/* Save */}
       <div className="flex items-center gap-2">
-        <button onClick={savePatient} className="flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-[10px] font-medium text-white hover:bg-brand-500">
+        <button onClick={savePatient} className="flex items-center gap-1 rounded-lg bg-brand-900 px-4 py-2 text-[10px] font-medium text-white hover:bg-brand-800">
           <Save className="h-3 w-3" />
           {saved ? "Saved!" : "Save Patient Scenario"}
         </button>

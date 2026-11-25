@@ -417,3 +417,13 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - The encounter uses the shared `SummaryPaneToggle` instead of its own button.
 - Deleted `TabsEpic/Header.tsx` (unused since the 19 Nov shell).
 
+## 10. Interface consistency, part 2 — colors, buttons, font (2026-11-25)
+
+- Public Sans is loaded once in `main.tsx` and set as the body font in `styles/app.css` (Inter was
+  named but never loaded).
+- Off-palette Tailwind colors (blue, indigo, sky, cyan, purple, violet — 461 uses in 70 files) map to
+  the `brand-*` scale at the same shade. Exception: the SOAP Plan heading keeps purple (S/O/A/P color
+  coding). Vitals chart series keep their distinct colors.
+- Primary buttons are navy `brand-900` (hover `brand-800`), including `.btn-primary`; selected states
+  (tabs, chips, toggles) stay royal `brand-600`.
+

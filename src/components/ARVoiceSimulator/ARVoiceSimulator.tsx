@@ -812,7 +812,7 @@ export default function ARVoiceSimulator({ readOnly = false, claimSubmitted = fa
                     <p className="text-[10px] font-semibold text-slate-600">{template.title}</p>
                     <button
                       onClick={handleCopyAppeal}
-                      className="flex items-center gap-1 rounded bg-brand-600 px-2 py-1 text-[9px] font-medium text-white hover:bg-brand-500"
+                      className="flex items-center gap-1 rounded bg-brand-900 px-2 py-1 text-[9px] font-medium text-white hover:bg-brand-800"
                     >
                       {copiedAppeal ? <Check className="h-2.5 w-2.5" /> : <Copy className="h-2.5 w-2.5" />}
                       {copiedAppeal ? "Copied!" : "Copy Letter"}
@@ -1130,7 +1130,7 @@ export function AppealLetterGenerator() {
           <button
             onClick={handleGenerate}
             disabled={!carcCode || selectedReason.length === 0}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-xs font-medium text-white hover:bg-brand-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800 disabled:bg-slate-300 disabled:cursor-not-allowed"
           >
             <FileText className="h-3.5 w-3.5" />
             Generate Appeal Letter
@@ -1143,7 +1143,7 @@ export function AppealLetterGenerator() {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-brand-600">
+            <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg bg-brand-900 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-brand-800">
               {copied ? <CheckCircle2 className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
               {copied ? "Copied!" : "Copy to Clipboard"}
             </button>

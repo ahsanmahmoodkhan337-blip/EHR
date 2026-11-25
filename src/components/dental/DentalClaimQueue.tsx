@@ -32,8 +32,8 @@ const STEPS: { id: ClaimStage; label: string; icon: React.ReactNode }[] = [
 function lineStatus(resolution: DentalLineResolution | undefined, denied: boolean, payable: boolean): { label: string; tone: string } {
   if (denied) {
     if (resolution === "appealed") return { label: "Appealed", tone: "bg-amber-50 text-amber-700" };
-    if (resolution === "resubmitted") return { label: "Resubmitted", tone: "bg-blue-50 text-blue-700" };
-    if (resolution === "billed-patient") return { label: "Billed patient", tone: "bg-purple-50 text-purple-700" };
+    if (resolution === "resubmitted") return { label: "Resubmitted", tone: "bg-brand-50 text-brand-700" };
+    if (resolution === "billed-patient") return { label: "Billed patient", tone: "bg-brand-50 text-brand-700" };
     if (resolution === "write-off") return { label: "Written off", tone: "bg-slate-100 text-slate-600" };
     if (resolution === "closed") return { label: "Closed", tone: "bg-slate-100 text-slate-600" };
     return { label: "Denied — action needed", tone: "bg-red-50 text-red-700" };
@@ -160,7 +160,7 @@ export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = 
                 </div>
               )}
               {res === "billed-patient" && (
-                <div className="mt-2 flex items-center gap-1.5 text-[10px] text-purple-700">
+                <div className="mt-2 flex items-center gap-1.5 text-[10px] text-brand-700">
                   <User className="h-3 w-3" /> Patient has been billed for their responsibility
                 </div>
               )}

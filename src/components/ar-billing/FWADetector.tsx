@@ -71,7 +71,7 @@ export function FWADetector() {
                   </div>
                   <p className="text-[9px] text-slate-600">{f.description}</p>
                   <div className="mt-2 flex gap-1.5">
-                    <button className="rounded bg-blue-600 px-2 py-1 text-[8px] font-medium text-white"><Eye className="h-3 w-3 inline mr-1" />Investigate</button>
+                    <button className="rounded bg-brand-600 px-2 py-1 text-[8px] font-medium text-white"><Eye className="h-3 w-3 inline mr-1" />Investigate</button>
                     <button onClick={() => dismiss(f.id)} className="rounded border px-2 py-1 text-[8px]"><Trash2 className="h-3 w-3 inline mr-1" />Dismiss</button>
                   </div>
                 </div>

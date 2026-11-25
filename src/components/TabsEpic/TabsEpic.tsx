@@ -132,19 +132,19 @@ export function TabsEpic({
                 transition-colors duration-150
                 ${
                   isActive
-                    ? "text-blue-700"
+                    ? "text-brand-700"
                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                 }
               `}
             >
               {/* Active indicator bar */}
               {isActive && (
-                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-600" />
+                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-brand-600" />
               )}
 
               <span
                 className={`${
-                  isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-500"
+                  isActive ? "text-brand-600" : "text-slate-400 group-hover:text-slate-500"
                 }`}
               >
                 {tab.icon}
@@ -154,7 +154,7 @@ export function TabsEpic({
               {tab.badge !== undefined && (
                 <span
                   className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white ${
-                    tab.badgeColor || "bg-blue-500"
+                    tab.badgeColor || "bg-brand-500"
                   }`}
                 >
                   {tab.badge}

@@ -93,13 +93,13 @@ const KIND_ICON: Record<InboxKind, typeof Inbox> = {
 /** The 19 November priority left-borders, kept exactly. */
 const PRIORITY_TONE: Record<InboxPriority, string> = {
   high: "border-l-amber-500 bg-amber-50",
-  medium: "border-l-blue-500 bg-blue-50",
+  medium: "border-l-blue-500 bg-brand-50",
   low: "border-l-slate-300 bg-white",
 };
 
 const PRIORITY_BADGE: Record<InboxPriority, string> = {
   high: "bg-amber-100 text-amber-700",
-  medium: "bg-blue-100 text-blue-700",
+  medium: "bg-brand-100 text-brand-700",
   low: "bg-slate-100 text-slate-500",
 };
 
@@ -124,7 +124,7 @@ export function InBasket({ onOpenMedicalStage }: InBasketProps) {
   return (
     <div className="flex flex-1 flex-col overflow-y-auto p-4">
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Inbox className="h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
+        <Inbox className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-slate-800">InBasket / Alert Center</h2>
           <p className="text-sm text-slate-500">
@@ -188,7 +188,7 @@ function OpenStage({
   onOpenMedicalStage: (patientId: string | null, role: Role) => void;
 }) {
   const className =
-    "mt-1 inline-flex min-h-10 items-center gap-1 rounded text-xs font-semibold text-blue-700 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
+    "mt-1 inline-flex min-h-10 items-center gap-1 rounded text-xs font-semibold text-brand-700 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600";
   const label = (
     <>
       Open this stage

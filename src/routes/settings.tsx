@@ -360,7 +360,7 @@ function SettingsPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               onClick={handleExport}
-              className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-500"
+              className="flex items-center gap-1.5 rounded-xl bg-brand-900 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-800"
             >
               <Download className="h-3.5 w-3.5" /> Export all user data (JSON)
             </button>

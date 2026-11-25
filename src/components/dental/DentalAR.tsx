@@ -495,15 +495,15 @@ export function DentalAR() {
                   )}
 
                   {isTarget && callState === "connected" && (
-                    <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 p-2">
-                      <p className="text-[10px] font-semibold text-blue-800">Call objective — what this call must accomplish</p>
-                      <p className="text-[10px] text-blue-700">{objective.guidance}</p>
+                    <div className="mt-2 rounded-lg border border-brand-100 bg-brand-50 p-2">
+                      <p className="text-[10px] font-semibold text-brand-800">Call objective — what this call must accomplish</p>
+                      <p className="text-[10px] text-brand-700">{objective.guidance}</p>
                       {objective.caseSpecific.length > 0 && (
                         <div className="mt-1">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-blue-400">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-brand-400">
                             {isPractice ? "Scenario call script" : "Case call script"}
                           </p>
-                          <ol className="ml-4 list-decimal text-[10px] text-blue-700">
+                          <ol className="ml-4 list-decimal text-[10px] text-brand-700">
                             {objective.caseSpecific.map((o, i) => (
                               <li key={i}>{o}</li>
                             ))}
@@ -519,7 +519,7 @@ export function DentalAR() {
                           value={callNote}
                           onChange={(e) => setCallNote(e.target.value)}
                           placeholder="Log what was confirmed on the call…"
-                          className="min-h-[40px] min-w-0 flex-1 rounded-lg border border-blue-200 bg-white px-2 py-2 text-[11px] outline-none focus:border-blue-400"
+                          className="min-h-[40px] min-w-0 flex-1 rounded-lg border border-brand-200 bg-white px-2 py-2 text-[11px] outline-none focus:border-brand-400"
                         />
                         <button
                           onClick={() => endCall(denial)}
@@ -598,7 +598,7 @@ export function DentalAR() {
                             </p>
                           )}
                           <p className="text-[10px] text-slate-700">{score.why}</p>
-                          <p className="rounded bg-blue-50 px-2 py-1 text-[10px] italic text-blue-800">{score.lesson}</p>
+                          <p className="rounded bg-brand-50 px-2 py-1 text-[10px] italic text-brand-800">{score.lesson}</p>
                           {typeof score.disputedUsd === "number" && score.disputedUsd > 0 && (
                             <p className="text-[10px] font-semibold text-amber-800">
                               {fmtUsd(score.disputedUsd)} is held in dispute while the appeal is open — it is not a
@@ -676,7 +676,7 @@ export function DentalAR() {
                         <span className="font-semibold text-slate-700">Prevention: </span>
                         {denial.prevention}
                       </p>
-                      <p className="rounded bg-blue-50 px-2 py-1 text-[10px] italic text-blue-700">Debrief: {denial.teachingPoint}</p>
+                      <p className="rounded bg-brand-50 px-2 py-1 text-[10px] italic text-brand-700">Debrief: {denial.teachingPoint}</p>
                       {showAppealWarning === denial.id && (
                         <div className="flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] text-amber-800">
                           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />

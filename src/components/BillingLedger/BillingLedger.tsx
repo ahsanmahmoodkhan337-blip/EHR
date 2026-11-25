@@ -929,7 +929,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                 <FileDown className="h-4 w-4" />
                 Download CMS-1500 as PDF
               </button>
-              <button onClick={() => setRole("ar-voice")} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
+              <button onClick={() => setRole("ar-voice")} className="rounded-lg bg-brand-900 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
                 Proceed to AR Voice
               </button>
             </div>
@@ -1411,7 +1411,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                         type="button"
                         onClick={() => withMoneyStep(() => adjudicateClaim({ payerName: payer }))}
                         aria-label={`Adjudicate claim ${state.claimNumber} against the plan's rules`}
-                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-brand-900 px-3 text-[11px] font-semibold text-white hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                       >
                         <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
                         Adjudicate this claim

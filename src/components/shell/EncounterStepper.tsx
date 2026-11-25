@@ -80,9 +80,9 @@ interface EncounterStepperProps {
 
 const ACCENT: Record<StepperAccent, { current: string; done: string; ring: string }> = {
   blue: {
-    current: "bg-blue-600 text-white shadow-sm",
-    done: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100",
-    ring: "focus-visible:ring-blue-500",
+    current: "bg-brand-600 text-white shadow-sm",
+    done: "bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-100",
+    ring: "focus-visible:ring-brand-500",
   },
   teal: {
     current: "bg-teal-600 text-white shadow-sm",

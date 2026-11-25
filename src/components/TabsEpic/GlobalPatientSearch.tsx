@@ -101,7 +101,7 @@ export function GlobalPatientSearch({
       <div
         className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors cursor-text ${
           isOpen
-            ? "border-blue-400 bg-blue-900/30 ring-1 ring-blue-400/50"
+            ? "border-brand-400 bg-brand-900/30 ring-1 ring-brand-400/50"
             : "border-slate-600 bg-slate-800 hover:border-slate-500"
         }`}
         onClick={handleOpen}
@@ -158,16 +158,16 @@ export function GlobalPatientSearch({
                   <button
                     key={p.id}
                     onClick={() => handleSelect(p.id)}
-                    className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-blue-50 ${
-                      isSelected ? "bg-blue-50" : ""
+                    className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-brand-50 ${
+                      isSelected ? "bg-brand-50" : ""
                     }`}
                   >
                     {/* Avatar initials */}
                     <div
                       className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                         isSelected
-                          ? "bg-blue-600 text-white"
-                          : "bg-blue-100 text-blue-700"
+                          ? "bg-brand-600 text-white"
+                          : "bg-brand-100 text-brand-700"
                       }`}
                     >
                       {p.firstName[0]}

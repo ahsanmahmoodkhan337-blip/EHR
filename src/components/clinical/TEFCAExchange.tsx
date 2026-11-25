@@ -24,7 +24,7 @@ export function TEFCAExchange() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-[10px] font-medium text-cyan-600 hover:bg-cyan-100"><Globe className="h-3.5 w-3.5" /> TEFCA Exchange {imported.size > 0 && `(${imported.size})`}</button>
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"><Globe className="h-3.5 w-3.5" /> TEFCA Exchange {imported.size > 0 && `(${imported.size})`}</button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
@@ -33,12 +33,12 @@ export function TEFCAExchange() {
             <div className="space-y-2">
               {MOCK_RESULTS.filter(r => r.network === network).map((r, i) => (
                 <div key={i} className="rounded-lg border border-slate-200 p-3">
-                  <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-semibold text-slate-700">{r.name}</span><span className="rounded-full bg-blue-100 px-2 py-0.5 text-[8px] font-bold text-blue-700">{r.score}% match</span></div>
+                  <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-semibold text-slate-700">{r.name}</span><span className="rounded-full bg-brand-100 px-2 py-0.5 text-[8px] font-bold text-brand-700">{r.score}% match</span></div>
                   <div className="grid grid-cols-2 gap-0.5 text-[9px] text-slate-500"><span>DOB: {r.dob}</span><span>MRN: {r.mrn}</span><span>Last Visit: {r.lastVisit}</span><span>Facility: {r.facility}</span></div>
                   {imported.has(i) ? (
                     <span className="mt-2 inline-flex items-center gap-1 rounded bg-green-100 px-2 py-1 text-[9px] text-green-700"><CheckCircle2 className="h-3 w-3" /> Imported</span>
                   ) : (
-                    <button onClick={() => importRecord(i)} className="mt-2 rounded bg-cyan-600 px-2 py-1 text-[9px] font-medium text-white"><Download className="h-3 w-3 inline mr-1" />Import Records</button>
+                    <button onClick={() => importRecord(i)} className="mt-2 rounded bg-brand-600 px-2 py-1 text-[9px] font-medium text-white"><Download className="h-3 w-3 inline mr-1" />Import Records</button>
                   )}
                 </div>
               ))}

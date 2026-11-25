@@ -135,7 +135,7 @@ export function DentalDenialDebrief({
                     </ol>
                   </div>
 
-                  <p className="flex items-start gap-1.5 rounded-md bg-blue-50 px-2.5 py-2 text-[10px] leading-snug text-blue-800">
+                  <p className="flex items-start gap-1.5 rounded-md bg-brand-50 px-2.5 py-2 text-[10px] leading-snug text-brand-800">
                     <AlertOctagon className="mt-0.5 h-3 w-3 shrink-0" />
                     {s.teachingPoint}
                   </p>
@@ -155,7 +155,7 @@ function DenialTag({ denialId }: { denialId: string }) {
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
-        pr ? "bg-purple-50 text-purple-700" : "bg-red-50 text-red-700"
+        pr ? "bg-brand-50 text-brand-700" : "bg-red-50 text-red-700"
       }`}
     >
       {/* CARC first (group code + number); the internal teaching tag is secondary. */}

@@ -19,7 +19,7 @@ const EVENTS = [
   { type: "A02", label: "Transfer", patient: "Lisa Chen", mrn: "MRN-1008", location: "4 South → Rehab", time: "13:20" },
 ];
 
-const typeColor = (t: string) => t === "A01" ? "bg-green-100 text-green-700" : t === "A03" ? "bg-blue-100 text-blue-700" : t === "A02" ? "bg-amber-100 text-amber-700" : t === "A04" ? "bg-purple-100 text-purple-700" : "bg-slate-100 text-slate-700";
+const typeColor = (t: string) => t === "A01" ? "bg-green-100 text-green-700" : t === "A03" ? "bg-brand-100 text-brand-700" : t === "A02" ? "bg-amber-100 text-amber-700" : t === "A04" ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-700";
 
 export function ADTStream() {
   const [showPanel, setShowPanel] = useState(false);

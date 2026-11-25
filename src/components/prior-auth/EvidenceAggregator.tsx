@@ -25,7 +25,7 @@ export function EvidenceAggregator() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-[10px] font-medium text-purple-600 hover:bg-purple-100"><FileText className="h-3.5 w-3.5" /> Evidence Packet</button>
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"><FileText className="h-3.5 w-3.5" /> Evidence Packet</button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
@@ -41,7 +41,7 @@ export function EvidenceAggregator() {
             </div>
             <p className="text-[9px] text-slate-500 mb-2">{allReady}/{CHECKLIST.length} items ready</p>
             {!generated ? (
-              <button onClick={() => setGenerated(true)} className="w-full rounded-lg bg-purple-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-purple-500">Generate Auth Packet</button>
+              <button onClick={() => setGenerated(true)} className="w-full rounded-lg bg-brand-900 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-brand-800">Generate Auth Packet</button>
             ) : (
               <div className="rounded-lg bg-green-50 p-3">
                 <div className="flex items-center gap-2 mb-2"><CheckCircle2 className="h-4 w-4 text-green-600" /><span className="text-[10px] font-bold text-green-700">Auth Packet Generated</span></div>

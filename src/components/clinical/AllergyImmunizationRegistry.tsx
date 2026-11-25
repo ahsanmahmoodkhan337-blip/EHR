@@ -38,14 +38,14 @@ export function AllergyImmunizationRegistry() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100"><Shield className="h-3.5 w-3.5" /> Registry</button>
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"><Shield className="h-3.5 w-3.5" /> Registry</button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4"><div><h3 className="text-sm font-bold text-slate-800">Allergy & Immunization Registry</h3></div><button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button></div>
             <div className="flex gap-2 mb-3">
-              <button onClick={() => setTab("allergies")} className={`rounded-lg px-3 py-1.5 text-[10px] font-medium ${tab==="allergies"?"bg-blue-600 text-white":"bg-slate-100"}`}>Allergies ({allergies.length})</button>
-              <button onClick={() => setTab("immunizations")} className={`rounded-lg px-3 py-1.5 text-[10px] font-medium ${tab==="immunizations"?"bg-blue-600 text-white":"bg-slate-100"}`}>Immunizations ({immunizations.length})</button>
+              <button onClick={() => setTab("allergies")} className={`rounded-lg px-3 py-1.5 text-[10px] font-medium ${tab==="allergies"?"bg-brand-600 text-white":"bg-slate-100"}`}>Allergies ({allergies.length})</button>
+              <button onClick={() => setTab("immunizations")} className={`rounded-lg px-3 py-1.5 text-[10px] font-medium ${tab==="immunizations"?"bg-brand-600 text-white":"bg-slate-100"}`}>Immunizations ({immunizations.length})</button>
             </div>
             {tab === "allergies" ? (
               <div className="space-y-1">

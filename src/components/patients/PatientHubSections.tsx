@@ -201,7 +201,7 @@ function AppointmentRow({ patient, appointmentId }: { patient: Patient; appointm
             type="button"
             onClick={() => checkInAppointment(appointment.id)}
             aria-label={`Check in ${patient.firstName} ${patient.lastName} for the ${appointment.type} on ${dateOf(appointment.date)}`}
-            className="min-h-10 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            className="min-h-10 rounded-lg bg-brand-900 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
           >
             Check in
           </button>
@@ -258,7 +258,7 @@ function AppointmentRow({ patient, appointmentId }: { patient: Patient; appointm
                   type="button"
                   onClick={collect}
                   aria-label={`Collect the copay for ${patient.firstName} ${patient.lastName} and post it to the visit ledger`}
-                  className="min-h-10 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                  className="min-h-10 rounded-lg bg-brand-900 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                 >
                   Collect copay
                 </button>

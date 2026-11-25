@@ -128,7 +128,7 @@ export function PatientBanner({ patient, fallbackName }: PatientBannerProps) {
       <span
         className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
           visitType === "New Patient"
-            ? "bg-sky-500/20 text-sky-300"
+            ? "bg-brand-500/20 text-brand-300"
             : "bg-slate-600/50 text-slate-200"
         }`}
       >

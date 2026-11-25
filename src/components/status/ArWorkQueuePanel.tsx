@@ -307,7 +307,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                         type="button"
                         onClick={() => commit(item)}
                         aria-label={`Confirm ${AR_ACTION_LABELS[pending.action].toLowerCase()} for ${item.claimNumber}`}
-                        className="inline-flex min-h-[40px] items-center rounded-lg bg-brand-600 px-3 text-[10px] font-semibold text-white hover:bg-brand-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="inline-flex min-h-[40px] items-center rounded-lg bg-brand-900 px-3 text-[10px] font-semibold text-white hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                         {...readOnlyAttrs(readOnly, reasonId)}
                       >
                         Confirm and post
