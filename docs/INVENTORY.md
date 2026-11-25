@@ -446,3 +446,12 @@ British "authorisation" spelling across the UI (a grader matches on it).
   the printed forms; "BREAK GLASS" and "GOOD FAITH ESTIMATE" stay as written.
 - Settings no longer prints the student's phone number in its title block.
 
+## 13. Track switch and Practice Cases link (2026-11-25)
+
+- The header's Medical/Dental switch only changes sides (`setActiveTrack`). Track-following pages stay
+  put; track-bound pages (`trackBoundPath()` in `shell/AppHeader.tsx`: `/`, `/encounter/*`, `/charts`,
+  `/cases/:track/...`, `/practice-ar`, `/dental`, `/medical-cases`) go to `/dashboard`. It no longer
+  navigates to `/cases`.
+- "Practice cases" is a fifth header link (`/cases`), highlighted on case pages and the practice AR bench
+  (`headerNavForPath` returns `"cases"`).
+
