@@ -146,13 +146,13 @@ function DenialsAndArPage() {
                 key={bucket.bucket}
                 className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 dark:border-slate-800 dark:bg-slate-900"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   {bucket.bucket} days
                 </p>
                 <p className="text-[12px] font-bold tabular-nums text-slate-800 dark:text-slate-100">
                   {usd(bucket.cents)}
                 </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {bucket.count} {bucket.count === 1 ? "item" : "items"}
                 </p>
               </li>

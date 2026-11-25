@@ -44,7 +44,7 @@ export function LeaderboardPanel() {
       >
         <Trophy className="h-4 w-4" />
         {currentUserRank && currentUserRank.score > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 text-[7px] font-bold text-white">
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-0.5 text-[10px] font-bold text-white">
             {currentUserRank.rank}
           </span>
         )}
@@ -77,7 +77,7 @@ export function LeaderboardPanel() {
                       <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
                         Your Rank: #{currentUserRank.rank} — {currentUserRank.score} pts
                       </p>
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
                         {currentUserRank.stagesCompleted} stages completed
                       </p>
                     </div>
@@ -123,7 +123,7 @@ export function LeaderboardPanel() {
                           {entry.name} {isCurrentUser && "(You)"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500">
+                      <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
                         <span>{entry.score} pts</span>
                         <span>·</span>
                         <span className="flex items-center gap-0.5">
@@ -152,7 +152,7 @@ export function LeaderboardPanel() {
             {/* Footer */}
             {leaderboard.length > 0 && (
               <div className="absolute bottom-0 left-0 right-0 border-t border-slate-200 dark:border-slate-700 p-3 text-center">
-                <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   Complete all 7 stages to earn 100 points!
                 </p>
               </div>

@@ -424,7 +424,7 @@ function AdminPage() {
           <div className="flex items-center gap-2 border-b border-slate-700 px-4 py-3">
             <Clock className="h-4 w-4 text-amber-400" />
             <h2 className="text-sm font-semibold text-white">Pending Requests</h2>
-            <span className="rounded-full bg-amber-900/50 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+            <span className="rounded-full bg-amber-900/50 px-2 py-0.5 text-xs font-medium text-amber-300">
               {pendingTotal}
             </span>
             {listLoading && <RefreshCw className="h-3 w-3 animate-spin text-slate-500" />}
@@ -440,7 +440,7 @@ function AdminPage() {
                     <p className="text-xs text-slate-400">
                       {req.phone} | {req.paymentMethod} | ID: {req.transactionId}
                     </p>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-xs text-slate-500">
                       {new Date(req.submittedAt).toLocaleString()}
                     </p>
                   </div>
@@ -542,7 +542,7 @@ function AdminPage() {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-400" />
               <h2 className="text-sm font-semibold text-white">All Approved Users</h2>
-              <span className="rounded-full bg-green-900/50 px-2 py-0.5 text-[10px] font-medium text-green-300">
+              <span className="rounded-full bg-green-900/50 px-2 py-0.5 text-xs font-medium text-green-300">
                 {approvedTotal}
               </span>
             </div>
@@ -559,10 +559,10 @@ function AdminPage() {
               {activeSearch ? "No users match your search" : "No approved users"}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-700 text-[10px] uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-slate-700 text-xs uppercase tracking-wider text-slate-400">
                     <th className="px-3 py-2 font-medium">Name</th>
                     <th className="px-3 py-2 font-medium">Phone</th>
                     <th className="px-3 py-2 font-medium">Payment</th>
@@ -608,21 +608,21 @@ function AdminPage() {
                         <td className="px-3 py-2 font-medium text-white">{req.fullName}</td>
                         <td className="px-3 py-2 text-slate-300">{req.phone}</td>
                         <td className="px-3 py-2 text-slate-300 capitalize">{req.paymentMethod || "—"}</td>
-                        <td className="px-3 py-2 font-mono text-[10px] text-slate-400">{req.transactionId || "—"}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-slate-400">{req.transactionId || "—"}</td>
                         <td className="px-3 py-2 text-slate-300">{durationLabel}</td>
                         <td className="px-3 py-2">
-                          <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusBadge}`}>
+                          <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${statusBadge}`}>
                             {statusLabel}
                           </span>
                         </td>
                         <td className="px-3 py-2 text-slate-300">{daysLabel}</td>
                         <td className="px-3 py-2">
                           {deviceCount === 0 ? (
-                            <span className="text-[10px] text-slate-500">No activity</span>
+                            <span className="text-xs text-slate-500">No activity</span>
                           ) : (
                             <div>
                               <span
-                                className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                                className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${
                                   sig?.overLimit
                                     ? "border-red-700/50 bg-red-900/40 text-red-300"
                                     : sig?.flagged
@@ -633,26 +633,26 @@ function AdminPage() {
                                 {deviceCount}/{MAX_DEVICE_COUNT} device{deviceCount !== 1 ? "s" : ""}
                               </span>
                               {sig?.overLimit && (
-                                <p className="mt-0.5 text-[9px] text-red-400">over device limit</p>
+                                <p className="mt-0.5 text-[11px] text-red-400">over device limit</p>
                               )}
                               {sig?.concurrentLoginDetected && !sig?.overLimit && (
-                                <p className="mt-0.5 text-[9px] text-amber-400">multi-session</p>
+                                <p className="mt-0.5 text-[11px] text-amber-400">multi-session</p>
                               )}
                               {sig?.lastLoginAt && (
-                                <p className="mt-0.5 text-[9px] text-slate-500">
+                                <p className="mt-0.5 text-[11px] text-slate-500">
                                   last {new Date(sig.lastLoginAt).toLocaleDateString()}
                                 </p>
                               )}
                             </div>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-slate-400 text-[10px]">
+                        <td className="px-3 py-2 text-slate-400 text-xs">
                           {new Date(req.submittedAt).toLocaleDateString()}
                         </td>
                         <td className="px-3 py-2">
                           <button
                             onClick={() => handleRevoke(req.phone)}
-                            className="rounded bg-red-900/50 px-2 py-0.5 text-[10px] font-medium text-red-300 hover:bg-red-700 transition-colors"
+                            className="rounded bg-red-900/50 px-2 py-0.5 text-xs font-medium text-red-300 hover:bg-red-700 transition-colors"
                             title="Revoke access"
                           >
                             Revoke
@@ -709,7 +709,7 @@ function AdminPage() {
               <h2 className="text-sm font-semibold text-white">Session Timeout</h2>
             </div>
             {timeoutSaved && (
-              <span className="text-[10px] text-green-400">Saved!</span>
+              <span className="text-xs text-green-400">Saved!</span>
             )}
           </div>
           <div className="p-4">
@@ -719,7 +719,7 @@ function AdminPage() {
             </p>
             <div className="flex items-center gap-3">
               <div className="flex-1">
-                <label className="block text-[10px] font-medium text-slate-500 mb-1">Timeout Duration</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Timeout Duration</label>
                 <select
                   value={sessionTimeout}
                   onChange={(e) => setSessionTimeout(parseInt(e.target.value))}
@@ -749,7 +749,7 @@ function AdminPage() {
             {sessionTimeout > 0 && (
               <div className="mt-3 flex items-center gap-2 rounded-lg bg-brand-900/30 px-3 py-2">
                 <Clock className="h-3.5 w-3.5 text-brand-400" />
-                <p className="text-[10px] text-brand-300">
+                <p className="text-xs text-brand-300">
                   Students will be automatically logged out after <strong>{sessionTimeout} minutes</strong> of inactivity.
                   Their session resets each time they log in.
                 </p>
@@ -763,7 +763,7 @@ function AdminPage() {
         <div className="flex items-center gap-2 mb-4">
           <UserPlus className="h-4 w-4 text-brand-400" />
           <h3 className="text-xs font-bold text-slate-200">Scenario Builder</h3>
-          <span className="rounded-full bg-brand-900/50 px-2 py-0.5 text-[9px] font-medium text-brand-300">Create Custom Patient</span>
+          <span className="rounded-full bg-brand-900/50 px-2 py-0.5 text-[11px] font-medium text-brand-300">Create Custom Patient</span>
         </div>
         <ScenarioBuilder />
       </div>
@@ -836,53 +836,53 @@ function ScenarioBuilder() {
       {/* Form */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <div>
-          <label className="mb-1 block text-[9px] font-medium text-slate-400">First Name</label>
-          <input type="text" value={form.firstName} onChange={e => updateField("firstName", e.target.value)} placeholder="Jane" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
+          <label className="mb-1 block text-[11px] font-medium text-slate-400">First Name</label>
+          <input type="text" value={form.firstName} onChange={e => updateField("firstName", e.target.value)} placeholder="Jane" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400" />
         </div>
         <div>
-          <label className="mb-1 block text-[9px] font-medium text-slate-400">Last Name</label>
-          <input type="text" value={form.lastName} onChange={e => updateField("lastName", e.target.value)} placeholder="Doe" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
+          <label className="mb-1 block text-[11px] font-medium text-slate-400">Last Name</label>
+          <input type="text" value={form.lastName} onChange={e => updateField("lastName", e.target.value)} placeholder="Doe" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400" />
         </div>
         <div>
-          <label className="mb-1 block text-[9px] font-medium text-slate-400">Age</label>
-          <input type="number" value={form.age} onChange={e => updateField("age", parseInt(e.target.value) || 0)} min={0} max={120} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
+          <label className="mb-1 block text-[11px] font-medium text-slate-400">Age</label>
+          <input type="number" value={form.age} onChange={e => updateField("age", parseInt(e.target.value) || 0)} min={0} max={120} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400" />
         </div>
         <div>
-          <label className="mb-1 block text-[9px] font-medium text-slate-400">Gender</label>
-          <select value={form.gender} onChange={e => updateField("gender", e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400">
+          <label className="mb-1 block text-[11px] font-medium text-slate-400">Gender</label>
+          <select value={form.gender} onChange={e => updateField("gender", e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400">
             <option>Male</option><option>Female</option><option>Other</option>
           </select>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="mb-1 block text-[9px] font-medium text-slate-400">Chief Complaint</label>
-          <input type="text" value={form.chiefComplaint} onChange={e => updateField("chiefComplaint", e.target.value)} placeholder="Chest pain and shortness of breath" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
+          <label className="mb-1 block text-[11px] font-medium text-slate-400">Chief Complaint</label>
+          <input type="text" value={form.chiefComplaint} onChange={e => updateField("chiefComplaint", e.target.value)} placeholder="Chest pain and shortness of breath" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400" />
         </div>
         <div>
-          <label className="mb-1 block text-[9px] font-medium text-slate-400">Insurance</label>
-          <input type="text" value={form.insurance} onChange={e => updateField("insurance", e.target.value)} placeholder="Northwind Health PPO" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
+          <label className="mb-1 block text-[11px] font-medium text-slate-400">Insurance</label>
+          <input type="text" value={form.insurance} onChange={e => updateField("insurance", e.target.value)} placeholder="Northwind Health PPO" className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400" />
         </div>
       </div>
       {/* Vitals */}
       <div className="grid grid-cols-5 gap-2">
         {["bp", "hr", "temp", "rr", "o2"].map(v => (
           <div key={v}>
-            <label className="mb-1 block text-[9px] font-medium text-slate-400 uppercase">{v}</label>
-            <input type="text" value={(form.vitals as any)[v]} onChange={e => updateVital(v, e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
+            <label className="mb-1 block text-[11px] font-medium text-slate-400 uppercase">{v}</label>
+            <input type="text" value={(form.vitals as any)[v]} onChange={e => updateVital(v, e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400" />
           </div>
         ))}
       </div>
       {/* Problems */}
       <div>
-        <label className="mb-1 block text-[9px] font-medium text-slate-400">Problems</label>
+        <label className="mb-1 block text-[11px] font-medium text-slate-400">Problems</label>
         <div className="flex gap-1 mb-1">
-          <input type="text" value={problemInput} onChange={e => setProblemInput(e.target.value)} placeholder="e.g. Essential hypertension (I10)" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
-          <button onClick={() => { if (problemInput.trim()) { updateField("problems", [...form.problems, problemInput.trim()]); setProblemInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-[10px] text-white">Add</button>
+          <input type="text" value={problemInput} onChange={e => setProblemInput(e.target.value)} placeholder="e.g. Essential hypertension (I10)" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400" />
+          <button onClick={() => { if (problemInput.trim()) { updateField("problems", [...form.problems, problemInput.trim()]); setProblemInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white">Add</button>
         </div>
         <div className="flex flex-wrap gap-1">
           {form.problems.map((p, i) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded bg-brand-900/50 px-1.5 py-0.5 text-[9px] text-brand-300">
+            <span key={i} className="inline-flex items-center gap-1 rounded bg-brand-900/50 px-1.5 py-0.5 text-[11px] text-brand-300">
               {p}
               <button onClick={() => updateField("problems", form.problems.filter((_, j) => j !== i))} className="text-brand-400 hover:text-red-400">×</button>
             </span>
@@ -891,14 +891,14 @@ function ScenarioBuilder() {
       </div>
       {/* Medications */}
       <div>
-        <label className="mb-1 block text-[9px] font-medium text-slate-400">Medications</label>
+        <label className="mb-1 block text-[11px] font-medium text-slate-400">Medications</label>
         <div className="flex gap-1 mb-1">
-          <input type="text" value={medInput} onChange={e => setMedInput(e.target.value)} placeholder="e.g. Lisinopril 10mg" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-[10px] text-white outline-none focus:border-brand-400" />
-          <button onClick={() => { if (medInput.trim()) { updateField("medications", [...form.medications, medInput.trim()]); setMedInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-[10px] text-white">Add</button>
+          <input type="text" value={medInput} onChange={e => setMedInput(e.target.value)} placeholder="e.g. Lisinopril 10mg" className="flex-1 rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400" />
+          <button onClick={() => { if (medInput.trim()) { updateField("medications", [...form.medications, medInput.trim()]); setMedInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white">Add</button>
         </div>
         <div className="flex flex-wrap gap-1">
           {form.medications.map((m, i) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded bg-green-900/50 px-1.5 py-0.5 text-[9px] text-green-300">
+            <span key={i} className="inline-flex items-center gap-1 rounded bg-green-900/50 px-1.5 py-0.5 text-[11px] text-green-300">
               {m}
               <button onClick={() => updateField("medications", form.medications.filter((_, j) => j !== i))} className="text-green-400 hover:text-red-400">×</button>
             </span>
@@ -907,7 +907,7 @@ function ScenarioBuilder() {
       </div>
       {/* Save */}
       <div className="flex items-center gap-2">
-        <button onClick={savePatient} className="flex items-center gap-1 rounded-lg bg-brand-900 px-4 py-2 text-[10px] font-medium text-white hover:bg-brand-800">
+        <button onClick={savePatient} className="flex items-center gap-1 rounded-lg bg-brand-900 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800">
           <Save className="h-3 w-3" />
           {saved ? "Saved!" : "Save Patient Scenario"}
         </button>
@@ -915,11 +915,11 @@ function ScenarioBuilder() {
       {/* Saved patients list */}
       {patients.length > 0 && (
         <div className="mt-3 pt-3 border-t border-slate-700">
-          <p className="text-[10px] font-medium text-slate-400 mb-2">Custom Patients ({patients.length})</p>
+          <p className="text-xs font-medium text-slate-400 mb-2">Custom Patients ({patients.length})</p>
           <div className="space-y-1">
             {patients.map(p => (
               <div key={p.id} className="flex items-center justify-between rounded bg-slate-700/50 px-2 py-1">
-                <span className="text-[10px] text-slate-300">{p.firstName} {p.lastName} — {p.chiefComplaint?.slice(0, 40)}</span>
+                <span className="text-xs text-slate-300">{p.firstName} {p.lastName} — {p.chiefComplaint?.slice(0, 40)}</span>
                 <button onClick={() => deletePatient(p.id)} className="text-red-400 hover:text-red-300"><Trash2 className="h-3 w-3" /></button>
               </div>
             ))}

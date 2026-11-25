@@ -207,7 +207,7 @@ export function DrugAlertEngine({
     <div className="relative">
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[10px] font-medium text-rose-600 hover:bg-rose-100 transition-colors"
+        className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-100 transition-colors"
       >
         <Shield className="h-3.5 w-3.5" />
         Drug Safety Check
@@ -222,7 +222,7 @@ export function DrugAlertEngine({
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Drug Interaction Checker</h3>
-                <p className="text-[10px] text-slate-500">Select a drug to check against patient allergies and current medications</p>
+                <p className="text-xs text-slate-500">Select a drug to check against patient allergies and current medications</p>
               </div>
               <button onClick={() => setShowPanel(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-4 w-4" />
@@ -230,14 +230,14 @@ export function DrugAlertEngine({
             </div>
 
             {/* Patient context */}
-            <div className="mb-3 rounded-lg bg-slate-50 p-3 text-[10px]">
+            <div className="mb-3 rounded-lg bg-slate-50 p-3 text-xs">
               <p className="font-medium text-slate-600">Patient Allergies: <span className="text-red-600">{patientAllergies.join(", ")}</span></p>
               <p className="font-medium text-slate-600 mt-1">Current Meds: <span className="text-slate-700">{currentMeds.join(", ")}</span></p>
             </div>
 
             {/* Drug selector */}
             <div className="mb-3">
-              <label className="mb-1 block text-[10px] font-medium text-slate-500">Order / New Medication</label>
+              <label className="mb-1 block text-xs font-medium text-slate-500">Order / New Medication</label>
               <select
                 value={selectedDrug}
                 onChange={(e) => handleCheck(e.target.value)}
@@ -257,14 +257,14 @@ export function DrugAlertEngine({
                   <div className="rounded-lg border border-green-200 bg-green-50 p-3">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <p className="text-[10px] font-medium text-green-700">No interactions detected — safe to order {selectedDrug}</p>
+                      <p className="text-xs font-medium text-green-700">No interactions detected — safe to order {selectedDrug}</p>
                     </div>
                   </div>
                 ) : (
                   <>
                     <div className="flex items-center gap-2 mb-2">
                       <AlertTriangle className="h-4 w-4 text-red-500" />
-                      <p className="text-[10px] font-bold text-red-600">
+                      <p className="text-xs font-bold text-red-600">
                         {results.length} alert{results.length > 1 ? "s" : ""} found
                       </p>
                     </div>
@@ -278,7 +278,7 @@ export function DrugAlertEngine({
                           ) : (
                             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                           )}
-                          <span className="text-[10px] leading-relaxed">{r.message}</span>
+                          <span className="text-xs leading-relaxed">{r.message}</span>
                         </div>
                       </div>
                     ))}
@@ -286,13 +286,13 @@ export function DrugAlertEngine({
                       <div className="flex gap-2 mt-3">
                         <button
                           onClick={() => { onOverride?.(); setShowPanel(false); }}
-                          className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-[10px] font-medium text-white hover:bg-red-500"
+                          className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-500"
                         >
                           Override & Order Anyway
                         </button>
                         <button
                           onClick={() => { onCancel?.(); setShowPanel(false); }}
-                          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
+                          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
                         >
                           Cancel Order
                         </button>

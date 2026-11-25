@@ -75,51 +75,51 @@ Phone: (555) 555-0105`;
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[10px] font-medium text-red-600 hover:bg-red-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100">
         <FileText className="h-3.5 w-3.5" /> Appeal Letter
       </button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <div><h3 className="text-sm font-bold text-slate-800">Denial Appeal Generator</h3><p className="text-[9px] text-slate-400">Generate formal appeal letter</p></div>
+              <div><h3 className="text-sm font-bold text-slate-800">Denial Appeal Generator</h3><p className="text-[11px] text-slate-400">Generate formal appeal letter</p></div>
               <button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button>
             </div>
 
             {!showPrint ? (
               <>
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div><label className="text-[10px] font-medium text-slate-500">Patient</label><p className="text-xs text-slate-700">{patientName}</p></div>
-                  <div><label className="text-[10px] font-medium text-slate-500">MRN</label><p className="text-xs text-slate-700">{patientMRN}</p></div>
+                  <div><label className="text-xs font-medium text-slate-500">Patient</label><p className="text-xs text-slate-700">{patientName}</p></div>
+                  <div><label className="text-xs font-medium text-slate-500">MRN</label><p className="text-xs text-slate-700">{patientMRN}</p></div>
                 </div>
                 <div className="mb-3">
-                  <label className="text-[10px] font-medium text-slate-500">CARC Denial Code</label>
-                  <select value={carcCode} onChange={e => setCarcCode(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none mt-1">
+                  <label className="text-xs font-medium text-slate-500">CARC Denial Code</label>
+                  <select value={carcCode} onChange={e => setCarcCode(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none mt-1">
                     {CARC_CODES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.description}</option>)}
                   </select>
                 </div>
                 <div className="mb-3">
-                  <label className="text-[10px] font-medium text-slate-500">Appeal Rationale (editable)</label>
-                  <textarea value={template.body} readOnly className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-600 bg-slate-50 resize-none h-20 mt-1" />
+                  <label className="text-xs font-medium text-slate-500">Appeal Rationale (editable)</label>
+                  <textarea value={template.body} readOnly className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 bg-slate-50 resize-none h-20 mt-1" />
                 </div>
                 <div className="mb-3">
-                  <label className="text-[10px] font-medium text-slate-500">Additional Notes</label>
-                  <textarea value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} placeholder="Add any supplemental justification..." className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none resize-none h-16 mt-1" />
+                  <label className="text-xs font-medium text-slate-500">Additional Notes</label>
+                  <textarea value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} placeholder="Add any supplemental justification..." className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none resize-none h-16 mt-1" />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setShowPrint(true)} className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-[10px] font-medium text-white hover:bg-red-500"><Printer className="h-3.5 w-3.5" /> Generate & Print</button>
-                  <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-[10px] text-slate-600">{copied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? "Copied!" : "Copy"}</button>
+                  <button onClick={() => setShowPrint(true)} className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-500"><Printer className="h-3.5 w-3.5" /> Generate & Print</button>
+                  <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-xs text-slate-600">{copied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? "Copied!" : "Copy"}</button>
                 </div>
               </>
             ) : (
               <div>
                 <div className="rounded-lg border-2 border-slate-300 bg-white p-6 shadow-inner mb-3">
-                  <pre className="whitespace-pre-wrap text-[10px] text-slate-700 leading-relaxed font-sans">{letter}</pre>
+                  <pre className="whitespace-pre-wrap text-xs text-slate-700 leading-relaxed font-sans">{letter}</pre>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => window.print()} className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-[10px] font-medium text-white hover:bg-red-500"><Printer className="h-3.5 w-3.5" /> Print Letter</button>
-                  <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg border px-4 py-2 text-[10px]">{copied ? "Copied!" : "Copy"}</button>
-                  <button onClick={() => setShowPrint(false)} className="rounded-lg border px-4 py-2 text-[10px] text-slate-500">Back to Edit</button>
+                  <button onClick={() => window.print()} className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-500"><Printer className="h-3.5 w-3.5" /> Print Letter</button>
+                  <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg border px-4 py-2 text-xs">{copied ? "Copied!" : "Copy"}</button>
+                  <button onClick={() => setShowPrint(false)} className="rounded-lg border px-4 py-2 text-xs text-slate-500">Back to Edit</button>
                 </div>
               </div>
             )}

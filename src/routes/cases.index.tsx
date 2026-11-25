@@ -98,7 +98,7 @@ function CasesListPage() {
             <h2 id="cases-medical" className="text-xs font-bold uppercase tracking-wide text-brand-700">
               Medical RCM
             </h2>
-            <span className="text-[10px] font-medium text-brand-600">CPT / ICD-10 · CMS-1500</span>
+            <span className="text-xs font-medium text-brand-600">CPT / ICD-10 · CMS-1500</span>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {MEDICAL_CASE_SCENARIOS.map((scenario) => {
@@ -109,16 +109,16 @@ function CasesListPage() {
                   className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase ${difficultyTone(scenario.difficulty)}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${difficultyTone(scenario.difficulty)}`}>
                       {scenario.difficulty}
                     </span>
-                    <span className="text-[10px] text-slate-400">~{scenario.estimatedMinutes} min</span>
+                    <span className="text-xs text-slate-400">~{scenario.estimatedMinutes} min</span>
                   </div>
                   <h3 className="mt-2 text-sm font-bold text-slate-800">{scenario.title}</h3>
                   <p className="mt-1 flex-1 text-[11px] leading-relaxed text-slate-500">
                     {scenario.briefing}
                   </p>
-                  <p className="mt-2 text-[10px] text-slate-400">
+                  <p className="mt-2 text-xs text-slate-400">
                     {scenario.id} · {scenario.specialty}
                     {plan ? ` · ${plan.name}` : ""}
                   </p>
@@ -144,12 +144,12 @@ function CasesListPage() {
             <h2 id="cases-dental" className="text-xs font-bold uppercase tracking-wide text-teal-700">
               Dental RCM
             </h2>
-            <span className="text-[10px] font-medium text-teal-600">CDT · ADA J430D</span>
+            <span className="text-xs font-medium text-teal-600">CDT · ADA J430D</span>
           </div>
 
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-200 bg-teal-50/60 p-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-teal-700">Practice AR</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Practice AR</p>
               <p className="mt-0.5 text-[11px] text-slate-600">
                 Seven premade denials, already adjudicated. No case to start, no coding first, and
                 nothing a graded case can see.
@@ -172,16 +172,16 @@ function CasesListPage() {
                   className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase ${difficultyTone(scenario.difficulty)}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${difficultyTone(scenario.difficulty)}`}>
                       {scenario.difficulty}
                     </span>
-                    <span className="text-[10px] text-slate-400">~{scenario.estimatedMinutes} min</span>
+                    <span className="text-xs text-slate-400">~{scenario.estimatedMinutes} min</span>
                   </div>
                   <h3 className="mt-2 text-sm font-bold text-slate-800">{scenario.title}</h3>
                   <p className="mt-1 flex-1 text-[11px] leading-relaxed text-slate-500">
                     {scenario.briefing}
                   </p>
-                  <p className="mt-2 text-[10px] text-slate-400">
+                  <p className="mt-2 text-xs text-slate-400">
                     {scenario.id}
                     {plan ? ` · ${plan.payerName} · ${plan.planName}` : ""}
                   </p>

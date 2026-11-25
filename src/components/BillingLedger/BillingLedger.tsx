@@ -830,7 +830,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
           <div className="flex items-center gap-2">
             <Receipt className="h-5 w-5 text-brand-600" />
             <h2 className="text-sm font-bold text-slate-800">Medical Billing — Enhanced Billing Ledger</h2>
-            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 5</span>
+            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">Stage 5</span>
           </div>
         </div>
         <div className="flex flex-1 items-center justify-center overflow-y-auto p-4">
@@ -855,10 +855,10 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
         <div className="flex items-center gap-2">
           <Receipt className="h-5 w-5 text-brand-600" />
           <h2 className="text-sm font-bold text-slate-800">Medical Billing — Enhanced Billing Ledger</h2>
-          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 5</span>
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">Stage 5</span>
           <ClaimAckChip ack={ack} />
           {state.claimStatus && state.claimStatus !== "draft" && (
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
               {CLAIM_STATUS_LABELS[state.claimStatus]}
             </span>
           )}
@@ -888,7 +888,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
             </p>
             {ack && <ClaimAckPanel ack={ack} track="medical" className="mt-3 text-left" />}
             {modifierWarning && (
-              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left text-[10px] text-amber-800">
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs text-amber-800">
                 <strong>Edit check:</strong> a second procedure on the same date of service carries no
                 modifier. A clearinghouse does not check modifiers — that is the payer's adjudication,
                 which is the next stage. No biller score is awarded while this edit is open.
@@ -962,7 +962,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`px-3 py-1.5 text-[10px] font-medium rounded-t-lg transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${
                     activeTab === tab.key
                       ? "bg-brand-50 text-brand-700 border-b-2 border-brand-600"
                       : "text-slate-400 hover:text-slate-600"
@@ -980,7 +980,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                 aria-controls="reimbursement-calculator"
                 aria-label="Reimbursement calculator"
                 title="Reimbursement calculator"
-                className="ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                className="ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
               >
                 <DollarSign className="h-3.5 w-3.5" aria-hidden="true" /> Calculator
               </button>
@@ -994,23 +994,23 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-xs font-semibold text-slate-700">Claim type</p>
                     <span
-                      className="rounded-lg bg-brand-50 px-2 py-1 text-[10px] font-semibold text-brand-700"
+                      className="rounded-lg bg-brand-50 px-2 py-1 text-xs font-semibold text-brand-700"
                       title={paper.reason}
                     >
                       {CLAIM_TYPE_OPTIONS.find((opt) => opt.value === claimType)?.label ?? claimType}
                     </span>
-                    <span className="ml-auto text-[10px] font-medium text-slate-500">
+                    <span className="ml-auto text-xs font-medium text-slate-500">
                       Paper: <strong className="text-slate-700">{paper.paper}</strong> ·{" "}
                       <strong className="text-slate-700">{paper.x12}</strong>
                     </span>
                   </div>
                   {/* The POS decides the paper: it is not a picker, and the reason
                       names the place of service the claim actually bills at. */}
-                  <p className="mt-1.5 text-[10px] text-slate-500">{paper.reason}.</p>
+                  <p className="mt-1.5 text-xs text-slate-500">{paper.reason}.</p>
                   {/* The rule itself, so the student can read why this paper and
                       not another: POS 11 → CMS-1500, POS 21/22/23 → UB-04,
                       dental → ADA J430D. */}
-                  <p className="mt-1 text-[10px] leading-relaxed text-slate-500" data-testid="claim-paper-rule">
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500" data-testid="claim-paper-rule">
                     <strong className="font-semibold text-slate-600">Rule:</strong> {CLAIM_PAPER_RULE}
                   </p>
                   {/* A POS that is not the encounter's is reported with the denial
@@ -1018,7 +1018,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   {posCheck.denial && (
                     <p
                       role="status"
-                      className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] leading-relaxed text-amber-800"
+                      className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs leading-relaxed text-amber-800"
                     >
                       <strong className="font-semibold">
                         {posCheck.denial.carc} ({posCheck.denial.group}) · {posCheck.denial.rarc}
@@ -1027,7 +1027,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                     </p>
                   )}
                   {/* demoFillMissingBoxes — instructor switch */}
-                  <label className="mt-2 flex items-start gap-2 rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] text-slate-600">
+                  <label className="mt-2 flex items-start gap-2 rounded-lg bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
                     <input
                       type="checkbox"
                       checked={demoFillEnabled}
@@ -1055,7 +1055,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                 <div className="clinical-card">
                   <p className="text-xs font-semibold text-slate-700">Prior authorization</p>
                   <fieldset className="mt-2" disabled={readOnly}>
-                    <legend className="text-[10px] text-slate-600">
+                    <legend className="text-xs text-slate-600">
                       Does this encounter require <strong>Prior Authorization</strong>?{" "}
                       <span className="text-slate-400">
                         Check the payer's PA list — this answer is yours.
@@ -1071,7 +1071,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       ).map((opt) => (
                         <label
                           key={opt.label}
-                          className={`flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-[10px] font-medium transition-colors ${
+                          className={`flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors ${
                             needsPriorAuth === opt.value
                               ? "border-brand-300 bg-brand-50 text-brand-700"
                               : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -1099,7 +1099,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                     if (hasPaRecords) {
                       return (
                         <div className={`mt-2 rounded-lg p-2 border ${approvedPa ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
-                          <p className={`text-[10px] font-medium ${approvedPa ? "text-green-700" : "text-amber-700"}`}>
+                          <p className={`text-xs font-medium ${approvedPa ? "text-green-700" : "text-amber-700"}`}>
                             {approvedPa ? (
                               <><CheckCircle2 className="inline h-3 w-3 mr-1" /> Prior Authorization Approved — proceed with billing</>
                             ) : (
@@ -1110,11 +1110,11 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                             const end = new Date(approvedPa.authEndDate);
                             const daysLeft = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
                             return daysLeft <= 14 ? (
-                              <p className="text-[9px] text-amber-600 mt-0.5 flex items-center gap-1">
+                              <p className="text-[11px] text-amber-600 mt-0.5 flex items-center gap-1">
                                 <AlertTriangle className="h-2.5 w-2.5" /> Auth expires in {daysLeft} day{daysLeft !== 1 ? "s" : ""}
                               </p>
                             ) : (
-                              <p className="text-[9px] text-green-600 mt-0.5">Auth valid until {end.toLocaleDateString()}</p>
+                              <p className="text-[11px] text-green-600 mt-0.5">Auth valid until {end.toLocaleDateString()}</p>
                             );
                           })()}
                         </div>
@@ -1127,7 +1127,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                             <AlertTriangle className="h-3.5 w-3.5" />
                             Prior Authorization Required
                           </p>
-                          <p className="mt-1 text-[10px] text-amber-700">You cannot submit this claim until Prior Authorization is completed. Go to Stage 4 to fill the PA form.</p>
+                          <p className="mt-1 text-xs text-amber-700">You cannot submit this claim until Prior Authorization is completed. Go to Stage 4 to fill the PA form.</p>
                           <button
                             onClick={() => setRole("prior-auth")}
                             className="mt-2 flex min-h-[40px] items-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-bold text-white hover:bg-amber-500 transition-colors"
@@ -1230,7 +1230,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                     <p className="text-xs font-semibold text-slate-700">
                       ADA Dental Claim (J430D) — dental claim
                     </p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">
                       Dental services bill on the ADA dental claim, with CDT codes, tooth, surface
                       and quadrant. That paper is worked in the Dental track's billing ledger,
                       where the CDT lines live; this medical encounter carries no dental codes to
@@ -1282,7 +1282,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
                       <div className="h-full rounded-full bg-green-500 transition-all duration-200" style={{ width: `${transmitProgress}%` }} />
                     </div>
-                    <p className="mt-1 text-[10px] text-slate-500">Transmitting 837P... {transmitProgress}%</p>
+                    <p className="mt-1 text-xs text-slate-500">Transmitting 837P... {transmitProgress}%</p>
                   </div>
                 )}
 
@@ -1347,7 +1347,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                           {r.pass ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" /> : <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />}
                           <div>
                             <span className={`font-medium ${r.pass ? "text-green-700" : "text-red-700"}`}>{r.pass ? "✓" : "✗"} {r.check}</span>
-                            <p className="text-[10px] text-slate-500">{r.note}</p>
+                            <p className="text-xs text-slate-500">{r.note}</p>
                           </div>
                         </div>
                       ))}
@@ -1381,7 +1381,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                 ) : !remittance ? (
                   <div className="clinical-card">
                     <p className="text-xs font-bold text-slate-800">Payer adjudication</p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-slate-600">
+                    <p className="mt-1 text-xs leading-relaxed text-slate-600">
                       The claim is accepted and sitting with {payerLabel}. The payer prices every line against the
                       plan's own rules: the contracted allowance, the deductible still to be met, the plan's
                       coinsurance, any authorisation the service required and any edit the plan applies to
@@ -1392,8 +1392,8 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                     {/* The amber state the old paid-claim screen carried: a claim
                         marked paid with no 835 behind it is not a payment. */}
                     <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                      <p className="text-[10px] font-medium text-amber-800">No remittance backs this claim</p>
-                      <p className="mt-0.5 text-[10px] leading-relaxed text-amber-700">
+                      <p className="text-xs font-medium text-amber-800">No remittance backs this claim</p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-amber-700">
                         No 835 was ever received for it and no money was posted. A payment no remittance
                         explains is not a payment — the ledger shows nothing until an 835 is adjudicated and
                         posted.
@@ -1448,11 +1448,11 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                       <span className={`font-mono font-bold text-sm ${
                         d.category === "CO" ? "text-red-600" : d.category === "PR" ? "text-amber-600" : "text-brand-600"
                       }`}>{d.code}</span>
-                      <span className="text-slate-500 text-[10px]">({d.category === "CO" ? "Contractual" : d.category === "PR" ? "Patient Responsibility" : "Organizational"})</span>
+                      <span className="text-slate-500 text-xs">({d.category === "CO" ? "Contractual" : d.category === "PR" ? "Patient Responsibility" : "Organizational"})</span>
                     </div>
                     <p className="mt-1 font-medium text-slate-700">{d.description}</p>
                     <p className="mt-0.5 text-slate-500">{d.meaning}</p>
-                    <p className="mt-1 text-[10px] text-green-700">💡 Fix: {d.howToFix}</p>
+                    <p className="mt-1 text-xs text-green-700">💡 Fix: {d.howToFix}</p>
                   </div>
                 ))}
               </div>
@@ -1467,17 +1467,17 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   </p>
                   <div className="grid grid-cols-1 gap-1.5">
                     {CMS1500_BLOCKS.map((block) => (
-                      <div key={block.box} className="rounded border border-slate-200 bg-white px-2 py-1.5 text-[10px]">
+                      <div key={block.box} className="rounded border border-slate-200 bg-white px-2 py-1.5 text-xs">
                         <div className="flex items-baseline gap-1.5">
                           <span className="min-w-[36px] font-mono font-bold text-brand-600">Box {block.box}</span>
                           <span className="font-medium text-slate-700">{block.label}</span>
                           {block.autoFilled && (
-                            <span className="rounded bg-brand-50 px-1 text-[8px] font-semibold uppercase text-brand-600">auto-filled</span>
+                            <span className="rounded bg-brand-50 px-1 text-[11px] font-semibold uppercase text-brand-600">auto-filled</span>
                           )}
                         </div>
                         <p className="mt-0.5 text-slate-500">{block.description}</p>
                         {block.commonError && (
-                          <p className="mt-0.5 text-[9px] text-red-500">⚠ Common error: {block.commonError}</p>
+                          <p className="mt-0.5 text-[11px] text-red-500">⚠ Common error: {block.commonError}</p>
                         )}
                       </div>
                     ))}
@@ -1487,10 +1487,10 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   <p className="text-xs font-semibold text-slate-700 mb-2">Place of Service (POS) Codes</p>
                   <div className="grid grid-cols-2 gap-1.5">
                     {POS_CODES.map((p) => (
-                      <div key={p.code} className="rounded border border-slate-200 bg-white px-2 py-1 text-[10px]">
+                      <div key={p.code} className="rounded border border-slate-200 bg-white px-2 py-1 text-xs">
                         <span className="font-mono font-bold text-slate-600">{p.code}</span>
                         <span className="ml-1.5 text-slate-500">{p.description}</span>
-                        <span className="ml-1 text-[8px] text-slate-400">({p.setting})</span>
+                        <span className="ml-1 text-[11px] text-slate-400">({p.setting})</span>
                       </div>
                     ))}
                   </div>
@@ -1499,10 +1499,10 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   <p className="text-xs font-semibold text-slate-700 mb-2">Revenue Codes (Institutional Claims)</p>
                   <div className="grid grid-cols-2 gap-1.5">
                     {UB04_REVENUE_CODES.map((r) => (
-                      <div key={r.code} className="rounded border border-slate-200 bg-white px-2 py-1 text-[10px]">
+                      <div key={r.code} className="rounded border border-slate-200 bg-white px-2 py-1 text-xs">
                         <span className="font-mono font-bold text-slate-600">{r.code}</span>
                         <span className="ml-1.5 text-slate-500">{r.teachingDescription}</span>
-                        <span className="ml-1 text-[8px] text-slate-400">
+                        <span className="ml-1 text-[11px] text-slate-400">
                           ({r.appliesTo === "both" ? "all bills" : r.appliesTo})
                         </span>
                       </div>
@@ -1537,7 +1537,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
           >
             <div className="flex items-center gap-1.5 mb-3">
               <DollarSign className="h-3.5 w-3.5 text-green-500" />
-              <span className="text-[10px] font-semibold text-slate-500">Reimbursement Calculator</span>
+              <span className="text-xs font-semibold text-slate-500">Reimbursement Calculator</span>
               <button
                 type="button"
                 onClick={() => setCalcOpen(false)}
@@ -1550,27 +1550,27 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
             </div>
             <div className="space-y-3">
               <div className="rounded-lg bg-white p-3 shadow-sm">
-                <p className="text-[10px] text-slate-400">Fee Schedule</p>
+                <p className="text-xs text-slate-400">Fee Schedule</p>
                 <p className="text-lg font-bold text-green-600">
                   {calcPayment().billed > 0 ? `$${calcPayment().billed.toFixed(2)}` : "$0.00"}
                 </p>
-                <p className="text-[10px] text-slate-400">Billed Amount</p>
+                <p className="text-xs text-slate-400">Billed Amount</p>
                 {calcPayment().billed === 0 && (
-                  <p className="mt-1 text-[9px] text-amber-600">No CPT codes submitted — amount will update after Coding.</p>
+                  <p className="mt-1 text-[11px] text-amber-600">No CPT codes submitted — amount will update after Coding.</p>
                 )}
               </div>
               <div className="rounded-lg bg-white p-3 shadow-sm">
-                <p className="text-[10px] text-slate-400">Payer Rate</p>
+                <p className="text-xs text-slate-400">Payer Rate</p>
                 <p className="text-sm font-bold text-slate-700">{calcPayment().billed > 0 ? `${payerLabel}: pays ${(calcPayment().allowed / calcPayment().billed * 100).toFixed(0)}% of the Medicare fee schedule` : `${payerLabel}: — no codes yet`}</p>
               </div>
               <div className="rounded-lg bg-green-50 p-3 border border-green-200">
-                <p className="text-[10px] text-green-600">Estimated Payment</p>
+                <p className="text-xs text-green-600">Estimated Payment</p>
                 <p className="text-lg font-bold text-green-700">${calcPayment().paid.toFixed(2)}</p>
-                <p className="text-[10px] text-green-500">Patient responsibility: ${calcPayment().patient.toFixed(2)}</p>
+                <p className="text-xs text-green-500">Patient responsibility: ${calcPayment().patient.toFixed(2)}</p>
               </div>
               <div className="rounded-lg bg-amber-50 p-3 border border-amber-200">
-                <p className="text-[10px] text-amber-600 flex items-center gap-1"><Info className="h-3 w-3" /> Educational</p>
-                <p className="text-[10px] text-amber-700">The difference between billed and allowed amounts is a contractual adjustment. Most payers don't pay 100% of charges.</p>
+                <p className="text-xs text-amber-600 flex items-center gap-1"><Info className="h-3 w-3" /> Educational</p>
+                <p className="text-xs text-amber-700">The difference between billed and allowed amounts is a contractual adjustment. Most payers don't pay 100% of charges.</p>
               </div>
             </div>
           </div>
@@ -1587,7 +1587,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                   <div key={d.code} className="rounded-lg bg-white p-3 text-xs">
                     <span className="font-mono font-bold text-red-600">{d.code}</span>
                     <p className="mt-0.5 text-slate-600">{d.description}</p>
-                    <p className="mt-1 text-[10px] text-green-700">💡 Fix: {d.howToFix}</p>
+                    <p className="mt-1 text-xs text-green-700">💡 Fix: {d.howToFix}</p>
                   </div>
                 ))}
               </div>
@@ -1597,7 +1597,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
             <p className="text-xs font-semibold text-slate-700 mb-2">Denial Quick Reference</p>
             <div className="space-y-2">
               {DENIAL_CODES.slice(0, 5).map((d) => (
-                <div key={d.code} className="rounded bg-white p-2 text-[10px] border border-slate-200">
+                <div key={d.code} className="rounded bg-white p-2 text-xs border border-slate-200">
                   <span className="font-mono font-bold text-red-500">{d.code}</span>
                   <p className="text-slate-500">{d.description}</p>
                 </div>

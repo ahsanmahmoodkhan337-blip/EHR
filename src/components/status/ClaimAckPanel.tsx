@@ -55,7 +55,7 @@ export function ClaimAckPanel({ ack, track, onCorrect, className = "" }: ClaimAc
           277CA {ack.category} — {CLAIM_ACK_CATEGORY_LABELS[ack.category]}
           {accepted ? " by the clearinghouse" : " before adjudication"}
         </h3>
-        <span className="ml-auto rounded bg-white/70 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-600">
+        <span className="ml-auto rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs font-semibold text-slate-600">
           {ack.claimNumber}
         </span>
       </header>
@@ -66,29 +66,29 @@ export function ClaimAckPanel({ ack, track, onCorrect, className = "" }: ClaimAc
         </p>
 
         {!accepted && ack.entity && (
-          <p className="text-[10px] text-amber-800">
+          <p className="text-xs text-amber-800">
             <span className="font-semibold">Entity {ack.entity}</span> —{" "}
             {CLAIM_ACK_ENTITY_LABELS[ack.entity]} · category {ack.category} (rejected)
           </p>
         )}
 
         {!accepted && ack.rejection && (
-          <p className="rounded border border-amber-200 bg-white px-2 py-1 text-[10px] text-slate-700">
+          <p className="rounded border border-amber-200 bg-white px-2 py-1 text-xs text-slate-700">
             <span className="font-semibold">Correct box {ack.rejection.box}</span> on the {paper} —{" "}
             {ack.rejection.correction}
           </p>
         )}
 
         {accepted ? (
-          <p className="text-[10px] text-emerald-800">
+          <p className="text-xs text-emerald-800">
             Acceptance is not payment. The payer adjudicates next; its 835 is what pays, part-pays or
             denies the claim and is what creates a patient balance.
           </p>
         ) : (
-          <p className="text-[10px] text-amber-800">{REJECTION_IS_NOT_A_DENIAL}</p>
+          <p className="text-xs text-amber-800">{REJECTION_IS_NOT_A_DENIAL}</p>
         )}
 
-        <p className="pt-0.5 font-mono text-[9px] text-slate-500">
+        <p className="pt-0.5 font-mono text-[11px] text-slate-500">
           837P {ack.batchControlNumber || "—"} · 277CA {ack.responseControlNumber || "—"}
         </p>
 
@@ -114,7 +114,7 @@ export function ClaimAckChip({ ack }: { ack: ClaimAck | null }) {
   const accepted = ack.category === "A1";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
+      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
         accepted ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"
       }`}
     >

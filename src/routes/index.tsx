@@ -154,7 +154,7 @@ function NoteSavedIndicator({ savedAt }: { savedAt?: string }) {
   const time = new Date(savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   return (
     <span
-      className="flex items-center gap-1 text-[10px] font-medium text-slate-500"
+      className="flex items-center gap-1 text-xs font-medium text-slate-500"
       title="Note drafts save automatically — you do not need to press Save"
     >
       <CheckCircle2 className="h-3 w-3 text-green-600" /> Saved {time}
@@ -516,7 +516,7 @@ function SummaryTab({
             const isLow = sys < 90 || dia < 60;
             const label = isHigh ? "⚠ High" : isLow ? "⚠ Low" : "✓ Normal";
             const color = isHigh ? "text-red-500" : isLow ? "text-amber-600" : "text-green-600";
-            return <p className={`mt-1 text-[10px] font-medium ${color}`}>{label}</p>;
+            return <p className={`mt-1 text-xs font-medium ${color}`}>{label}</p>;
           })()}
         </div>
         <div className="clinical-card">
@@ -527,9 +527,9 @@ function SummaryTab({
           {(() => {
             const val = parseFloat(vitals.heartRate);
             if (isNaN(val)) return null;
-            if (val > 100) return <p className="mt-1 text-[10px] font-medium text-red-500">⚠ Tachycardia</p>;
-            if (val < 60) return <p className="mt-1 text-[10px] font-medium text-amber-600">⚠ Bradycardia</p>;
-            return <p className="mt-1 text-[10px] font-medium text-green-600">✓ Normal</p>;
+            if (val > 100) return <p className="mt-1 text-xs font-medium text-red-500">⚠ Tachycardia</p>;
+            if (val < 60) return <p className="mt-1 text-xs font-medium text-amber-600">⚠ Bradycardia</p>;
+            return <p className="mt-1 text-xs font-medium text-green-600">✓ Normal</p>;
           })()}
         </div>
         <div className="clinical-card">
@@ -540,9 +540,9 @@ function SummaryTab({
           {(() => {
             const val = parseFloat(vitals.temperature);
             if (isNaN(val)) return null;
-            if (val > 99.5) return <p className="mt-1 text-[10px] font-medium text-red-500">⚠ Fever</p>;
-            if (val < 97) return <p className="mt-1 text-[10px] font-medium text-amber-600">⚠ Hypothermia</p>;
-            return <p className="mt-1 text-[10px] font-medium text-green-600">✓ Normal</p>;
+            if (val > 99.5) return <p className="mt-1 text-xs font-medium text-red-500">⚠ Fever</p>;
+            if (val < 97) return <p className="mt-1 text-xs font-medium text-amber-600">⚠ Hypothermia</p>;
+            return <p className="mt-1 text-xs font-medium text-green-600">✓ Normal</p>;
           })()}
         </div>
         <div className="clinical-card">
@@ -553,9 +553,9 @@ function SummaryTab({
           {(() => {
             const val = parseFloat(vitals.oxygenSaturation);
             if (isNaN(val)) return null;
-            if (val < 90) return <p className="mt-1 text-[10px] font-medium text-red-500">⚠ Critical</p>;
-            if (val < 95) return <p className="mt-1 text-[10px] font-medium text-amber-600">⚠ Low</p>;
-            return <p className="mt-1 text-[10px] font-medium text-green-600">✓ Normal</p>;
+            if (val < 90) return <p className="mt-1 text-xs font-medium text-red-500">⚠ Critical</p>;
+            if (val < 95) return <p className="mt-1 text-xs font-medium text-amber-600">⚠ Low</p>;
+            return <p className="mt-1 text-xs font-medium text-green-600">✓ Normal</p>;
           })()}
         </div>
       </div>
@@ -566,7 +566,7 @@ function SummaryTab({
         {data.problems.length === 0 ? (
           <p className="text-xs text-slate-400 italic">No active problems</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="data-table">
               <thead>
                 <tr><th>Problem</th><th>ICD-10</th><th>Status</th>{isScribe && <th></th>}</tr>
@@ -581,7 +581,7 @@ function SummaryTab({
                       <td><span className="status-badge is-info">Active</span></td>
                       {isScribe && (
                         <td className="text-right">
-                          <button onClick={() => removeProblem(i)} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove problem">✕</button>
+                          <button onClick={() => removeProblem(i)} className="text-red-400 hover:text-red-600 text-xs" aria-label="Remove problem">✕</button>
                         </td>
                       )}
                     </tr>
@@ -620,7 +620,7 @@ function SummaryTab({
                   <span className="text-slate-500">{med.dosage} · {med.frequency}</span>
                 </div>
                 {isScribe && (
-                  <button onClick={() => removeMed(med.id)} className="text-red-400 hover:text-red-600 text-[10px]">✕ Remove</button>
+                  <button onClick={() => removeMed(med.id)} className="text-red-400 hover:text-red-600 text-xs">✕ Remove</button>
                 )}
               </div>
             ))}
@@ -658,9 +658,9 @@ function SummaryTab({
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span className={allergySeverityClass(severity)}>{severity}</span>
-                    {recorded && <span className="text-[10px] text-slate-400">{recorded}</span>}
+                    {recorded && <span className="text-xs text-slate-400">{recorded}</span>}
                     {isScribe && (
-                      <button onClick={() => removeAllergy(i)} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove allergy">✕</button>
+                      <button onClick={() => removeAllergy(i)} className="text-red-400 hover:text-red-600 text-xs" aria-label="Remove allergy">✕</button>
                     )}
                   </div>
                 </div>
@@ -712,7 +712,7 @@ function SummaryTab({
       <div className="clinical-card">
         <p className="clinical-label mb-2">Labs & Results</p>
         {(patient.labResults || []).length > 0 ? (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="data-table">
               <thead><tr><th>Test</th><th>Result</th><th>Reference</th><th>Flag</th><th>Date</th></tr></thead>
               <tbody>
@@ -843,7 +843,7 @@ function SummaryTab({
       {/* Recent Encounters */}
       <div className="clinical-card">
         <p className="clinical-label mb-2">Recent Encounters</p>
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="data-table">
             <thead><tr><th>Date</th><th>Type</th><th>Provider</th><th>Diagnosis</th></tr></thead>
             <tbody>
@@ -898,7 +898,7 @@ function MedicationsTab({ patientId }: { patientId: string }) {
   return (
     <div className="clinical-card">
       <p className="clinical-label mb-3">Medication List</p>
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
@@ -936,7 +936,7 @@ function MedicationsTab({ patientId }: { patientId: string }) {
                 </td>
                 {isScribe && (
                   <td>
-                    <button onClick={() => removeMedication(med.id)} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
+                    <button onClick={() => removeMedication(med.id)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
                   </td>
                 )}
               </tr>
@@ -1056,7 +1056,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
       <div className="clinical-card col-span-2">
         <p className="clinical-label mb-3">Vital Signs</p>
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
@@ -1156,7 +1156,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
           {new Date(patient.vitals.recordedAt).toLocaleString()}
         </p>
         {isScribe && (
-          <p className="mt-2 text-[10px] italic text-brand-500">Click to edit values above</p>
+          <p className="mt-2 text-xs italic text-brand-500">Click to edit values above</p>
         )}
       </div>
     </div>
@@ -2236,8 +2236,8 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                 <FinancialLedger totalBilled={billedTotal} totalCollected={collectedTotal} totalDenied={deniedTotal} daysInAR={0} deniedCarcs={deniedByCarc} />
               ) : (
                 <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center">
-                  <p className="text-[10px] font-medium text-slate-400">No financial activity yet</p>
-                  <p className="mt-0.5 text-[9px] text-slate-300">Complete Scribe → Coding → Billing to see claim KPIs here.</p>
+                  <p className="text-xs font-medium text-slate-400">No financial activity yet</p>
+                  <p className="mt-0.5 text-[11px] text-slate-300">Complete Scribe → Coding → Billing to see claim KPIs here.</p>
                 </div>
               )}
             </div>
@@ -2290,10 +2290,10 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
               <span
                 className={
                   noteSigned
-                    ? "rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700"
+                    ? "rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700"
                     : noteStatusNow === "draft"
-                      ? "rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
-                      : "rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
+                      ? "rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700"
+                      : "rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500"
                 }
               >
                 {NOTE_STATUS_LABEL[noteStatusNow]}
@@ -2449,7 +2449,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         type="button"
                         onClick={() => setActiveStage("")}
                         aria-label="Show chart tabs"
-                        className="min-h-10 rounded bg-brand-100 px-2.5 text-[10px] font-medium text-brand-700 hover:bg-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                        className="min-h-10 rounded bg-brand-100 px-2.5 text-xs font-medium text-brand-700 hover:bg-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                       >
                         Show Chart Tabs
                       </button>
@@ -2620,7 +2620,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Labs & Results</p>
                         {(selectedPatient.labResults || []).length > 0 ? (
-                          <div className="overflow-x-auto">
+                          <div className="relative overflow-x-auto">
                             <table className="data-table">
                               <thead><tr><th>Test</th><th>Result</th><th>Reference</th><th>Flag</th><th>Status</th><th>Date</th></tr></thead>
                               <tbody>
@@ -2648,7 +2648,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                 <div key={i} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs text-slate-700">
                                   <span>{o}</span>
                                   {currentRole === "scribe" && (
-                                    <button onClick={() => setSharedLabs(sharedLabs.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove result">✕</button>
+                                    <button onClick={() => setSharedLabs(sharedLabs.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-xs" aria-label="Remove result">✕</button>
                                   )}
                                 </div>
                               ))}
@@ -2675,7 +2675,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         {(selectedPatient.problems || []).length === 0 ? (
                           <p className="text-sm text-slate-400 italic">No problems on file.</p>
                         ) : (
-                          <div className="overflow-x-auto">
+                          <div className="relative overflow-x-auto">
                             <table className="data-table">
                               <thead><tr><th>Problem</th><th>ICD-10</th><th>Status</th>{currentRole === "scribe" && <th></th>}</tr></thead>
                               <tbody>
@@ -2691,7 +2691,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                           <button onClick={() => {
                                             const updated = editablePatientData.problems.filter((_, j) => j !== i);
                                             setEditablePatientData({ ...editablePatientData, problems: updated });
-                                          }} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove problem">✕</button>
+                                          }} className="text-red-400 hover:text-red-600 text-xs" aria-label="Remove problem">✕</button>
                                         </td>
                                       )}
                                     </tr>
@@ -2733,13 +2733,13 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                                   <div>
                                     <p className="text-[11px] font-semibold text-amber-800">⚠ Prior Authorization Required</p>
-                                    <p className="mt-0.5 text-[10px] text-amber-700">
+                                    <p className="mt-0.5 text-xs text-amber-700">
                                       {matchingOrders.map(o => `"${o.item}"`).join(", ")} requires prior authorization before the procedure can be performed. 
                                       Please complete the Prior Auth form in the Prior Auth stage.
                                     </p>
                                     <button
                                       onClick={() => setRole("prior-auth")}
-                                      className="mt-2 rounded bg-brand-800 px-3 py-1 text-[10px] font-medium text-white hover:bg-brand-900 transition-colors"
+                                      className="mt-2 rounded bg-brand-800 px-3 py-1 text-xs font-medium text-white hover:bg-brand-900 transition-colors"
                                     >
                                       Submit Prior Auth
                                     </button>
@@ -2752,7 +2752,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         })()}
 
                         {sharedOrders.length > 0 ? (
-                          <div className="overflow-x-auto">
+                          <div className="relative overflow-x-auto">
                             <table className="data-table">
                               <thead><tr><th>Order</th><th>Status</th><th>Provider</th><th>Date</th>{currentRole === "scribe" && <th></th>}</tr></thead>
                               <tbody>
@@ -2763,7 +2763,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                     <td className="text-slate-600">{o.provider}</td>
                                     <td className="text-xs tabular-nums text-slate-500">{o.date}</td>
                                     {currentRole === "scribe" && (
-                                      <td className="text-right"><button onClick={() => setSharedOrders(sharedOrders.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove order">✕</button></td>
+                                      <td className="text-right"><button onClick={() => setSharedOrders(sharedOrders.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-xs" aria-label="Remove order">✕</button></td>
                                     )}
                                   </tr>
                                 ))}
@@ -2807,7 +2807,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         {(selectedPatient.encounters || []).length === 0 ? (
                           <p className="text-sm text-slate-400 italic">No prior visits recorded.</p>
                         ) : (
-                          <div className="overflow-x-auto">
+                          <div className="relative overflow-x-auto">
                             <table className="data-table">
                               <thead><tr><th>Date</th><th>Type</th><th>Provider</th><th>Department</th><th>Diagnosis</th></tr></thead>
                               <tbody>
@@ -2839,7 +2839,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Imaging Studies</p>
                         {sharedImaging.length > 0 ? (
-                          <div className="overflow-x-auto">
+                          <div className="relative overflow-x-auto">
                             <table className="data-table">
                               <thead><tr><th>Study</th><th>Status</th><th>Date</th>{currentRole === "scribe" && <th></th>}</tr></thead>
                               <tbody>
@@ -2849,7 +2849,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                     <td><span className={entryStatusClass(o.status)}>{o.status}</span></td>
                                     <td className="text-xs tabular-nums text-slate-500">{o.date}</td>
                                     {currentRole === "scribe" && (
-                                      <td className="text-right"><button onClick={() => setSharedImaging(sharedImaging.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove study">✕</button></td>
+                                      <td className="text-right"><button onClick={() => setSharedImaging(sharedImaging.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-xs" aria-label="Remove study">✕</button></td>
                                     )}
                                   </tr>
                                 ))}
@@ -2890,7 +2890,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Immunizations</p>
                         {sharedImmunizations.length > 0 ? (
-                          <div className="overflow-x-auto">
+                          <div className="relative overflow-x-auto">
                             <table className="data-table">
                               <thead><tr><th>Vaccine</th><th>Dose</th><th>Date</th><th>Status</th>{currentRole === "scribe" && <th></th>}</tr></thead>
                               <tbody>
@@ -2901,7 +2901,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                     <td className="text-xs tabular-nums text-slate-500">{o.date}</td>
                                     <td><span className={entryStatusClass(o.status)}>{o.status}</span></td>
                                     {currentRole === "scribe" && (
-                                      <td className="text-right"><button onClick={() => setSharedImmunizations(sharedImmunizations.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove immunization">✕</button></td>
+                                      <td className="text-right"><button onClick={() => setSharedImmunizations(sharedImmunizations.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-xs" aria-label="Remove immunization">✕</button></td>
                                     )}
                                   </tr>
                                 ))}
@@ -2941,7 +2941,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                       <div className="clinical-card">
                         <p className="clinical-label mb-3">Referrals</p>
                         {sharedReferrals.length > 0 ? (
-                          <div className="overflow-x-auto">
+                          <div className="relative overflow-x-auto">
                             <table className="data-table">
                               <thead><tr><th>Specialty</th><th>Reason</th><th>Status</th><th>Date</th>{currentRole === "scribe" && <th></th>}</tr></thead>
                               <tbody>
@@ -2952,7 +2952,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                     <td><span className={entryStatusClass(o.status)}>{o.status}</span></td>
                                     <td className="text-xs tabular-nums text-slate-500">{o.date}</td>
                                     {currentRole === "scribe" && (
-                                      <td className="text-right"><button onClick={() => setSharedReferrals(sharedReferrals.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-[10px]" aria-label="Remove referral">✕</button></td>
+                                      <td className="text-right"><button onClick={() => setSharedReferrals(sharedReferrals.filter(x => x.id !== o.id))} className="text-red-400 hover:text-red-600 text-xs" aria-label="Remove referral">✕</button></td>
                                     )}
                                   </tr>
                                 ))}

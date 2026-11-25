@@ -80,43 +80,43 @@ export function StatusTimeline({
         <History className="h-3.5 w-3.5 text-slate-400" />
         <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</h4>
         {subject && (
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-600">
+          <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs font-semibold text-slate-600">
             {subject}
           </span>
         )}
-        <span className="ml-auto text-[10px] text-slate-400">
+        <span className="ml-auto text-xs text-slate-400">
           {ordered.length} {ordered.length === 1 ? "change" : "changes"} · append-only
         </span>
       </header>
 
       {ordered.length === 0 ? (
-        <p className="px-3 py-2 text-[10px] italic text-slate-400">{emptyHint}</p>
+        <p className="px-3 py-2 text-xs italic text-slate-400">{emptyHint}</p>
       ) : (
         <ol className="divide-y divide-slate-50">
           {ordered.map((event) => (
             <li key={event.id} className="flex items-start gap-2 px-3 py-1.5">
-              <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-[10px] text-slate-300">
+              <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-xs text-slate-300">
                 {event.seq}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-1.5 text-[11px]">
                   {event.from && (
                     <>
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${TONE_CLASSES.neutral}`}>
+                      <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${TONE_CLASSES.neutral}`}>
                         {statusLabel(event.from)}
                       </span>
                       <span className="text-slate-300">→</span>
                     </>
                   )}
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${TONE_CLASSES[toneFor(event.to, event)]}`}>
+                  <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${TONE_CLASSES[toneFor(event.to, event)]}`}>
                     {statusLabel(event.to)}
                   </span>
-                  <span className="text-[10px] font-medium text-slate-500">
+                  <span className="text-xs font-medium text-slate-500">
                     {REASON_CODE_LABELS[event.reasonCode] ?? event.reasonCode}
                   </span>
                 </p>
-                <p className="mt-0.5 text-[10px] leading-snug text-slate-600">{event.reason}</p>
-                <p className="mt-0.5 text-[9px] text-slate-400">
+                <p className="mt-0.5 text-xs leading-snug text-slate-600">{event.reason}</p>
+                <p className="mt-0.5 text-[11px] text-slate-400">
                   {timeOf(event.at)} · {JOB_ROLE_LABELS[event.jobRole] ?? event.jobRole}
                   {` · ${actorLabel(event.by)}`}
                   {event.claimNumber ? ` · ${event.claimNumber}` : ""}

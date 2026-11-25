@@ -103,7 +103,7 @@ function Chip({ tone, children, title }: { tone: "ok" | "warn" | "danger" | "neu
   return (
     <span
       title={title}
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${tones[tone]}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${tones[tone]}`}
     >
       {children}
     </span>

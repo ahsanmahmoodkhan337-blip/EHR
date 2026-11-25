@@ -49,7 +49,7 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
         <Clock className="h-4 w-4 text-slate-500" />
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Inbox</span>
         <span
-          className="ml-auto rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600"
+          className="ml-auto rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600"
           aria-label={`${regularPatients.length} of your own patients in the Inbox`}
         >
           {regularPatients.length}
@@ -80,11 +80,11 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
                   {demoPatient.firstName} {demoPatient.lastName}
                 </p>
               </div>
-              <p className="truncate text-[10px] text-slate-400">{demoPatient.chiefComplaint}</p>
+              <p className="truncate text-xs text-slate-400">{demoPatient.chiefComplaint}</p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-0.5">
               <Pin className="h-3 w-3 text-amber-500" />
-              <span className="whitespace-nowrap text-[9px] font-medium text-amber-600">Pinned</span>
+              <span className="whitespace-nowrap text-[11px] font-medium text-amber-600">Pinned</span>
             </div>
           </div>
         )}
@@ -93,7 +93,7 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
         {demoPatient && regularPatients.length > 0 && (
           <div className="flex items-center gap-2 px-2 py-1">
             <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-[9px] font-medium uppercase tracking-wider text-slate-400">Patients</span>
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Patients</span>
             <div className="h-px flex-1 bg-slate-200" />
           </div>
         )}
@@ -102,7 +102,7 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
         {regularPatients.length === 0 && (
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
             <p className="text-[11px] font-semibold text-slate-700">No patients yet.</p>
-            <p className="mt-0.5 text-[10px] leading-snug text-slate-500">
+            <p className="mt-0.5 text-xs leading-snug text-slate-500">
               Book an appointment on the Schedule to start your first visit.
             </p>
             <Link
@@ -144,9 +144,9 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
                 }`}>
                   {p.firstName} {p.lastName}
                 </p>
-                <p className="truncate text-[10px] text-slate-400">{p.chiefComplaint}</p>
+                <p className="truncate text-xs text-slate-400">{p.chiefComplaint}</p>
                 {!hasDob(p) && (
-                  <span className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-800">
+                  <span className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800">
                     <AlertTriangle className="h-2.5 w-2.5" /> DOB missing — complete at Registration
                   </span>
                 )}
@@ -154,7 +154,7 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
               {seen && (
                 <div className="flex shrink-0 flex-col items-end gap-0.5">
                   <Circle className={`h-2 w-2 fill-current ${seen.tone}`} />
-                  <span className="whitespace-nowrap text-[9px] text-slate-400">{seen.label}</span>
+                  <span className="whitespace-nowrap text-[11px] text-slate-400">{seen.label}</span>
                 </div>
               )}
             </div>

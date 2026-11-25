@@ -182,7 +182,7 @@ export function HPIStage({ patientName, chiefComplaint, note, onNoteChange, vita
             <span className="clinical-label">OLDCARTS Mnemonic</span>
             <button
               onClick={buildFromOldcarts}
-              className="rounded bg-brand-50 px-2 py-1 text-[10px] font-medium text-brand-700 hover:bg-brand-100"
+              className="rounded bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
             >
               Build narrative from fields
             </button>

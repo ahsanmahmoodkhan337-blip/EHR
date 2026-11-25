@@ -113,7 +113,7 @@ export function VaccineForecaster() {
     <div className="relative">
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
+        className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-100 transition-colors"
       >
         <Syringe className="h-3.5 w-3.5" />
         Vaccine Forecaster
@@ -125,22 +125,22 @@ export function VaccineForecaster() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">CDC Vaccine Forecaster</h3>
-                <p className="text-[9px] text-slate-400">Pediatric schedule per CDC/ACIP guidelines</p>
+                <p className="text-[11px] text-slate-400">Pediatric schedule per CDC/ACIP guidelines</p>
               </div>
               <button onClick={() => setShowPanel(false)} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
             </div>
 
             {/* Birthdate input */}
             <div className="mb-4">
-              <label className="mb-1 block text-[10px] font-medium text-slate-500">Patient Birthdate</label>
+              <label className="mb-1 block text-xs font-medium text-slate-500">Patient Birthdate</label>
               <div className="flex gap-2">
                 <input
                   type="date"
                   value={birthdate}
                   onChange={(e) => setBirthdate(e.target.value)}
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-400"
+                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-400"
                 />
-                <button className="rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-500 hover:bg-slate-50">
+                <button className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:bg-slate-50">
                   <Printer className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -148,7 +148,7 @@ export function VaccineForecaster() {
 
             {birthdate && (
               <>
-                <div className="flex gap-2 mb-3 text-[9px]">
+                <div className="flex gap-2 mb-3 text-[11px]">
                   <span className="text-red-600">🚫 {overdue.length} Overdue</span>
                   <span className="text-amber-600">⚠ {dueSoon.length} Due Soon</span>
                 </div>
@@ -168,14 +168,14 @@ export function VaccineForecaster() {
                               <Calendar className="h-3.5 w-3.5 text-slate-400" />
                             )}
                             <div>
-                              <p className="text-[10px] font-semibold text-slate-700">
+                              <p className="text-xs font-semibold text-slate-700">
                                 {v.name} — Dose {v.doseNumber}
                               </p>
-                              <p className="text-[8px] text-slate-500">{v.description}</p>
+                              <p className="text-[11px] text-slate-500">{v.description}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className={`rounded-full px-2 py-0.5 text-[8px] font-bold ${
+                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
                               v.status === "overdue" ? "bg-red-500 text-white" :
                               v.status === "due-soon" ? "bg-amber-500 text-white" :
                               v.status === "upcoming" ? "bg-brand-100 text-brand-700" :
@@ -183,7 +183,7 @@ export function VaccineForecaster() {
                             }`}>
                               {v.status === "overdue" ? "OVERDUE" : v.status === "due-soon" ? "DUE SOON" : v.status === "upcoming" ? "Upcoming" : "Complete"}
                             </span>
-                            <p className="text-[8px] text-slate-400">{v.dueDate}</p>
+                            <p className="text-[11px] text-slate-400">{v.dueDate}</p>
                           </div>
                         </div>
                       </div>

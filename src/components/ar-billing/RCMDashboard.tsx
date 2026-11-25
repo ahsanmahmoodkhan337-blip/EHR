@@ -49,17 +49,17 @@ export function RCMDashboard() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[10px] font-medium text-emerald-600 hover:bg-emerald-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-100">
         <BarChart3 className="h-3.5 w-3.5" /> RCM Dashboard
       </button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <div><h3 className="text-sm font-bold text-slate-800">RCM Executive Dashboard</h3><p className="text-[9px] text-slate-400">{view === "practice" ? "Practice View" : "Provider View"}</p></div>
+              <div><h3 className="text-sm font-bold text-slate-800">RCM Executive Dashboard</h3><p className="text-[11px] text-slate-400">{view === "practice" ? "Practice View" : "Provider View"}</p></div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setView(v => v === "practice" ? "provider" : "practice")} className="rounded-lg border border-slate-200 px-2 py-1 text-[9px]">{view === "practice" ? "Provider View" : "Practice View"}</button>
-                <button className="rounded-lg border border-slate-200 px-2 py-1 text-[9px] text-slate-500"><Download className="h-3 w-3 inline mr-1" />Export CSV</button>
+                <button onClick={() => setView(v => v === "practice" ? "provider" : "practice")} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px]">{view === "practice" ? "Provider View" : "Practice View"}</button>
+                <button className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] text-slate-500"><Download className="h-3 w-3 inline mr-1" />Export CSV</button>
                 <button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button>
               </div>
             </div>
@@ -73,7 +73,7 @@ export function RCMDashboard() {
                 { label: "Days in A/R", value: "32", color: "text-amber-600" },
               ].map((kpi) => (
                 <div key={kpi.label} className="rounded-xl border border-slate-200 bg-white p-3 text-center">
-                  <p className="text-[9px] text-slate-400">{kpi.label}</p>
+                  <p className="text-[11px] text-slate-400">{kpi.label}</p>
                   <p className={`text-lg font-bold ${kpi.color}`}>{kpi.value}</p>
                 </div>
               ))}
@@ -83,7 +83,7 @@ export function RCMDashboard() {
             <div className="grid grid-cols-2 gap-4">
               {/* A/R Aging */}
               <div className="rounded-xl border border-slate-200 p-3">
-                <p className="text-[10px] font-semibold text-slate-600 mb-2">Days in A/R Aging</p>
+                <p className="text-xs font-semibold text-slate-600 mb-2">Days in A/R Aging</p>
                 <ResponsiveContainer width="100%" height={140}>
                   <BarChart data={AGING_DATA} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" />
@@ -97,7 +97,7 @@ export function RCMDashboard() {
 
               {/* Revenue Trend */}
               <div className="rounded-xl border border-slate-200 p-3">
-                <p className="text-[10px] font-semibold text-slate-600 mb-2">Monthly Revenue</p>
+                <p className="text-xs font-semibold text-slate-600 mb-2">Monthly Revenue</p>
                 <ResponsiveContainer width="100%" height={140}>
                   <LineChart data={REVENUE_DATA}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -111,7 +111,7 @@ export function RCMDashboard() {
 
               {/* Denial Root Cause */}
               <div className="rounded-xl border border-slate-200 p-3">
-                <p className="text-[10px] font-semibold text-slate-600 mb-2">Denial Root Cause</p>
+                <p className="text-xs font-semibold text-slate-600 mb-2">Denial Root Cause</p>
                 <ResponsiveContainer width="100%" height={140}>
                   <PieChart>
                     <Pie data={DENIAL_DATA} cx="50%" cy="50%" outerRadius={50} dataKey="value" label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
@@ -122,14 +122,14 @@ export function RCMDashboard() {
                 </ResponsiveContainer>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {DENIAL_DATA.map((d, i) => (
-                    <span key={i} className="flex items-center gap-1 text-[8px] text-slate-500"><span className="h-2 w-2 rounded-full" style={{ background: COLORS[i] }} />{d.name}</span>
+                    <span key={i} className="flex items-center gap-1 text-[11px] text-slate-500"><span className="h-2 w-2 rounded-full" style={{ background: COLORS[i] }} />{d.name}</span>
                   ))}
                 </div>
               </div>
 
               {/* Clean Claim Gauge */}
               <div className="rounded-xl border border-slate-200 p-3 flex flex-col items-center justify-center">
-                <p className="text-[10px] font-semibold text-slate-600 mb-1">Clean Claim Rate</p>
+                <p className="text-xs font-semibold text-slate-600 mb-1">Clean Claim Rate</p>
                 <div className="relative h-20 w-20">
                   <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90">
                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e5e7eb" strokeWidth="3" />
@@ -137,7 +137,7 @@ export function RCMDashboard() {
                   </svg>
                   <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-700">{cleanClaimRate}%</span>
                 </div>
-                <p className="text-[8px] text-slate-400 mt-1">Target: 95%</p>
+                <p className="text-[11px] text-slate-400 mt-1">Target: 95%</p>
               </div>
             </div>
           </div>

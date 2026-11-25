@@ -386,14 +386,14 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
         <div className="flex flex-wrap items-center gap-2 border-b border-yellow-200 pb-2">
           <IdCard className="h-5 w-5 shrink-0 text-yellow-700" />
           <span className="text-sm font-bold uppercase tracking-wider text-yellow-800">Driver's License</span>
-          <span className="ml-auto text-[10px] text-yellow-600">State of {onFileOr(card.licenceState)}</span>
+          <span className="ml-auto text-xs text-yellow-600">State of {onFileOr(card.licenceState)}</span>
         </div>
         <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Name</span><br /><span className="font-medium text-slate-800">{onFileOr(card.fullName)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">DOB</span><br /><span className="font-medium text-slate-800">{onFileOr(card.dateOfBirth)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">Sex</span><br /><span className="font-medium text-slate-800">{onFileOr(card.sex)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-yellow-700">License #</span><br /><span className="font-medium text-slate-800">{onFileOr(card.licenceNumber)}</span></p>
-          <p className="sm:col-span-2"><span className="text-[10px] font-semibold uppercase text-yellow-700">Address</span><br /><span className="font-medium text-slate-800">{onFileOr(card.address)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-yellow-700">Name</span><br /><span className="font-medium text-slate-800">{onFileOr(card.fullName)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-yellow-700">DOB</span><br /><span className="font-medium text-slate-800">{onFileOr(card.dateOfBirth)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-yellow-700">Sex</span><br /><span className="font-medium text-slate-800">{onFileOr(card.sex)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-yellow-700">License #</span><br /><span className="font-medium text-slate-800">{onFileOr(card.licenceNumber)}</span></p>
+          <p className="sm:col-span-2"><span className="text-xs font-semibold uppercase text-yellow-700">Address</span><br /><span className="font-medium text-slate-800">{onFileOr(card.address)}</span></p>
         </div>
       </div>
 
@@ -402,16 +402,16 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
         <div className="flex flex-wrap items-center gap-2 border-b border-brand-200 pb-2">
           <CreditCard className="h-5 w-5 shrink-0 text-brand-700" />
           <span className="text-sm font-bold uppercase tracking-wider text-brand-800">Insurance Card — Front</span>
-          <span className="ml-auto max-w-full truncate rounded bg-brand-200 px-2 py-0.5 text-[10px] font-bold text-brand-800">{onFileOr(card.payerName)}</span>
+          <span className="ml-auto max-w-full truncate rounded bg-brand-200 px-2 py-0.5 text-xs font-bold text-brand-800">{onFileOr(card.payerName)}</span>
         </div>
         <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           {/* What the card prints — the case's one deliberate misspelling lives here. */}
-          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Member Name</span><br /><span className="font-medium text-slate-800">{onFileOr(mismatch ? mismatch.onCard : card.fullName)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.memberId)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Group Number</span><br /><span className="font-medium text-slate-800">{onFileOr(card.groupNumber)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Payer ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.payerId)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Plan</span><br /><span className="font-medium text-slate-800">{onFileOr(card.planName)}</span></p>
-          <p><span className="text-[10px] font-semibold uppercase text-brand-700">Relationship</span><br /><span className="font-medium text-slate-800">{onFileOr(card.relationship)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-brand-700">Member Name</span><br /><span className="font-medium text-slate-800">{onFileOr(mismatch ? mismatch.onCard : card.fullName)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-brand-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.memberId)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-brand-700">Group Number</span><br /><span className="font-medium text-slate-800">{onFileOr(card.groupNumber)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-brand-700">Payer ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.payerId)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-brand-700">Plan</span><br /><span className="font-medium text-slate-800">{onFileOr(card.planName)}</span></p>
+          <p><span className="text-xs font-semibold uppercase text-brand-700">Relationship</span><br /><span className="font-medium text-slate-800">{onFileOr(card.relationship)}</span></p>
         </div>
         {/* Read the card, then the count. The two things this panel owes the
             student: the gate that unlocks the boxes below, and — only after they
@@ -494,43 +494,43 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
             <label className="text-[11px] font-medium text-slate-500">First Name</label>
             <input type="text" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })}
               className="mt-1 input-field" placeholder="As printed on the ID" />
-            {errors.firstName && <p className="mt-0.5 text-[10px] text-red-500">{errors.firstName}</p>}
+            {errors.firstName && <p className="mt-0.5 text-xs text-red-500">{errors.firstName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Last Name</label>
             <input type="text" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })}
               className="mt-1 input-field" placeholder="As printed on the ID" />
-            {errors.lastName && <p className="mt-0.5 text-[10px] text-red-500">{errors.lastName}</p>}
+            {errors.lastName && <p className="mt-0.5 text-xs text-red-500">{errors.lastName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Date of Birth (MM/DD/YYYY)</label>
             <input type="text" value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })}
               className="mt-1 input-field" placeholder="MM/DD/YYYY" />
-            {errors.dob && <p className="mt-0.5 text-[10px] text-red-500">{errors.dob}</p>}
+            {errors.dob && <p className="mt-0.5 text-xs text-red-500">{errors.dob}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Payer Name</label>
             <input type="text" value={form.payerName} onChange={e => setForm({ ...form, payerName: e.target.value })}
               className="mt-1 input-field" placeholder="As printed on the card" />
-            {errors.payerName && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerName}</p>}
+            {errors.payerName && <p className="mt-0.5 text-xs text-red-500">{errors.payerName}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Subscriber ID</label>
             <input type="text" value={form.subscriberId} onChange={e => setForm({ ...form, subscriberId: e.target.value })}
               className="mt-1 input-field" placeholder="As printed on the card" />
-            {errors.subscriberId && <p className="mt-0.5 text-[10px] text-red-500">{errors.subscriberId}</p>}
+            {errors.subscriberId && <p className="mt-0.5 text-xs text-red-500">{errors.subscriberId}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Group Number</label>
             <input type="text" value={form.groupNumber} onChange={e => setForm({ ...form, groupNumber: e.target.value })}
               className="mt-1 input-field" placeholder="As printed on the card" />
-            {errors.groupNumber && <p className="mt-0.5 text-[10px] text-red-500">{errors.groupNumber}</p>}
+            {errors.groupNumber && <p className="mt-0.5 text-xs text-red-500">{errors.groupNumber}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Payer ID (EDI)</label>
             <input type="text" value={form.payerId} onChange={e => setForm({ ...form, payerId: e.target.value })}
               className="mt-1 input-field" placeholder="As printed on the card" />
-            {errors.payerId && <p className="mt-0.5 text-[10px] text-red-500">{errors.payerId}</p>}
+            {errors.payerId && <p className="mt-0.5 text-xs text-red-500">{errors.payerId}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-500">Relationship to Subscriber</label>
@@ -540,7 +540,7 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
-            <p className="mt-0.5 text-[10px] text-slate-400">Fills claim box 6 — SELF unless the patient is a dependent.</p>
+            <p className="mt-0.5 text-xs text-slate-400">Fills claim box 6 — SELF unless the patient is a dependent.</p>
           </div>
         </div>
 
@@ -598,7 +598,7 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
             ))}
           </div>
           {errors.nameAgrees && (
-            <p className="mt-1 text-[10px] text-red-500">{errors.nameAgrees}</p>
+            <p className="mt-1 text-xs text-red-500">{errors.nameAgrees}</p>
           )}
         </fieldset>
         )}
@@ -615,7 +615,7 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
               the bug — and pressing it says what is missing instead of scoring
               an empty form. */}
           {errors.readCard && (
-            <p className="mt-1 text-[10px] text-red-500">{errors.readCard}</p>
+            <p className="mt-1 text-xs text-red-500">{errors.readCard}</p>
           )}
           <ReadOnlyNote readOnly={readOnly} id={VERIFY_REASON} className="max-w-md text-right" />
         </div>

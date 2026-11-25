@@ -244,7 +244,7 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
                 Patient search results — {matches.length} of {totalMatches} shown. Use the up and down
                 arrows to move, Enter to open.
               </caption>
-              <thead className="sticky top-0 bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+              <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                 <tr>
                   <th scope="col" className="w-[38%] px-2 py-1.5 font-semibold sm:w-[30%]">
                     Name
@@ -317,7 +317,7 @@ export function GlobalPatientSearch({ selectedId, onSelect, className = "" }: Gl
           <p
             id="patient-search-hint"
             role="status"
-            className="border-t border-slate-100 px-3 py-1.5 text-[10px] text-slate-500 dark:border-slate-700 dark:text-slate-400"
+            className="border-t border-slate-100 px-3 py-1.5 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400"
           >
             {totalMatches > matches.length
               ? `Showing ${matches.length} of ${totalMatches} matches — keep typing to narrow it.`

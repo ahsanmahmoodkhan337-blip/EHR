@@ -63,12 +63,12 @@ export function DentalRemittance() {
           <div className="mb-2 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-800">835 remittance for this claim</h3>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 The payer's answer on {claimRemittance.claimControlNumber}. Read it, then post it to the patient
                 ledger below.
               </p>
             </div>
-            <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
+            <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
               {claimRemittance.lines.length} line{claimRemittance.lines.length === 1 ? "" : "s"}
             </span>
           </div>
@@ -92,12 +92,12 @@ export function DentalRemittance() {
           <div className="mb-2 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Sample ERAs — practice reading</h3>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 Extra 835s to read and reconcile. They belong to other patients and other claims, so they are
                 read-only — nothing here can be posted to this patient's ledger.
               </p>
             </div>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+            <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-600">
               {remittances.length} sample{remittances.length === 1 ? "" : "s"}
             </span>
           </div>

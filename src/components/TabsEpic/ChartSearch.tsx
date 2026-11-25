@@ -191,7 +191,7 @@ export function ChartSearch({ patientId, className = "" }: ChartSearchProps) {
       {/* Results dropdown */}
       {isOpen && results.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
-          <div className="border-b border-slate-100 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+          <div className="border-b border-slate-100 px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-slate-400">
             Chart results ({results.length})
           </div>
           <div className="max-h-64 overflow-y-auto">
@@ -209,11 +209,11 @@ export function ChartSearch({ patientId, className = "" }: ChartSearchProps) {
                   <p className="truncate font-medium text-slate-700">
                     {result.label}
                   </p>
-                  <p className="truncate text-[10px] text-slate-400">
+                  <p className="truncate text-xs text-slate-400">
                     {result.detail}
                   </p>
                 </div>
-                <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium capitalize text-slate-500">
+                <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium capitalize text-slate-500">
                   {result.type}
                 </span>
               </button>

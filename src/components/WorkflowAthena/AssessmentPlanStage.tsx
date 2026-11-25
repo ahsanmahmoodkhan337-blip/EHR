@@ -158,7 +158,7 @@ export function AssessmentPlanStage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {mdmLevel && (
-            <span className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-700">
+            <span className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700">
               <Calculator className="h-3.5 w-3.5" />
               E/M: CPT {mdmLevel.code} · {mdmLevel.label} {mdmLevel.patientType}
             </span>
@@ -197,7 +197,7 @@ export function AssessmentPlanStage({
               {showMacros && (
                 <button
                   onClick={() => insertMacro("Patient reports... ", "subjective")}
-                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"
+                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-100"
                 >
                   + Macro
                 </button>
@@ -223,7 +223,7 @@ export function AssessmentPlanStage({
               {showMacros && (
                 <button
                   onClick={() => insertMacro("Vitals: BP [X]/[Y], HR [Z], Temp [T], SpO2 [S]%\nExam: ", "objective")}
-                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"
+                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-100"
                 >
                   + Macro
                 </button>
@@ -249,7 +249,7 @@ export function AssessmentPlanStage({
               {showMacros && (
                 <button
                   onClick={() => insertMacro("", "assessment")}
-                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"
+                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-100"
                 >
                   + Macro
                 </button>
@@ -268,8 +268,8 @@ export function AssessmentPlanStage({
             <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50/30 p-2.5">
               <div className="flex items-center gap-1.5 mb-2">
                 <Search className="h-3 w-3 text-amber-600" />
-                <span className="text-[10px] font-semibold text-amber-700">ICD-10 Diagnosis Codes</span>
-                <span className="text-[9px] text-amber-500">(attach codes to assessment)</span>
+                <span className="text-xs font-semibold text-amber-700">ICD-10 Diagnosis Codes</span>
+                <span className="text-[11px] text-amber-500">(attach codes to assessment)</span>
               </div>
               <ICDSearchField
                 selectedICDs={currentNote.selectedICDs ?? []}
@@ -296,7 +296,7 @@ export function AssessmentPlanStage({
               {showMacros && (
                 <button
                   onClick={() => insertMacro("", "plan")}
-                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"
+                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-100"
                 >
                   + Macro
                 </button>
@@ -330,7 +330,7 @@ export function AssessmentPlanStage({
                   <button
                     key={cat.label}
                     onClick={() => setActiveMacroCategory(i)}
-                    className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                    className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                       i === activeMacroCategory
                         ? "bg-brand-100 text-brand-700"
                         : "bg-slate-100 text-slate-500 hover:bg-slate-200"
@@ -359,7 +359,7 @@ export function AssessmentPlanStage({
                         {macro.label}
                       </span>
                     </div>
-                    <p className="mt-0.5 truncate text-[10px] text-slate-400">
+                    <p className="mt-0.5 truncate text-xs text-slate-400">
                       {macro.text}
                     </p>
                   </div>
@@ -368,7 +368,7 @@ export function AssessmentPlanStage({
 
               {/* Last inserted indicator */}
               {lastInserted && (
-                <div className="mt-2 rounded bg-green-50 px-2 py-1 text-[10px] text-green-700">
+                <div className="mt-2 rounded bg-green-50 px-2 py-1 text-xs text-green-700">
                   Inserted into Assessment
                 </div>
               )}
@@ -410,7 +410,7 @@ function ICDSearchField({ selectedICDs, onSelect, onRemove }: ICDSearchFieldProp
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search ICD-10 by code or description..."
-          className="w-full rounded-md border border-slate-200 py-1.5 pl-7 pr-3 text-[10px] outline-none focus:border-amber-400"
+          className="w-full rounded-md border border-slate-200 py-1.5 pl-7 pr-3 text-xs outline-none focus:border-amber-400"
         />
       </div>
       {query && results.length > 0 && (
@@ -425,7 +425,7 @@ function ICDSearchField({ selectedICDs, onSelect, onRemove }: ICDSearchFieldProp
                   setQuery("");
                 }}
                 disabled={alreadySelected}
-                className={`flex w-full items-center justify-between px-2 py-1.5 text-left text-[10px] border-b border-slate-50 last:border-0 ${
+                className={`flex w-full items-center justify-between px-2 py-1.5 text-left text-xs border-b border-slate-50 last:border-0 ${
                   alreadySelected ? "text-slate-300 cursor-not-allowed" : "hover:bg-amber-50 text-slate-700"
                 }`}
               >
@@ -433,20 +433,20 @@ function ICDSearchField({ selectedICDs, onSelect, onRemove }: ICDSearchFieldProp
                   <span className="font-mono font-semibold text-amber-700 shrink-0">{code.code}</span>
                   <span className="truncate">{code.description}</span>
                 </div>
-                <span className="text-[9px] text-slate-400 shrink-0 ml-1">{code.chapter}</span>
+                <span className="text-[11px] text-slate-400 shrink-0 ml-1">{code.chapter}</span>
               </button>
             );
           })}
         </div>
       )}
       {query && results.length === 0 && (
-        <p className="mt-1 text-[9px] text-slate-400">No matching ICD-10 codes found</p>
+        <p className="mt-1 text-[11px] text-slate-400">No matching ICD-10 codes found</p>
       )}
       {/* Selected codes as removable tags */}
       {selectedICDs.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {selectedICDs.map((code) => (
-            <span key={code.code} className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-800">
+            <span key={code.code} className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800">
               <span className="font-mono">{code.code}</span>
               <span className="max-w-[120px] truncate">{code.description}</span>
               <button onClick={() => onRemove(code)} className="text-amber-500 hover:text-amber-700">

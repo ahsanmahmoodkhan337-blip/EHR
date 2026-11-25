@@ -73,7 +73,7 @@ export function ConsentPortal() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-100">
         <FileSignature className="h-3.5 w-3.5" /> Consents
       </button>
       {showPanel && (
@@ -87,31 +87,31 @@ export function ConsentPortal() {
                     <div key={f.id} className={`flex-1 h-1 rounded ${i <= step ? signed[f.id] ? "bg-green-500" : "bg-brand-500" : "bg-slate-200"}`} />
                   ))}
                 </div>
-                <p className="text-[9px] text-slate-400 mb-2">Step {step + 1} of 3</p>
+                <p className="text-[11px] text-slate-400 mb-2">Step {step + 1} of 3</p>
                 <h3 className="text-sm font-bold text-slate-800 mb-2">{FORMS[step].title}</h3>
-                <pre className="whitespace-pre-wrap text-[10px] text-slate-600 bg-slate-50 rounded-lg p-3 mb-3 max-h-48 overflow-y-auto font-sans leading-relaxed">{FORMS[step].content}</pre>
-                <label className="flex items-center gap-2 mb-3 text-[10px] text-slate-600">
+                <pre className="whitespace-pre-wrap text-xs text-slate-600 bg-slate-50 rounded-lg p-3 mb-3 max-h-48 overflow-y-auto font-sans leading-relaxed">{FORMS[step].content}</pre>
+                <label className="flex items-center gap-2 mb-3 text-xs text-slate-600">
                   <input type="checkbox" checked={!!signed[FORMS[step].id]} onChange={() => setSigned(prev => ({ ...prev, [FORMS[step].id]: !prev[FORMS[step].id] }))} className="h-3 w-3 accent-brand-500" />
                   I have read and understand this form
                 </label>
-                <button onClick={() => checkStep(step)} disabled={!signed[FORMS[step].id]} className="w-full rounded-lg bg-brand-900 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-brand-800 disabled:bg-slate-300">
+                <button onClick={() => checkStep(step)} disabled={!signed[FORMS[step].id]} className="w-full rounded-lg bg-brand-900 px-4 py-2.5 text-xs font-medium text-white hover:bg-brand-800 disabled:bg-slate-300">
                   {step < 2 ? <><ArrowRight className="h-3.5 w-3.5 inline mr-1" />Confirm & Next</> : <><Shield className="h-3.5 w-3.5 inline mr-1" />Complete & Sign All</>}
                 </button>
-                {step > 0 && <button onClick={() => setStep(step - 1)} className="w-full mt-2 rounded-lg border px-4 py-2 text-[10px] text-slate-500"><ArrowLeft className="h-3 w-3 inline mr-1" />Back</button>}
+                {step > 0 && <button onClick={() => setStep(step - 1)} className="w-full mt-2 rounded-lg border px-4 py-2 text-xs text-slate-500"><ArrowLeft className="h-3 w-3 inline mr-1" />Back</button>}
               </>
             ) : (
               <div className="text-center py-8">
                 <div className="rounded-full bg-green-100 p-4 inline-block mb-3"><CheckCircle2 className="h-10 w-10 text-green-600" /></div>
                 <h3 className="text-sm font-bold text-slate-800">All Consents Signed</h3>
-                <p className="text-[10px] text-slate-500 mt-1">HIPAA Privacy Notice, Consent to Treat, and Financial Responsibility completed.</p>
+                <p className="text-xs text-slate-500 mt-1">HIPAA Privacy Notice, Consent to Treat, and Financial Responsibility completed.</p>
                 <div className="mt-4 space-y-2">
-                  <div className="flex items-center gap-2 justify-center text-[10px] text-slate-600">
+                  <div className="flex items-center gap-2 justify-center text-xs text-slate-600">
                     <span className="text-slate-400">Signed by:</span>
                     <span className="font-medium">{signature || localStorage.getItem("hh_student_name") || "Patient"}</span>
                   </div>
-                  <div className="text-[10px] text-slate-400">Date: {new Date().toLocaleDateString()}</div>
+                  <div className="text-xs text-slate-400">Date: {new Date().toLocaleDateString()}</div>
                 </div>
-                <button onClick={() => { setShowPanel(false); setStep(0); setSigned({}); }} className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-[10px] font-medium text-white">Close</button>
+                <button onClick={() => { setShowPanel(false); setStep(0); setSigned({}); }} className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-xs font-medium text-white">Close</button>
               </div>
             )}
           </div>

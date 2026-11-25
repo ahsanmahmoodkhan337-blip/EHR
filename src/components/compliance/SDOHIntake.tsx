@@ -95,36 +95,36 @@ export function SDOHIntake() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-pink-200 bg-pink-50 px-2.5 py-1.5 text-[10px] font-medium text-pink-600 hover:bg-pink-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-pink-200 bg-pink-50 px-2.5 py-1.5 text-xs font-medium text-pink-600 hover:bg-pink-100">
         <Heart className="h-3.5 w-3.5" /> SDOH Intake
       </button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <div><h3 className="text-sm font-bold text-slate-800">SDOH Screening (PRAPARE)</h3><p className="text-[9px] text-slate-400">{answeredCount}/{totalQuestions} answered</p></div>
+              <div><h3 className="text-sm font-bold text-slate-800">SDOH Screening (PRAPARE)</h3><p className="text-[11px] text-slate-400">{answeredCount}/{totalQuestions} answered</p></div>
               <button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button>
             </div>
 
             {/* Risk Score */}
             <div className={`rounded-lg border p-3 mb-4 ${riskBg}`}>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-medium">Risk Score</span>
+                <span className="text-xs font-medium">Risk Score</span>
                 <span className={`text-lg font-bold ${riskColor}`}>{riskScore}</span>
               </div>
-              <p className="text-[8px] text-slate-500 mt-0.5">{riskScore <= 2 ? "Low risk" : riskScore <= 5 ? "Moderate risk — consider referral" : "High risk — immediate referral recommended"}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">{riskScore <= 2 ? "Low risk" : riskScore <= 5 ? "Moderate risk — consider referral" : "High risk — immediate referral recommended"}</p>
             </div>
 
             {/* Questions */}
             {SECTIONS.map((section) => (
               <div key={section.name} className="mb-3">
-                <p className="text-[10px] font-semibold text-slate-600 mb-1.5">{section.name}</p>
+                <p className="text-xs font-semibold text-slate-600 mb-1.5">{section.name}</p>
                 {section.questions.map((q) => (
                   <div key={q.id} className="mb-1.5 rounded-lg border border-slate-200 p-2">
-                    <p className="text-[10px] text-slate-600 mb-1">{q.text}</p>
+                    <p className="text-xs text-slate-600 mb-1">{q.text}</p>
                     <div className="flex gap-1">
-                      <button onClick={() => toggleAnswer(q.id, true)} className={`rounded px-3 py-0.5 text-[9px] ${answers[q.id] === true ? "bg-red-600 text-white" : "bg-slate-100 text-slate-500"}`}>Yes</button>
-                      <button onClick={() => toggleAnswer(q.id, false)} className={`rounded px-3 py-0.5 text-[9px] ${answers[q.id] === false ? "bg-green-600 text-white" : "bg-slate-100 text-slate-500"}`}>No</button>
+                      <button onClick={() => toggleAnswer(q.id, true)} className={`rounded px-3 py-0.5 text-[11px] ${answers[q.id] === true ? "bg-red-600 text-white" : "bg-slate-100 text-slate-500"}`}>Yes</button>
+                      <button onClick={() => toggleAnswer(q.id, false)} className={`rounded px-3 py-0.5 text-[11px] ${answers[q.id] === false ? "bg-green-600 text-white" : "bg-slate-100 text-slate-500"}`}>No</button>
                     </div>
                   </div>
                 ))}
@@ -134,9 +134,9 @@ export function SDOHIntake() {
             {/* Z-codes */}
             {zCodes.length > 0 && (
               <div className="rounded-lg bg-brand-50 border border-brand-200 p-3 mb-3">
-                <p className="text-[10px] font-semibold text-brand-700 mb-1">Suggested SDOH Z-Codes</p>
+                <p className="text-xs font-semibold text-brand-700 mb-1">Suggested SDOH Z-Codes</p>
                 <div className="flex flex-wrap gap-1">
-                  {zCodes.map(c => <span key={c} className="rounded bg-brand-200 px-1.5 py-0.5 text-[9px] font-mono text-brand-700">{c}</span>)}
+                  {zCodes.map(c => <span key={c} className="rounded bg-brand-200 px-1.5 py-0.5 text-[11px] font-mono text-brand-700">{c}</span>)}
                 </div>
               </div>
             )}
@@ -144,10 +144,10 @@ export function SDOHIntake() {
             {saved && (
               <div className="rounded-lg bg-green-50 p-3 flex items-center gap-2 mb-3">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span className="text-[10px] font-medium text-green-700">Saved to patient chart</span>
+                <span className="text-xs font-medium text-green-700">Saved to patient chart</span>
               </div>
             )}
-            <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }} disabled={answeredCount === 0} className="w-full rounded-lg bg-pink-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-pink-500 disabled:bg-slate-300">
+            <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }} disabled={answeredCount === 0} className="w-full rounded-lg bg-pink-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-pink-500 disabled:bg-slate-300">
               <ClipboardList className="h-3.5 w-3.5 inline mr-1" />Save to Chart
             </button>
           </div>

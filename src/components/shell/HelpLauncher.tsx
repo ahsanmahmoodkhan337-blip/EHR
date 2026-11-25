@@ -115,7 +115,7 @@ export function HelpLauncher() {
               <ol className="mt-2 space-y-2">
                 {guide.steps.map((step, i) => (
                   <li key={step.title} className="flex gap-2">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand-50 text-[10px] font-bold text-brand-700">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand-50 text-xs font-bold text-brand-700">
                       {i + 1}
                     </span>
                     <div>
@@ -133,7 +133,7 @@ export function HelpLauncher() {
           ) : (
           <>
           <p className="mt-1 text-[11px] font-semibold text-slate-700">How-to guides</p>
-          <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">{TUTORIAL_PATIENT_TIP}</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{TUTORIAL_PATIENT_TIP}</p>
           <ol className="mt-1.5 space-y-1">
             {HOW_TO_TUTORIALS.map((t, i) => (
               <li key={t.id}>
@@ -142,7 +142,7 @@ export function HelpLauncher() {
                   onClick={() => setGuideId(t.id)}
                   className="flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-[12px] text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-brand-600"
                 >
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
                     {i + 1}
                   </span>
                   <span className="min-w-0 flex-1">{t.title}</span>
@@ -158,7 +158,7 @@ export function HelpLauncher() {
           <dl className="mt-1 space-y-1">
             {SHELL_SHORTCUTS.map((shortcut) => (
               <div key={shortcut.keys} className="flex items-baseline gap-2">
-                <dt className="shrink-0 rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
+                <dt className="shrink-0 rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 font-mono text-xs font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
                   {shortcut.keys}
                 </dt>
                 <dd className="min-w-0 text-[11px] text-slate-600 dark:text-slate-300">{shortcut.action}</dd>
@@ -177,7 +177,7 @@ export function HelpLauncher() {
             <span className="sr-only">(opens in a new tab)</span>
           </a>
 
-          <p className="mt-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
             Simulated data — every patient, payer, NPI and fee in this app is fictional and for teaching
             only.
           </p>

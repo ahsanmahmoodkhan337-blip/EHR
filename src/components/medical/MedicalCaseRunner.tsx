@@ -312,7 +312,7 @@ export function MedicalCaseRunner() {
         label="Medical case stages"
         meta={
           activeCase ? (
-            <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+            <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
               {activeCase.id} · {activeCase.difficulty}
             </span>
           ) : undefined
@@ -349,7 +349,7 @@ export function MedicalCaseRunner() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mt-3">
-      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
       {children}
     </div>
   );
@@ -397,19 +397,19 @@ function CaseSelect() {
       <div className="mb-3 flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 ring-1 ring-brand-100">
         <Stethoscope className="h-4 w-4 shrink-0 text-brand-600" />
         <span className="text-xs font-bold uppercase tracking-wide text-brand-700">Medical RCM Track</span>
-        <span className="ml-auto text-[10px] font-medium text-brand-600">CPT / ICD-10 · CMS-1500</span>
+        <span className="ml-auto text-xs font-medium text-brand-600">CPT / ICD-10 · CMS-1500</span>
       </div>
 
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Medical RCM Cases</h3>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             Nine graded cases across the clinical-to-financial spine. Make the mistake, feel the denial, then read why.
           </p>
         </div>
         <button
           onClick={resetTrack}
-          className="flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[10px] text-slate-500 hover:bg-slate-50"
+          className="flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:bg-slate-50"
         >
           <RotateCcw className="h-3 w-3" /> Reset
         </button>
@@ -418,14 +418,14 @@ function CaseSelect() {
       {/* Benefit scenario legend — groups the graded cases by the adjudication
           outcome they teach (BenefitScenarioKind). */}
       <div className="mb-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
           Benefit scenarios
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {MEDICAL_BENEFIT_SCENARIOS.map((s) => (
             <span
               key={s.id}
-              className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${BENEFIT_KIND_TONE[s.kind]}`}
+              className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${BENEFIT_KIND_TONE[s.kind]}`}
               title={s.teachingPoint}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${BENEFIT_KIND_DOT[s.kind]}`} />
@@ -450,18 +450,18 @@ function CaseCard({ c, onBegin }: { c: MedicalCaseScenario; onBegin: () => void 
   return (
     <div className="flex flex-col clinical-card">
       <div className="flex items-start justify-between gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase ${difficultyTone(c.difficulty)}`}>{c.difficulty}</span>
-        <span className="text-[10px] text-slate-400">~{c.estimatedMinutes} min</span>
+        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${difficultyTone(c.difficulty)}`}>{c.difficulty}</span>
+        <span className="text-xs text-slate-400">~{c.estimatedMinutes} min</span>
       </div>
       <h4 className="mt-2 text-sm font-bold text-slate-800">{c.title}</h4>
       {scenario && (
-        <span className={`mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${BENEFIT_KIND_TONE[scenario.kind]}`}>
+        <span className={`mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${BENEFIT_KIND_TONE[scenario.kind]}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${BENEFIT_KIND_DOT[scenario.kind]}`} />
           {BENEFIT_KIND_LABEL[scenario.kind]}
         </span>
       )}
       <p className="mt-1 flex-1 text-[11px] leading-relaxed text-slate-500">{c.briefing}</p>
-      <div className="mt-2 text-[10px] text-slate-400">
+      <div className="mt-2 text-xs text-slate-400">
         <span className="font-medium text-slate-500">{c.specialty}</span>
         {plan && <span> · {plan.name} (fictional payer)</span>}
       </div>
@@ -485,7 +485,7 @@ function Briefing() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-bold text-slate-800">{activeCase.title}</h3>
-        <span className="text-[10px] text-slate-400">{plan?.name} · {plan?.planType} (fictional payer)</span>
+        <span className="text-xs text-slate-400">{plan?.name} · {plan?.planType} (fictional payer)</span>
       </div>
 
       <p className="rounded-xl border border-brand-100 bg-brand-50 p-3 text-xs leading-relaxed text-brand-800">{activeCase.briefing}</p>
@@ -495,10 +495,10 @@ function Briefing() {
           <p className="text-[11px] text-slate-700">
             {patient.firstName} {patient.lastName} · age {patient.ageAtServiceDate} · {patient.gender}
           </p>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Subscriber: {patient.subscriberName} ({patient.relationshipToSubscriber}) · ID {patient.memberId}
           </p>
-          <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+          <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {registrationNotes.map((n, i) => (
               <li key={i}>{n}</li>
             ))}
@@ -507,13 +507,13 @@ function Briefing() {
 
         <Section title="Eligibility snapshot">
           <p className="text-[11px] font-medium text-slate-700">{eligibilitySnapshot.status}</p>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Remaining deductible: ${eligibilitySnapshot.remainingDeductibleUsd} · Prior auth required:{" "}
             {eligibilitySnapshot.priorAuthRequired ? "yes" : "no"}
             {eligibilitySnapshot.priorAuthStatus ? ` · ${eligibilitySnapshot.priorAuthStatus}` : ""}
           </p>
           {eligibilitySnapshot.benefitUsage && eligibilitySnapshot.benefitUsage.length > 0 && (
-            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-slate-600">
               {eligibilitySnapshot.benefitUsage.map((b, i) => (
                 <li key={i}>
                   {b.category}: {b.used}/{b.limit} used
@@ -521,8 +521,8 @@ function Briefing() {
               ))}
             </ul>
           )}
-          <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-slate-400">Rep notes</p>
-          <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Rep notes</p>
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {eligibilitySnapshot.representativeNotes.map((n, i) => (
               <li key={i}>{n}</li>
             ))}
@@ -531,26 +531,26 @@ function Briefing() {
 
         <Section title="Clinical note">
           <p className="text-[11px] font-semibold text-slate-700">{clinicalNote.chiefComplaint}</p>
-          <p className="mt-1 text-[10px] text-slate-600">
+          <p className="mt-1 text-xs text-slate-600">
             <span className="font-semibold">Subjective: </span>
             {clinicalNote.subjective}
           </p>
-          <p className="mt-1 text-[10px] text-slate-600">
+          <p className="mt-1 text-xs text-slate-600">
             <span className="font-semibold">Objective: </span>
             {clinicalNote.objective}
           </p>
-          <p className="mt-1 text-[10px] text-slate-600">
+          <p className="mt-1 text-xs text-slate-600">
             <span className="font-semibold">Assessment: </span>
             {clinicalNote.assessment}
           </p>
-          <p className="mt-1 text-[10px] text-slate-600">
+          <p className="mt-1 text-xs text-slate-600">
             <span className="font-semibold">Plan: </span>
             {clinicalNote.plan}
           </p>
         </Section>
 
         <Section title="Plan rules to watch">
-          <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {plan && <li>{plan.notes}</li>}
             {/* Rule 6: the pointer names where to look, never what the trap is. */}
             <li className="text-slate-500">The plan's documents are in the Documents tab.</li>
@@ -603,28 +603,28 @@ function RegistrationStage() {
   return (
     <div className="h-full overflow-y-auto p-4">
       <h3 className="text-sm font-bold text-slate-800">Patient registration — front desk</h3>
-      <p className="text-[10px] text-slate-400">Transcribe the details from the card and confirm they match the chart.</p>
+      <p className="text-xs text-slate-400">Transcribe the details from the card and confirm they match the chart.</p>
 
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <div className="clinical-card">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Insurance card</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Insurance card</p>
           <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <p className="text-sm font-bold text-slate-800">{p.subscriberName}</p>
             <p className="text-[11px] text-slate-600">Member ID: {p.memberId}</p>
-            <p className="text-[10px] text-slate-500">DOB: {p.dateOfBirth}</p>
+            <p className="text-xs text-slate-500">DOB: {p.dateOfBirth}</p>
           </div>
         </div>
 
         <div className="clinical-card">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Your transcription</p>
-          <label className="mt-2 block text-[10px] text-slate-500">Patient last name</label>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Your transcription</p>
+          <label className="mt-2 block text-xs text-slate-500">Patient last name</label>
           <input
             value={r.lastNameEntered}
             onChange={(e) => editTranscription({ lastNameEntered: e.target.value })}
             className="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-700 focus:border-brand-400 focus:outline-none"
             placeholder="Enter last name"
           />
-          <label className="mt-2 block text-[10px] text-slate-500">Member ID</label>
+          <label className="mt-2 block text-xs text-slate-500">Member ID</label>
           <input
             value={r.memberIdEntered}
             onChange={(e) => editTranscription({ memberIdEntered: e.target.value })}
@@ -641,14 +641,14 @@ function RegistrationStage() {
           </button>
 
           <div className="mt-2 space-y-1">
-            <p className={`text-[10px] ${checked ? (nameMatch ? "text-emerald-600" : "text-red-600") : "text-slate-400"}`}>
+            <p className={`text-xs ${checked ? (nameMatch ? "text-emerald-600" : "text-red-600") : "text-slate-400"}`}>
               {checked
                 ? nameMatch
                   ? "Name matches the chart"
                   : "Name does not match the chart — re-read the card"
                 : "Name — not compared yet"}
             </p>
-            <p className={`text-[10px] ${checked ? (idMatch ? "text-emerald-600" : "text-red-600") : "text-slate-400"}`}>
+            <p className={`text-xs ${checked ? (idMatch ? "text-emerald-600" : "text-red-600") : "text-slate-400"}`}>
               {checked
                 ? idMatch
                   ? "Member ID matches the chart"
@@ -687,7 +687,7 @@ function EligibilityStage() {
   return (
     <div className="h-full overflow-y-auto p-4">
       <h3 className="text-sm font-bold text-slate-800">Eligibility & prior-authorisation check (270/271)</h3>
-      <p className="text-[10px] text-slate-400">Confirm the patient's coverage and any service limits before the visit.</p>
+      <p className="text-xs text-slate-400">Confirm the patient's coverage and any service limits before the visit.</p>
 
       <div className="mt-3 clinical-card">
         <p className="text-xs font-medium text-slate-700">{e.status}</p>
@@ -714,8 +714,8 @@ function EligibilityStage() {
             <span className="text-[11px] text-slate-700">{confirmPrompt}</span>
           </label>
         )}
-        <p className="mt-2 text-[9px] font-semibold uppercase tracking-wide text-slate-400">Representative notes</p>
-        <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+        <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Representative notes</p>
+        <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
           {e.representativeNotes.map((n, i) => (
             <li key={i}>{n}</li>
           ))}
@@ -743,12 +743,12 @@ function ClinicalStage() {
   return (
     <div className="h-full overflow-y-auto p-4">
       <h3 className="text-sm font-bold text-slate-800">Chart — SOAP note</h3>
-      <p className="text-[10px] text-slate-400">The provider has signed this note. Read it carefully — it drives the codes.</p>
+      <p className="text-xs text-slate-400">The provider has signed this note. Read it carefully — it drives the codes.</p>
 
       <div className="mt-3 space-y-2">
         {rows.map((r) => (
           <div key={r.label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{r.label}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{r.label}</p>
             <p className="mt-0.5 text-xs leading-relaxed text-slate-700">{r.value}</p>
           </div>
         ))}
@@ -788,14 +788,14 @@ function CodingStage() {
   return (
     <div className="h-full overflow-y-auto p-4">
       <h3 className="text-sm font-bold text-slate-800">Medical coding — diagnosis & procedure selection</h3>
-      <p className="text-[10px] text-slate-400">
+      <p className="text-xs text-slate-400">
         Code the definitive diagnoses and the procedures performed. Watch for same-day E/M + procedure rules.
       </p>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         {/* diagnoses */}
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Diagnoses (ICD-10)</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Diagnoses (ICD-10)</p>
           <div className="mt-2 flex items-center gap-1 rounded-lg border border-slate-200 px-2">
             <Search className="h-3.5 w-3.5 text-slate-400" />
             <input
@@ -816,7 +816,7 @@ function CodingStage() {
                     on ? "border-brand-300 bg-brand-50" : "border-slate-100 hover:bg-slate-50"
                   }`}
                 >
-                  <span className={`mt-0.5 text-[10px] font-bold ${on ? "text-brand-600" : "text-slate-400"}`}>{c.code}</span>
+                  <span className={`mt-0.5 text-xs font-bold ${on ? "text-brand-600" : "text-slate-400"}`}>{c.code}</span>
                   <span className="text-[11px] text-slate-600">{c.description}</span>
                   {on && <CheckCircle2 className="ml-auto h-3.5 w-3.5 shrink-0 text-brand-600" />}
                 </button>
@@ -827,7 +827,7 @@ function CodingStage() {
 
         {/* procedures */}
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Procedures (CPT)</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Procedures (CPT)</p>
           <div className="mt-2 flex items-center gap-1 rounded-lg border border-slate-200 px-2">
             <Search className="h-3.5 w-3.5 text-slate-400" />
             <input
@@ -849,7 +849,7 @@ function CodingStage() {
                     added ? "border-brand-300 bg-brand-50 opacity-70" : "border-slate-100 hover:bg-slate-50"
                   }`}
                 >
-                  <span className={`mt-0.5 text-[10px] font-bold ${added ? "text-brand-600" : "text-slate-400"}`}>{c.code}</span>
+                  <span className={`mt-0.5 text-xs font-bold ${added ? "text-brand-600" : "text-slate-400"}`}>{c.code}</span>
                   <span className="text-[11px] text-slate-600">{c.description}</span>
                   {added && <CheckCircle2 className="ml-auto h-3.5 w-3.5 shrink-0 text-brand-600" />}
                 </button>
@@ -866,27 +866,27 @@ function CodingStage() {
             {state.procedures.map((p: MedicalProcedureLine) => (
               <div key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-2">
                 <span className="text-[11px] font-bold text-slate-700">{p.code}</span>
-                <span className="max-w-[200px] truncate text-[10px] text-slate-500">
+                <span className="max-w-[200px] truncate text-xs text-slate-500">
                   {CPT_CODES.find((c) => c.code === p.code)?.description ?? ""}
                 </span>
-                <label className="ml-auto flex items-center gap-1 text-[10px] text-slate-500">
+                <label className="ml-auto flex items-center gap-1 text-xs text-slate-500">
                   Modifier
                   <select
                     value={p.modifier ?? ""}
                     onChange={(e) => updateProcedure(p.id, { modifier: e.target.value || undefined })}
-                    className="rounded border border-slate-200 px-1 py-0.5 text-[10px] text-slate-700"
+                    className="rounded border border-slate-200 px-1 py-0.5 text-xs text-slate-700"
                   >
                     <option value="">none</option>
                     <option value="25">25</option>
                     <option value="59">59</option>
                   </select>
                 </label>
-                <label className="flex items-center gap-1 text-[10px] text-slate-500">
+                <label className="flex items-center gap-1 text-xs text-slate-500">
                   Link dx
                   <select
                     value={p.linkedDiagnosisPointer ?? ""}
                     onChange={(e) => updateProcedure(p.id, { linkedDiagnosisPointer: e.target.value || undefined })}
-                    className="rounded border border-slate-200 px-1 py-0.5 text-[10px] text-slate-700"
+                    className="rounded border border-slate-200 px-1 py-0.5 text-xs text-slate-700"
                   >
                     <option value="">—</option>
                     {selectedDiagnoses.map((d) => (
@@ -906,7 +906,7 @@ function CodingStage() {
               </div>
             ))}
           </div>
-          <p className="mt-1 text-[9px] text-slate-400">
+          <p className="mt-1 text-[11px] text-slate-400">
             Pointer letters map to your selected diagnoses ({selectedDiagnoses.map((d) => `${d.pointer}=${d.code}`).join(", ") || "none"}).
           </p>
         </Section>
@@ -933,7 +933,7 @@ function PriorAuthStage() {
   return (
     <div className="h-full overflow-y-auto p-4">
       <h3 className="text-sm font-bold text-slate-800">Prior authorisation</h3>
-      <p className="text-[10px] text-slate-400">
+      <p className="text-xs text-slate-400">
         This plan requires prior authorisation for the selected service. Handle it before billing.
       </p>
 
@@ -998,7 +998,7 @@ function PriorAuthStage() {
         </label>
 
         <div className="rounded-lg border border-slate-200 bg-white p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">What did you do?</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">What did you do?</p>
           {(
             [
               { v: "obtained", label: "Obtained the authorisation before billing" },
@@ -1021,7 +1021,7 @@ function PriorAuthStage() {
 
         {pa.choice === "obtained" && (
           <div className="rounded-lg border border-slate-200 bg-white p-3">
-            <label className="block text-[10px] text-slate-500">Authorisation number</label>
+            <label className="block text-xs text-slate-500">Authorisation number</label>
             <input
               value={pa.authNumber}
               onChange={(e) => setPriorAuth({ authNumber: e.target.value })}
@@ -1070,7 +1070,7 @@ function ClaimStage() {
   return (
     <div className="h-full overflow-y-auto p-4">
       <h3 className="text-sm font-bold text-slate-800">Claim — {paper.paper}</h3>
-      <p className="text-[10px] text-slate-400">
+      <p className="text-xs text-slate-400">
         {facility
           ? "The paper is built from this case's record: its type of bill, and a revenue code for each department that billed."
           : "Review the claim lines and diagnosis pointers, then submit."}
@@ -1089,15 +1089,15 @@ function ClaimStage() {
             <p className="text-xs font-bold text-slate-800">
               {p.firstName} {p.lastName} · {p.dateOfBirth}
             </p>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-xs text-slate-500">
               Subscriber {p.subscriberName} · ID {p.memberId}
             </p>
           </div>
-          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{plan?.name}</span>
+          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{plan?.name}</span>
         </div>
 
         <div className="mt-3 overflow-x-auto rounded-lg border border-slate-100">
-          <table className="w-full text-left text-[10px]">
+          <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-400">
               <tr>
                 <th className="px-2 py-1">Dx</th>
@@ -1130,13 +1130,13 @@ function ClaimStage() {
           </table>
         </div>
         {state.procedures.length === 0 && (
-          <p className="mt-2 text-[10px] text-slate-400">No claim lines yet — go back to coding and select the procedures.</p>
+          <p className="mt-2 text-xs text-slate-400">No claim lines yet — go back to coding and select the procedures.</p>
         )}
       </div>
       )}
 
       {facility && state.procedures.length === 0 && (
-        <p className="mt-3 text-[10px] text-slate-400">
+        <p className="mt-3 text-xs text-slate-400">
           No claim lines yet — go back to coding and select the procedures.
         </p>
       )}
@@ -1150,7 +1150,7 @@ function ClaimStage() {
           <p className={`text-xs font-semibold ${verdict.status === "clean" ? "text-emerald-700" : "text-red-700"}`}>
             {verdict.status === "clean" ? "Claim scrubbed clean — paid on first pass." : `Claim denied — ${verdict.carc}`}
           </p>
-          {verdict.reason && <p className="mt-0.5 text-[10px] text-slate-600">{verdict.reason}</p>}
+          {verdict.reason && <p className="mt-0.5 text-xs text-slate-600">{verdict.reason}</p>}
         </div>
       )}
 
@@ -1202,7 +1202,7 @@ function ARStage() {
   return (
     <div className="h-full overflow-y-auto p-4">
       <h3 className="text-sm font-bold text-slate-800">AR follow-up</h3>
-      <p className="text-[10px] text-slate-400">The remittance has posted. Decide the right next step for this claim.</p>
+      <p className="text-xs text-slate-400">The remittance has posted. Decide the right next step for this claim.</p>
 
       <div
         className={`mt-3 rounded-xl border p-3 ${
@@ -1212,9 +1212,9 @@ function ARStage() {
         <p className={`text-xs font-semibold ${verdict.status === "clean" ? "text-emerald-700" : "text-red-700"}`}>
           {verdict.status === "clean" ? "Paid — no denial to work." : `Denied — ${verdict.carc}`}
         </p>
-        {verdict.reason && <p className="mt-0.5 text-[10px] text-slate-600">{verdict.reason}</p>}
+        {verdict.reason && <p className="mt-0.5 text-xs text-slate-600">{verdict.reason}</p>}
         {activeCase.arFollowUp && (
-          <p className="mt-1 text-[10px] text-slate-600">
+          <p className="mt-1 text-xs text-slate-600">
             <span className="font-semibold">Scenario: </span>
             {activeCase.arFollowUp.scenario}
           </p>
@@ -1230,11 +1230,11 @@ function ARStage() {
               className="rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
             >
               <p className="text-xs font-semibold text-slate-700">{a.label}</p>
-              <p className="mt-0.5 text-[10px] text-slate-500">{a.hint}</p>
+              <p className="mt-0.5 text-xs text-slate-500">{a.hint}</p>
             </button>
           ))}
         </div>
-        <label className="mt-3 block text-[10px] text-slate-500">Note (optional)</label>
+        <label className="mt-3 block text-xs text-slate-500">Note (optional)</label>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -1304,7 +1304,7 @@ function Debrief() {
             </div>
           ))}
         </div>
-        <p className="mt-1 text-[9px] text-slate-400">
+        <p className="mt-1 text-[11px] text-slate-400">
           Judgment criteria left at 0/… are instructor-reviewed — they are not auto-scored.
         </p>
       </Section>
@@ -1312,7 +1312,7 @@ function Debrief() {
       {/* expected vs actual */}
       <Section title="Claim — expected vs your result">
         <div className="overflow-x-auto rounded-lg border border-slate-100">
-          <table className="w-full text-left text-[10px]">
+          <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-400">
               <tr>
                 <th className="px-2 py-1">Line</th>
@@ -1345,7 +1345,7 @@ function Debrief() {
             </tbody>
           </table>
         </div>
-        <p className="mt-1 text-[9px] text-slate-400">
+        <p className="mt-1 text-[11px] text-slate-400">
           Expected totals: charged ${activeCase.expectedTotals.chargedUsd} · allowed ${activeCase.expectedTotals.allowedUsd} · plan
           pays ${activeCase.expectedTotals.planPaysUsd} · patient owes ${activeCase.expectedTotals.patientOwesUsd}.
         </p>
@@ -1361,18 +1361,18 @@ function Debrief() {
                 <div className="flex items-center gap-2">
                   {hit ? <XCircle className="h-4 w-4 shrink-0 text-red-500" /> : <ClipboardList className="h-4 w-4 shrink-0 text-slate-300" />}
                   <p className="text-[11px] font-semibold text-slate-800">{t.title}</p>
-                  <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">{t.pointsAtStake} pts at stake</span>
+                  <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">{t.pointsAtStake} pts at stake</span>
                 </div>
                 <div className="mt-1.5 space-y-1 pl-6">
-                  <p className="text-[10px] text-slate-600">
+                  <p className="text-xs text-slate-600">
                     <span className="font-semibold text-red-600">Common mistake: </span>
                     {t.commonMistake}
                   </p>
-                  <p className="text-[10px] text-slate-600">
+                  <p className="text-xs text-slate-600">
                     <span className="font-semibold">Why it's wrong: </span>
                     {t.whyItIsWrong}
                   </p>
-                  <p className="text-[10px] text-slate-600">
+                  <p className="text-xs text-slate-600">
                     <span className="font-semibold text-emerald-600">Correct: </span>
                     {t.correctAction}
                   </p>
@@ -1389,8 +1389,8 @@ function Debrief() {
           <div className="space-y-1">
             {state.arCalls.map((e) => (
               <div key={e.id} className="rounded-lg border border-slate-100 bg-white px-2 py-1.5">
-                <p className="text-[10px] font-medium text-slate-700">{e.action}</p>
-                <p className="text-[9px] text-slate-500">{e.note}</p>
+                <p className="text-xs font-medium text-slate-700">{e.action}</p>
+                <p className="text-[11px] text-slate-500">{e.note}</p>
               </div>
             ))}
           </div>
@@ -1399,7 +1399,7 @@ function Debrief() {
 
       {/* instructor key */}
       <Section title="Instructor key">
-        <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+        <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
           {activeCase.instructorKey.map((k, i) => (
             <li key={i}>{k}</li>
           ))}

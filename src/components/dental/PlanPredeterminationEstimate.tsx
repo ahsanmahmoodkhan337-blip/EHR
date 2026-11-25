@@ -63,21 +63,21 @@ export function PlanPredeterminationEstimate({ adjudication, activeCase }: Props
       <div className="border-b border-teal-100 bg-teal-50 px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold text-teal-800">Predetermination of Benefits</span>
-          <span className="text-[10px] text-teal-600">
+          <span className="text-xs text-teal-600">
             {plan ? `${plan.payerName} · ${plan.planName}` : activeCase.planId} (fictional payer)
           </span>
-          <span className="ml-auto text-[10px] text-teal-600">
+          <span className="ml-auto text-xs text-teal-600">
             {activeCase.patient.firstName} {activeCase.patient.lastName} · {activeCase.patient.memberId}
           </span>
         </div>
-        <p className="mt-0.5 text-[10px] leading-snug text-teal-700">
+        <p className="mt-0.5 text-xs leading-snug text-teal-700">
           Estimate of what the plan will pay for the planned treatment. Not a guarantee of payment — the patient's
           out-of-pocket number becomes binding only when the payer returns the predetermination.
         </p>
       </div>
 
       {/* line-by-line estimate */}
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
@@ -105,17 +105,17 @@ export function PlanPredeterminationEstimate({ adjudication, activeCase }: Props
                       {l.claimLine.surfaces ? <span className="text-slate-400"> · {l.claimLine.surfaces}</span> : ""}
                       {l.claimLine.quadrant ? <span className="text-slate-400"> · q{l.claimLine.quadrant}</span> : ""}
                     </div>
-                    <div className="text-[10px] text-slate-500">{cdt?.shortName ?? "Service"}</div>
+                    <div className="text-xs text-slate-500">{cdt?.shortName ?? "Service"}</div>
                   </td>
                   <td>
                     <span className={v.tone}>{v.label}</span>
                     {l.isDowngrade && l.result.alternateBenefit && (
-                      <div className="mt-0.5 text-[9px] text-amber-600">
+                      <div className="mt-0.5 text-[11px] text-amber-600">
                         paid at {l.result.alternateBenefit.paidAtCode}
                       </div>
                     )}
                     {l.denial && (
-                      <div className="mt-0.5 text-[9px] font-medium text-slate-400">{l.denial.id}</div>
+                      <div className="mt-0.5 text-[11px] font-medium text-slate-400">{l.denial.id}</div>
                     )}
                   </td>
                   <td className="num">{fmtUsd(l.result.chargedUsd)}</td>
@@ -145,7 +145,7 @@ export function PlanPredeterminationEstimate({ adjudication, activeCase }: Props
       {/* per-line notes */}
       <div className="space-y-1 border-t border-slate-100 px-3 py-2">
         {adjudication.lines.map((l, i) => (
-          <p key={l.lineId} className="text-[10px] leading-snug text-slate-600">
+          <p key={l.lineId} className="text-xs leading-snug text-slate-600">
             <span className="font-semibold text-slate-500">Line {i + 1}: </span>
             {l.isDowngrade
               ? l.result.alternateBenefit?.explanation
@@ -159,13 +159,13 @@ export function PlanPredeterminationEstimate({ adjudication, activeCase }: Props
       {/* attachment-required notice */}
       {missingAttachments.length > 0 && (
         <div className="border-t border-amber-100 bg-amber-50 px-3 py-2">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-800">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-800">
             <Paperclip className="h-3.5 w-3.5 shrink-0" />
             Attachments still required before this will adjudicate
           </p>
           <div className="mt-1 space-y-1">
             {missingAttachments.map(({ line, missing }) => (
-              <p key={line.lineId} className="text-[10px] leading-snug text-amber-700">
+              <p key={line.lineId} className="text-xs leading-snug text-amber-700">
                 <span className="font-semibold">
                   {line.code}
                   {line.claimLine.tooth ? ` · #${line.claimLine.tooth}` : ""}
@@ -175,7 +175,7 @@ export function PlanPredeterminationEstimate({ adjudication, activeCase }: Props
               </p>
             ))}
           </div>
-          <p className="mt-1 text-[9px] text-amber-600">
+          <p className="mt-1 text-[11px] text-amber-600">
             A skipped attachment is the single most common "missing documentation" denial (DEN-DOC-MISSING). Gather it
             below before submission.
           </p>
@@ -185,11 +185,11 @@ export function PlanPredeterminationEstimate({ adjudication, activeCase }: Props
       {/* downgrade ≠ denial teaching callout */}
       {hasDowngrade && (
         <div className="border-t border-amber-100 bg-amber-50 px-3 py-2">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-800">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-800">
             <BadgeCheck className="h-3.5 w-3.5 shrink-0" />
             A downgrade is an adjustment — not a denial
           </p>
-          <p className="mt-0.5 text-[10px] leading-snug text-amber-700">
+          <p className="mt-0.5 text-xs leading-snug text-amber-700">
             The code was correct; the plan simply pays a lower allowance for it. Bill the service actually delivered
             (never the downgraded code) and post the difference as a documented patient upgrade.
           </p>
@@ -199,11 +199,11 @@ export function PlanPredeterminationEstimate({ adjudication, activeCase }: Props
       {/* excluded / denied teaching callout */}
       {hasDenial && !hasDowngrade && (
         <div className="border-t border-red-100 bg-red-50 px-3 py-2">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold text-red-800">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-red-800">
             <Info className="h-3.5 w-3.5 shrink-0" />
             This estimate removes the benefit entirely
           </p>
-          <p className="mt-0.5 text-[10px] leading-snug text-red-700">
+          <p className="mt-0.5 text-xs leading-snug text-red-700">
             Unlike a downgrade, a non-covered service leaves nothing for the plan to pay. Confirm the exclusion in
             writing before the patient is seated.
           </p>

@@ -90,7 +90,7 @@ export function CommandPalette({ onSelectRole, onSelectPatient }: CommandPalette
             className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:text-slate-200 dark:placeholder:text-slate-500"
             autoFocus
           />
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 dark:border-slate-600 dark:bg-slate-700">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-400 dark:border-slate-600 dark:bg-slate-700">
             <span className="text-xs">⌘</span>K
           </kbd>
         </div>
@@ -121,7 +121,7 @@ export function CommandPalette({ onSelectRole, onSelectPatient }: CommandPalette
                     <span>
                       {p.firstName} {p.lastName}
                     </span>
-                    <span className="ml-auto text-[10px] text-slate-400">
+                    <span className="ml-auto text-xs text-slate-400">
                       {p.mrn}
                     </span>
                   </Command.Item>
@@ -204,7 +204,7 @@ export function CommandPalette({ onSelectRole, onSelectPatient }: CommandPalette
 
         {/* Footer */}
         <div className="border-t border-slate-100 dark:border-slate-700 px-4 py-2">
-          <div className="flex items-center gap-4 text-[10px] text-slate-400">
+          <div className="flex items-center gap-4 text-xs text-slate-400">
             <span>
               <kbd className="rounded bg-slate-100 px-1 dark:bg-slate-700">↑↓</kbd> Navigate
             </span>

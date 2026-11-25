@@ -94,7 +94,7 @@ export function MoneyNotYet({
         <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
         {copy.title}
       </p>
-      <p className="mt-1 text-[10px] leading-relaxed text-slate-600">{copy.body}</p>
+      <p className="mt-1 text-xs leading-relaxed text-slate-600">{copy.body}</p>
     </div>
   );
 }

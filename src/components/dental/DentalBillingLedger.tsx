@@ -224,14 +224,14 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
     <div className={embedded ? "p-3" : "h-full overflow-y-auto p-3"}>
       {/* ── ADA 2019 claim form replica (shared claim shell) ───────────────── */}
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        <span className="rounded bg-accent-50 px-2 py-0.5 text-[10px] font-medium text-accent-700">
+        <span className="rounded bg-accent-50 px-2 py-0.5 text-xs font-medium text-accent-700">
           {plan ? `${plan.payerName} · ${plan.planName}` : "No plan selected"}
         </span>
-        <span className="rounded bg-slate-100 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           Fictional payer · illustrative fees
         </span>
         {state.claimNumber && (
-          <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-600">
+          <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs font-semibold text-slate-600">
             {state.claimNumber}
           </span>
         )}
@@ -304,22 +304,22 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
           <div key={lineId} className="mt-3 overflow-hidden clinical-card">
             {/* line row */}
             <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
-              <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">{code}</code>
+              <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-700">{code}</code>
               <span className="text-[11px] font-medium text-slate-700">{cdt?.shortName ?? "Unknown code"}</span>
               {claimLine.tooth && (
-                <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[9px] text-teal-700">
+                <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[11px] text-teal-700">
                   Tooth #{claimLine.tooth}
                   {claimLine.surfaces ? ` · ${claimLine.surfaces}` : ""}
                   {tooth ? ` (${tooth.name})` : ""}
                 </span>
               )}
               {claimLine.quadrant && (
-                <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[9px] text-teal-700">Area {claimLine.quadrant}</span>
+                <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[11px] text-teal-700">Area {claimLine.quadrant}</span>
               )}
-              <span className="text-[9px] text-slate-400">DOS {claimLine.dateOfService}</span>
+              <span className="text-[11px] text-slate-400">DOS {claimLine.dateOfService}</span>
               <span className="ml-auto text-[11px] font-semibold text-slate-700">${claimLine.feeUsd.toFixed(2)}</span>
               {resolution && resolution !== "not-handled" && (
-                <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   {resolution.replace(/-/g, " ")}
                 </span>
               )}
@@ -336,7 +336,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
                   <>
                     <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
                     <span>{result.summary}</span>
-                    <span className="ml-auto shrink-0 rounded bg-white/70 px-1.5 py-0.5 text-[9px] font-semibold">{denial.id}</span>
+                    <span className="ml-auto shrink-0 rounded bg-white/70 px-1.5 py-0.5 text-[11px] font-semibold">{denial.id}</span>
                   </>
                 ) : isDowngrade ? (
                   <>
@@ -356,7 +356,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
                   </>
                 )}
               </div>
-              <p className="mt-0.5 text-[10px] leading-snug opacity-80">
+              <p className="mt-0.5 text-xs leading-snug opacity-80">
                 {denial
                   ? `Why: ${denial.title} — ${denial.plainLanguage}`
                   : isDowngrade && downgrade
@@ -377,7 +377,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
 
             {/* per-line EOB drivers — deductible / coinsurance / annual max */}
             {(result.deductibleAppliedUsd > 0 || result.coinsurancePatientUsd > 0 || result.annualMaxReductionUsd > 0) && (
-              <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 bg-slate-50/60 px-3 py-1.5 text-[10px] text-slate-600">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 bg-slate-50/60 px-3 py-1.5 text-xs text-slate-600">
                 {result.deductibleAppliedUsd > 0 && (
                   <span>
                     Deductible applied <b>{fmtUsd(result.deductibleAppliedUsd)}</b>
@@ -399,14 +399,14 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
             {/* downgrade teaching note */}
             {isDowngrade && downgrade && (
               <div className="border-t border-amber-100 bg-amber-50/60 px-3 py-2">
-                <p className="text-[10px] font-semibold text-amber-800">Alternate benefit — covered at a reduced allowance</p>
-                <p className="text-[10px] text-amber-700">{downgrade.explanation}</p>
-                <ol className="ml-4 mt-1 list-decimal text-[10px] text-amber-700">
+                <p className="text-xs font-semibold text-amber-800">Alternate benefit — covered at a reduced allowance</p>
+                <p className="text-xs text-amber-700">{downgrade.explanation}</p>
+                <ol className="ml-4 mt-1 list-decimal text-xs text-amber-700">
                   {downgrade.studentAction.map((a, i) => (
                     <li key={i}>{a}</li>
                   ))}
                 </ol>
-                <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-amber-500">
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-amber-500">
                   Never bill {downgrade.paidAtCode} in place of the delivered service.
                 </p>
               </div>
@@ -433,7 +433,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
             {/* trace toggle */}
             <button
               onClick={() => setOpenTrace((o) => ({ ...o, [lineId]: !open }))}
-              className="flex w-full items-center gap-1 border-t border-slate-100 px-3 py-1.5 text-left text-[10px] font-semibold text-brand-700 hover:bg-brand-50"
+              className="flex w-full items-center gap-1 border-t border-slate-100 px-3 py-1.5 text-left text-xs font-semibold text-brand-700 hover:bg-brand-50"
             >
               {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               Adjudication trace ({result.steps.length} steps, walked in payer order)
@@ -454,7 +454,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
         <Totals k="Contractual write-off" v={fmtUsd(adjudication.totals.writeOffUsd)} dim />
         <Totals k="Plan pays" v={fmtUsd(adjudication.totals.planPaysUsd)} green />
         <Totals k="Patient owes" v={fmtUsd(adjudication.totals.patientOwesUsd)} red />
-        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
           Edit checks <DentalClaimScrub compact />
         </span>
         <button
@@ -490,36 +490,36 @@ function EobSummary({
       <div className="mb-2 flex items-center gap-1.5">
         <FileText className="h-3.5 w-3.5 text-slate-400" />
         <p className="text-xs font-bold text-slate-700">Explanation of Benefits (EOB)</p>
-        <span className="ml-auto text-[9px] uppercase tracking-wide text-slate-400">Illustrative teaching figures</span>
+        <span className="ml-auto text-[11px] uppercase tracking-wide text-slate-400">Illustrative teaching figures</span>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {/* deductible */}
         <div className="rounded-lg bg-slate-50 p-2">
-          <p className="text-[9px] uppercase tracking-wide text-slate-400">Deductible</p>
+          <p className="text-[11px] uppercase tracking-wide text-slate-400">Deductible</p>
           <p className="mt-0.5 text-[11px] font-semibold text-slate-700">
             {plan ? fmtUsd(plan.deductible.individualUsd) : "—"}{" "}
             <span className="font-normal text-slate-400">individual</span>
           </p>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Met before: {fmtUsd(deductibleMetBefore)} · Applied now: <b>{fmtUsd(eob.deductibleApplied)}</b>
           </p>
         </div>
 
         {/* coinsurance */}
         <div className="rounded-lg bg-slate-50 p-2">
-          <p className="text-[9px] uppercase tracking-wide text-slate-400">Coinsurance (patient share)</p>
+          <p className="text-[11px] uppercase tracking-wide text-slate-400">Coinsurance (patient share)</p>
           <p className="mt-0.5 text-[11px] font-semibold text-slate-700">{fmtUsd(eob.coinsurancePatient)}</p>
-          <p className="text-[10px] text-slate-500">Plan pays the balance at its class rate</p>
+          <p className="text-xs text-slate-500">Plan pays the balance at its class rate</p>
         </div>
 
         {/* annual maximum */}
         <div className="rounded-lg bg-slate-50 p-2">
-          <p className="text-[9px] uppercase tracking-wide text-slate-400">Annual maximum</p>
+          <p className="text-[11px] uppercase tracking-wide text-slate-400">Annual maximum</p>
           <p className="mt-0.5 text-[11px] font-semibold text-slate-700">
             {plan?.annualMaximumUsd != null ? fmtUsd(plan.annualMaximumUsd) : "No limit"}
           </p>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Remaining before: {remainingBefore != null ? fmtUsd(remainingBefore) : "—"} · Capped now:{" "}
             <b className={eob.annualMaxReduction > 0 ? "text-amber-700" : ""}>{fmtUsd(eob.annualMaxReduction)}</b>
           </p>
@@ -541,7 +541,7 @@ function EobTotal({ k, v, green, red, dim }: { k: string; v: string; green?: boo
   const color = green ? "text-emerald-600" : red ? "text-red-600" : dim ? "text-slate-400" : "text-slate-700";
   return (
     <span>
-      <span className="text-[9px] uppercase tracking-wide text-slate-400">{k} </span>
+      <span className="text-[11px] uppercase tracking-wide text-slate-400">{k} </span>
       <span className={`text-[11px] font-bold tabular-nums ${color}`}>{v}</span>
     </span>
   );
@@ -597,36 +597,36 @@ function DenialAppeal({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setOpen(true)}
-            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-red-500"
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
           >
             <Gavel className="h-3 w-3" />
             Appeal this denial
           </button>
           {appealOutcome === "upheld" && (
-            <span className="text-[10px] font-medium text-emerald-700">
+            <span className="text-xs font-medium text-emerald-700">
               Appeal upheld — the line paid {fmtUsd(result.allowedUsd)}, patient balance $0.00.
             </span>
           )}
           {denied && !writeOffPosted && (
             <>
-              <span className="text-[10px] font-medium text-amber-800">
+              <span className="text-xs font-medium text-amber-800">
                 Appeal denied — the contractual write-off is still to post.
               </span>
               <button
                 onClick={postWriteOff}
-                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-slate-700"
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
               >
                 Post contractual write-off
               </button>
             </>
           )}
           {writeOffPosted && (
-            <span className="text-[10px] font-medium text-slate-600">
+            <span className="text-xs font-medium text-slate-600">
               Written off contractually — patient balance $0.00.
             </span>
           )}
         </div>
-        {writeOffNote && <p className="mt-1 text-[10px] text-slate-600">{writeOffNote}</p>}
+        {writeOffNote && <p className="mt-1 text-xs text-slate-600">{writeOffNote}</p>}
       </div>
     );
   }
@@ -636,7 +636,7 @@ function DenialAppeal({
       <div className="flex items-center gap-2">
         <Gavel className="h-4 w-4 text-red-600" />
         <p className="text-[11px] font-bold text-red-800">Appeal flow — {denial.title}</p>
-        <button onClick={() => setOpen(false)} className="ml-auto text-[10px] font-medium text-slate-400 hover:text-slate-600">
+        <button onClick={() => setOpen(false)} className="ml-auto text-xs font-medium text-slate-400 hover:text-slate-600">
           Close
         </button>
       </div>
@@ -650,7 +650,7 @@ function DenialAppeal({
           return (
             <div
               key={label}
-              className={`flex-1 rounded px-1.5 py-1 text-center text-[9px] font-semibold ${
+              className={`flex-1 rounded px-1.5 py-1 text-center text-[11px] font-semibold ${
                 active ? "bg-red-600 text-white" : done ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"
               }`}
             >
@@ -662,15 +662,15 @@ function DenialAppeal({
 
       {step === 1 && (
         <div className="mt-2 space-y-2">
-          <p className="text-[10px] text-slate-600">
+          <p className="text-xs text-slate-600">
             <b className="text-red-700">Why the payer denied it:</b> {denial.plainLanguage}
           </p>
-          <p className="text-[10px] text-slate-600">
+          <p className="text-xs text-slate-600">
             <b className="text-red-700">Why it is appealable:</b> {denial.typicalTrigger}
           </p>
           <button
             onClick={() => setStep(2)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-red-500"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
           >
             Next: prepare the appeal <ChevronRight className="h-3 w-3" />
           </button>
@@ -679,13 +679,13 @@ function DenialAppeal({
 
       {step === 2 && (
         <div className="mt-2 space-y-2">
-          <p className="text-[10px] font-semibold text-slate-700">Assemble your appeal — gather, in order:</p>
-          <ol className="ml-4 list-decimal space-y-1 text-[10px] text-slate-600">
+          <p className="text-xs font-semibold text-slate-700">Assemble your appeal — gather, in order:</p>
+          <ol className="ml-4 list-decimal space-y-1 text-xs text-slate-600">
             {denial.correctiveActions.map((a, i) => (
               <li key={i}>{a}</li>
             ))}
           </ol>
-          <p className="text-[10px] font-semibold text-slate-700">Assemble the appeal:</p>
+          <p className="text-xs font-semibold text-slate-700">Assemble the appeal:</p>
           {denial.appealEvidence ? (
             <AppealDocumentationChecklist
               idPrefix={`ledger-appeal-${lineId}`}
@@ -700,7 +700,7 @@ function DenialAppeal({
             />
           ) : (
             <label htmlFor={`ledger-narrative-${lineId}`} className="block">
-              <span className="text-[10px] font-medium text-slate-600">
+              <span className="text-xs font-medium text-slate-600">
                 Appeal narrative (what you are telling the payer):
               </span>
               <textarea
@@ -716,7 +716,7 @@ function DenialAppeal({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setStep(1)}
-              className="min-h-[40px] rounded-lg border border-slate-200 px-3 py-1.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
+              className="min-h-[40px] rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
             >
               Back
             </button>
@@ -737,7 +737,7 @@ function DenialAppeal({
                 onResolve(lineId, "appealed", outcome ?? undefined);
                 setStep(3);
               }}
-              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-red-500"
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
             >
               <Send className="h-3 w-3" /> Lodge appeal
             </button>
@@ -750,7 +750,7 @@ function DenialAppeal({
           {twoStep ? (
             appealOutcome === "denied" ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-2">
-                <p className="flex items-start gap-1.5 text-[10px] text-amber-900">
+                <p className="flex items-start gap-1.5 text-xs text-amber-900">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
                     <b>Appeal denied.</b> The payer upheld the original decision — the documentation did not show{" "}
@@ -759,7 +759,7 @@ function DenialAppeal({
                   </span>
                 </p>
                 {writeOffPosted ? (
-                  <p className="mt-1.5 flex items-start gap-1.5 text-[10px] text-emerald-800">
+                  <p className="mt-1.5 flex items-start gap-1.5 text-xs text-emerald-800">
                     <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     <span>
                       Contractual write-off posted — patient balance <b>$0.00</b>. Never billed to the patient.
@@ -768,16 +768,16 @@ function DenialAppeal({
                 ) : (
                   <button
                     onClick={postWriteOff}
-                    className="mt-1.5 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-slate-700"
+                    className="mt-1.5 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
                   >
                     Post contractual write-off (CO)
                   </button>
                 )}
-                {writeOffNote && <p className="mt-1 text-[10px] text-slate-700">{writeOffNote}</p>}
+                {writeOffNote && <p className="mt-1 text-xs text-slate-700">{writeOffNote}</p>}
               </div>
             ) : (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2">
-                <p className="flex items-start gap-1.5 text-[10px] text-emerald-800">
+                <p className="flex items-start gap-1.5 text-xs text-emerald-800">
                   <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
                     <b>Appeal upheld.</b> The plan released payment of <b>{fmtUsd(result.allowedUsd)}</b> toward this line.
@@ -788,7 +788,7 @@ function DenialAppeal({
             )
           ) : winnable ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2">
-              <p className="flex items-start gap-1.5 text-[10px] text-emerald-800">
+              <p className="flex items-start gap-1.5 text-xs text-emerald-800">
                 <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
                   <b>Appeal approved.</b> The plan released payment of <b>{fmtUsd(result.allowedUsd)}</b> toward this line. The
@@ -798,7 +798,7 @@ function DenialAppeal({
             </div>
           ) : (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-2">
-              <p className="flex items-start gap-1.5 text-[10px] text-amber-800">
+              <p className="flex items-start gap-1.5 text-xs text-amber-800">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
                   <b>Appeal denied.</b> The payer upheld the original decision. Handle the balance per the corrective actions above
@@ -841,7 +841,7 @@ function TraceTable({ rows }: { rows: TraceStep[] }) {
                 <span className="block max-w-md leading-snug text-slate-500">{r.explanation}</span>
               </td>
               <td>
-                <span className={`inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${badge[r.verdict]}`}>
+                <span className={`inline-block rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${badge[r.verdict]}`}>
                   {r.verdict}
                 </span>
               </td>
@@ -858,20 +858,20 @@ function DenialDetail({ denial }: { denial: DentalDenial }) {
     <div className="space-y-1.5">
       <p className="text-[11px] font-semibold text-red-800">
         {denial.title}
-        <span className="ml-2 rounded bg-white px-1.5 py-0.5 text-[9px] font-bold ring-1 ring-red-100">
+        <span className="ml-2 rounded bg-white px-1.5 py-0.5 text-[11px] font-bold ring-1 ring-red-100">
           {denial.carc} · group {denial.groupCode}
         </span>
       </p>
-      <p className="text-[10px] text-red-700">{denial.plainLanguage}</p>
-      <p className="rounded border border-red-100 bg-white px-2 py-1 font-mono text-[9px] italic text-slate-500">
+      <p className="text-xs text-red-700">{denial.plainLanguage}</p>
+      <p className="rounded border border-red-100 bg-white px-2 py-1 font-mono text-[11px] italic text-slate-500">
         “{denial.payerRemark}”
       </p>
       <div>
-        <p className="text-[10px] font-semibold text-red-800">
+        <p className="text-xs font-semibold text-red-800">
           Corrective actions{" "}
           <span className="font-normal text-slate-400">(in order — {denial.expectedOutcome.replace(/-/g, " ")})</span>
         </p>
-        <ol className="ml-4 list-decimal text-[10px] text-slate-700">
+        <ol className="ml-4 list-decimal text-xs text-slate-700">
           {denial.correctiveActions.map((a, i) => (
             <li key={i}>{a}</li>
           ))}
@@ -884,7 +884,7 @@ function DenialDetail({ denial }: { denial: DentalDenial }) {
 function Split({ k, v, c }: { k: string; v: string; c?: string }) {
   return (
     <div className="px-2 py-2">
-      <p className="text-[9px] uppercase tracking-wide text-slate-400">{k}</p>
+      <p className="text-[11px] uppercase tracking-wide text-slate-400">{k}</p>
       <p className={`text-xs font-bold tabular-nums ${c ?? "text-slate-700"}`}>{v}</p>
     </div>
   );
@@ -894,7 +894,7 @@ function Totals({ k, v, highlight, green, red, dim }: { k: string; v: string; hi
   const color = green ? "text-emerald-600" : red ? "text-red-600" : dim ? "text-slate-400" : "text-slate-800";
   return (
     <span className={`rounded-lg px-2 py-1 ${highlight ? "bg-slate-100" : ""}`}>
-      <span className={`block text-[9px] uppercase tracking-wide ${dim ? "text-slate-400" : "text-slate-500"}`}>{k}</span>
+      <span className={`block text-[11px] uppercase tracking-wide ${dim ? "text-slate-400" : "text-slate-500"}`}>{k}</span>
       <span className={`text-xs font-bold tabular-nums ${color} ${highlight ? "text-base" : ""}`}>{v}</span>
     </span>
   );

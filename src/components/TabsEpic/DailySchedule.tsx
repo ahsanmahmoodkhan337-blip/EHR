@@ -601,7 +601,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
             {/* Weekday header row */}
             <div className="mb-1 grid grid-cols-7">
               {DAYS.map((d) => (
-                <div key={d} className="py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <div key={d} className="py-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-400">
                   {d}
                 </div>
               ))}
@@ -644,7 +644,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                             <span key={a.id} className={`h-1.5 w-1.5 rounded-full ${STATUS_META[a.status].dot}`} />
                           ))}
                           {dayApps.length > 3 && (
-                            <span className="text-[9px] font-medium text-slate-400">+{dayApps.length - 3}</span>
+                            <span className="text-[11px] font-medium text-slate-400">+{dayApps.length - 3}</span>
                           )}
                         </div>
                       )}
@@ -681,7 +681,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
+                        <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold ${
                           isTodayDate ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"
                         }`}>
                           {d.getDate()}
@@ -692,11 +692,11 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                         </p>
                       </div>
                       {dayApps.length === 0 ? (
-                        <p className="mt-1.5 pl-7 text-[10px] italic text-slate-400">No appointments</p>
+                        <p className="mt-1.5 pl-7 text-xs italic text-slate-400">No appointments</p>
                       ) : (
                         <div className="mt-1.5 space-y-1 pl-7">
                           {dayApps.slice(0, 3).map((a) => (
-                            <div key={a.id} className="flex items-center gap-1.5 truncate text-[10px] text-slate-600">
+                            <div key={a.id} className="flex items-center gap-1.5 truncate text-xs text-slate-600">
                               <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_META[a.status].dot}`} />
                               <span className="tabular-nums text-slate-400">{a.time}</span>
                               <span className="truncate">{a.patientName} · {a.type}</span>
@@ -705,7 +705,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                         </div>
                       )}
                       {dayApps.length > 3 && (
-                        <p className="mt-1 pl-7 text-[9px] font-medium text-brand-500">+{dayApps.length - 3} more</p>
+                        <p className="mt-1 pl-7 text-[11px] font-medium text-brand-500">+{dayApps.length - 3} more</p>
                       )}
                     </div>
                   );
@@ -725,7 +725,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                       key={slot}
                       className="flex items-start gap-2 rounded-xl border border-slate-100 p-1.5 min-h-[36px]"
                     >
-                      <span className="flex w-12 shrink-0 items-center gap-1 pt-0.5 text-[10px] font-medium text-slate-400">
+                      <span className="flex w-12 shrink-0 items-center gap-1 pt-0.5 text-xs font-medium text-slate-400">
                         <Clock className="h-3 w-3" />
                         {slot}
                       </span>
@@ -733,7 +733,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                         {slotApps.length === 0 ? (
                           <button
                             onClick={() => openNewAppointment(selectedDate)}
-                            className="text-[9px] italic text-slate-300 transition-colors hover:text-brand-400"
+                            className="text-[11px] italic text-slate-300 transition-colors hover:text-brand-400"
                           >
                             + Click to add
                           </button>
@@ -742,7 +742,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                             <div
                               key={a.id}
                               onClick={() => openEditAppointment(a)}
-                              className={`cursor-pointer rounded-lg border px-2 py-1 text-[10px] transition-colors ${STATUS_META[a.status].card}`}
+                              className={`cursor-pointer rounded-lg border px-2 py-1 text-xs transition-colors ${STATUS_META[a.status].card}`}
                             >
                               <span className="font-semibold text-slate-700">{a.patientName}</span>
                               <span className="ml-1 text-slate-500">({a.type})</span>
@@ -765,7 +765,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               <p className="text-sm font-semibold text-slate-800">
                 {new Date(selectedDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
               </p>
-              <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
+              <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-700">
                 {selectedAppointments.length} visit{selectedAppointments.length !== 1 ? "s" : ""}
               </span>
             </div>
@@ -796,7 +796,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                       ? "The New Appointment form is already open"
                       : "Create an appointment for this date"
                   }
-                  className="mt-2 flex min-h-10 items-center gap-1 rounded-lg bg-brand-50 px-3 py-1.5 text-[10px] font-medium text-brand-600 transition-colors hover:bg-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:hover:bg-slate-100"
+                  className="mt-2 flex min-h-10 items-center gap-1 rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 transition-colors hover:bg-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:hover:bg-slate-100"
                 >
                   <Plus className="h-3 w-3" aria-hidden="true" /> Create Appointment
                 </button>
@@ -821,7 +821,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <p className="truncate text-sm font-semibold text-slate-800">{apt.patientName}</p>
-                          <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[9px] font-semibold ring-1 ${meta.badge}`}>
+                          <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${meta.badge}`}>
                             {meta.label}
                           </span>
                         </div>
@@ -832,11 +832,11 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                           <span
                             title={apt.isNewPatient ? "New patient" : "Established patient"}
-                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${apt.isNewPatient ? "bg-brand-100 text-brand-700" : "bg-slate-200 text-slate-600"}`}
+                            className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${apt.isNewPatient ? "bg-brand-100 text-brand-700" : "bg-slate-200 text-slate-600"}`}
                           >
                             {apt.isNewPatient ? "NP" : "EST"}
                           </span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-0.5 text-[9px] font-medium text-slate-500 ring-1 ring-slate-200">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
                             <Stethoscope className="h-2.5 w-2.5 text-brand-600" />
                             {apt.provider ? apt.provider : "Unassigned"}
                           </span>
@@ -844,20 +844,20 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                       </div>
                     </div>
                     {apt.notes && (
-                      <p className="mt-2 rounded-lg bg-white/70 px-2.5 py-1.5 text-[10px] italic text-slate-500">
+                      <p className="mt-2 rounded-lg bg-white/70 px-2.5 py-1.5 text-xs italic text-slate-500">
                         {apt.notes}
                       </p>
                     )}
                     <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-slate-200/60 pt-2">
                       <button
                         onClick={() => startVisit(apt)}
-                        className="flex items-center gap-1 rounded-lg bg-brand-900 px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-brand-800"
+                        className="flex items-center gap-1 rounded-lg bg-brand-900 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-brand-800"
                       >
                         <User className="h-3 w-3" /> Start Visit
                       </button>
                       <button
                         onClick={() => openEditAppointment(apt)}
-                        className="flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600 ring-1 ring-slate-200 transition-colors hover:bg-slate-100"
+                        className="flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200 transition-colors hover:bg-slate-100"
                       >
                         <FileEdit className="h-3 w-3" /> Edit
                       </button>
@@ -865,7 +865,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                         <button
                           onClick={() => checkIn(apt)}
                           title="Mark the patient arrived and open Registration: read the card, verify insurance, run the 270"
-                          className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-100"
+                          className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
                         >
                           Check In
                         </button>
@@ -873,7 +873,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                       {apt.status === "in-progress" && (
                         <button
                           onClick={() => changeStatus(apt.id, "completed")}
-                          className="flex items-center gap-1 rounded-lg bg-green-500 px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-green-400"
+                          className="flex items-center gap-1 rounded-lg bg-green-500 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-green-400"
                         >
                           <CheckCircle2 className="h-3 w-3" /> Complete
                         </button>
@@ -882,13 +882,13 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                         <>
                           <button
                             onClick={() => changeStatus(apt.id, "no-show")}
-                            className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-100"
+                            className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
                           >
                             <UserX className="h-3 w-3" /> No-Show
                           </button>
                           <button
                             onClick={() => changeStatus(apt.id, "cancelled")}
-                            className="flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-medium text-red-600 transition-colors hover:bg-red-100"
+                            className="flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
                           >
                             <X className="h-3 w-3" /> Cancel
                           </button>
@@ -928,7 +928,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
             <div className="space-y-3 p-4">
               {/* ── Patient: search existing, or register new inline (section 3) ── */}
               <div>
-                <label className="mb-1 block text-[10px] font-medium text-slate-500">
+                <label className="mb-1 block text-xs font-medium text-slate-500">
                   Patient — search by name, MRN or DOB
                 </label>
                 {selectedPatient && !showRegister ? (
@@ -937,7 +937,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                       <p className="truncate text-xs font-semibold text-slate-800">
                         {selectedPatient.firstName} {selectedPatient.lastName}
                       </p>
-                      <p className="text-[10px] text-slate-500">
+                      <p className="text-xs text-slate-500">
                         {selectedPatient.mrn}
                         {selectedPatient.dateOfBirth ? ` · DOB ${selectedPatient.dateOfBirth}` : ""}
                         {selectedPatient.isSeed ? " · demo patient" : " · registered by you"}
@@ -949,7 +949,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                           setModalPatientId(null);
                           setPatientQuery("");
                         }}
-                        className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-medium text-slate-500 hover:bg-white"
+                        className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-slate-500 hover:bg-white"
                       >
                         Change
                       </button>
@@ -988,7 +988,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                               <span className="truncate font-medium text-slate-700">
                                 {p.firstName} {p.lastName}
                               </span>
-                              <span className="shrink-0 text-[10px] text-slate-400">
+                              <span className="shrink-0 text-xs text-slate-400">
                                 {p.mrn} · {p.dateOfBirth}
                               </span>
                             </button>
@@ -998,7 +998,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                     )}
 
                     {patientQuery.trim().length > 0 && patientMatches.length === 0 && (
-                      <p className="mt-1 text-[10px] text-amber-600">
+                      <p className="mt-1 text-xs text-amber-600">
                         <AlertTriangle className="mr-0.5 inline h-2.5 w-2.5" />
                         No match — register this patient below.
                       </p>
@@ -1014,13 +1014,13 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                           setNewFirst(first ?? "");
                           setNewLast(rest.join(" "));
                         }}
-                        className="mt-1.5 flex items-center gap-1 rounded-lg bg-brand-50 px-2.5 py-1 text-[10px] font-medium text-brand-700 hover:bg-brand-100"
+                        className="mt-1.5 flex items-center gap-1 rounded-lg bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
                       >
                         <UserPlus className="h-3 w-3" /> Register new patient
                       </button>
                     ) : (
                       <div className="mt-1.5 space-y-2 rounded-xl border border-brand-200 bg-brand-50/40 p-2.5">
-                        <p className="text-[10px] font-semibold text-brand-700">
+                        <p className="text-xs font-semibold text-brand-700">
                           Register new patient — an MRN is assigned automatically
                         </p>
                         <div className="grid grid-cols-2 gap-2">
@@ -1066,7 +1066,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                           className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] outline-none focus:border-brand-400"
                         />
                         <div className="rounded-lg border border-slate-200 bg-white p-2">
-                          <p className="mb-1.5 text-[10px] font-semibold text-slate-600">
+                          <p className="mb-1.5 text-xs font-semibold text-slate-600">
                             Insurance — the card the patient will bring to check-in
                           </p>
                           <select
@@ -1094,7 +1094,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                             />
                           )}
                           {newPayer === "__other" && (
-                            <p className="mt-1 text-[10px] text-amber-700">
+                            <p className="mt-1 text-xs text-amber-700">
                               A payer outside the list has no benefit rules here: the 271 returns no copay or
                               deductible, and the claim prices on standard commercial terms.
                             </p>
@@ -1125,7 +1125,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-slate-500">Date</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Date</label>
                   <input
                     type="date"
                     value={modalDate}
@@ -1134,7 +1134,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-slate-500">Time</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Time</label>
                   <input
                     type="time"
                     value={modalTime}
@@ -1145,7 +1145,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-slate-500">Visit Type</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Visit Type</label>
                   <select
                     value={modalType}
                     onChange={(e) => setModalType(e.target.value)}
@@ -1157,7 +1157,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-slate-500">Duration (min)</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Duration (min)</label>
                   <select
                     value={modalDuration}
                     onChange={(e) => setModalDuration(Number(e.target.value))}
@@ -1171,7 +1171,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-slate-500">Provider</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Provider</label>
                   <input
                     type="text"
                     value={modalProvider}
@@ -1181,7 +1181,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-slate-500">Status</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Status</label>
                   <select
                     value={modalStatus}
                     onChange={(e) => setModalStatus(e.target.value as Appointment["status"])}
@@ -1194,13 +1194,13 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] font-medium text-slate-500">Clinical Notes</label>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Clinical Notes</label>
                 <textarea
                   value={modalNotes}
                   onChange={(e) => setModalNotes(e.target.value)}
                   placeholder="Add clinical notes for this appointment..."
                   rows={3}
-                  className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-[10px] outline-none transition-colors focus:border-brand-400"
+                  className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none transition-colors focus:border-brand-400"
                 />
               </div>
             </div>
@@ -1208,14 +1208,14 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               {saveError && (
                 <p
                   role="alert"
-                  className="mb-2 flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10px] font-medium leading-snug text-amber-800"
+                  className="mb-2 flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium leading-snug text-amber-800"
                 >
                   <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                   <span>{saveError}</span>
                 </p>
               )}
               {!editAppointment && !modalPatientId && (
-                <p className="mb-2 text-[10px] leading-snug text-slate-500">
+                <p className="mb-2 text-xs leading-snug text-slate-500">
                   {showRegister && !canRegister
                     ? `To register a new patient, fill in ${missingRegisterFields} — Create Appointment needs the whole record.`
                     : "Pick a patient from the search above, or register a new one. Create Appointment will say what is still missing."}
@@ -1224,13 +1224,13 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setShowModal(false)}
-                className="rounded-xl border border-slate-200 px-3 py-1.5 text-[10px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
                 onClick={saveAppointment}
-                className="flex items-center gap-1 rounded-xl bg-brand-900 px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="flex items-center gap-1 rounded-xl bg-brand-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Save className="h-3 w-3" />
                 {editAppointment ? "Update Appointment" : "Create Appointment"}

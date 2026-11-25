@@ -33,11 +33,11 @@ export function TelehealthHub() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-[10px] font-medium text-teal-600 hover:bg-teal-100"><Video className="h-3.5 w-3.5" /> Telehealth</button>
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-xs font-medium text-teal-600 hover:bg-teal-100"><Video className="h-3.5 w-3.5" /> Telehealth</button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4"><div><h3 className="text-sm font-bold text-slate-800">Telehealth & RPM Hub</h3><p className="text-[9px] text-slate-400">Remote patient monitoring</p></div><button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button></div>
+            <div className="flex items-center justify-between mb-4"><div><h3 className="text-sm font-bold text-slate-800">Telehealth & RPM Hub</h3><p className="text-[11px] text-slate-400">Remote patient monitoring</p></div><button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button></div>
 
             {sessionActive && <div className="rounded-lg bg-teal-50 p-2 mb-3 text-center text-xs font-mono font-bold text-teal-700">Session: {formatTime(seconds)}</div>}
 
@@ -46,19 +46,19 @@ export function TelehealthHub() {
                 const val = d.values[valueIdx];
                 return (
                   <div key={d.name} className="rounded-lg border border-slate-200 p-3">
-                    <div className="flex items-center justify-between"><div className="flex items-center gap-2">{d.icon}<span className="text-[10px] font-semibold text-slate-700">{d.name}</span></div><span className="text-sm font-bold text-slate-800">{val} {d.unit}</span></div>
-                    <p className="text-[9px] text-slate-400 mt-0.5">{d.trend}</p>
+                    <div className="flex items-center justify-between"><div className="flex items-center gap-2">{d.icon}<span className="text-xs font-semibold text-slate-700">{d.name}</span></div><span className="text-sm font-bold text-slate-800">{val} {d.unit}</span></div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{d.trend}</p>
                   </div>
                 );
               })}
             </div>
 
             {!sessionActive ? (
-              <button onClick={() => setSessionActive(true)} className="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-[10px] font-medium text-white"><Phone className="h-3.5 w-3.5 inline mr-1" />Start Telehealth Session</button>
+              <button onClick={() => setSessionActive(true)} className="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-xs font-medium text-white"><Phone className="h-3.5 w-3.5 inline mr-1" />Start Telehealth Session</button>
             ) : (
               <div className="flex gap-2">
-                <button onClick={() => { setSessionActive(false); setSeconds(0); }} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-[10px] font-medium text-white">End Session</button>
-                <button className="rounded-lg border px-4 py-2.5 text-[10px]">Add to Chart</button>
+                <button onClick={() => { setSessionActive(false); setSeconds(0); }} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-medium text-white">End Session</button>
+                <button className="rounded-lg border px-4 py-2.5 text-xs">Add to Chart</button>
               </div>
             )}
           </div>

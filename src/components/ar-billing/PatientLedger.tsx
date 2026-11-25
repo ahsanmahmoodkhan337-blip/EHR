@@ -56,15 +56,15 @@ export function PatientLedger() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10px] font-medium text-amber-600 hover:bg-amber-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-600 hover:bg-amber-100">
         <DollarSign className="h-3.5 w-3.5" /> Ledger
-        {totalBalance > 0 && <span className="rounded-full bg-amber-200 px-1.5 text-[9px] text-amber-700">${totalBalance}</span>}
+        {totalBalance > 0 && <span className="rounded-full bg-amber-200 px-1.5 text-[11px] text-amber-700">${totalBalance}</span>}
       </button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <div><h3 className="text-sm font-bold text-slate-800">Patient Ledger</h3><p className="text-[9px] text-slate-400">Statement & Payment Portal</p></div>
+              <div><h3 className="text-sm font-bold text-slate-800">Patient Ledger</h3><p className="text-[11px] text-slate-400">Statement & Payment Portal</p></div>
               <button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button>
             </div>
 
@@ -77,14 +77,14 @@ export function PatientLedger() {
                 { label: "Total Due", amt: totalBalance, color: totalBalance > 0 ? "text-red-600" : "text-green-600" },
               ].map((a) => (
                 <div key={a.label} className="rounded-lg border border-slate-200 p-2 text-center">
-                  <p className="text-[8px] text-slate-400">{a.label}</p>
+                  <p className="text-[11px] text-slate-400">{a.label}</p>
                   <p className={`text-sm font-bold ${a.color}`}>${a.amt}</p>
                 </div>
               ))}
             </div>
 
             {/* KPI Row */}
-            <div className="flex gap-4 mb-3 text-[9px] text-slate-500">
+            <div className="flex gap-4 mb-3 text-[11px] text-slate-500">
               <span>Total Billed: <strong>${totalBilled}</strong></span>
               <span>Insurance Paid: <strong>${totalInsurance}</strong></span>
             </div>
@@ -117,27 +117,27 @@ export function PatientLedger() {
             {paymentSuccess && (
               <div className="rounded-lg bg-green-50 border border-green-200 p-3 flex items-center gap-2 mb-3">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <div><p className="text-[10px] font-bold text-green-700">Payment Processed!</p><p className="text-[9px] text-green-600">Confirmation #: PAY-{Date.now().toString(36).toUpperCase()}</p></div>
+                <div><p className="text-xs font-bold text-green-700">Payment Processed!</p><p className="text-[11px] text-green-600">Confirmation #: PAY-{Date.now().toString(36).toUpperCase()}</p></div>
               </div>
             )}
 
             {!showPayment ? (
-              <button onClick={() => setShowPayment(true)} className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-amber-500">
+              <button onClick={() => setShowPayment(true)} className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-amber-500">
                 <CreditCard className="h-3.5 w-3.5" /> Make Payment
               </button>
             ) : (
               <div className="rounded-lg border border-slate-200 p-3">
-                <p className="text-[10px] font-semibold text-slate-700 mb-2">Payment Details</p>
+                <p className="text-xs font-semibold text-slate-700 mb-2">Payment Details</p>
                 <div className="space-y-2">
-                  <input type="text" placeholder="Cardholder Name" value={cardForm.name} onChange={e => setCardForm({...cardForm, name: e.target.value})} className="w-full rounded-lg border px-3 py-2 text-[10px] outline-none" />
-                  <input type="text" placeholder="Card Number" value={cardForm.number} onChange={e => setCardForm({...cardForm, number: e.target.value.replace(/\D/g,"").slice(0,16)})} className="w-full rounded-lg border px-3 py-2 text-[10px] outline-none" />
+                  <input type="text" placeholder="Cardholder Name" value={cardForm.name} onChange={e => setCardForm({...cardForm, name: e.target.value})} className="w-full rounded-lg border px-3 py-2 text-xs outline-none" />
+                  <input type="text" placeholder="Card Number" value={cardForm.number} onChange={e => setCardForm({...cardForm, number: e.target.value.replace(/\D/g,"").slice(0,16)})} className="w-full rounded-lg border px-3 py-2 text-xs outline-none" />
                   <div className="flex gap-2">
-                    <input type="text" placeholder="MM/YY" value={cardForm.expiry} onChange={e => setCardForm({...cardForm, expiry: e.target.value})} className="flex-1 rounded-lg border px-3 py-2 text-[10px] outline-none" />
-                    <input type="text" placeholder="CVV" value={cardForm.cvv} onChange={e => setCardForm({...cardForm, cvv: e.target.value.replace(/\D/g,"").slice(0,4)})} className="w-16 rounded-lg border px-3 py-2 text-[10px] outline-none" />
+                    <input type="text" placeholder="MM/YY" value={cardForm.expiry} onChange={e => setCardForm({...cardForm, expiry: e.target.value})} className="flex-1 rounded-lg border px-3 py-2 text-xs outline-none" />
+                    <input type="text" placeholder="CVV" value={cardForm.cvv} onChange={e => setCardForm({...cardForm, cvv: e.target.value.replace(/\D/g,"").slice(0,4)})} className="w-16 rounded-lg border px-3 py-2 text-xs outline-none" />
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={processPayment} className="flex-1 rounded-lg bg-amber-600 px-4 py-2 text-[10px] font-medium text-white">Pay ${totalBalance}</button>
-                    <button onClick={() => setShowPayment(false)} className="rounded-lg border px-4 py-2 text-[10px]">Cancel</button>
+                    <button onClick={processPayment} className="flex-1 rounded-lg bg-amber-600 px-4 py-2 text-xs font-medium text-white">Pay ${totalBalance}</button>
+                    <button onClick={() => setShowPayment(false)} className="rounded-lg border px-4 py-2 text-xs">Cancel</button>
                   </div>
                 </div>
               </div>

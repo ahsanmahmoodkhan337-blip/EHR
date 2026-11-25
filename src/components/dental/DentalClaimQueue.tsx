@@ -76,9 +76,9 @@ export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = 
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Claim Status Queue</h3>
-          <p className="text-[10px] text-slate-400">Track each claim through created → sent → paid/denied/appealed.</p>
+          <p className="text-xs text-slate-400">Track each claim through created → sent → paid/denied/appealed.</p>
         </div>
-        <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
+        <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
           {adjudication.lines.length} line{adjudication.lines.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -95,14 +95,14 @@ export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = 
                   <div className={`flex h-7 w-7 items-center justify-center rounded-full ${active ? "bg-teal-600 text-white" : reached ? "bg-teal-100 text-teal-700" : "bg-slate-100 text-slate-300"}`}>
                     {s.icon}
                   </div>
-                  <span className={`mt-1 text-[9px] font-semibold ${active ? "text-teal-700" : reached ? "text-slate-600" : "text-slate-300"}`}>{s.label}</span>
+                  <span className={`mt-1 text-[11px] font-semibold ${active ? "text-teal-700" : reached ? "text-slate-600" : "text-slate-300"}`}>{s.label}</span>
                 </div>
                 {i < STEPS.length - 1 && <div className={`mx-1 mb-4 h-0.5 flex-1 ${i < stageIdx ? "bg-teal-500" : "bg-slate-200"}`} />}
               </div>
             );
           })}
         </div>
-        <p className="mt-3 text-center text-[10px] text-slate-500">
+        <p className="mt-3 text-center text-xs text-slate-500">
           {stage === "created" && (hasLines ? "Claim drafted — submit from the claim (billing) stage to send it." : "No claim lines yet. Accept a treatment plan and code first.")}
           {stage === "pending" && "Sent & adjudicated — one or more lines need follow-up (denied / downgraded)."}
           {stage === "settled" && "Sent & settled — all lines resolved: paid, appealed, billed to patient, or written off."}
@@ -131,17 +131,17 @@ export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = 
                   <p className="text-xs font-semibold text-slate-800">
                     {l.code} {c ? `· ${c.shortName}` : ""}
                   </p>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-xs text-slate-500">
                     DOS {l.claimLine.dateOfService} · plan pays {fmtDollar(l.result.planPaysUsd)} · patient owes {fmtDollar(l.result.patientOwesUsd)}
                     {l.isDowngrade ? " · downgraded (still covered)" : ""}
                   </p>
                 </div>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${st.tone}`}>{st.label}</span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${st.tone}`}>{st.label}</span>
               </div>
               {l.denial && denial && (
                 <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-red-100 bg-red-50 px-2 py-1.5">
                   <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-red-500" />
-                  <p className="text-[10px] text-red-700">
+                  <p className="text-xs text-red-700">
                     <span className="font-semibold">{denial.id} · {denial.title}.</span> {denial.plainLanguage}
                   </p>
                 </div>
@@ -149,18 +149,18 @@ export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = 
               {l.isDowngrade && !l.denial && (
                 <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-100 bg-amber-50 px-2 py-1.5">
                   <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
-                  <p className="text-[10px] text-amber-700">
+                  <p className="text-xs text-amber-700">
                     Alternate benefit applied — covered at a reduced allowance. This is a downgrade, not a denial.
                   </p>
                 </div>
               )}
               {res === "appealed" && (
-                <div className="mt-2 flex items-center gap-1.5 text-[10px] text-amber-700">
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-700">
                   <RotateCcw className="h-3 w-3" /> Appeal in progress
                 </div>
               )}
               {res === "billed-patient" && (
-                <div className="mt-2 flex items-center gap-1.5 text-[10px] text-brand-700">
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-brand-700">
                   <User className="h-3 w-3" /> Patient has been billed for their responsibility
                 </div>
               )}
@@ -176,7 +176,7 @@ export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = 
         </div>
       )}
 
-      <p className="mt-3 flex items-center gap-1 text-[9px] text-slate-400">
+      <p className="mt-3 flex items-center gap-1 text-[11px] text-slate-400">
         <Phone className="h-3 w-3 shrink-0" />
         The payer's 835 and the posting are in the Remittance stage. Denied lines are worked in AR.
       </p>

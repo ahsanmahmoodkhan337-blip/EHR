@@ -163,11 +163,11 @@ export function AccentPractice({ expectedText }: AccentPracticeProps) {
   if (!supported) {
     return (
       <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
-        <p className="text-[10px] font-medium text-amber-700">
+        <p className="text-xs font-medium text-amber-700">
           <AlertTriangle className="mr-1 inline h-3 w-3" />
           Speech recognition unavailable in this browser
         </p>
-        <p className="mt-1 text-[9px] leading-relaxed text-amber-600">
+        <p className="mt-1 text-[11px] leading-relaxed text-amber-600">
           Open this in <strong>Chrome</strong> or <strong>Edge</strong> to be transcribed and scored on your
           speaking. For now, use the “Hear sample” playback above to read along.
         </p>
@@ -182,7 +182,7 @@ export function AccentPractice({ expectedText }: AccentPracticeProps) {
       <div className="flex items-center gap-2">
         <button
           onClick={listening ? stop : start}
-          className={`flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
+          className={`flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition-colors ${
             listening
               ? "bg-red-600 text-white hover:bg-red-500"
               : "bg-green-600 text-white hover:bg-green-500"
@@ -199,15 +199,15 @@ export function AccentPractice({ expectedText }: AccentPracticeProps) {
           )}
         </button>
         {listening && (
-          <span className="text-[9px] font-medium text-green-600 animate-pulse">● Listening — speak now</span>
+          <span className="text-[11px] font-medium text-green-600 animate-pulse">● Listening — speak now</span>
         )}
       </div>
 
       {/* Live transcript */}
       {(listening || hasTranscript) && (
         <div className="mt-2 rounded bg-slate-50 p-2">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">Live transcript</p>
-          <p className="mt-0.5 min-h-[1.25rem] text-[10px] leading-relaxed text-slate-700">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Live transcript</p>
+          <p className="mt-0.5 min-h-[1.25rem] text-xs leading-relaxed text-slate-700">
             {hasTranscript ? (
               <>
                 {final}
@@ -220,29 +220,29 @@ export function AccentPractice({ expectedText }: AccentPracticeProps) {
         </div>
       )}
 
-      {error && <p className="mt-1 text-[9px] text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-[11px] text-red-600">{error}</p>}
 
       {/* Score result */}
       {score && (
         <div className="mt-2 rounded bg-emerald-50 p-2">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-            <span className="text-[10px] font-semibold text-emerald-700">Accuracy: {score.accuracy}%</span>
+            <span className="text-xs font-semibold text-emerald-700">Accuracy: {score.accuracy}%</span>
           </div>
           {score.missed.length > 0 && (
-            <p className="mt-1 text-[9px] leading-relaxed text-amber-700">
+            <p className="mt-1 text-[11px] leading-relaxed text-amber-700">
               <strong>Missed words:</strong> {score.missed.slice(0, 14).join(", ")}
               {score.missed.length > 14 ? ` +${score.missed.length - 14} more` : ""}
             </p>
           )}
           {score.extra.length > 0 && (
-            <p className="mt-0.5 text-[9px] leading-relaxed text-red-600">
+            <p className="mt-0.5 text-[11px] leading-relaxed text-red-600">
               <strong>Off-script words:</strong> {score.extra.slice(0, 14).join(", ")}
               {score.extra.length > 14 ? ` +${score.extra.length - 14} more` : ""}
             </p>
           )}
           {score.missed.length === 0 && score.extra.length === 0 && (
-            <p className="mt-1 text-[9px] font-medium text-emerald-600">
+            <p className="mt-1 text-[11px] font-medium text-emerald-600">
               🎉 Word-for-word — excellent delivery.
             </p>
           )}

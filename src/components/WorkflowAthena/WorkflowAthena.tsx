@@ -196,17 +196,17 @@ export function WorkflowAthena({
                     {stage.label}
                   </span>
                   {isCurrent && (
-                    <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-medium text-brand-700">
+                    <span className="rounded bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-700">
                       Active
                     </span>
                   )}
                   {isCompleted && (
-                    <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                    <span className="rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">
                       From the record
                     </span>
                   )}
                   {blocked && (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
                       Not open yet
                     </span>
                   )}
@@ -215,7 +215,7 @@ export function WorkflowAthena({
                   {stage.description}
                 </span>
                 {!isCompleted && hint && (
-                  <span className="mt-0.5 block text-[10px] font-medium text-amber-700">{hint}</span>
+                  <span className="mt-0.5 block text-xs font-medium text-amber-700">{hint}</span>
                 )}
               </span>
             </button>

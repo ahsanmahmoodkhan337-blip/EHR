@@ -153,7 +153,7 @@ export function TabsEpic({
 
               {tab.badge !== undefined && (
                 <span
-                  className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white ${
+                  className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-xs font-bold leading-none text-white ${
                     tab.badgeColor || "bg-brand-500"
                   }`}
                 >

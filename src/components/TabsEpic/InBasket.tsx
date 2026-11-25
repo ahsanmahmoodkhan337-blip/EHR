@@ -156,11 +156,11 @@ export function InBasket({ onOpenMedicalStage }: InBasketProps) {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-medium text-slate-800">{item.title}</span>
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${PRIORITY_BADGE[item.priority]}`}
+                        className={`rounded px-1.5 py-0.5 text-xs font-medium capitalize ${PRIORITY_BADGE[item.priority]}`}
                       >
                         {item.priority}
                       </span>
-                      {when && <span className="text-[10px] text-slate-400">{when}</span>}
+                      {when && <span className="text-xs text-slate-400">{when}</span>}
                     </div>
                     <p className="text-xs text-slate-500">
                       <span className="font-medium text-slate-600">{item.patient}</span>

@@ -28,7 +28,7 @@ export function ScribeWorkspace({ patientName }: ScribeWorkspaceProps) {
         <FileText className="h-5 w-5 text-brand-600" />
         <h2 className="text-sm font-bold text-slate-800">Clinical Charting — Scribe Workspace</h2>
         {patientName && (
-          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">
             {patientName}
           </span>
         )}

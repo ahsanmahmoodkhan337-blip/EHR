@@ -87,7 +87,7 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
                 {item.label}
               </span>
               {item.required && !item.done && (
-                <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">Required</span>
+                <span className="rounded bg-red-50 px-1.5 py-0.5 text-xs font-semibold text-red-700">Required</span>
               )}
             </div>
           ))}

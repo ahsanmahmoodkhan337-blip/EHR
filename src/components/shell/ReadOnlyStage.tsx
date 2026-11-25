@@ -47,7 +47,7 @@ export function ReadOnlyReason({
     <p
       id={id}
       data-testid="read-only-reason"
-      className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[10px] leading-snug text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 ${className}`}
+      className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs leading-snug text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 ${className}`}
     >
       <Lock className="h-3 w-3 shrink-0 text-slate-400" aria-hidden="true" />
       <span className="font-medium">{READ_ONLY_REASON}</span>

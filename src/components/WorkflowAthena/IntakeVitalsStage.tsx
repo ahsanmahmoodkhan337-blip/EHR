@@ -333,7 +333,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
           <p className="text-xs font-medium text-slate-500">
             Previously recorded: {formatVital(patient.vitals.bloodPressure)} | {formatVital(patient.vitals.heartRate, " bpm")} |{" "}
             {formatVital(patient.vitals.temperature, "°F")} | SpO2 {formatVital(patient.vitals.oxygenSaturation, "%")}
-            <span className="ml-2 text-[10px] text-slate-400">
+            <span className="ml-2 text-xs text-slate-400">
               ({new Date(patient.vitals.recordedAt).toLocaleDateString()})
             </span>
           </p>

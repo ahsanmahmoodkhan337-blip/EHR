@@ -227,7 +227,7 @@ function QuizPage() {
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Test your knowledge of HIPAA Privacy Rule, Security Rule, Breach Notification, and Patient Rights.
           </p>
-          <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-400">
+          <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-400">
             <BookOpen className="h-3 w-3" />
             <span>{QUESTIONS.length} questions</span>
             <span>·</span>
@@ -287,7 +287,7 @@ function QuizPage() {
                   )}
                   <div>
                     <p className="font-medium text-slate-700 dark:text-slate-300">{q.question}</p>
-                    <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">{q.explanation}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{q.explanation}</p>
                   </div>
                 </div>
               );
@@ -315,12 +315,12 @@ function QuizPage() {
           <div className="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700">
             <div className="h-1.5 rounded-full bg-brand-500 transition-all" style={{ width: `${((currentQ + 1) / QUESTIONS.length) * 100}%` }} />
           </div>
-          <span className="text-[10px] font-medium text-slate-400">{currentQ + 1}/{QUESTIONS.length}</span>
+          <span className="text-xs font-medium text-slate-400">{currentQ + 1}/{QUESTIONS.length}</span>
         </div>
 
         <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-lg">
           {/* Topic tag */}
-          <span className="inline-block rounded-full bg-brand-100 dark:bg-brand-900/30 px-2.5 py-0.5 text-[10px] font-medium text-brand-600 dark:text-brand-400 mb-3">
+          <span className="inline-block rounded-full bg-brand-100 dark:bg-brand-900/30 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:text-brand-400 mb-3">
             {question.topic}
           </span>
 
@@ -349,7 +349,7 @@ function QuizPage() {
                     answered ? "cursor-default" : "cursor-pointer"
                   } text-slate-700 dark:text-slate-300`}
                 >
-                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                     answered && idx === question.correctIndex
                       ? "bg-green-500 text-white"
                       : answered && idx === selectedAnswer && idx !== question.correctIndex
@@ -369,11 +369,11 @@ function QuizPage() {
           {/* Explanation */}
           {answered && (
             <div className="mt-4 rounded-xl border border-brand-100 dark:border-brand-900/30 bg-brand-50 dark:bg-brand-900/10 p-3 animate-slide-in">
-              <p className="text-[10px] font-medium text-brand-700 dark:text-brand-300 flex items-center gap-1">
+              <p className="text-xs font-medium text-brand-700 dark:text-brand-300 flex items-center gap-1">
                 <BookOpen className="h-3 w-3" />
                 Explanation
               </p>
-              <p className="mt-1 text-[10px] text-brand-600 dark:text-brand-400">{question.explanation}</p>
+              <p className="mt-1 text-xs text-brand-600 dark:text-brand-400">{question.explanation}</p>
             </div>
           )}
 

@@ -147,7 +147,7 @@ function InstructorDashboard() {
           >
             Go to admin sign-in
           </Link>
-          <Link to="/" className="mt-2 block text-center text-[10px] text-slate-400 hover:text-slate-600">Back to app</Link>
+          <Link to="/" className="mt-2 block text-center text-xs text-slate-400 hover:text-slate-600">Back to app</Link>
         </div>
       </div>
     );
@@ -162,10 +162,10 @@ function InstructorDashboard() {
           <h1 className="text-sm font-bold text-slate-800 dark:text-slate-200">Instructor Dashboard</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/" className="rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-[10px] font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200">
+          <Link to="/" className="rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200">
             Back to App
           </Link>
-          <button onClick={() => { supabase?.auth.signOut(); setHasSession(false); }} className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-1.5 text-[10px] font-medium text-red-600 hover:bg-red-100">
+          <button onClick={() => { supabase?.auth.signOut(); setHasSession(false); }} className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100">
             Sign out
           </button>
         </div>
@@ -175,28 +175,28 @@ function InstructorDashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
-            <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1">
+            <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
               <Users className="h-3.5 w-3.5" />
               Total Students
             </div>
             <p className="text-xl font-bold text-slate-800 dark:text-slate-200">{stats.total}</p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
-            <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1">
+            <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
               <Activity className="h-3.5 w-3.5" />
               Active Sessions
             </div>
             <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{stats.active}</p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
-            <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1">
+            <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
               <TrendingUp className="h-3.5 w-3.5" />
               Completion Rate
             </div>
             <p className={`text-xl font-bold ${stats.completionRate >= 50 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>{stats.completionRate}%</p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
-            <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1">
+            <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
               <BarChart3 className="h-3.5 w-3.5" />
               Avg Score
             </div>
@@ -211,10 +211,10 @@ function InstructorDashboard() {
               <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300">Student Progress</h3>
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-32 rounded border border-slate-200 dark:border-slate-600 pl-6 pr-2 py-1 text-[10px] outline-none focus:border-brand-400 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200" />
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-32 rounded border border-slate-200 dark:border-slate-600 pl-6 pr-2 py-1 text-xs outline-none focus:border-brand-400 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200" />
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700">
@@ -229,7 +229,7 @@ function InstructorDashboard() {
                     <tr key={s.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30">
                       <td className="py-2 pr-2">
                         <p className="font-medium text-slate-800 dark:text-slate-200">{s.name}</p>
-                        <p className="text-[9px] text-slate-400">{s.email}</p>
+                        <p className="text-[11px] text-slate-400">{s.email}</p>
                       </td>
                       <td className="py-2 px-2">
                         <span className={`font-bold ${s.score >= 80 ? "text-emerald-600" : s.score >= 50 ? "text-amber-600" : "text-slate-400"}`}>{s.score}%</span>
@@ -254,13 +254,13 @@ function InstructorDashboard() {
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300">Error Heatmap</h3>
-              <button onClick={generateCSV} className="flex items-center gap-1 rounded-lg bg-brand-50 dark:bg-brand-900/20 px-2 py-1 text-[9px] font-medium text-brand-600 hover:bg-brand-100">
+              <button onClick={generateCSV} className="flex items-center gap-1 rounded-lg bg-brand-50 dark:bg-brand-900/20 px-2 py-1 text-[11px] font-medium text-brand-600 hover:bg-brand-100">
                 <Download className="h-3 w-3" />
                 CSV
               </button>
             </div>
             {errorHeatmap.length === 0 ? (
-              <p className="text-[10px] text-slate-400 italic">No errors recorded</p>
+              <p className="text-xs text-slate-400 italic">No errors recorded</p>
             ) : (
               <div className="space-y-2">
                 {errorHeatmap.map(([stage, count]) => {
@@ -268,7 +268,7 @@ function InstructorDashboard() {
                   const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
                   return (
                     <div key={stage}>
-                      <div className="flex items-center justify-between text-[10px] mb-1">
+                      <div className="flex items-center justify-between text-xs mb-1">
                         <span className="font-medium text-slate-600 dark:text-slate-400">{stage}</span>
                         <span className="text-slate-400">{count} errors</span>
                       </div>
@@ -281,7 +281,7 @@ function InstructorDashboard() {
               </div>
             )}
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-              <p className="text-[9px] text-slate-400">Most common errors by stage. Higher bars = more frequent mistakes.</p>
+              <p className="text-[11px] text-slate-400">Most common errors by stage. Higher bars = more frequent mistakes.</p>
             </div>
           </div>
         </div>

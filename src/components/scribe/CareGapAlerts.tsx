@@ -64,7 +64,7 @@ export function CareGapAlerts() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[10px] font-medium text-rose-600 hover:bg-rose-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-100">
         <AlertTriangle className="h-3.5 w-3.5" /> Care Gaps ({activeCount})
         {showPanel ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
       </button>
@@ -72,7 +72,7 @@ export function CareGapAlerts() {
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-md max-h-[80vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <div><h3 className="text-sm font-bold text-slate-800">Care Gap Alerts</h3><p className="text-[9px] text-slate-400">Preventive screenings due</p></div>
+              <div><h3 className="text-sm font-bold text-slate-800">Care Gap Alerts</h3><p className="text-[11px] text-slate-400">Preventive screenings due</p></div>
               <button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button>
             </div>
             <div className="space-y-2">
@@ -85,18 +85,18 @@ export function CareGapAlerts() {
                       <div className="flex items-start gap-2">
                         {gap.overdueDays > 365 ? <AlertTriangle className="mt-0.5 h-4 w-4 text-red-500" /> : <Clock className="mt-0.5 h-4 w-4" />}
                         <div>
-                          <p className="text-[10px] font-semibold text-slate-700">{gap.name}</p>
-                          <p className="text-[9px] text-slate-500">{gap.description}</p>
-                          <p className={`mt-0.5 text-[9px] font-medium ${textColor(gap.overdueDays)}`}>{daysText}</p>
+                          <p className="text-xs font-semibold text-slate-700">{gap.name}</p>
+                          <p className="text-[11px] text-slate-500">{gap.description}</p>
+                          <p className={`mt-0.5 text-[11px] font-medium ${textColor(gap.overdueDays)}`}>{daysText}</p>
                         </div>
                       </div>
                     </div>
-                    <p className="mt-1.5 text-[9px] text-slate-600"><span className="font-medium">Recommend:</span> {gap.recommendation}</p>
+                    <p className="mt-1.5 text-[11px] text-slate-600"><span className="font-medium">Recommend:</span> {gap.recommendation}</p>
                     <div className="mt-2 flex gap-1.5">
-                      <button className="flex items-center gap-1 rounded bg-brand-900 px-2.5 py-1 text-[9px] font-medium text-white hover:bg-brand-800">
+                      <button className="flex items-center gap-1 rounded bg-brand-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-brand-800">
                         <Syringe className="h-3 w-3" /> Order Now
                       </button>
-                      <button onClick={() => dismiss(gap.id)} className="rounded border border-slate-200 px-2 py-1 text-[9px] text-slate-500 hover:bg-slate-50">
+                      <button onClick={() => dismiss(gap.id)} className="rounded border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:bg-slate-50">
                         Dismiss
                       </button>
                     </div>

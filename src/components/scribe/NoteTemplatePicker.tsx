@@ -117,7 +117,7 @@ export function NoteTemplatePicker({
         <BookOpen className="h-4 w-4 text-brand-600" />
         <span className="clinical-label">Note templates</span>
         <span className="status-badge is-info">7 chief complaints</span>
-        <span className="ml-auto flex items-center gap-1 text-[10px] text-slate-400">
+        <span className="ml-auto flex items-center gap-1 text-xs text-slate-400">
           <Sparkles className="h-3 w-3" /> pre-fills the SOAP note
         </span>
       </div>
@@ -154,13 +154,13 @@ export function NoteTemplatePicker({
 
           {selected.usesShortcodes.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-1">
-              <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                 Uses:
               </span>
               {selected.usesShortcodes.map((sc) => (
                 <span
                   key={sc}
-                  className="rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-brand-700"
+                  className="rounded bg-brand-100 px-1.5 py-0.5 font-mono text-xs font-semibold text-brand-700"
                 >
                   {sc}
                 </span>
