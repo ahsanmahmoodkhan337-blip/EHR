@@ -466,7 +466,6 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - The left-panel encounter timeline now shows for every role, not only the scribe.
 
 ## 15. Switching patients from a booked visit (2026-11-25)
-## 13. Switching patients from a booked visit (2026-11-25)
 
 - Bug: after Check In / Start Visit opened a newly booked patient at `/encounter/<id>/…`, clicking the Tutorial Patient (or anyone else) in the Inbox snapped straight back, so the banner, Registration (driver's license, card) and stages kept the booked patient.
 - Fix: `routePickDecision()` in `src/domain/encounterRoute.ts` — the address picks its patient once per navigation; a later click in the list wins. Used by `routes/index.tsx`.
@@ -487,11 +486,11 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - `successorClaimNumber` counts from the original claim: A1 → R1, R1 → R2 (never `…-A1-R1`). Upheld appeals count with the denied lines in the queue totals.
 - Guarded by `tests/corrected-claim-loop.test.ts`.
 
-## 14. Toast messages appear (2026-11-25)
+## 18. Toast messages appear (2026-11-25)
 
 - `src/routes/__root.tsx` mounts sonner's `<Toaster />` once (bottom-right). Before this, the 18 `toast()` calls in `routes/index.tsx`, `ClaimFormShell`, `BillingLedger`, `DentalBillingLedger`, `PriorAuthPortal` and `HotkeyEngine` went nowhere — e.g. Validate on the claim showed nothing, and "Cannot submit — N edit checks failed" was silent. Guarded by `tests/toaster-mounted.test.ts`.
 
-## 14. Floating help head with the built-in guide (2026-11-25)
+## 19. Floating help head with the built-in guide (2026-11-25)
 
 - `src/components/shell/HelpLauncher.tsx` — a 52 px round help head, fixed on screen, that the student can drag anywhere. It snaps to the nearer side edge and remembers where it was left (`hh_help_pos`, a UI preference, not student work). Tap opens the panel beside it (bottom sheet on phones); Escape closes.
 - Panel: **Ask a question** (answered offline), suggested questions, the six how-to guides, keyboard shortcuts, WhatsApp support, simulated-data line. Replaces the old `hh_help_open` docked button in the footer strip.
