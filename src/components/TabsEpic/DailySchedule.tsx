@@ -851,7 +851,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
                     <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-slate-200/60 pt-2">
                       <button
                         onClick={() => startVisit(apt)}
-                        className="flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-brand-500"
+                        className="flex items-center gap-1 rounded-lg bg-brand-900 px-2.5 py-1 text-[10px] font-medium text-white transition-colors hover:bg-brand-800"
                       >
                         <User className="h-3 w-3" /> Start Visit
                       </button>
@@ -1230,7 +1230,7 @@ export function DailySchedule({ onSelectPatient, onDateChange }: DailySchedulePr
               </button>
               <button
                 onClick={saveAppointment}
-                className="flex items-center gap-1 rounded-xl bg-brand-600 px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="flex items-center gap-1 rounded-xl bg-brand-900 px-3 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Save className="h-3 w-3" />
                 {editAppointment ? "Update Appointment" : "Create Appointment"}

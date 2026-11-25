@@ -72,7 +72,7 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
       {/* Completion Checklist */}
       <div className="clinical-card">
         <div className="mb-3 flex items-center gap-2">
-          <Shield className="h-5 w-5 text-blue-600" />
+          <Shield className="h-5 w-5 text-brand-600" />
           <span className="text-sm font-semibold text-slate-700">Encounter Completion Checklist</span>
         </div>
         <div className="space-y-2">
@@ -125,10 +125,10 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
             title={signBlocked && !readOnly ? `Still required: ${missingRequired.join(", ")}` : undefined}
             className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
               isSubmitting
-                ? "bg-blue-400 text-white cursor-wait"
+                ? "bg-brand-400 text-white cursor-wait"
                 : signBlocked && !readOnly
                 ? "bg-slate-300 text-white cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md"
+                : "bg-brand-900 text-white hover:bg-brand-800 shadow-sm hover:shadow-md"
             }`}
           >
             {isSubmitting ? (
@@ -161,7 +161,7 @@ export function SignLockStage({ patientName, note, onSignAndLock, isSubmitting, 
                 plan: note.plan || "N/A",
               });
             }}
-            className="flex items-center gap-2 rounded-lg border border-blue-300 px-4 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-brand-300 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
           >
             <FileDown className="h-4 w-4" />
             Download SOAP Note as PDF

@@ -218,10 +218,10 @@ function QuizPage() {
   // Start screen
   if (!started) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-indigo-950 p-4">
+      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-brand-50 dark:from-slate-900 dark:to-brand-950 p-4">
         <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-8 shadow-lg text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30">
-            <Shield className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900/30">
+            <Shield className="h-8 w-8 text-brand-600 dark:text-brand-400" />
           </div>
           <h1 className="text-xl font-bold text-slate-800 dark:text-slate-200">HIPAA Compliance Quiz</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
@@ -236,7 +236,7 @@ function QuizPage() {
           </div>
           <button
             onClick={() => setStarted(true)}
-            className="mt-6 w-full rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white hover:bg-indigo-500 transition-colors"
+            className="mt-6 w-full rounded-xl bg-brand-900 px-6 py-3 text-sm font-bold text-white hover:bg-brand-800 transition-colors"
           >
             Start Quiz
           </button>
@@ -249,7 +249,7 @@ function QuizPage() {
   // Results screen
   if (finished) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-indigo-950 p-4">
+      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-brand-50 dark:from-slate-900 dark:to-brand-950 p-4">
         <div className="w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-8 shadow-lg text-center">
           {passed ? (
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
@@ -295,7 +295,7 @@ function QuizPage() {
           </div>
           <button
             onClick={handleRestart}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white hover:bg-indigo-500 transition-colors"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-900 px-6 py-3 text-sm font-bold text-white hover:bg-brand-800 transition-colors"
           >
             <RotateCcw className="h-4 w-4" />
             Retake Quiz
@@ -308,19 +308,19 @@ function QuizPage() {
 
   // Quiz question screen
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-indigo-950 p-4">
+    <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-brand-50 dark:from-slate-900 dark:to-brand-950 p-4">
       <div className="w-full max-w-2xl">
         {/* Progress bar */}
         <div className="mb-4 flex items-center gap-3">
           <div className="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700">
-            <div className="h-1.5 rounded-full bg-indigo-500 transition-all" style={{ width: `${((currentQ + 1) / QUESTIONS.length) * 100}%` }} />
+            <div className="h-1.5 rounded-full bg-brand-500 transition-all" style={{ width: `${((currentQ + 1) / QUESTIONS.length) * 100}%` }} />
           </div>
           <span className="text-[10px] font-medium text-slate-400">{currentQ + 1}/{QUESTIONS.length}</span>
         </div>
 
         <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-lg">
           {/* Topic tag */}
-          <span className="inline-block rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-2.5 py-0.5 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 mb-3">
+          <span className="inline-block rounded-full bg-brand-100 dark:bg-brand-900/30 px-2.5 py-0.5 text-[10px] font-medium text-brand-600 dark:text-brand-400 mb-3">
             {question.topic}
           </span>
 
@@ -330,7 +330,7 @@ function QuizPage() {
 
           <div className="space-y-2">
             {question.options.map((opt, idx) => {
-              let bg = "border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500";
+              let bg = "border-slate-200 dark:border-slate-600 hover:border-brand-300 dark:hover:border-brand-500";
               if (answered) {
                 if (idx === question.correctIndex) {
                   bg = "border-green-400 bg-green-50 dark:bg-green-900/20 dark:border-green-600";
@@ -338,7 +338,7 @@ function QuizPage() {
                   bg = "border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-600";
                 }
               } else if (selectedAnswer === idx) {
-                bg = "border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20";
+                bg = "border-brand-400 bg-brand-50 dark:bg-brand-900/20";
               }
               return (
                 <button
@@ -368,12 +368,12 @@ function QuizPage() {
 
           {/* Explanation */}
           {answered && (
-            <div className="mt-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50 dark:bg-indigo-900/10 p-3 animate-slide-in">
-              <p className="text-[10px] font-medium text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
+            <div className="mt-4 rounded-xl border border-brand-100 dark:border-brand-900/30 bg-brand-50 dark:bg-brand-900/10 p-3 animate-slide-in">
+              <p className="text-[10px] font-medium text-brand-700 dark:text-brand-300 flex items-center gap-1">
                 <BookOpen className="h-3 w-3" />
                 Explanation
               </p>
-              <p className="mt-1 text-[10px] text-indigo-600 dark:text-indigo-400">{question.explanation}</p>
+              <p className="mt-1 text-[10px] text-brand-600 dark:text-brand-400">{question.explanation}</p>
             </div>
           )}
 
@@ -381,7 +381,7 @@ function QuizPage() {
           {answered && (
             <button
               onClick={handleNext}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-500 transition-colors animate-slide-in"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-brand-800 transition-colors animate-slide-in"
             >
               {currentQ < QUESTIONS.length - 1 ? "Next Question" : "See Results"}
               <ArrowRight className="h-3.5 w-3.5" />

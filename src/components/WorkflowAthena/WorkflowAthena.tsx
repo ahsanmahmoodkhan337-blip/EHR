@@ -134,7 +134,7 @@ export function WorkflowAthena({
       {/* Progress Bar */}
       <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
         <div
-          className="h-full rounded-full bg-blue-600 transition-all duration-500"
+          className="h-full rounded-full bg-brand-600 transition-all duration-500"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -162,7 +162,7 @@ export function WorkflowAthena({
               aria-current={isCurrent ? "step" : undefined}
               className={`group flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
                 isCurrent
-                  ? "border-blue-200 bg-blue-50"
+                  ? "border-brand-200 bg-brand-50"
                   : isCompleted
                     ? "border-green-200 bg-green-50/70 hover:border-green-300"
                     : blocked
@@ -174,7 +174,7 @@ export function WorkflowAthena({
               <span
                 aria-hidden="true"
                 className={`mt-0.5 shrink-0 ${
-                  isCurrent ? "text-blue-600" : isCompleted ? "text-green-600" : blocked ? "text-amber-500" : "text-slate-400"
+                  isCurrent ? "text-brand-600" : isCompleted ? "text-green-600" : blocked ? "text-amber-500" : "text-slate-400"
                 }`}
               >
                 {stage.icon}
@@ -185,7 +185,7 @@ export function WorkflowAthena({
                   <span
                     className={`text-sm font-medium ${
                       isCurrent
-                        ? "text-blue-800"
+                        ? "text-brand-800"
                         : isCompleted
                           ? "text-green-800"
                           : blocked
@@ -196,7 +196,7 @@ export function WorkflowAthena({
                     {stage.label}
                   </span>
                   {isCurrent && (
-                    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                    <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-medium text-brand-700">
                       Active
                     </span>
                   )}

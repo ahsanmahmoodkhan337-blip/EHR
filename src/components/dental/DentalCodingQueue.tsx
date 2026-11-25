@@ -40,7 +40,7 @@ const style = {
   card: "clinical-card",
   label: "text-[10px] font-semibold uppercase tracking-wider text-slate-500",
   input:
-    "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500",
+    "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500",
 };
 
 export function DentalCodingQueue() {
@@ -462,13 +462,13 @@ export function DentalCodingQueue() {
             )}
 
             {riskDenials.length > 0 && (
-              <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 p-2">
-                <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-blue-700">
+              <div className="mt-2 rounded-lg border border-brand-100 bg-brand-50 p-2">
+                <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-brand-700">
                   <Info className="h-3 w-3" /> What usually goes wrong with this code
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {riskDenials.map((d) => (
-                    <span key={d.id} className="rounded-full bg-white px-1.5 py-0.5 text-[9px] text-blue-700 ring-1 ring-blue-100">
+                    <span key={d.id} className="rounded-full bg-white px-1.5 py-0.5 text-[9px] text-brand-700 ring-1 ring-brand-100">
                       <b>{d.carc}</b> {d.title}
                     </span>
                   ))}
@@ -641,7 +641,7 @@ function CodeRow({
           {selected ? "Editing" : "Use"}
         </button>
       </div>
-      <button onClick={onToggle} className="mt-0.5 text-left text-[9px] text-slate-400 hover:text-blue-600">
+      <button onClick={onToggle} className="mt-0.5 text-left text-[9px] text-slate-400 hover:text-brand-600">
         {expanded ? "hide details ▲" : "details ▼"}
       </button>
       {expanded && (

@@ -1,4 +1,6 @@
 import "./index.css";
+// One typeface everywhere (landing, login and the EHR): Public Sans, bundled.
+import "@fontsource-variable/public-sans";
 /**
  * Healthcare Hustlers EHR — SPA Entry Point
  *

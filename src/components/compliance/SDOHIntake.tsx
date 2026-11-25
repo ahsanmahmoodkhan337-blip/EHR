@@ -133,10 +133,10 @@ export function SDOHIntake() {
 
             {/* Z-codes */}
             {zCodes.length > 0 && (
-              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 mb-3">
-                <p className="text-[10px] font-semibold text-blue-700 mb-1">Suggested SDOH Z-Codes</p>
+              <div className="rounded-lg bg-brand-50 border border-brand-200 p-3 mb-3">
+                <p className="text-[10px] font-semibold text-brand-700 mb-1">Suggested SDOH Z-Codes</p>
                 <div className="flex flex-wrap gap-1">
-                  {zCodes.map(c => <span key={c} className="rounded bg-blue-200 px-1.5 py-0.5 text-[9px] font-mono text-blue-700">{c}</span>)}
+                  {zCodes.map(c => <span key={c} className="rounded bg-brand-200 px-1.5 py-0.5 text-[9px] font-mono text-brand-700">{c}</span>)}
                 </div>
               </div>
             )}

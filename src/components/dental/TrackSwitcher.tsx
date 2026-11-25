@@ -36,7 +36,7 @@ export function TrackSwitcher({ track, onTrackChange, compact }: TrackSwitcherPr
       label: "Medical",
       icon: <Stethoscope className="h-4 w-4" />,
       hint: "CPT / ICD-10 · CMS-1500",
-      activeClass: "bg-blue-600 text-white shadow-sm",
+      activeClass: "bg-brand-600 text-white shadow-sm",
     },
     {
       id: "dental",

@@ -981,7 +981,7 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
                           className={`rounded-lg px-3 py-1.5 text-[10px] font-medium transition-colors ${
                             verifyingInsurance
                               ? "bg-slate-300 text-slate-500 cursor-wait"
-                              : "bg-brand-600 text-white hover:bg-brand-600"
+                              : "bg-brand-900 text-white hover:bg-brand-800"
                           }`}
                         >
                           {verifyingInsurance ? (
@@ -1598,7 +1598,7 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
                         <button
                           type="button"
                           onClick={() => setOpenDoc(null)}
-                          className="rounded-lg bg-brand-600 px-3 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-brand-700"
+                          className="rounded-lg bg-brand-900 px-3 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-brand-800"
                         >
                           Close
                         </button>
@@ -1919,7 +1919,7 @@ export default function PriorAuthPortal({ readOnly = false }: { readOnly?: boole
                         setFollowupNotes("");
                       }, 2000);
                     }}
-                    className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-medium text-white hover:bg-brand-600 transition-colors"
+                    className="flex items-center gap-1.5 rounded-lg bg-brand-900 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800 transition-colors"
                   >
                     <MessageSquare className="h-3.5 w-3.5" />
                     Log Follow-up

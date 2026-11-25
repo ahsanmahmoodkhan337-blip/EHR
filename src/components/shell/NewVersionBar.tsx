@@ -43,7 +43,7 @@ export function NewVersionBar() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+        className="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-900 px-3 text-xs font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
       >
         Reload
       </button>

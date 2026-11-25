@@ -114,7 +114,7 @@ export function NoteTemplatePicker({
   return (
     <div className="clinical-card">
       <div className="flex items-center gap-2">
-        <BookOpen className="h-4 w-4 text-blue-600" />
+        <BookOpen className="h-4 w-4 text-brand-600" />
         <span className="clinical-label">Note templates</span>
         <span className="status-badge is-info">7 chief complaints</span>
         <span className="ml-auto flex items-center gap-1 text-[10px] text-slate-400">
@@ -126,7 +126,7 @@ export function NoteTemplatePicker({
         <select
           value={selectedId}
           onChange={(e) => setSelectedId(e.target.value)}
-          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
         >
           <option value="" disabled>
             Choose a template…
@@ -160,7 +160,7 @@ export function NoteTemplatePicker({
               {selected.usesShortcodes.map((sc) => (
                 <span
                   key={sc}
-                  className="rounded bg-blue-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-blue-700"
+                  className="rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-brand-700"
                 >
                   {sc}
                 </span>

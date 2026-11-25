@@ -107,8 +107,8 @@ export function EDIViewer() {
             <div className="flex items-center justify-between mb-2">
               <p className="text-[9px] text-slate-400">{activeTab} Transaction</p>
               <div className="flex gap-1">
-                <button onClick={() => setViewMode("parsed")} className={`rounded px-2 py-1 text-[9px] ${viewMode === "parsed" ? "bg-blue-600 text-white" : "bg-slate-100"}`}>Parsed</button>
-                <button onClick={() => setViewMode("raw")} className={`rounded px-2 py-1 text-[9px] ${viewMode === "raw" ? "bg-blue-600 text-white" : "bg-slate-100"}`}>Raw</button>
+                <button onClick={() => setViewMode("parsed")} className={`rounded px-2 py-1 text-[9px] ${viewMode === "parsed" ? "bg-brand-600 text-white" : "bg-slate-100"}`}>Parsed</button>
+                <button onClick={() => setViewMode("raw")} className={`rounded px-2 py-1 text-[9px] ${viewMode === "raw" ? "bg-brand-600 text-white" : "bg-slate-100"}`}>Raw</button>
                 <button onClick={copyEDI} className="rounded bg-slate-100 px-2 py-1 text-[9px] flex items-center gap-1"><Copy className="h-3 w-3" />{copied ? "Copied!" : ""}</button>
               </div>
             </div>
@@ -118,7 +118,7 @@ export function EDIViewer() {
                 {data.parsed.map((p, i) => (
                   <div key={i} className="rounded-lg border border-slate-200 p-2">
                     <div className="flex items-center gap-2">
-                      <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-mono font-bold text-blue-700">{p.seg}</span>
+                      <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[9px] font-mono font-bold text-brand-700">{p.seg}</span>
                       <span className="text-[9px] text-slate-500">{p.desc}</span>
                     </div>
                     <p className="mt-0.5 text-[9px] text-slate-700">{p.value}</p>

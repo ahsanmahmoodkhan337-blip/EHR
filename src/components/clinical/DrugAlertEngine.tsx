@@ -199,7 +199,7 @@ export function DrugAlertEngine({
       case "contraindicated": return "border-red-300 bg-red-50 text-red-700";
       case "warning": return "border-amber-300 bg-amber-50 text-amber-700";
       case "caution": return "border-yellow-300 bg-yellow-50 text-yellow-700";
-      default: return "border-blue-300 bg-blue-50 text-blue-700";
+      default: return "border-brand-300 bg-brand-50 text-brand-700";
     }
   };
 

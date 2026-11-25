@@ -71,10 +71,10 @@ export function GamificationHeader({ xp = 0, streak = 0, level = 1 }: Gamificati
   };
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-gradient-to-r from-indigo-50/50 to-white px-3 py-2 shadow-sm">
+    <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-gradient-to-r from-brand-50/50 to-white px-3 py-2 shadow-sm">
       {/* Level */}
       <div className="flex items-center gap-1.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-[10px] font-bold text-white">
           {level}
         </div>
         <span className="text-[10px] font-medium text-slate-500">Lvl</span>
@@ -87,7 +87,7 @@ export function GamificationHeader({ xp = 0, streak = 0, level = 1 }: Gamificati
           <span className="text-[9px] font-medium text-slate-500">{xp}/{xpForNextLevel}</span>
         </div>
         <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-          <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500" style={{ width: `${xpPercent}%` }} />
+          <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-500 transition-all duration-500" style={{ width: `${xpPercent}%` }} />
         </div>
       </div>
 
@@ -135,7 +135,7 @@ export function GamificationHeader({ xp = 0, streak = 0, level = 1 }: Gamificati
                     className={`flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-[10px] transition-colors ${
                       done
                         ? "border-green-200 bg-green-50 text-green-700"
-                        : "border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-200"
+                        : "border-slate-100 bg-slate-50 text-slate-600 hover:border-brand-200"
                     }`}
                   >
                     <span className="text-sm">{ch.icon}</span>
@@ -178,7 +178,7 @@ export function GamificationHeader({ xp = 0, streak = 0, level = 1 }: Gamificati
             <div className="space-y-1.5">
               {BADGES.map((badge) => (
                 <div key={badge.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2">
-                  <span className={`flex items-center gap-1.5 text-[10px] ${badge.unlocked ? "text-indigo-700" : "text-slate-400"}`}>
+                  <span className={`flex items-center gap-1.5 text-[10px] ${badge.unlocked ? "text-brand-700" : "text-slate-400"}`}>
                     {badge.icon}
                     <span>{badge.label}</span>
                   </span>
@@ -202,7 +202,7 @@ export function GamificationHeader({ xp = 0, streak = 0, level = 1 }: Gamificati
               panel.dispatchEvent(new Event("open-leaderboard", { bubbles: true }));
             }
           }}
-          className="flex items-center gap-1 rounded-lg bg-indigo-50 px-2 py-1 text-[10px] font-medium text-indigo-600 hover:bg-indigo-100 transition-colors"
+          className="flex items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-[10px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
         >
           <Trophy className="h-3 w-3" />
           <span>Leaderboard</span>

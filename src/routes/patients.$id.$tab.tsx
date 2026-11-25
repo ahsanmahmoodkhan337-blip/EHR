@@ -52,7 +52,7 @@ function HubTabPage() {
         <h2 className="text-sm font-bold text-slate-800">No patient on file with that id</h2>
         <Link
           to="/patients"
-          className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+          className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-brand-900 px-3 text-xs font-semibold text-white hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
         >
           Choose a patient
         </Link>

@@ -200,7 +200,7 @@ export function DemographicsSection({ patient }: { patient: Patient }) {
             <button
               type="button"
               onClick={save}
-              className="min-h-10 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              className="min-h-10 rounded-lg bg-brand-900 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
             >
               Save details
             </button>
@@ -254,7 +254,7 @@ export function EncountersSection({ patient }: { patient: Patient }) {
           <button
             type="button"
             onClick={openWorkspace}
-            className="mt-2 inline-flex min-h-10 items-center gap-1 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            className="mt-2 inline-flex min-h-10 items-center gap-1 rounded-lg bg-brand-900 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
           >
             Open the workspace <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
@@ -296,7 +296,7 @@ export function EncountersSection({ patient }: { patient: Patient }) {
               type="button"
               onClick={openWorkspace}
               aria-label={`Open ${patient.firstName} ${patient.lastName}'s encounter in the workspace`}
-              className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-brand-900 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
             >
               Open this encounter <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
@@ -536,7 +536,7 @@ export function DocumentsSection({ patient }: { patient: Patient }) {
           <button
             type="button"
             onClick={submit}
-            className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-brand-900 px-3 text-[11px] font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
           >
             <Receipt className="h-3.5 w-3.5" aria-hidden="true" /> Add document
           </button>

@@ -102,7 +102,7 @@ export function EligibilityStage({
         <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
           <Shield className="h-5 w-5 text-slate-600" />
           <span className="text-sm font-bold text-slate-700">Payer portal</span>
-          <span className="ml-auto rounded bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+          <span className="ml-auto rounded bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">
             {coverage?.payerName || "No payer on file"}
           </span>
         </div>
@@ -133,7 +133,7 @@ export function EligibilityStage({
                   : "This patient has no primary coverage on file — register the card first."
             }
             {...(chartLocked ? { "aria-describedby": ELIGIBILITY_REASON } : {})}
-            className="flex min-h-10 items-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
+            className="flex min-h-10 items-center gap-2 rounded-lg bg-brand-900 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-800 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
             {running ? "Inquiring…" : checked ? "Re-run 270 inquiry" : "Verify eligibility (270)"}

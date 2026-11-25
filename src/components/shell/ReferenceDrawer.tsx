@@ -48,8 +48,8 @@ const OPEN_KEY = "hh_reference_open";
 
 const ACCENT: Record<"blue" | "teal", { active: string; ring: string }> = {
   blue: {
-    active: "bg-blue-600 text-white",
-    ring: "focus-visible:outline-blue-600",
+    active: "bg-brand-600 text-white",
+    ring: "focus-visible:outline-brand-600",
   },
   teal: {
     active: "bg-teal-600 text-white",
@@ -262,7 +262,7 @@ export function ReferenceDrawer({ tabs, accent = "blue", label = "Reference" }: 
           aria-label={`Open ${label.toLowerCase()} panel`}
           aria-expanded={mobileOpen}
           className={`fixed bottom-24 right-4 z-40 flex h-12 items-center gap-1.5 rounded-full px-4 text-[11px] font-bold text-white shadow-lg focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 ${
-            accent === "teal" ? "bg-teal-600 hover:bg-teal-700" : "bg-blue-600 hover:bg-blue-700"
+            accent === "teal" ? "bg-teal-600 hover:bg-teal-700" : "bg-brand-600 hover:bg-brand-700"
           }`}
         >
           <PanelRightOpen className="h-4 w-4" aria-hidden="true" />

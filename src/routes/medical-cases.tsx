@@ -100,12 +100,12 @@ function MedicalCasesShell({ urlCaseId, urlStage }: { urlCaseId?: string; urlSta
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
         <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <Stethoscope className="mx-auto mb-3 h-8 w-8 text-blue-500" />
+          <Stethoscope className="mx-auto mb-3 h-8 w-8 text-brand-500" />
           <h1 className="text-sm font-bold text-slate-800">Medical RCM Cases</h1>
           <p className="mt-1 text-xs text-slate-500">Log in to practice the graded medical revenue cycle.</p>
           <Link
             to="/login"
-            className="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500"
+            className="mt-4 inline-block rounded-lg bg-brand-900 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-800"
           >
             Log in
           </Link>

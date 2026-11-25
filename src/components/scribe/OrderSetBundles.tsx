@@ -93,8 +93,8 @@ export function OrderSetBundles() {
 
   const typeColor = (t: string) => {
     switch (t) {
-      case "Lab": return "bg-blue-100 text-blue-700";
-      case "Imaging": return "bg-purple-100 text-purple-700";
+      case "Lab": return "bg-brand-100 text-brand-700";
+      case "Imaging": return "bg-brand-100 text-brand-700";
       case "Medication": return "bg-green-100 text-green-700";
       case "Referral": return "bg-amber-100 text-amber-700";
       default: return "bg-slate-100";

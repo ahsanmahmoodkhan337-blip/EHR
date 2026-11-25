@@ -107,20 +107,20 @@ export function WorkspaceTabs({
                   transition-colors duration-150
                   ${
                     isActive
-                      ? "text-blue-700 bg-blue-50/50"
+                      ? "text-brand-700 bg-brand-50/50"
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                   }
                 `}
               >
                 {/* Active indicator bar */}
                 {isActive && (
-                  <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-600" />
+                  <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-0.5 bg-brand-600" />
                 )}
 
                 <span
                   aria-hidden="true"
                   className={`${
-                    isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-500"
+                    isActive ? "text-brand-600" : "text-slate-400 group-hover:text-slate-500"
                   }`}
                 >
                   {tab.icon}

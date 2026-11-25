@@ -42,8 +42,8 @@ interface OdontogramProps {
 
 /** Quadrant tint for visual grouping on the chart. */
 const QUADRANT_TINT: Record<string, string> = {
-  "01": "text-blue-700",
-  "02": "text-violet-700",
+  "01": "text-brand-700",
+  "02": "text-brand-700",
   "03": "text-amber-700",
   "04": "text-emerald-700",
 };
@@ -165,7 +165,7 @@ export function Odontogram({
 
       {/* ── notation teaching points ─────────────────────────────────────── */}
       <details className="mt-2 border-t border-slate-100 pt-1.5">
-        <summary className="cursor-pointer text-[9px] font-semibold uppercase tracking-wide text-slate-400 hover:text-blue-600">
+        <summary className="cursor-pointer text-[9px] font-semibold uppercase tracking-wide text-slate-400 hover:text-brand-600">
           Notation reminders
         </summary>
         <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[9px] leading-relaxed text-slate-500">

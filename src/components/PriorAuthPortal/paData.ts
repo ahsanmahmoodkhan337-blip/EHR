@@ -48,14 +48,14 @@ export type ProcedureKey = PABundleKey;
 export const PA_STATUS_FLOW = [
   { key: "ordered", label: "Ordered/Prescribed", icon: "📋", color: "text-slate-600", bgColor: "bg-slate-100" },
   { key: "submitted", label: "Submitted", icon: "📤", color: "text-amber-600", bgColor: "bg-amber-50" },
-  { key: "in-progress", label: "In Progress (1 day)", icon: "⏳", color: "text-blue-600", bgColor: "bg-blue-50" },
+  { key: "in-progress", label: "In Progress (1 day)", icon: "⏳", color: "text-brand-600", bgColor: "bg-brand-50" },
   { key: "pending", label: "Pending", icon: "⏸️", color: "text-orange-600", bgColor: "bg-orange-50" },
   { key: "info-required", label: "Info/Documents Required", icon: "📎", color: "text-yellow-600", bgColor: "bg-yellow-50" },
   { key: "approved", label: "Approved", icon: "✅", color: "text-green-600", bgColor: "bg-green-50" },
   { key: "denied", label: "Denied", icon: "❌", color: "text-red-600", bgColor: "bg-red-50" },
   { key: "closed", label: "Closed", icon: "🔒", color: "text-slate-500", bgColor: "bg-slate-100" },
-  { key: "appeal", label: "Appeal", icon: "⚡", color: "text-purple-600", bgColor: "bg-purple-50" },
-  { key: "next-followup", label: "Next Follow-Up Date", icon: "📅", color: "text-cyan-600", bgColor: "bg-cyan-50" },
+  { key: "appeal", label: "Appeal", icon: "⚡", color: "text-brand-600", bgColor: "bg-brand-50" },
+  { key: "next-followup", label: "Next Follow-Up Date", icon: "📅", color: "text-brand-600", bgColor: "bg-brand-50" },
   { key: "completed", label: "Completed (After billing)", icon: "🏁", color: "text-emerald-600", bgColor: "bg-emerald-50" },
 ];
 

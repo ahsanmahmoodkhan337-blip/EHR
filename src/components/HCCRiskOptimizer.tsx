@@ -121,7 +121,7 @@ export function HCCRiskOptimizer() {
     <div className="relative">
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100 transition-colors"
+        className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
       >
         <BarChart3 className="h-3.5 w-3.5" />
         HCC Optimizer
@@ -146,9 +146,9 @@ export function HCCRiskOptimizer() {
                 onChange={(e) => setCodeInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addCode()}
                 placeholder="Enter ICD-10 code..."
-                className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-blue-400"
+                className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[10px] outline-none focus:border-brand-400"
               />
-              <button onClick={addCode} className="rounded-lg bg-blue-600 px-3 py-2 text-[10px] font-medium text-white hover:bg-blue-500">Add</button>
+              <button onClick={addCode} className="rounded-lg bg-brand-900 px-3 py-2 text-[10px] font-medium text-white hover:bg-brand-800">Add</button>
             </div>
 
             {/* Code tags */}
@@ -169,7 +169,7 @@ export function HCCRiskOptimizer() {
                     <div>
                       <span className="text-[10px] font-mono font-bold text-slate-700">{mc.code}</span>
                       {mc.mapping ? (
-                        <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-medium text-blue-700">{mc.mapping.hcc}</span>
+                        <span className="ml-2 rounded bg-brand-100 px-1.5 py-0.5 text-[9px] font-medium text-brand-700">{mc.mapping.hcc}</span>
                       ) : (
                         <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 text-[9px] text-slate-500">Not mapped</span>
                       )}
@@ -200,10 +200,10 @@ export function HCCRiskOptimizer() {
             </div>
 
             {/* Total RAF */}
-            <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4">
+            <div className="rounded-xl border-2 border-brand-200 bg-brand-50 p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-semibold text-blue-700">Total RAF Score</p>
+                  <p className="text-[10px] font-semibold text-brand-700">Total RAF Score</p>
                   <p className={`text-2xl font-bold ${rafColor}`}>{totalRAF.toFixed(3)}</p>
                 </div>
                 {/* Visual gauge */}

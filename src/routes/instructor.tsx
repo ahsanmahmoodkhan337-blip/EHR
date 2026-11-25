@@ -135,7 +135,7 @@ function InstructorDashboard() {
       <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
         <div className="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-lg">
           <div className="flex items-center gap-2 mb-4">
-            <Shield className="h-5 w-5 text-indigo-600" />
+            <Shield className="h-5 w-5 text-brand-600" />
             <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">Instructor Dashboard</h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -143,7 +143,7 @@ function InstructorDashboard() {
           </p>
           <Link
             to="/admin"
-            className="mt-4 block w-full rounded-lg bg-indigo-600 px-4 py-2 text-center text-xs font-medium text-white hover:bg-indigo-500"
+            className="mt-4 block w-full rounded-lg bg-brand-900 px-4 py-2 text-center text-xs font-medium text-white hover:bg-brand-800"
           >
             Go to admin sign-in
           </Link>
@@ -158,7 +158,7 @@ function InstructorDashboard() {
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3">
         <div className="flex items-center gap-3">
-          <BarChart3 className="h-5 w-5 text-indigo-600" />
+          <BarChart3 className="h-5 w-5 text-brand-600" />
           <h1 className="text-sm font-bold text-slate-800 dark:text-slate-200">Instructor Dashboard</h1>
         </div>
         <div className="flex items-center gap-2">
@@ -211,7 +211,7 @@ function InstructorDashboard() {
               <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300">Student Progress</h3>
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-32 rounded border border-slate-200 dark:border-slate-600 pl-6 pr-2 py-1 text-[10px] outline-none focus:border-indigo-400 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200" />
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-32 rounded border border-slate-200 dark:border-slate-600 pl-6 pr-2 py-1 text-[10px] outline-none focus:border-brand-400 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200" />
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -254,7 +254,7 @@ function InstructorDashboard() {
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300">Error Heatmap</h3>
-              <button onClick={generateCSV} className="flex items-center gap-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 text-[9px] font-medium text-indigo-600 hover:bg-indigo-100">
+              <button onClick={generateCSV} className="flex items-center gap-1 rounded-lg bg-brand-50 dark:bg-brand-900/20 px-2 py-1 text-[9px] font-medium text-brand-600 hover:bg-brand-100">
                 <Download className="h-3 w-3" />
                 CSV
               </button>

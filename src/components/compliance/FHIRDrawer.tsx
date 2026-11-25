@@ -159,7 +159,7 @@ export function FHIRDrawer({ patient, icdCodes, cptCodes }: FHIRDrawerProps) {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[10px] font-medium text-violet-600 hover:bg-violet-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100">
         <Database className="h-3.5 w-3.5" /> FHIR R4
       </button>
       {showPanel && (
@@ -171,12 +171,12 @@ export function FHIRDrawer({ patient, icdCodes, cptCodes }: FHIRDrawerProps) {
             </div>
             <div className="flex gap-1 mb-3 overflow-x-auto">
               {tabs.map(t => (
-                <button key={t.key} onClick={() => setActiveTab(t.key)} className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[10px] font-medium ${activeTab === t.key ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-500"}`}>{t.label}</button>
+                <button key={t.key} onClick={() => setActiveTab(t.key)} className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[10px] font-medium ${activeTab === t.key ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}>{t.label}</button>
               ))}
             </div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[9px] text-slate-400 font-mono">Resource/{activeTab}</span>
-              <button onClick={copyToClipboard} className="flex items-center gap-1 rounded bg-violet-100 px-2 py-1 text-[9px] text-violet-700">
+              <button onClick={copyToClipboard} className="flex items-center gap-1 rounded bg-brand-100 px-2 py-1 text-[9px] text-brand-700">
                 {copied ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}{copied ? "Copied!" : "Copy"}
               </button>
             </div>

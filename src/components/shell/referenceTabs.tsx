@@ -117,7 +117,7 @@ export function CodeLookup({ scope }: { scope: "medical" | "dental" }) {
           onChange={(event) => setQuery(event.target.value)}
           placeholder={scope === "dental" ? "e.g. D2740, crown, or Preventive" : "e.g. 99213, I10, or office visit"}
           aria-label="Search the code reference"
-          className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-7 pr-2 text-[11px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+          className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-7 pr-2 text-[11px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
       </div>
 
@@ -190,7 +190,7 @@ export function medicalReferenceTabs(
       content: (
         <div className="rounded-xl border border-slate-300 bg-gradient-to-br from-slate-50 to-white p-3 shadow-sm dark:border-slate-600 dark:from-slate-800 dark:to-slate-900">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            <ShieldCheck className="h-4 w-4 text-brand-600" aria-hidden="true" />
             <span className="text-[11px] font-bold uppercase tracking-wide text-slate-700 dark:text-slate-100">
               {plan?.name ?? "— plan not recorded on this case"}
             </span>

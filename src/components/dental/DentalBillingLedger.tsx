@@ -433,7 +433,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
             {/* trace toggle */}
             <button
               onClick={() => setOpenTrace((o) => ({ ...o, [lineId]: !open }))}
-              className="flex w-full items-center gap-1 border-t border-slate-100 px-3 py-1.5 text-left text-[10px] font-semibold text-blue-700 hover:bg-blue-50"
+              className="flex w-full items-center gap-1 border-t border-slate-100 px-3 py-1.5 text-left text-[10px] font-semibold text-brand-700 hover:bg-brand-50"
             >
               {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               Adjudication trace ({result.steps.length} steps, walked in payer order)

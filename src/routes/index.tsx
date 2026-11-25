@@ -601,7 +601,7 @@ function SummaryTab({
               placeholder="+ Add new problem (e.g. Diabetes (E11.9))..."
               className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400"
             />
-            <button onClick={addProblem} className="rounded bg-brand-500 px-2 py-1 text-xs text-white hover:bg-brand-600">Add</button>
+            <button onClick={addProblem} className="rounded bg-brand-500 px-2 py-1 text-xs text-white hover:bg-brand-800">Add</button>
           </div>
         )}
       </div>
@@ -744,7 +744,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={labInput} onChange={e => setLabInput(e.target.value)} placeholder="+ Add lab/result..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (labInput.trim()) { setLabsResults([...labsResults, labInput.trim()]); setLabInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
+            <button onClick={() => { if (labInput.trim()) { setLabsResults([...labsResults, labInput.trim()]); setLabInput(""); } }} className="rounded bg-brand-900 px-2 py-1 text-xs text-white hover:bg-brand-800">Add</button>
           </div>
         )}
       </div>
@@ -820,7 +820,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={referralInput} onChange={e => setReferralInput(e.target.value)} placeholder="+ Add referral..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, { id: `ref-${Date.now()}`, specialty: referralInput.trim(), reason: "—", status: "Sent", date: localDay() }]); setReferralInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
+            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, { id: `ref-${Date.now()}`, specialty: referralInput.trim(), reason: "—", status: "Sent", date: localDay() }]); setReferralInput(""); } }} className="rounded bg-brand-900 px-2 py-1 text-xs text-white hover:bg-brand-800">Add</button>
           </div>
         )}
       </div>
@@ -832,7 +832,7 @@ function SummaryTab({
             className={`w-full rounded-lg px-4 py-2 text-sm font-medium transition-all ${
               saved
                 ? "bg-green-500 text-white"
-                : "bg-brand-600 text-white hover:bg-brand-700"
+                : "bg-brand-900 text-white hover:bg-brand-800"
             }`}
           >
             {saved ? "✓ Changes Saved" : "Save Changes"}
@@ -2664,7 +2664,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                 setSharedLabs([...sharedLabs, inp.value.trim()]);
                                 inp.value = "";
                               }
-                            }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
+                            }} className="rounded bg-brand-900 px-2 py-1 text-xs text-white hover:bg-brand-800">Add</button>
                           </div>
                         )}
                       </div>
@@ -2711,7 +2711,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                               placeholder="+ Add new problem (e.g. Diabetes (E11.9))..."
                               className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400"
                             />
-                            <button onClick={() => { if (newProblem.trim()) { setEditablePatientData({ ...editablePatientData, problems: [...editablePatientData.problems, newProblem.trim()] }); setNewProblem(""); }}} className="rounded bg-brand-500 px-2 py-1 text-xs text-white hover:bg-brand-600">Add</button>
+                            <button onClick={() => { if (newProblem.trim()) { setEditablePatientData({ ...editablePatientData, problems: [...editablePatientData.problems, newProblem.trim()] }); setNewProblem(""); }}} className="rounded bg-brand-500 px-2 py-1 text-xs text-white hover:bg-brand-800">Add</button>
                           </div>
                         )}
                       </div>
@@ -2796,7 +2796,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                 }]);
                                 itemEl.value = "";
                               }
-                            }} className="mt-2 rounded bg-brand-600 px-3 py-1 text-xs text-white hover:bg-brand-700">+ Add Order</button>
+                            }} className="mt-2 rounded bg-brand-900 px-3 py-1 text-xs text-white hover:bg-brand-800">+ Add Order</button>
                           </div>
                         )}
                       </div>
@@ -2881,7 +2881,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                 }]);
                                 studyEl.value = "";
                               }
-                            }} className="mt-2 rounded bg-brand-600 px-3 py-1 text-xs text-white hover:bg-brand-700">+ Add Study</button>
+                            }} className="mt-2 rounded bg-brand-900 px-3 py-1 text-xs text-white hover:bg-brand-800">+ Add Study</button>
                           </div>
                         )}
                       </div>
@@ -2985,7 +2985,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                 }]);
                                 specEl.value = "";
                               }
-                            }} className="mt-2 rounded bg-brand-600 px-3 py-1 text-xs text-white hover:bg-brand-700">+ Add Referral</button>
+                            }} className="mt-2 rounded bg-brand-900 px-3 py-1 text-xs text-white hover:bg-brand-800">+ Add Referral</button>
                           </div>
                         )}
                       </div>

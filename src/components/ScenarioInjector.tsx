@@ -48,7 +48,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "chronic-dm",
     label: "D: Chronic Disease Mgmt",
-    icon: <Stethoscope className="h-3.5 w-3.5 text-blue-500" />,
+    icon: <Stethoscope className="h-3.5 w-3.5 text-brand-500" />,
     description: "Diabetes + HTN follow-up, multiple ICD-10s",
   },
 ];
@@ -106,7 +106,7 @@ export function ScenarioInjector({ onSelectScenario }: ScenarioInjectorProps) {
         className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
           loaded
             ? "border-green-300 bg-green-50 text-green-700"
-            : "border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+            : "border-brand-200 bg-brand-50 text-brand-600 hover:bg-brand-100"
         }`}
       >
         <FlaskConical className="h-3.5 w-3.5" />

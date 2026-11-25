@@ -263,7 +263,7 @@ export function DentalPredetermination() {
                           type="checkbox"
                           checked={gathered}
                           onChange={() => toggleAttachment(svc, r.type)}
-                          className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-blue-600"
+                          className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-brand-600"
                         />
                         <span className="min-w-0 text-[10px] leading-snug text-slate-600">
                           <span className="font-medium text-slate-700">{r.label}</span>

@@ -136,7 +136,7 @@ export function MIPSDashboard() {
             ) : (
               <button
                 onClick={() => setSubmitted(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-brand-600"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 px-4 py-2.5 text-[10px] font-medium text-white hover:bg-brand-800"
               >
                 <Send className="h-3.5 w-3.5" />
                 Submit to QPP

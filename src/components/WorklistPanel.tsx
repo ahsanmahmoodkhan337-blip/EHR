@@ -108,7 +108,7 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
             <Link
               to="/schedule"
               aria-label="Open the Schedule to book your first appointment"
-              className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-brand-600 px-2.5 text-[11px] font-semibold text-white hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-brand-900 px-2.5 text-[11px] font-semibold text-white hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
             >
               <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
               Open the Schedule
@@ -129,18 +129,18 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
               onClick={() => onPatientSelect(p.id)}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 transition-all duration-200 ${
                 isSelected
-                  ? "border-indigo-200 bg-indigo-50 shadow-sm"
+                  ? "border-brand-200 bg-brand-50 shadow-sm"
                   : "border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-sm"
               }`}
             >
               <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                isSelected ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600"
+                isSelected ? "bg-brand-600 text-white" : "bg-slate-200 text-slate-600"
               }`}>
                 {getInitials(p)}
               </div>
               <div className="min-w-0 flex-1">
                 <p className={`truncate text-sm font-medium ${
-                  isSelected ? "text-indigo-800" : "text-slate-800"
+                  isSelected ? "text-brand-800" : "text-slate-800"
                 }`}>
                   {p.firstName} {p.lastName}
                 </p>

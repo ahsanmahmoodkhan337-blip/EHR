@@ -254,9 +254,9 @@ export function SmartPhrasesDropdown({
             const result = onSelect(d.code);
             if (result) onClose();
           }}
-          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-indigo-50 transition-colors"
+          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-brand-50 transition-colors"
         >
-          <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-mono font-bold text-indigo-600">
+          <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-mono font-bold text-brand-600">
             {d.code}
           </span>
           <span className="text-xs text-slate-600 truncate">{d.label}</span>

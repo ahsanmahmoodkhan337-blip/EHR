@@ -1226,7 +1226,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                 </div>
                 <button
                   onClick={() => setRole("biller")}
-                  className="mt-4 flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
+                  className="mt-4 flex items-center gap-2 rounded-lg bg-brand-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-800 transition-colors"
                 >
                   <ArrowRight className="h-4 w-4" />
                   Switch to Biller Role
@@ -1238,7 +1238,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                   <button
                     onClick={handleSubmitToBilling}
                     {...readOnlyAttrs(readOnly, CODING_SUBMIT_REASON)}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-xs font-medium text-white hover:bg-brand-600 transition-colors"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-900 px-4 py-2.5 text-xs font-medium text-white hover:bg-brand-800 transition-colors"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Submit Coded Encounter to Billing ({selectedICDs.length} ICD-10, {selectedCPTs.length} CPT)

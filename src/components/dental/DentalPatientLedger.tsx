@@ -338,7 +338,7 @@ export function DentalPatientLedger({ embedded = false }: { embedded?: boolean }
 
 function Stat({ label, value, tone, count }: { label: string; value: number; tone: string; count?: boolean }) {
   const toneCls =
-    tone === "emerald" ? "text-emerald-600" : tone === "red" ? "text-red-600" : tone === "amber" ? "text-amber-600" : tone === "sky" ? "text-blue-600" : "text-slate-700";
+    tone === "emerald" ? "text-emerald-600" : tone === "red" ? "text-red-600" : tone === "amber" ? "text-amber-600" : tone === "sky" ? "text-brand-600" : "text-slate-700";
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
       <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>

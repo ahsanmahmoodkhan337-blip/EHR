@@ -158,7 +158,7 @@ export function AssessmentPlanStage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {mdmLevel && (
-            <span className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[10px] font-medium text-indigo-700">
+            <span className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-700">
               <Calculator className="h-3.5 w-3.5" />
               E/M: CPT {mdmLevel.code} · {mdmLevel.label} {mdmLevel.patientType}
             </span>
@@ -168,7 +168,7 @@ export function AssessmentPlanStage({
             onClick={() => setShowMacros(!showMacros)}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
               showMacros
-                ? "bg-blue-100 text-blue-700"
+                ? "bg-brand-100 text-brand-700"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
@@ -190,14 +190,14 @@ export function AssessmentPlanStage({
           {/* Subjective */}
           <div className="clinical-card">
             <div className="mb-2 flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-blue-600" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+              <MessageSquare className="h-4 w-4 text-brand-600" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-brand-600">
                 Subjective (S)
               </span>
               {showMacros && (
                 <button
                   onClick={() => insertMacro("Patient reports... ", "subjective")}
-                  className="ml-auto rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100"
+                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"
                 >
                   + Macro
                 </button>
@@ -209,7 +209,7 @@ export function AssessmentPlanStage({
               section={["HPI", "ROS"]}
               vitals={vitals}
               placeholder="Patient's report of symptoms, chief complaint, HPI, review of systems..."
-              className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+              className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
             />
           </div>
 
@@ -223,7 +223,7 @@ export function AssessmentPlanStage({
               {showMacros && (
                 <button
                   onClick={() => insertMacro("Vitals: BP [X]/[Y], HR [Z], Temp [T], SpO2 [S]%\nExam: ", "objective")}
-                  className="ml-auto rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100"
+                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"
                 >
                   + Macro
                 </button>
@@ -235,7 +235,7 @@ export function AssessmentPlanStage({
               section={["PE", "ROS"]}
               vitals={vitals}
               placeholder="Vital signs, physical exam findings, lab results, imaging..."
-              className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+              className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
             />
           </div>
 
@@ -249,7 +249,7 @@ export function AssessmentPlanStage({
               {showMacros && (
                 <button
                   onClick={() => insertMacro("", "assessment")}
-                  className="ml-auto rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100"
+                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"
                 >
                   + Macro
                 </button>
@@ -261,7 +261,7 @@ export function AssessmentPlanStage({
               section="A&P"
               vitals={vitals}
               placeholder="Diagnoses, differentials, clinical impression, problem list updates..."
-              className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+              className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
             />
 
             {/* ICD-10 Code Search & Selection */}
@@ -296,7 +296,7 @@ export function AssessmentPlanStage({
               {showMacros && (
                 <button
                   onClick={() => insertMacro("", "plan")}
-                  className="ml-auto rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100"
+                  className="ml-auto rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100"
                 >
                   + Macro
                 </button>
@@ -308,7 +308,7 @@ export function AssessmentPlanStage({
               section="Plan"
               vitals={vitals}
               placeholder="Medication changes, orders, referrals, follow-up plan, patient education..."
-              className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+              className="min-h-[120px] w-full resize-y rounded border border-slate-200 p-2.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
             />
           </div>
         </div>
@@ -332,7 +332,7 @@ export function AssessmentPlanStage({
                     onClick={() => setActiveMacroCategory(i)}
                     className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
                       i === activeMacroCategory
-                        ? "bg-blue-100 text-blue-700"
+                        ? "bg-brand-100 text-brand-700"
                         : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                     }`}
                   >
@@ -346,7 +346,7 @@ export function AssessmentPlanStage({
                 {MACRO_CATEGORIES[activeMacroCategory].macros.map((macro) => (
                   <div
                     key={macro.label}
-                    className="group cursor-pointer rounded-lg border border-slate-200 p-2 transition-colors hover:border-blue-300 hover:bg-blue-50"
+                    className="group cursor-pointer rounded-lg border border-slate-200 p-2 transition-colors hover:border-brand-300 hover:bg-brand-50"
                     onClick={() => {
                       // Insert into Assessment by default, or pop up a selector
                       insertMacro(macro.text, "assessment");
@@ -354,7 +354,7 @@ export function AssessmentPlanStage({
                     title={`Click to insert: "${macro.text}"`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Plus className="h-3 w-3 shrink-0 text-blue-400 opacity-0 transition-opacity group-hover:opacity-100" />
+                      <Plus className="h-3 w-3 shrink-0 text-brand-400 opacity-0 transition-opacity group-hover:opacity-100" />
                       <span className="text-xs font-medium text-slate-700">
                         {macro.label}
                       </span>

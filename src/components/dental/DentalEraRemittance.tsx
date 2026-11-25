@@ -74,7 +74,7 @@ export function DentalEraRemittance({
           <HeaderItem k="Plan" v={remittance.payerPlanId} />
         </div>
         <p className="mt-1.5 flex items-start gap-1 border-t border-slate-200 pt-1.5 text-[10px] leading-snug text-slate-500">
-          <Info className="mt-0.5 h-3 w-3 shrink-0 text-blue-500" />
+          <Info className="mt-0.5 h-3 w-3 shrink-0 text-brand-500" />
           {remittance.summary}
         </p>
       </div>
@@ -204,7 +204,7 @@ function AdjustmentChips({ adjustments }: { adjustments: EraLineAdjustment[] }) 
             key={i}
             className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
               a.groupCode === "PR"
-                ? "bg-purple-50 text-purple-700"
+                ? "bg-brand-50 text-brand-700"
                 : a.groupCode === "CO" && a.denialId
                   ? "bg-red-50 text-red-700"
                   : "bg-slate-100 text-slate-600"

@@ -35,7 +35,7 @@ const DENIAL_DATA = [
   { name: "Other", value: 5 },
 ];
 
-const COLORS = ["#ef4444", "#f97316", "#eab308", "#3b82f6", "#6b7280"];
+const COLORS = ["#ef4444", "#f97316", "#eab308", "#2040c0", "#6b7280"];
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -67,7 +67,7 @@ export function RCMDashboard() {
             {/* KPI Cards */}
             <div className="grid grid-cols-4 gap-3 mb-4">
               {[
-                { label: "Total A/R", value: `$${(totalAR / 1000).toFixed(0)}K`, color: "text-blue-600" },
+                { label: "Total A/R", value: `$${(totalAR / 1000).toFixed(0)}K`, color: "text-brand-600" },
                 { label: "Clean Claim Rate", value: `${cleanClaimRate}%`, color: cleanClaimRate >= 95 ? "text-green-600" : "text-amber-600" },
                 { label: "Net Collection", value: `${netCollectionRate}%`, color: "text-green-600" },
                 { label: "Days in A/R", value: "32", color: "text-amber-600" },
@@ -90,7 +90,7 @@ export function RCMDashboard() {
                     <XAxis type="number" tick={{ fontSize: 9 }} />
                     <YAxis dataKey="bucket" type="category" tick={{ fontSize: 9 }} width={40} />
                     <Tooltip />
-                    <Bar dataKey="amount" fill="#3b82f6" radius={[0,4,4,0]} />
+                    <Bar dataKey="amount" fill="#2040c0" radius={[0,4,4,0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

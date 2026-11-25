@@ -113,7 +113,7 @@ export function HPIStage({ patientName, chiefComplaint, note, onNoteChange, vita
       <div className="clinical-card flex flex-col">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-blue-600" />
+            <MessageSquare className="h-4 w-4 text-brand-600" />
             <span className="clinical-label">HPI Narrative</span>
           </div>
           <div className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export function HPIStage({ patientName, chiefComplaint, note, onNoteChange, vita
             <button
               type="button"
               onClick={() => setShowTemplate(!showTemplate)}
-              className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+              className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
             >
               <Lightbulb className="h-3.5 w-3.5" />
               OLDCARTS Template
@@ -149,8 +149,8 @@ export function HPIStage({ patientName, chiefComplaint, note, onNoteChange, vita
         </div>
 
         {dictation.listening && (
-          <p className="mb-2 flex items-center gap-1.5 rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-700">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-600" />
+          <p className="mb-2 flex items-center gap-1.5 rounded bg-brand-50 px-2 py-1 text-[11px] text-brand-700">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-600" />
             Dictating — speak clearly, then stop. Transcript appends to the note.
           </p>
         )}
@@ -171,7 +171,7 @@ export function HPIStage({ patientName, chiefComplaint, note, onNoteChange, vita
           section="HPI"
           vitals={vitals}
           placeholder={`Describe the history of present illness in narrative form.\n\nInclude: onset, location, duration, character, aggravating/relieving factors, timing, severity.\n\nExample: "${patientName || "Patient"} presents with chest pain that started 3 days ago. The pain is described as a dull ache, located substernally, rated 6/10 in severity. It is aggravated by exertion and partially relieved by rest. No associated shortness of breath or nausea."`}
-          className="min-h-[250px] w-full resize-y rounded-lg border border-slate-200 p-3 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+          className="min-h-[250px] w-full resize-y rounded-lg border border-slate-200 p-3 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400"
         />
       </div>
 
@@ -182,7 +182,7 @@ export function HPIStage({ patientName, chiefComplaint, note, onNoteChange, vita
             <span className="clinical-label">OLDCARTS Mnemonic</span>
             <button
               onClick={buildFromOldcarts}
-              className="rounded bg-blue-50 px-2 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-100"
+              className="rounded bg-brand-50 px-2 py-1 text-[10px] font-medium text-brand-700 hover:bg-brand-100"
             >
               Build narrative from fields
             </button>
@@ -196,7 +196,7 @@ export function HPIStage({ patientName, chiefComplaint, note, onNoteChange, vita
                   value={oldcartsValues[field.label] || ""}
                   onChange={(e) => updateOldcarts(field.label, e.target.value)}
                   placeholder={field.placeholder}
-                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-blue-400"
+                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-brand-400"
                 />
               </div>
             ))}

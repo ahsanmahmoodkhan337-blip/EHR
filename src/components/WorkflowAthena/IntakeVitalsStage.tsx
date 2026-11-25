@@ -142,7 +142,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             saved
               ? "bg-green-500 text-white"
-              : "bg-blue-600 text-white hover:bg-blue-500"
+              : "bg-brand-900 text-white hover:bg-brand-800"
           }`}
         >
           {saved ? "Saved!" : "Save Vitals"}
@@ -174,7 +174,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
         {/* Blood Pressure */}
         <div className="clinical-card">
           <div className="mb-2 flex items-center gap-2">
-            <Activity className="h-4 w-4 text-blue-600" />
+            <Activity className="h-4 w-4 text-brand-600" />
             <span className="clinical-label">Blood Pressure</span>
           </div>
           <div className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               type="number"
               value={vitals.bloodPressureSystolic}
               onChange={(e) => handleVitalChange("bloodPressureSystolic", parseInt(e.target.value) || 0)}
-              className="w-20 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
+              className="w-20 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-400"
               placeholder="SYS"
             />
             <span className="text-slate-400">/</span>
@@ -190,7 +190,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               type="number"
               value={vitals.bloodPressureDiastolic}
               onChange={(e) => handleVitalChange("bloodPressureDiastolic", parseInt(e.target.value) || 0)}
-              className="w-20 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
+              className="w-20 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-400"
               placeholder="DIA"
             />
             <span className="text-xs text-slate-400">mmHg</span>
@@ -208,7 +208,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               type="number"
               value={vitals.heartRate}
               onChange={(e) => handleVitalChange("heartRate", parseInt(e.target.value) || 0)}
-              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
+              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-400"
             />
             <span className="text-xs text-slate-400">bpm</span>
           </div>
@@ -226,7 +226,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               step="0.1"
               value={vitals.temperature}
               onChange={(e) => handleVitalChange("temperature", parseFloat(e.target.value) || 0)}
-              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
+              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-400"
             />
             <span className="text-xs text-slate-400">°F</span>
           </div>
@@ -235,7 +235,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
         {/* Respiratory Rate */}
         <div className="clinical-card">
           <div className="mb-2 flex items-center gap-2">
-            <Wind className="h-4 w-4 text-cyan-500" />
+            <Wind className="h-4 w-4 text-brand-500" />
             <span className="clinical-label">Respiratory Rate</span>
           </div>
           <div className="flex items-center gap-2">
@@ -243,7 +243,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               type="number"
               value={vitals.respiratoryRate}
               onChange={(e) => handleVitalChange("respiratoryRate", parseInt(e.target.value) || 0)}
-              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
+              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-400"
             />
             <span className="text-xs text-slate-400">/min</span>
           </div>
@@ -252,7 +252,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
         {/* Oxygen Saturation */}
         <div className="clinical-card">
           <div className="mb-2 flex items-center gap-2">
-            <Droplets className="h-4 w-4 text-blue-500" />
+            <Droplets className="h-4 w-4 text-brand-500" />
             <span className="clinical-label">O2 Saturation</span>
           </div>
           <div className="flex items-center gap-2">
@@ -260,7 +260,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               type="number"
               value={vitals.oxygenSaturation}
               onChange={(e) => handleVitalChange("oxygenSaturation", parseInt(e.target.value) || 0)}
-              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
+              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-400"
             />
             <span className="text-xs text-slate-400">%</span>
           </div>
@@ -279,7 +279,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               max="10"
               value={vitals.painScore}
               onChange={(e) => handleVitalChange("painScore", parseInt(e.target.value))}
-              className="w-28 accent-blue-600"
+              className="w-28 accent-brand-600"
             />
             <span className="min-w-[2rem] text-sm font-bold text-slate-700">
               {vitals.painScore}/10
@@ -302,7 +302,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               step="0.1"
               value={vitals.weight}
               onChange={(e) => handleVitalChange("weight", parseFloat(e.target.value) || 0)}
-              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
+              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-400"
             />
             <span className="text-xs text-slate-400">kg</span>
           </div>
@@ -320,7 +320,7 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
               step="0.1"
               value={vitals.height}
               onChange={(e) => handleVitalChange("height", parseFloat(e.target.value) || 0)}
-              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-blue-400"
+              className="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-400"
             />
             <span className="text-xs text-slate-400">cm</span>
           </div>

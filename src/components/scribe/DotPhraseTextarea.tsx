@@ -193,10 +193,10 @@ export function DotPhraseTextarea({
               onClick={() => apply(p)}
               onMouseEnter={() => setActiveIndex(i)}
               className={`flex w-full items-start gap-2 px-3 py-2 text-left transition-colors ${
-                i === activeIndex ? "bg-blue-50" : "hover:bg-slate-50"
+                i === activeIndex ? "bg-brand-50" : "hover:bg-slate-50"
               }`}
             >
-              <span className="mt-0.5 shrink-0 rounded bg-blue-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-blue-700">
+              <span className="mt-0.5 shrink-0 rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-700">
                 {p.shortcode}
               </span>
               <span className="min-w-0 flex-1">

@@ -42,9 +42,9 @@ interface StageReviewFrameProps {
 
 const ACCENT: Record<ReviewAccent, { banner: string; button: string; ring: string }> = {
   blue: {
-    banner: "border-blue-200 bg-blue-50 text-blue-900",
-    button: "bg-blue-700 text-white hover:bg-blue-600",
-    ring: "focus-visible:outline-blue-600",
+    banner: "border-brand-200 bg-brand-50 text-brand-900",
+    button: "bg-brand-700 text-white hover:bg-brand-800",
+    ring: "focus-visible:outline-brand-600",
   },
   teal: {
     banner: "border-teal-200 bg-teal-50 text-teal-900",

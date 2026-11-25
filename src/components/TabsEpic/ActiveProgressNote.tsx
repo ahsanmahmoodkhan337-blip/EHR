@@ -166,7 +166,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
   return (
     <div className="flex flex-1 flex-col overflow-y-auto p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <FileEdit className="h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
+        <FileEdit className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-slate-800">Active Progress Note</h2>
           <p className="text-sm text-slate-500">
@@ -272,10 +272,10 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
         ) : (
           <>
             <div className="grid gap-2 md:grid-cols-2">
-              {field("subjective", "Subjective (S)", "Chief complaint, history of present illness, review of systems…", "text-blue-600")}
+              {field("subjective", "Subjective (S)", "Chief complaint, history of present illness, review of systems…", "text-brand-600")}
               {field("objective", "Objective (O)", "Vital signs, exam findings, lab and imaging results…", "text-emerald-600")}
               {field("assessment", "Assessment (A)", "Diagnoses, differentials, clinical impression…", "text-amber-600")}
-              {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-purple-600")}
+              {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-brand-600")}
             </div>
             <p className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-400">
               {readOnly ? (

@@ -94,11 +94,11 @@ function CasesListPage() {
         {track === "medical" && (
         <section aria-labelledby="cases-medical" className="mt-4">
           <div className="mb-2 flex items-center gap-2">
-            <Stethoscope className="h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
-            <h2 id="cases-medical" className="text-xs font-bold uppercase tracking-wide text-blue-700">
+            <Stethoscope className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
+            <h2 id="cases-medical" className="text-xs font-bold uppercase tracking-wide text-brand-700">
               Medical RCM
             </h2>
-            <span className="text-[10px] font-medium text-blue-600">CPT / ICD-10 · CMS-1500</span>
+            <span className="text-[10px] font-medium text-brand-600">CPT / ICD-10 · CMS-1500</span>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {MEDICAL_CASE_SCENARIOS.map((scenario) => {
@@ -125,7 +125,7 @@ function CasesListPage() {
                   <Link
                     to="/cases/$track/$caseId/$stage"
                     params={{ track: "medical", caseId: scenario.id, stage: "briefing" }}
-                    className="mt-3 flex min-h-10 items-center justify-center gap-1 rounded-lg bg-blue-700 px-3 text-xs font-semibold text-white hover:bg-blue-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                    className="mt-3 flex min-h-10 items-center justify-center gap-1 rounded-lg bg-brand-700 px-3 text-xs font-semibold text-white hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                   >
                     Begin case <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </Link>
