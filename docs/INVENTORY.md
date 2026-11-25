@@ -466,6 +466,7 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - The left-panel encounter timeline now shows for every role, not only the scribe.
 
 ## 15. Switching patients from a booked visit (2026-11-25)
+## 13. Switching patients from a booked visit (2026-11-25)
 
 - Bug: after Check In / Start Visit opened a newly booked patient at `/encounter/<id>/…`, clicking the Tutorial Patient (or anyone else) in the Inbox snapped straight back, so the banner, Registration (driver's license, card) and stages kept the booked patient.
 - Fix: `routePickDecision()` in `src/domain/encounterRoute.ts` — the address picks its patient once per navigation; a later click in the list wins. Used by `routes/index.tsx`.
