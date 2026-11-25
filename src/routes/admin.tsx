@@ -42,6 +42,7 @@ import {
 import { supabase } from "../store/supabase";
 import { fetchAdminSharingSummaries, MAX_DEVICE_COUNT, type AdminSharingSummary } from "../store/accountSecurity";
 import { WhatsAppFloat } from "../components/WhatsAppFloat";
+import { AuthShell, AuthNavLink } from "../components/auth/AuthShell";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -277,55 +278,67 @@ function AdminPage() {
 
   if (!session) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-900 p-4">
-        <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-800 p-6 shadow-xl">
-          <div className="mb-6 text-center">
-            <Shield className="mx-auto mb-3 h-10 w-10 text-brand-400" />
-            <h1 className="text-lg font-bold text-white">Admin Panel</h1>
-            <p className="text-sm text-slate-400">Sign in with your admin email and password</p>
+      <AuthShell
+        title="Admin panel"
+        subtitle="Approve enrollment requests and manage student access. Staff sign-in only."
+        nav={<AuthNavLink to="/">Home</AuthNavLink>}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!signingIn) void handleSignIn();
+          }}
+          noValidate
+          className="rounded-2xl bg-white p-6 shadow-[0_20px_60px_-30px_rgba(25,33,102,0.35)] ring-1 ring-slate-200 md:p-8"
+        >
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-[#2040c0]" aria-hidden="true" />
+            <h2 className="text-xl font-bold text-slate-900">Staff sign-in</h2>
           </div>
-          <div className="space-y-3">
-            <input
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setAuthError("");
-              }}
-              placeholder="Admin email"
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-400 outline-none focus:border-brand-500"
-            />
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setAuthError("");
-              }}
-              onKeyDown={(e) => e.key === "Enter" && !signingIn && handleSignIn()}
-              placeholder="Password"
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white placeholder-slate-400 outline-none focus:border-brand-500"
-            />
-            {authError && (
-              <p className="text-xs text-red-400">{authError}</p>
-            )}
-            <button
-              onClick={handleSignIn}
-              disabled={signingIn}
-              className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-            >
-              {signingIn ? "Signing in…" : "Sign In"}
-            </button>
-          </div>
-          <div className="mt-4 text-center">
-            <Link to="/" className="text-xs text-slate-500 underline hover:text-slate-300">
-              Back to home
-            </Link>
-          </div>
-        </div>
-      </div>
+
+          <label htmlFor="admin-email" className="mt-5 block text-[14px] font-medium text-slate-700">
+            Admin email
+          </label>
+          <input
+            id="admin-email"
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setAuthError("");
+            }}
+            className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[16px] text-slate-900 outline-none focus:border-[#2040c0] focus:ring-2 focus:ring-[#2040c0]/20"
+          />
+
+          <label htmlFor="admin-password" className="mt-4 block text-[14px] font-medium text-slate-700">
+            Password
+          </label>
+          <input
+            id="admin-password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setAuthError("");
+            }}
+            className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[16px] text-slate-900 outline-none focus:border-[#2040c0] focus:ring-2 focus:ring-[#2040c0]/20"
+          />
+
+          {authError && (
+            <p role="alert" className="mt-3 text-[14px] text-red-600">{authError}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={signingIn}
+            className="mt-5 min-h-12 w-full rounded-xl bg-[#192166] text-[15px] font-bold text-white hover:bg-[#1a2888] disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2040c0]"
+          >
+            {signingIn ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </AuthShell>
     );
   }
 

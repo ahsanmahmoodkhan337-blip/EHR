@@ -395,3 +395,15 @@ These are stripped for real patients by `stripFabricatedIds` and re-seeded per p
 **Open (owner decision)**: Tutorial PA shows "approved" for 99214 + 93000 on Medicare Part B;
 British "authorisation" spelling across the UI (a grader matches on it).
 
+## 8. Changes 2026-11-25 (login and enrollment redesign)
+
+- `components/auth/AuthShell.tsx` — shared navy frame for `/login` and the `/admin` sign-in.
+- `/login`: real `<form>` (Enter submits), "Checking your number…" while the lookup runs, Show/Hide on
+  the masked login ID, "Try another number" on the pending and denied screens. `handleLogin` logic
+  (server lookup, offline fallback, expiry, device limit) is unchanged.
+- `/access`: three numbered steps (pay → send receipt → request) instead of six separate sections;
+  payment-method buttons drive the form's "Paid with"; Copy buttons on account numbers; the Submit
+  hint says what is still missing. Payment details, amounts and WhatsApp links are unchanged.
+  Nothing on the page waits for a scroll-reveal animation any more.
+- `/admin` sign-in: labels above fields, `<form>` submit; Supabase Auth call unchanged.
+
