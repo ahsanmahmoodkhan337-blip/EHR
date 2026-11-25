@@ -72,7 +72,9 @@ export function StatusTimeline({
   emptyHint = "No status change has been recorded yet.",
   className = "",
 }: StatusTimelineProps) {
-  const ordered = [...events].sort((a, b) => a.seq - b.seq);
+  // Sequence numbers are per entity (the visit and its claim count separately),
+  // so a feed that mixes both sorts by time, with seq breaking a tie.
+  const ordered = [...events].sort((a, b) => (a.at === b.at ? a.seq - b.seq : a.at < b.at ? -1 : 1));
 
   return (
     <section className={`rounded-xl border border-slate-200 bg-white ${className}`}>

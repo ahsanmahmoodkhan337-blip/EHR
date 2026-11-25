@@ -48,7 +48,6 @@ import type { ShellNavId } from "../components/shell/navItems";
 import { StageNav } from "../components/shell/StageNav";
 import { RightPaneleCW } from "../components/RightPaneleCW/RightPaneleCW";
 import { StatusTimeline } from "../components/status/StatusTimeline";
-import { statusEventsFor } from "../domain/statusEvent";
 import {
   NOTE_STATUS_LABEL,
   noteFieldsOf,
@@ -59,7 +58,6 @@ import {
 import {
   CHART_OPENING_STEP,
   CHART_STEPS,
-  encounterEventId,
 } from "../store/pipelineEncounter";
 import { EncounterStepper } from "../components/shell/EncounterStepper";
 import {
@@ -114,6 +112,7 @@ import { CommandPalette } from "../components/CommandPalette";
 import { localDay } from "../utils/localDay";
 import { PublicLandingPage } from "../components/landing/PublicLandingPage";
 import { SummaryPaneToggle } from "../components/shell/AppHeader";
+import { EncounterLiveView } from "../components/live/EncounterLiveView";
 
 /** Pipeline roles the working context may restore (section 4). */
 const PIPELINE_ROLES: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-voice"];
@@ -2078,13 +2077,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   if (planGaps.length > 0) stageHints["assessment-plan"] = `Missing: ${planGaps.join(" and ")}`;
   if (!noteSigned) stageHints["sign-lock"] = "Missing: the signed and locked note";
 
-  // This patient's encounter timeline — the append-only record of what has
-  // actually happened to it, never a summary kept anywhere else.
-  const encounterEvents = statusEventsFor(
-    pipelineState.statusEvents,
-    "encounter",
-    encounterEventId(activePatientId),
-  );
 
 
   // Safely load a patient — always clears loading state even on error
@@ -2209,14 +2201,16 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
               onPatientSelect={handlePatientSelect}
             />
           </div>
-          {selectedPatient && currentRole === "scribe" && (
+          {selectedPatient && (
             <div className="flex-1 overflow-y-auto p-4">
               {/* The inbox's "Workflow" stage list is gone (spec item 5): the
                   encounter stages live in the case runner's stepper, and Home
                   keeps the timeline that records what happened. */}
               <StatusTimeline
                 className="mt-4"
-                events={encounterEvents}
+                events={(pipelineState.statusEvents ?? []).filter(
+                  (e) => !e.patientId || e.patientId === selectedPatient.id,
+                )}
                 title="Encounter timeline"
                 subject={pipelineState.claimNumber}
                 emptyHint="No status change yet — sign and lock the note to record the first one."
@@ -2303,6 +2297,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
           }
         />
       )}
+      {/* The visit's road to paid-and-closed, lit up as the student works, with
+          the money beside it and the "what just happened" card. */}
+      {selectedPatient && <EncounterLiveView patient={selectedPatient} />}
 
       {/* One line at the top of every stage: the Tutorial Patient's chart is the
           standard reference and is read-only. Not a modal, not a banner over the

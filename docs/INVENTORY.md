@@ -455,3 +455,12 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - "Practice cases" is a fifth header link (`/cases`), highlighted on case pages and the practice AR bench
   (`headerNavForPath` returns `"cases"`).
 
+
+## 14. Live view on the encounter (2026-11-25)
+
+- `src/domain/liveTracker.ts` — pure rules: `liveMilestones()` (Checked in → Eligibility → Note signed → Coded → 837P sent → 277CA → 835 received → Posted → Closed, with done/current/todo/problem) and `liveMoney()` (billed, allowed, paid, adjusted, patient owes — dashes until a remittance is posted). Read-only: derives from appointments, eligibility, `pipelineStore` status events, ledger and AR items; stores nothing new.
+- `src/components/live/LiveTracker.tsx` — strip under the encounter stepper: milestone pills with times, a "Next:" hint, money cells that flash when they change, Activity button.
+- `src/components/live/LiveEventCard.tsx` — "What just happened" card for each new status event (bottom-left on desktop, top on phones; hides after 9 s; motion off under reduced motion).
+- `src/components/live/ActivityDrawer.tsx` — side drawer with the full `StatusTimeline`.
+- `src/components/live/EncounterLiveView.tsx` — wires the three into `routes/index.tsx`.
+- The left-panel encounter timeline now shows for every role, not only the scribe.
