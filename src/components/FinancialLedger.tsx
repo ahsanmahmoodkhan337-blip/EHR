@@ -8,13 +8,15 @@
  */
 
 import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Activity, PiggyBank } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 interface FinancialLedgerProps {
   totalBilled: number;
   totalCollected: number;
   totalDenied: number;
   daysInAR: number;
+  /** CARCs on this encounter's denied 835 lines — one entry per adjustment. */
+  deniedCarcs?: string[];
 }
 
 const COLORS = {
@@ -25,7 +27,7 @@ const COLORS = {
   muted: "var(--color-ink-muted)",
 };
 
-export function FinancialLedger({ totalBilled, totalCollected, totalDenied, daysInAR }: FinancialLedgerProps) {
+export function FinancialLedger({ totalBilled, totalCollected, totalDenied, daysInAR, deniedCarcs = [] }: FinancialLedgerProps) {
   const cleanClaimRate = totalBilled > 0 ? Math.round(((totalBilled - totalDenied) / totalBilled) * 100) : 100;
   const netCollectionRate = totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 0;
   const rateColor = cleanClaimRate >= 90 ? "text-green-600 dark:text-green-400" : cleanClaimRate >= 75 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
@@ -36,23 +38,14 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
     { name: "Denied", value: totalDenied },
   ];
 
-  // Denial breakdown mock data
-  const denialBreakdown = [
-    { reason: "CO-16", count: 4 },
-    { reason: "CO-50", count: 3 },
-    { reason: "CO-119", count: 2 },
-    { reason: "PR-1", count: 1 },
-  ];
-
-  // Revenue trend mock data
-  const revenueTrend = [
-    { month: "Jan", revenue: 3200 },
-    { month: "Feb", revenue: 4100 },
-    { month: "Mar", revenue: 3800 },
-    { month: "Apr", revenue: 5200 },
-    { month: "May", revenue: 4800 },
-    { month: "Jun", revenue: 4500 },
-  ];
+  // Denials on this encounter's posted 835, by reason code. (Was a fixed mock
+  // list of CO-16/CO-50/... shown as if it were the student's own denials.)
+  const denialBreakdown = Object.entries(
+    deniedCarcs.reduce<Record<string, number>>((acc, code) => {
+      acc[code] = (acc[code] ?? 0) + 1;
+      return acc;
+    }, {}),
+  ).map(([reason, count]) => ({ reason, count }));
 
   return (
     <div className="space-y-3">
@@ -154,7 +147,8 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
       </div>
 
       {/* Denial Breakdown — Bar Chart */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
+      {denialBreakdown.length > 0 ? (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
         <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-2 block">Denial by Reason Code</span>
         <div className="h-24">
           <ResponsiveContainer width="100%" height="100%">
@@ -171,25 +165,12 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
           </ResponsiveContainer>
         </div>
       </div>
-
-      {/* Revenue Trend — Line Chart */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
-        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-2 block">Revenue Trend</span>
-        <div className="h-24">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={revenueTrend} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" />
-              <XAxis dataKey="month" tick={{ fontSize: 9, fill: "var(--color-ink-muted)" }} />
-              <YAxis tick={{ fontSize: 9, fill: "var(--color-ink-muted)" }} />
-              <Tooltip
-                contentStyle={{ fontSize: 10, borderRadius: 8, border: "1px solid var(--color-line)" }}
-                formatter={((value: number) => [`$${value.toLocaleString()}`, "Revenue"]) as any}
-              />
-              <Line type="monotone" dataKey="revenue" stroke={COLORS.primary} strokeWidth={2} dot={{ r: 2, fill: COLORS.primary }} />
-            </LineChart>
-          </ResponsiveContainer>
+      ) : (
+        <div className="rounded-xl border border-slate-200 bg-white p-3 text-[10px] text-slate-500 shadow-sm">
+          <span className="mb-1 block font-semibold text-slate-500">Denial by Reason Code</span>
+          No denied lines on this claim{totalBilled > 0 ? "" : " yet"}.
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -199,16 +199,24 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
   });
 
   // E/M calculator
-  const [emProblems, setEmProblems] = useState<number>(1);
-  const [emData, setEmData] = useState<number>(1);
-  const [emRisk, setEmRisk] = useState<string>("Low");
+  // An encounter that already carries an office E/M code (the Tutorial
+  // Patient's worked example, or codes submitted earlier) opens the calculator
+  // on that code's MDM level, so the worked example's 99214 is shown supported
+  // instead of the defaults recommending 99212 beside it.
+  const codedEm = E_M_LEVELS.find((l) => (state.cptCodes ?? []).includes(l.code));
+  const codedMdm = codedEm?.mdm ?? 1;
+  const [emProblems, setEmProblems] = useState<number>(codedMdm);
+  const [emData, setEmData] = useState<number>(codedMdm);
+  const [emRisk, setEmRisk] = useState<string>(
+    codedEm ? (["Minimal", "Low", "Moderate", "High"][codedMdm - 1] ?? "Low") : "Low",
+  );
   // Null until the student picks a patient type himself. The picker opens on
   // `defaultEmPatientType(...)` — a new-patient code on a first visit, the
   // established-patient default everywhere else — and a change here is the
   // student's own choice, kept for as long as this screen is open.
   const [emPatientTypeChoice, setEmPatientTypeChoice] = useState<EmPatientType | null>(null);
   const emPatientType: EmPatientType =
-    emPatientTypeChoice ?? defaultEmPatientType(firstVisit);
+    emPatientTypeChoice ?? (codedEm ? (codedEm.newPatient ? "new" : "established") : defaultEmPatientType(firstVisit));
 
   // Conventions panel
   const [showConventions, setShowConventions] = useState(false);

@@ -127,7 +127,6 @@ import { FadeTransition } from "../components/FadeTransition";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { hasVital, formatVital } from "../utils/vitals";
 import { FinancialLedger } from "../components/FinancialLedger";
-import { CPT_CODES } from "../components/CodingQueue/cptData";
 import { ToastProvider, useToast } from "../components/Toast";
 import { Skeleton } from "../components/Skeleton";
 import { CommandPalette } from "../components/CommandPalette";
@@ -1487,12 +1486,28 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
 
   // ── Right-panel financial KPIs — derived from REAL pipeline data ──
   // (was hardcoded 12500/8700/2400/32 demo figures)
-  const billedTotal = (pipelineState.cptCodes || []).reduce((sum, code) => {
-    const cpt = CPT_CODES.find((c) => c.code === code);
-    return sum + (cpt?.medicareRate ?? 0);
-  }, 0);
-  const deniedTotal = deniedClaims.reduce((sum, c) => sum + (c.amount || 0), 0);
-  const hasFinancialActivity = billedTotal > 0 || deniedTotal > 0 || pipelineState.status !== "pending";
+  // Every figure comes from the open encounter's own claim, 835 and ledger.
+  // Billed used to be read from a Medicare rate table ($160 beside a $280
+  // claim) and collected was the whole charge once the status said paid.
+  const financeEnc = getEncounter(activePatientId);
+  const claimChargeTotal = (financeEnc?.claimForm?.serviceLines ?? []).reduce(
+    (sum, line) => sum + (Number(line.charge) || 0) * (Number(line.units) > 0 ? Number(line.units) : 1),
+    0,
+  );
+  const financeBalance = ledgerBalance(financeEnc?.ledger);
+  const postedRemit = (financeEnc?.remittances ?? []).find((r) => r.postedAt);
+  const billedTotal = financeBalance.chargesCents > 0 ? financeBalance.chargesCents / 100 : claimChargeTotal;
+  const collectedTotal = (financeBalance.insurancePaidCents + financeBalance.patientPaidCents) / 100;
+  const deniedLinesTotal = postedRemit
+    ? postedRemit.lines.filter((l) => l.denied).reduce((sum, l) => sum + l.billedCents, 0) / 100
+    : 0;
+  const deniedTotal = deniedLinesTotal || deniedClaims.reduce((sum, c) => sum + (c.amount || 0), 0);
+  const deniedByCarc = postedRemit
+    ? postedRemit.lines
+        .filter((l) => l.denied)
+        .flatMap((l) => l.adjustments.map((a) => a.carc))
+    : [];
+  const hasFinancialActivity = billedTotal > 0 || deniedTotal > 0;
   const { addToast } = useToast();
   /**
    * The chart step on screen. Every patient opens on step 1, Registration, and
@@ -2502,7 +2517,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
           {currentRole !== "scribe" && (
             <div className="border-t border-slate-100 p-3">
               {hasFinancialActivity ? (
-                <FinancialLedger totalBilled={billedTotal} totalCollected={pipelineState.status === "paid" ? billedTotal : 0} totalDenied={deniedTotal} daysInAR={0} />
+                <FinancialLedger totalBilled={billedTotal} totalCollected={collectedTotal} totalDenied={deniedTotal} daysInAR={0} deniedCarcs={deniedByCarc} />
               ) : (
                 <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center">
                   <p className="text-[10px] font-medium text-slate-400">No financial activity yet</p>
