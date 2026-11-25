@@ -78,7 +78,7 @@ export function DentalClaimQueue({ embedded = false }: { embedded?: boolean } = 
           <h3 className="text-sm font-bold text-slate-800">Claim Status Queue</h3>
           <p className="text-xs text-slate-400">Track each claim through created → sent → paid/denied/appealed.</p>
         </div>
-        <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
+        <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700">
           {adjudication.lines.length} line{adjudication.lines.length === 1 ? "" : "s"}
         </span>
       </div>

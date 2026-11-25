@@ -35,6 +35,7 @@ import { findPlan, MEDICAL_CASE_SCENARIOS } from "../data/medical";
 import { DENTAL_CASE_SCENARIOS, findPlan as findDentalPlan } from "../data/dental";
 import { setActiveTrack, useActiveTrack } from "../components/shell/activeTrack";
 import type { ShellTrack } from "../components/shell/navItems";
+import { PageTitle } from "../components/shell/PageTitle";
 
 export const Route = createFileRoute("/cases/")({
   component: CasesListPage,
@@ -71,16 +72,10 @@ function CasesListPage() {
       }
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-slate-800">
-              Practice Cases — {track === "dental" ? "Dental RCM" : "Medical RCM"}
-            </h1>
-            <p className="mt-0.5 text-[11px] text-slate-500">
-              Every graded case runs the same eight stages — Front Desk, Chart, Coding, Prior Auth,
-              Claim, Remittance, AR, Debrief. Pick one to begin.
-            </p>
-          </div>
+        <PageTitle
+          title={`Practice Cases — ${track === "dental" ? "Dental RCM" : "Medical RCM"}`}
+          description="Every graded case runs the same eight stages — Front Desk, Chart, Coding, Prior Auth, Claim, Remittance, AR, Debrief. Pick one to begin."
+          actions={
           <button
             type="button"
             onClick={switchTrack}
@@ -88,14 +83,15 @@ function CasesListPage() {
           >
             {track === "dental" ? "Show medical cases" : "Show dental cases"}
           </button>
-        </div>
+          }
+        />
 
         {/* ── Medical ─────────────────────────────────────────────────── */}
         {track === "medical" && (
         <section aria-labelledby="cases-medical" className="mt-4">
           <div className="mb-2 flex items-center gap-2">
             <Stethoscope className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-            <h2 id="cases-medical" className="text-xs font-bold uppercase tracking-wide text-brand-700">
+            <h2 id="cases-medical" className="text-xs font-bold text-brand-700">
               Medical RCM
             </h2>
             <span className="text-xs font-medium text-brand-600">CPT / ICD-10 · CMS-1500</span>
@@ -109,7 +105,7 @@ function CasesListPage() {
                   className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${difficultyTone(scenario.difficulty)}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${difficultyTone(scenario.difficulty)}`}>
                       {scenario.difficulty}
                     </span>
                     <span className="text-xs text-slate-400">~{scenario.estimatedMinutes} min</span>
@@ -141,7 +137,7 @@ function CasesListPage() {
         <section aria-labelledby="cases-dental" className="mt-4">
           <div className="mb-2 flex items-center gap-2">
             <Smile className="h-4 w-4 shrink-0 text-teal-600" aria-hidden="true" />
-            <h2 id="cases-dental" className="text-xs font-bold uppercase tracking-wide text-teal-700">
+            <h2 id="cases-dental" className="text-xs font-bold text-teal-700">
               Dental RCM
             </h2>
             <span className="text-xs font-medium text-teal-600">CDT · ADA J430D</span>
@@ -149,7 +145,7 @@ function CasesListPage() {
 
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-200 bg-teal-50/60 p-3">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Practice AR</p>
+              <p className="text-xs font-semibold text-teal-700">Practice AR</p>
               <p className="mt-0.5 text-[11px] text-slate-600">
                 Seven premade denials, already adjudicated. No case to start, no coding first, and
                 nothing a graded case can see.
@@ -172,7 +168,7 @@ function CasesListPage() {
                   className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${difficultyTone(scenario.difficulty)}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${difficultyTone(scenario.difficulty)}`}>
                       {scenario.difficulty}
                     </span>
                     <span className="text-xs text-slate-400">~{scenario.estimatedMinutes} min</span>

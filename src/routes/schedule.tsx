@@ -20,6 +20,7 @@ import { PatientProvider } from "../store/patientStore";
 import { DailySchedule } from "../components/TabsEpic/DailySchedule";
 import { requestPatientOpen } from "../components/shell/pendingPatient";
 import { openingStageId } from "../domain/encounterRoute";
+import { PageTitle } from "../components/shell/PageTitle";
 
 export const Route = createFileRoute("/schedule")({
   component: () => (
@@ -45,13 +46,11 @@ function SchedulePage() {
       }
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
-          <h1 className="text-sm font-bold text-slate-800">Schedule</h1>
-          <p className="hidden text-[11px] text-slate-500 sm:block">
-            Book an appointment, then start the visit to open that patient&rsquo;s chart.
-          </p>
-        </div>
+        <PageTitle
+          icon={CalendarDays}
+          title="Schedule"
+          description={<>Book an appointment, check the patient in, then start the visit to open their chart.</>}
+        />
         <DailySchedule
           onSelectPatient={(patientId, name) => {
             // Start Visit is an explicit pick: the appointment's own patient, at

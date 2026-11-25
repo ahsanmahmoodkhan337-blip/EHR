@@ -145,7 +145,7 @@ export function GlobalPatientSearch({
       {isOpen && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-slate-600 bg-white shadow-2xl">
           {/* Results count */}
-          <div className="border-b border-slate-100 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+          <div className="border-b border-slate-100 px-3 py-1.5 text-[11px] font-medium text-slate-400">
             {filtered.length} patient{filtered.length !== 1 ? "s" : ""} found
           </div>
 

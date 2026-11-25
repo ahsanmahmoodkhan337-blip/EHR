@@ -38,7 +38,7 @@ import { DentalClaimScrub } from "./DentalClaimScrub";
 
 const style = {
   card: "clinical-card",
-  label: "text-xs font-semibold uppercase tracking-wider text-slate-500",
+  label: "text-xs font-semibold text-slate-500",
   input:
     "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500",
 };
@@ -498,7 +498,7 @@ export function DentalCodingQueue() {
 
         {/* claim-scrubbing edit checks (warnings, pre-submit) */}
         <div className={style.card + " p-3"}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Claim scrub</p>
+          <p className="mb-2 text-xs font-semibold text-slate-500">Claim scrub</p>
           <DentalClaimScrub />
         </div>
 
@@ -562,7 +562,7 @@ export function DentalCodingQueue() {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="mb-0.5 block text-xs font-semibold text-slate-500">{label}</span>
       {children}
     </label>
   );

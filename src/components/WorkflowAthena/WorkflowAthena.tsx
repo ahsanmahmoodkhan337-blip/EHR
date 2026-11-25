@@ -123,7 +123,7 @@ export function WorkflowAthena({
     <div className={className}>
       {/* Header with Progress */}
       <div className="mb-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+        <h3 className="text-sm font-semibold text-slate-500">
           Workflow
         </h3>
         <p className="text-xs text-slate-400">

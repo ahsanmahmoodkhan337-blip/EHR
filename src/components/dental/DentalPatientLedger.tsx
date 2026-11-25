@@ -22,7 +22,7 @@ import { LEDGER_ENTRY_LABELS, ledgerBalance, type LedgerEntry } from "../../doma
 
 const style = {
   card: "clinical-card",
-  label: "text-xs font-semibold uppercase tracking-wider text-slate-500",
+  label: "text-xs font-semibold text-slate-500",
   input:
     "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500",
 };
@@ -120,7 +120,7 @@ export function DentalPatientLedger({ embedded = false }: { embedded?: boolean }
             {activeCase ? `${activeCase.patient.firstName} ${activeCase.patient.lastName} · ${activeCase.patient.memberId}` : "No case loaded"}
           </p>
         </div>
-        <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
+        <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700">
           Dentrix-style account
         </span>
       </div>
@@ -341,7 +341,7 @@ function Stat({ label, value, tone, count }: { label: string; value: number; ton
     tone === "emerald" ? "text-emerald-600" : tone === "red" ? "text-red-600" : tone === "amber" ? "text-amber-600" : tone === "sky" ? "text-brand-600" : "text-slate-700";
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="text-[11px] font-semibold text-slate-400">{label}</p>
       <p className={`text-sm font-bold ${toneCls}`}>{count ? value : fmtDollar(value)}</p>
     </div>
   );
@@ -350,7 +350,7 @@ function Stat({ label, value, tone, count }: { label: string; value: number; ton
 function Bucket({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   return (
     <div className={`rounded-lg border px-2 py-1.5 ${highlight && value > 0 ? "border-red-200 bg-red-50" : "border-slate-200 bg-slate-50"}`}>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="text-[11px] font-semibold text-slate-400">{label}</p>
       <p className={`text-sm font-bold ${highlight && value > 0 ? "text-red-600" : "text-slate-700"}`}>{fmtDollar(value)}</p>
     </div>
   );

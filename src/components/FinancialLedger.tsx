@@ -51,7 +51,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
     <div className="space-y-3">
       <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-2">
         <PiggyBank className="h-4 w-4 text-brand-600 dark:text-brand-500" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Financial Ledger</span>
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Financial Ledger</span>
       </div>
 
       {/* Clean Claim Rate — Pie Chart */}

@@ -206,7 +206,7 @@ export function AccentPractice({ expectedText }: AccentPracticeProps) {
       {/* Live transcript */}
       {(listening || hasTranscript) && (
         <div className="mt-2 rounded bg-slate-50 p-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Live transcript</p>
+          <p className="text-[11px] font-semibold text-slate-500">Live transcript</p>
           <p className="mt-0.5 min-h-[1.25rem] text-xs leading-relaxed text-slate-700">
             {hasTranscript ? (
               <>

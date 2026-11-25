@@ -227,7 +227,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
         <span className="rounded bg-accent-50 px-2 py-0.5 text-xs font-medium text-accent-700">
           {plan ? `${plan.payerName} · ${plan.planName}` : "No plan selected"}
         </span>
-        <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
           Fictional payer · illustrative fees
         </span>
         {state.claimNumber && (
@@ -319,7 +319,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
               <span className="text-[11px] text-slate-400">DOS {claimLine.dateOfService}</span>
               <span className="ml-auto text-[11px] font-semibold text-slate-700">${claimLine.feeUsd.toFixed(2)}</span>
               {resolution && resolution !== "not-handled" && (
-                <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">
                   {resolution.replace(/-/g, " ")}
                 </span>
               )}
@@ -406,7 +406,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
                     <li key={i}>{a}</li>
                   ))}
                 </ol>
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-amber-500">
+                <p className="mt-1 text-[11px] font-semibold text-amber-500">
                   Never bill {downgrade.paidAtCode} in place of the delivered service.
                 </p>
               </div>
@@ -454,7 +454,7 @@ export function DentalBillingLedger({ embedded = false }: { embedded?: boolean }
         <Totals k="Contractual write-off" v={fmtUsd(adjudication.totals.writeOffUsd)} dim />
         <Totals k="Plan pays" v={fmtUsd(adjudication.totals.planPaysUsd)} green />
         <Totals k="Patient owes" v={fmtUsd(adjudication.totals.patientOwesUsd)} red />
-        <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
           Edit checks <DentalClaimScrub compact />
         </span>
         <button
@@ -490,13 +490,13 @@ function EobSummary({
       <div className="mb-2 flex items-center gap-1.5">
         <FileText className="h-3.5 w-3.5 text-slate-400" />
         <p className="text-xs font-bold text-slate-700">Explanation of Benefits (EOB)</p>
-        <span className="ml-auto text-[11px] uppercase tracking-wide text-slate-400">Illustrative teaching figures</span>
+        <span className="ml-auto text-[11px] text-slate-400">Illustrative teaching figures</span>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {/* deductible */}
         <div className="rounded-lg bg-slate-50 p-2">
-          <p className="text-[11px] uppercase tracking-wide text-slate-400">Deductible</p>
+          <p className="text-[11px] text-slate-400">Deductible</p>
           <p className="mt-0.5 text-[11px] font-semibold text-slate-700">
             {plan ? fmtUsd(plan.deductible.individualUsd) : "—"}{" "}
             <span className="font-normal text-slate-400">individual</span>
@@ -508,14 +508,14 @@ function EobSummary({
 
         {/* coinsurance */}
         <div className="rounded-lg bg-slate-50 p-2">
-          <p className="text-[11px] uppercase tracking-wide text-slate-400">Coinsurance (patient share)</p>
+          <p className="text-[11px] text-slate-400">Coinsurance (patient share)</p>
           <p className="mt-0.5 text-[11px] font-semibold text-slate-700">{fmtUsd(eob.coinsurancePatient)}</p>
           <p className="text-xs text-slate-500">Plan pays the balance at its class rate</p>
         </div>
 
         {/* annual maximum */}
         <div className="rounded-lg bg-slate-50 p-2">
-          <p className="text-[11px] uppercase tracking-wide text-slate-400">Annual maximum</p>
+          <p className="text-[11px] text-slate-400">Annual maximum</p>
           <p className="mt-0.5 text-[11px] font-semibold text-slate-700">
             {plan?.annualMaximumUsd != null ? fmtUsd(plan.annualMaximumUsd) : "No limit"}
           </p>
@@ -541,7 +541,7 @@ function EobTotal({ k, v, green, red, dim }: { k: string; v: string; green?: boo
   const color = green ? "text-emerald-600" : red ? "text-red-600" : dim ? "text-slate-400" : "text-slate-700";
   return (
     <span>
-      <span className="text-[11px] uppercase tracking-wide text-slate-400">{k} </span>
+      <span className="text-[11px] text-slate-400">{k} </span>
       <span className={`text-[11px] font-bold tabular-nums ${color}`}>{v}</span>
     </span>
   );
@@ -884,7 +884,7 @@ function DenialDetail({ denial }: { denial: DentalDenial }) {
 function Split({ k, v, c }: { k: string; v: string; c?: string }) {
   return (
     <div className="px-2 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-slate-400">{k}</p>
+      <p className="text-[11px] text-slate-400">{k}</p>
       <p className={`text-xs font-bold tabular-nums ${c ?? "text-slate-700"}`}>{v}</p>
     </div>
   );
@@ -894,7 +894,7 @@ function Totals({ k, v, highlight, green, red, dim }: { k: string; v: string; hi
   const color = green ? "text-emerald-600" : red ? "text-red-600" : dim ? "text-slate-400" : "text-slate-800";
   return (
     <span className={`rounded-lg px-2 py-1 ${highlight ? "bg-slate-100" : ""}`}>
-      <span className={`block text-[11px] uppercase tracking-wide ${dim ? "text-slate-400" : "text-slate-500"}`}>{k}</span>
+      <span className={`block text-[11px] ${dim ? "text-slate-400" : "text-slate-500"}`}>{k}</span>
       <span className={`text-xs font-bold tabular-nums ${color} ${highlight ? "text-base" : ""}`}>{v}</span>
     </span>
   );

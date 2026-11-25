@@ -191,7 +191,7 @@ export function AssessmentPlanStage({
           <div className="clinical-card">
             <div className="mb-2 flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-brand-600" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-brand-600">
+              <span className="text-xs font-semibold text-brand-600">
                 Subjective (S)
               </span>
               {showMacros && (
@@ -217,7 +217,7 @@ export function AssessmentPlanStage({
           <div className="clinical-card">
             <div className="mb-2 flex items-center gap-2">
               <Stethoscope className="h-4 w-4 text-green-600" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-green-600">
+              <span className="text-xs font-semibold text-green-600">
                 Objective (O)
               </span>
               {showMacros && (
@@ -243,7 +243,7 @@ export function AssessmentPlanStage({
           <div className="clinical-card">
             <div className="mb-2 flex items-center gap-2">
               <ClipboardCheck className="h-4 w-4 text-amber-600" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-amber-600">
+              <span className="text-xs font-semibold text-amber-600">
                 Assessment (A)
               </span>
               {showMacros && (
@@ -290,7 +290,7 @@ export function AssessmentPlanStage({
           <div className="clinical-card">
             <div className="mb-2 flex items-center gap-2">
               <FileText className="h-4 w-4 text-purple-600" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-purple-600">
+              <span className="text-xs font-semibold text-purple-600">
                 Plan (P)
               </span>
               {showMacros && (
@@ -319,7 +319,7 @@ export function AssessmentPlanStage({
             <div className="clinical-card">
               <div className="mb-2 flex items-center gap-2">
                 <Lightbulb className="h-4 w-4 text-amber-500" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <span className="text-xs font-semibold text-slate-500">
                   Macros
                 </span>
               </div>

@@ -36,7 +36,7 @@ import type { ReferenceTab } from "./ReferenceDrawer";
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-3 first:mt-0">
-      <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <h4 className="mb-1 text-xs font-bold text-slate-500 dark:text-slate-400">
         {title}
       </h4>
       {children}
@@ -105,7 +105,7 @@ export function CodeLookup({ scope }: { scope: "medical" | "dental" }) {
 
   return (
     <div>
-      <label htmlFor="reference-code-search" className="block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <label htmlFor="reference-code-search" className="block text-xs font-bold text-slate-500 dark:text-slate-400">
         Look up a code
       </label>
       <div className="relative mt-1">
@@ -137,7 +137,7 @@ export function CodeLookup({ scope }: { scope: "medical" | "dental" }) {
             <li key={`${hit.set}-${hit.code}`} className="rounded-lg border border-slate-200 px-2 py-1.5 dark:border-slate-700">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-100">{hit.code}</span>
-                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{hit.set}</span>
+                <span className="shrink-0 text-[11px] font-semibold text-slate-400">{hit.set}</span>
               </div>
               <p className="text-slate-700 dark:text-slate-200">{hit.label}</p>
               {hit.note && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{hit.note}</p>}
@@ -191,7 +191,7 @@ export function medicalReferenceTabs(
         <div className="rounded-xl border border-slate-300 bg-gradient-to-br from-slate-50 to-white p-3 shadow-sm dark:border-slate-600 dark:from-slate-800 dark:to-slate-900">
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="h-4 w-4 text-brand-600" aria-hidden="true" />
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-700 dark:text-slate-100">
+            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-100">
               {plan?.name ?? "— plan not recorded on this case"}
             </span>
           </div>
@@ -320,7 +320,7 @@ export function dentalReferenceTabs(scenario: DentalCaseScenario, plan?: DentalP
         <div className="rounded-xl border border-teal-300 bg-gradient-to-br from-teal-50 to-white p-3 shadow-sm dark:border-teal-700 dark:from-slate-800 dark:to-slate-900">
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="h-4 w-4 text-teal-600" aria-hidden="true" />
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-700 dark:text-slate-100">
+            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-100">
               {plan?.payerName ?? "— payer not recorded on this case"}
             </span>
           </div>

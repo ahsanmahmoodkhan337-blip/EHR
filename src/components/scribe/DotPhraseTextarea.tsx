@@ -181,7 +181,7 @@ export function DotPhraseTextarea({
       {query && suggestions.length > 0 && (
         <div className="absolute inset-x-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
           <div className="border-b border-slate-100 bg-slate-50 px-3 py-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-semibold text-slate-500">
               Dot phrases
             </p>
           </div>

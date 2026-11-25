@@ -90,7 +90,7 @@ export function Certificate({ studentName: propName, completedModules, score, da
 
                 {/* Modules */}
                 <div className="mb-6">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 text-center">
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mb-2 text-center">
                     Completed Modules
                   </p>
                   <div className="flex flex-wrap justify-center gap-2">

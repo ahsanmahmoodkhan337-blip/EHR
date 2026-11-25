@@ -143,7 +143,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
     <div className="rounded-lg border border-slate-200 p-2">
       <label
         htmlFor={`active-note-${key}`}
-        className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${tone}`}
+        className={`mb-1 block text-xs font-semibold ${tone}`}
       >
         {label}
       </label>
@@ -234,7 +234,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
           <div>
             <span className="font-medium text-slate-600">Status:</span>{" "}
             <span
-              className={`rounded px-1.5 py-0.5 text-xs font-semibold uppercase ${
+              className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
                 status === "signed"
                   ? "bg-green-100 text-green-700"
                   : status === "draft"
@@ -260,7 +260,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
           <div className="space-y-3 text-sm">
             {(["subjective", "objective", "assessment", "plan"] as const).map((key) => (
               <div key={key}>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <p className="mb-1 text-xs font-semibold text-slate-500">
                   {key}
                 </p>
                 <p className="whitespace-pre-wrap text-slate-700">

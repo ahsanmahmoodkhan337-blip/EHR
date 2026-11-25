@@ -33,7 +33,7 @@ import { adjudicateDentalClaim } from "./adjudication";
 
 const style = {
   card: "rounded-xl border border-slate-200 bg-white shadow-sm",
-  label: "text-xs font-semibold uppercase tracking-wider text-slate-500",
+  label: "text-xs font-semibold text-slate-500",
   input:
     "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500",
 };
@@ -213,7 +213,7 @@ export function DentalTreatmentPlan() {
         {/* case hint */}
         {activeCase && (
           <div className="rounded-xl border border-teal-100 bg-teal-50 p-3">
-            <p className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-teal-700">
+            <p className="flex items-center gap-1 text-xs font-semibold text-teal-700">
               <Stethoscope className="h-3 w-3" /> Case treatment performed
             </p>
             <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px] text-teal-800">
@@ -240,7 +240,7 @@ export function DentalTreatmentPlan() {
 
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               <label className="block">
-                <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Date of service</span>
+                <span className="mb-0.5 block text-xs font-semibold text-slate-500">Date of service</span>
                 <input
                   type="date"
                   value={draft.dateOfService}
@@ -249,7 +249,7 @@ export function DentalTreatmentPlan() {
                 />
               </label>
               <label className="block">
-                <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Fee (USD, illustrative)</span>
+                <span className="mb-0.5 block text-xs font-semibold text-slate-500">Fee (USD, illustrative)</span>
                 <input
                   type="number"
                   min={0}
@@ -262,7 +262,7 @@ export function DentalTreatmentPlan() {
               </label>
               {needs("tooth") && (
                 <label className="block">
-                  <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Tooth (Universal)</span>
+                  <span className="mb-0.5 block text-xs font-semibold text-slate-500">Tooth (Universal)</span>
                   <select
                     value={draft.tooth ?? ""}
                     onChange={(e) => setDraft({ ...draft, tooth: e.target.value || undefined, surfaces: undefined })}
@@ -279,7 +279,7 @@ export function DentalTreatmentPlan() {
               )}
               {(needs("quadrant") || needs("arch") || needs("oral-cavity-area")) && (
                 <label className="block">
-                  <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <span className="mb-0.5 block text-xs font-semibold text-slate-500">
                     {needs("quadrant") ? "Quadrant" : needs("arch") ? "Arch" : "Area"}
                   </span>
                   <select
@@ -298,7 +298,7 @@ export function DentalTreatmentPlan() {
               )}
               {needs("surface") && draft.tooth && (
                 <div className="col-span-2 sm:col-span-3">
-                  <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Surfaces</span>
+                  <span className="mb-0.5 block text-xs font-semibold text-slate-500">Surfaces</span>
                   <div className="flex flex-wrap gap-1">
                     {(findTooth(draft.tooth)?.validSurfaces ?? []).map((s) => (
                       <button

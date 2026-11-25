@@ -436,3 +436,13 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - Table scroll wrappers are `relative overflow-x-auto` so absolutely positioned children (sr-only
   labels) stay inside them; `/patients` no longer scrolls sideways at 390 px.
 
+## 12. Interface consistency, part 4 — titles and labels (2026-11-25)
+
+- `shell/PageTitle.tsx` — the one page title block (24 px title, purpose line, optional meta and
+  actions). Used by `RailPageFrame` (Claims, Payments, Denials and AR, Reports) and by Dashboard,
+  Schedule, Patients, Charts, Reference, Practice Cases, Settings; the patient hub matches its size.
+- All-caps tracked labels → sentence case (156 class strings in 49 files plus `.clinical-label`,
+  `.clinical-table th`, `.data-table th`, `.section-header`). The claim paper keeps capitals like
+  the printed forms; "BREAK GLASS" and "GOOD FAITH ESTIMATE" stay as written.
+- Settings no longer prints the student's phone number in its title block.
+

@@ -103,7 +103,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
 
       {/* Chief Complaint */}
       <div className="border-b border-slate-200 bg-amber-50 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+        <p className="text-xs font-semibold text-amber-700">
           Chief Complaint
         </p>
         <p className="text-sm font-medium text-amber-900">
@@ -115,7 +115,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
       <div className="border-b border-slate-200 p-3">
         <div className="mb-2 flex items-center gap-1.5">
           <Activity className="h-4 w-4 text-brand-600" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <span className="text-xs font-semibold text-slate-500">
             Latest Vitals
           </span>
           {editableVitals && <span className="text-[11px] text-brand-500 italic">(live)</span>}
@@ -148,7 +148,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
       <div className="border-b border-slate-200 p-3">
         <div className="mb-2 flex items-center gap-1.5">
           <Stethoscope className="h-4 w-4 text-brand-600" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <span className="text-xs font-semibold text-slate-500">
             Active Problems
           </span>
         </div>
@@ -168,7 +168,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
       <div className="border-b border-slate-200 p-3">
         <div className="mb-2 flex items-center gap-1.5">
           <Pill className="h-4 w-4 text-brand-600" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <span className="text-xs font-semibold text-slate-500">
             Active Medications ({((editablePatientData?.medications)?.length ?? patient.medications?.filter(m => m.status === "active")?.length ?? 0)})
           </span>
         </div>
@@ -191,7 +191,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
       <div className="border-b border-slate-200 p-3">
         <div className="mb-2 flex items-center gap-1.5">
           <AlertTriangle className="h-4 w-4 text-red-500" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <span className="text-xs font-semibold text-slate-500">
             Allergies
           </span>
         </div>
@@ -223,7 +223,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
         <div className="border-b border-slate-200 p-3">
           <div className="mb-2 flex items-center gap-1.5">
             <Shield className="h-3.5 w-3.5 text-brand-600" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-600">
+            <span className="text-xs font-semibold text-brand-600">
               Prior Authorization
             </span>
           </div>
@@ -286,7 +286,7 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
         <div className="border-b border-slate-200 p-3">
           <div className="mb-1 flex items-center gap-1.5">
             <FileText className="h-3.5 w-3.5 text-slate-500" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">SOAP Note</span>
+            <span className="text-xs font-semibold text-slate-500">SOAP Note</span>
           </div>
           <div className="space-y-1 text-xs">
             {soapNote.subjective && <p><span className="font-semibold text-brand-600">S:</span> {soapNote.subjective.slice(0, 100)}{soapNote.subjective.length > 100 ? "..." : ""}</p>}
@@ -300,31 +300,31 @@ export function RightPaneleCW({ patient, displayName, editableVitals, editablePa
       {/* Shared Data: Immunizations, Labs, Referrals, Orders, Imaging */}
       {sharedImmunizations && sharedImmunizations.length > 0 && (
         <div className="border-b border-slate-200 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-green-600 mb-1">Immunizations</p>
+          <p className="text-xs font-semibold text-green-600 mb-1">Immunizations</p>
           <div className="flex flex-wrap gap-1">{sharedImmunizations.map((item, i) => <span key={i} className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">{item.vaccine}</span>)}</div>
         </div>
       )}
       {sharedLabs && sharedLabs.length > 0 && (
         <div className="border-b border-slate-200 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">Labs</p>
+          <p className="text-xs font-semibold text-brand-600 mb-1">Labs</p>
           <div className="space-y-0.5">{sharedLabs.map((item, i) => <p key={i} className="text-xs text-slate-600">{item}</p>)}</div>
         </div>
       )}
       {sharedReferrals && sharedReferrals.length > 0 && (
         <div className="border-b border-slate-200 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">Referrals</p>
+          <p className="text-xs font-semibold text-brand-600 mb-1">Referrals</p>
           <div className="flex flex-wrap gap-1">{sharedReferrals.map((item, i) => <span key={i} className="rounded bg-brand-50 px-1.5 py-0.5 text-xs text-brand-700">{item.specialty}</span>)}</div>
         </div>
       )}
       {sharedOrders && sharedOrders.length > 0 && (
         <div className="border-b border-slate-200 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">Orders</p>
+          <p className="text-xs font-semibold text-brand-600 mb-1">Orders</p>
           <div className="space-y-0.5">{sharedOrders.map((item, i) => <p key={i} className="text-xs text-slate-600">{item.item}</p>)}</div>
         </div>
       )}
       {sharedImaging && sharedImaging.length > 0 && (
         <div className="border-b border-slate-200 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 mb-1">Imaging</p>
+          <p className="text-xs font-semibold text-brand-600 mb-1">Imaging</p>
           <div className="flex flex-wrap gap-1">{sharedImaging.map((item, i) => <span key={i} className="rounded bg-brand-50 px-1.5 py-0.5 text-xs text-brand-700">{item.study}</span>)}</div>
         </div>
       )}

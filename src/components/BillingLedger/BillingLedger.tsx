@@ -1472,7 +1472,7 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
                           <span className="min-w-[36px] font-mono font-bold text-brand-600">Box {block.box}</span>
                           <span className="font-medium text-slate-700">{block.label}</span>
                           {block.autoFilled && (
-                            <span className="rounded bg-brand-50 px-1 text-[11px] font-semibold uppercase text-brand-600">auto-filled</span>
+                            <span className="rounded bg-brand-50 px-1 text-[11px] font-semibold text-brand-600">auto-filled</span>
                           )}
                         </div>
                         <p className="mt-0.5 text-slate-500">{block.description}</p>

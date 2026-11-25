@@ -165,7 +165,7 @@ export function DentalPredetermination() {
 
       {/* ── 0. Predetermination of benefits for your plan ───────────── */}
       <div className="mb-3">
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <p className="mb-1.5 text-xs font-semibold text-slate-500">
           Predetermination for your plan
         </p>
         {estimateLines.length === 0 ? (
@@ -200,7 +200,7 @@ export function DentalPredetermination() {
 
       {/* ── 1. Required attachments per line ─────────────────────────── */}
       <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <p className="mb-2 text-xs font-semibold text-slate-500">
           Required attachments {services.length > 0 ? `(${services.length} service${services.length === 1 ? "" : "s"})` : ""}
         </p>
         {services.length === 0 && (
@@ -240,7 +240,7 @@ export function DentalPredetermination() {
 
                 {candidate && driver && (
                   <div className="mt-1.5 rounded-md bg-teal-50 px-2 py-1.5 ring-1 ring-teal-100">
-                    <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase text-teal-700">
+                    <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[11px] font-semibold text-teal-700">
                       Predetermination candidate · {DRIVER_LABEL[driver]}
                     </span>
                     <p className="mt-1 text-xs leading-snug text-teal-800">{candidate.guidance}</p>
@@ -291,7 +291,7 @@ export function DentalPredetermination() {
 
       {/* ── 2. Predetermination scenarios ────────────────────────────── */}
       <div className="mt-3">
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <p className="mb-1.5 text-xs font-semibold text-slate-500">
           Predetermination scenarios
         </p>
         <div className="grid gap-2 md:grid-cols-3">
@@ -397,7 +397,7 @@ export function DentalPredetermination() {
               <PredeterminationEstimate scenario={selectedScenario} />
 
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                <p className="text-xs font-semibold text-amber-700">
                   Trap: {selectedScenario.trap.title}
                 </p>
                 <p className="mt-1 text-xs leading-snug text-amber-800">
@@ -447,7 +447,7 @@ function ScenarioCard({
       <div className="flex items-center gap-1.5">
         <span className="text-[11px] font-bold text-slate-800">{scenario.id}</span>
         <span
-          className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold uppercase ${
+          className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
             scenario.difficulty === "beginner"
               ? "bg-emerald-50 text-emerald-700"
               : scenario.difficulty === "intermediate"

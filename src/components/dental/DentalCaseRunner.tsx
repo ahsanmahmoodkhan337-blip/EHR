@@ -123,7 +123,7 @@ function ClaimStage() {
     <section key="form" aria-labelledby="dental-claim-form">
       <h3
         id="dental-claim-form"
-        className="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"
+        className="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-500"
       >
         The claim — ADA 2019 (J430)
       </h3>
@@ -135,7 +135,7 @@ function ClaimStage() {
     <section key="status" aria-labelledby="dental-claim-status" className="border-t-4 border-slate-100">
       <h3
         id="dental-claim-status"
-        className="border-b border-slate-200 bg-white px-4 pt-3 pb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"
+        className="border-b border-slate-200 bg-white px-4 pt-3 pb-1.5 text-xs font-bold text-slate-500"
       >
         Submission status and the 277CA
       </h3>
@@ -328,7 +328,7 @@ function CaseSelect() {
       {/* Track identity banner — makes it unambiguous which RCM track this is. */}
       <div className="mb-3 flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 ring-1 ring-teal-100">
         <Smile className="h-4 w-4 shrink-0 text-teal-600" />
-        <span className="text-xs font-bold uppercase tracking-wide text-teal-700">Dental RCM Track</span>
+        <span className="text-xs font-bold text-teal-700">Dental RCM Track</span>
         <span className="ml-auto text-xs font-medium text-teal-600">CDT · ADA J430D</span>
       </div>
 
@@ -350,14 +350,14 @@ function CaseSelect() {
       {/* Two equally weighted ways in: a graded case, or the AR bench. */}
       <div className="mb-3 grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Graded cases</p>
+          <p className="text-xs font-semibold text-teal-700">Graded cases</p>
           <p className="mt-1 text-[11px] text-slate-600">
             Work a patient from treatment plan to claim and AR. Scored against the case rubric.
           </p>
           <p className="mt-1 text-xs text-slate-500">{DENTAL_CASE_SCENARIOS.length} cases below.</p>
         </div>
         <div className="rounded-xl border border-teal-200 bg-white p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Practice AR</p>
+          <p className="text-xs font-semibold text-teal-700">Practice AR</p>
           <p className="mt-1 text-[11px] text-slate-600">
             Premade denials, already adjudicated. Jump straight into the AR workspace and work them — no case to
             start, no coding first, and nothing a graded case can see.
@@ -387,7 +387,7 @@ function CaseCard({ c, onBegin }: { c: DentalCaseScenario; onBegin: () => void }
   return (
     <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${difficultyColor}`}>{c.difficulty}</span>
+        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${difficultyColor}`}>{c.difficulty}</span>
         <span className="text-xs text-slate-400">~{c.estimatedMinutes} min</span>
       </div>
       <h4 className="mt-2 text-sm font-bold text-slate-800">{c.title}</h4>
@@ -454,7 +454,7 @@ function Briefing() {
             Remaining annual max: {eligibilitySnapshot.remainingAnnualMaximumUsd === null ? "uncapped" : `$${eligibilitySnapshot.remainingAnnualMaximumUsd}`} ·
             Deductible met: ${eligibilitySnapshot.deductibleMetUsd}
           </p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Paid history (may include another practice)</p>
+          <p className="mt-1 text-[11px] font-semibold text-slate-400">Paid history (may include another practice)</p>
           <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {eligibilitySnapshot.paidHistory.map((h, i) => (
               <li key={i}>
@@ -465,7 +465,7 @@ function Briefing() {
             ))}
             {eligibilitySnapshot.paidHistory.length === 0 && <li className="text-slate-400">No prior paid services on file.</li>}
           </ul>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Rep notes</p>
+          <p className="mt-1 text-[11px] font-semibold text-slate-400">Rep notes</p>
           <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {eligibilitySnapshot.representativeNotes.map((n, i) => (
               <li key={i}>{n}</li>
@@ -481,7 +481,7 @@ function Briefing() {
             ))}
           </ul>
           <p className="mt-1 text-xs text-slate-600">{clinicalNote.diagnosisNarrative}</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Treatment performed</p>
+          <p className="mt-1 text-[11px] font-semibold text-slate-400">Treatment performed</p>
           <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {clinicalNote.treatmentPerformed.map((t, i) => (
               <li key={i}>{t}</li>
@@ -694,7 +694,7 @@ function Debrief() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mt-3">
-      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+      <p className="mb-1.5 text-xs font-semibold text-slate-500">{title}</p>
       {children}
     </div>
   );

@@ -114,7 +114,7 @@ export function ClaimAckChip({ ack }: { ack: ClaimAck | null }) {
   const accepted = ack.category === "A1";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold ${
         accepted ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"
       }`}
     >

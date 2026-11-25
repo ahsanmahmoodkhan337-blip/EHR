@@ -562,7 +562,7 @@ function AdminPage() {
             <div className="relative overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-700 text-xs uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-slate-700 text-xs text-slate-400">
                     <th className="px-3 py-2 font-medium">Name</th>
                     <th className="px-3 py-2 font-medium">Phone</th>
                     <th className="px-3 py-2 font-medium">Payment</th>
@@ -868,7 +868,7 @@ function ScenarioBuilder() {
       <div className="grid grid-cols-5 gap-2">
         {["bp", "hr", "temp", "rr", "o2"].map(v => (
           <div key={v}>
-            <label className="mb-1 block text-[11px] font-medium text-slate-400 uppercase">{v}</label>
+            <label className="mb-1 block text-[11px] font-medium text-slate-400">{v}</label>
             <input type="text" value={(form.vitals as any)[v]} onChange={e => updateVital(v, e.target.value)} className="w-full rounded border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white outline-none focus:border-brand-400" />
           </div>
         ))}

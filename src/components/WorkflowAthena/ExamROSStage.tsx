@@ -273,7 +273,7 @@ export function ExamROSStage({ patientName, note, onNoteChange, vitals }: ExamRO
             >
               <div className="mb-2 flex items-center gap-2">
                 <Stethoscope className="h-4 w-4 text-slate-500" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <span className="text-xs font-semibold text-slate-500">
                   {system.label}
                 </span>
                 {abnormalCount > 0 && (

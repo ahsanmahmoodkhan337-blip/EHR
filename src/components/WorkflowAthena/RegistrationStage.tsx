@@ -385,15 +385,15 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
       <div className="rounded-xl border-2 border-yellow-400 bg-yellow-50 p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-2 border-b border-yellow-200 pb-2">
           <IdCard className="h-5 w-5 shrink-0 text-yellow-700" />
-          <span className="text-sm font-bold uppercase tracking-wider text-yellow-800">Driver's License</span>
+          <span className="text-sm font-bold text-yellow-800">Driver's License</span>
           <span className="ml-auto text-xs text-yellow-600">State of {onFileOr(card.licenceState)}</span>
         </div>
         <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-          <p><span className="text-xs font-semibold uppercase text-yellow-700">Name</span><br /><span className="font-medium text-slate-800">{onFileOr(card.fullName)}</span></p>
-          <p><span className="text-xs font-semibold uppercase text-yellow-700">DOB</span><br /><span className="font-medium text-slate-800">{onFileOr(card.dateOfBirth)}</span></p>
-          <p><span className="text-xs font-semibold uppercase text-yellow-700">Sex</span><br /><span className="font-medium text-slate-800">{onFileOr(card.sex)}</span></p>
-          <p><span className="text-xs font-semibold uppercase text-yellow-700">License #</span><br /><span className="font-medium text-slate-800">{onFileOr(card.licenceNumber)}</span></p>
-          <p className="sm:col-span-2"><span className="text-xs font-semibold uppercase text-yellow-700">Address</span><br /><span className="font-medium text-slate-800">{onFileOr(card.address)}</span></p>
+          <p><span className="text-xs font-semibold text-yellow-700">Name</span><br /><span className="font-medium text-slate-800">{onFileOr(card.fullName)}</span></p>
+          <p><span className="text-xs font-semibold text-yellow-700">DOB</span><br /><span className="font-medium text-slate-800">{onFileOr(card.dateOfBirth)}</span></p>
+          <p><span className="text-xs font-semibold text-yellow-700">Sex</span><br /><span className="font-medium text-slate-800">{onFileOr(card.sex)}</span></p>
+          <p><span className="text-xs font-semibold text-yellow-700">License #</span><br /><span className="font-medium text-slate-800">{onFileOr(card.licenceNumber)}</span></p>
+          <p className="sm:col-span-2"><span className="text-xs font-semibold text-yellow-700">Address</span><br /><span className="font-medium text-slate-800">{onFileOr(card.address)}</span></p>
         </div>
       </div>
 
@@ -401,17 +401,17 @@ export function RegistrationStage({ patientId, readOnly = false }: RegistrationS
       <div className="rounded-xl border-2 border-brand-300 bg-brand-50 p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-2 border-b border-brand-200 pb-2">
           <CreditCard className="h-5 w-5 shrink-0 text-brand-700" />
-          <span className="text-sm font-bold uppercase tracking-wider text-brand-800">Insurance Card — Front</span>
+          <span className="text-sm font-bold text-brand-800">Insurance Card — Front</span>
           <span className="ml-auto max-w-full truncate rounded bg-brand-200 px-2 py-0.5 text-xs font-bold text-brand-800">{onFileOr(card.payerName)}</span>
         </div>
         <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           {/* What the card prints — the case's one deliberate misspelling lives here. */}
-          <p><span className="text-xs font-semibold uppercase text-brand-700">Member Name</span><br /><span className="font-medium text-slate-800">{onFileOr(mismatch ? mismatch.onCard : card.fullName)}</span></p>
-          <p><span className="text-xs font-semibold uppercase text-brand-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.memberId)}</span></p>
-          <p><span className="text-xs font-semibold uppercase text-brand-700">Group Number</span><br /><span className="font-medium text-slate-800">{onFileOr(card.groupNumber)}</span></p>
-          <p><span className="text-xs font-semibold uppercase text-brand-700">Payer ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.payerId)}</span></p>
-          <p><span className="text-xs font-semibold uppercase text-brand-700">Plan</span><br /><span className="font-medium text-slate-800">{onFileOr(card.planName)}</span></p>
-          <p><span className="text-xs font-semibold uppercase text-brand-700">Relationship</span><br /><span className="font-medium text-slate-800">{onFileOr(card.relationship)}</span></p>
+          <p><span className="text-xs font-semibold text-brand-700">Member Name</span><br /><span className="font-medium text-slate-800">{onFileOr(mismatch ? mismatch.onCard : card.fullName)}</span></p>
+          <p><span className="text-xs font-semibold text-brand-700">Subscriber ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.memberId)}</span></p>
+          <p><span className="text-xs font-semibold text-brand-700">Group Number</span><br /><span className="font-medium text-slate-800">{onFileOr(card.groupNumber)}</span></p>
+          <p><span className="text-xs font-semibold text-brand-700">Payer ID</span><br /><span className="font-medium text-slate-800">{onFileOr(card.payerId)}</span></p>
+          <p><span className="text-xs font-semibold text-brand-700">Plan</span><br /><span className="font-medium text-slate-800">{onFileOr(card.planName)}</span></p>
+          <p><span className="text-xs font-semibold text-brand-700">Relationship</span><br /><span className="font-medium text-slate-800">{onFileOr(card.relationship)}</span></p>
         </div>
         {/* Read the card, then the count. The two things this panel owes the
             student: the gate that unlocks the boxes below, and — only after they
