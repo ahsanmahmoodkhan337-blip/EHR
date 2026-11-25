@@ -60,8 +60,12 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
         {demoPatient && (
           <div
             key="DEMO"
+            role="button"
+            tabIndex={0}
+            aria-current={selectedPatientId === "DEMO" ? "true" : undefined}
             onClick={() => onPatientSelect(demoPatient.id)}
-            className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-2.5 transition-all duration-200 ${
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onPatientSelect(demoPatient.id); } }}
+            className={`flex cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 items-center gap-3 rounded-xl border-2 p-2.5 transition-all duration-200 ${
               selectedPatientId === "DEMO"
                 ? "border-amber-400 bg-amber-50 shadow-md"
                 : "border-amber-300/60 bg-amber-50/40 hover:border-amber-400 hover:shadow-sm"
@@ -126,8 +130,12 @@ export function WorklistPanel({ patients, selectedPatientId, onPatientSelect }: 
           return (
             <div
               key={p.id}
+              role="button"
+              tabIndex={0}
+              aria-current={isSelected ? "true" : undefined}
               onClick={() => onPatientSelect(p.id)}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 transition-all duration-200 ${
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onPatientSelect(p.id); } }}
+              className={`flex cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 items-center gap-3 rounded-xl border p-2.5 transition-all duration-200 ${
                 isSelected
                   ? "border-brand-200 bg-brand-50 shadow-sm"
                   : "border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-sm"
