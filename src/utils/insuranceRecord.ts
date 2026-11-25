@@ -84,6 +84,7 @@ export function buildInsuranceRecord(input: {
   secondary?: Partial<InsuranceCoverage> | null;
   source?: PatientInsurance["source"];
   updatedAt?: string;
+  cardIssued?: boolean;
 }): PatientInsurance {
   const secondary = normaliseCoverage(input.secondary);
   return {
@@ -91,6 +92,7 @@ export function buildInsuranceRecord(input: {
     secondary: hasCoverage(secondary) ? secondary : null,
     source: input.source ?? "registration",
     updatedAt: input.updatedAt ?? new Date().toISOString(),
+    ...(input.cardIssued !== undefined ? { cardIssued: input.cardIssued } : {}),
   };
 }
 

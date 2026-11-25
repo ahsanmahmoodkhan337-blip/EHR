@@ -10,16 +10,18 @@
  * Inspiration: Epic Cogito / 3M 360 Encompass / AAPC CPC curriculum
  */
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Search, Code, BookOpen, ArrowRight, CheckCircle2, AlertTriangle, FileText, Info, ArrowUp, ArrowDown, Link2, DollarSign, Hash, Activity, Star, ChevronDown, ChevronRight } from "lucide-react";
 import { usePipeline, type ClaimServiceLine } from "../../store/pipelineStore";
 import { MEDICAL_PROVIDER_PROFILE } from "../../data/claims/providerProfile";
 import { ICD10_CODES, searchICD10, type ICD10Code } from "./icd10Data";
 import { CPT_CODES, searchCPT, type CPTCode } from "./cptData";
 import { MODIFIER_REFERENCE, POS_REFERENCE } from "./modifierPosData";
+import { mdmLevelFromElements } from "../../domain/mdm";
+import { clearCodingDraft, codingDraftKey, readCodingDraft, writeCodingDraft } from "./codingDraft";
 import { PA_PROCEDURES } from "../PriorAuthPortal/paData";
 import { scoreCoder, updateStageScore, getStudentName } from "../../utils/scoring";
-import { noteFieldsOf, noteStatus } from "../../domain/noteStatus";
+import { noteFieldsOf } from "../../domain/noteStatus";
 import { useEncounterPatientId, useIsFirstVisit } from "../../utils/encounterPatient";
 import {
   defaultEmPatientType,
@@ -29,18 +31,25 @@ import {
 
 // ─── PA Trigger Codes & Keywords ────────────────────────────────────
 
-const PA_ICD_CODES = [
-  "C50", "C61", "M17.11", "I21.0", "I50.9", "J44.1", "K35.80", "N63.01", "E11.40",
-  "C25", "C34", "C56", "C61", "C64", "C67", "M16.11", "M17.11", "M25.561",
-  "I25.10", "I48.91", "I50.22", "I50.32", "N18.30", "E11.40", "E11.41",
-];
 
 const PA_KEYWORDS = [
-  "surgery", "procedure", "MRI", "CT scan", "biopsy", "replacement",
+  "surgery", "MRI", "CT scan", "biopsy", "replacement",
   "transplant", "cath lab", "stent", "implant", "arthroplasty",
   "endoscopy", "colonoscopy", "bypass", "laparoscopic", "arthroscopic",
   "catheter", "pacemaker", "defibrillator", "graft", "resection",
 ];
+
+/**
+ * The PA keywords the note mentions, as whole words in any case. A plain
+ * substring test flagged "stent" inside "consistent" and never matched "MRI" or
+ * "CT scan" against the lower-cased note.
+ */
+export function paKeywordsIn(noteText: string): string[] {
+  return PA_KEYWORDS.filter((kw) => {
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+    return new RegExp(`\\b${escaped}\\b`, "i").test(noteText);
+  });
+}
 
 const PA_MEDICATIONS = [
   "humira", "enbrel", "stelara", "xeljanz", "orencia", "actemra",
@@ -119,6 +128,7 @@ const CONVENTIONS = [
 // ─── Component ────────────────────────────────────────────────────
 
 import { ReadOnlyNote, readOnlyAttrs, readOnlyNoteId } from "../shell/ReadOnlyStage";
+import { localDay } from "../../utils/localDay";
 
 /** The reason drawn under the Submit button, at the point of the click. */
 const CODING_SUBMIT_REASON = readOnlyNoteId("coding-submit");
@@ -157,33 +167,56 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
   const [icdQuery, setIcdQuery] = useState("");
   const [cptQuery, setCptQuery] = useState("");
 
-  // Ordered ICD-10 list with priority (position = priority)
-  const [selectedICDs, setSelectedICDs] = useState<ICD10Code[]>(
-    state.icdCodes.length > 0
-      ? ICD10_CODES.filter(c => state.icdCodes.includes(c.code))
-      : []
+  // Codes picked but not yet submitted are kept as a draft for this patient, so
+  // leaving the stage (Back, the stepper, a work-queue row) and coming back does
+  // not wipe the coder's work. The draft is dropped once the codes are submitted.
+  const draftKey = useMemo(() => codingDraftKey(patientId), [patientId]);
+  const [draft] = useState(() =>
+    state.icdCodes.length === 0 && state.cptCodes.length === 0 && !readOnly
+      ? readCodingDraft(draftKey)
+      : null,
   );
+
+  // Ordered ICD-10 list with priority (position = priority)
+  const [selectedICDs, setSelectedICDs] = useState<ICD10Code[]>(() => {
+    const codes = state.icdCodes.length > 0 ? state.icdCodes : draft?.icd ?? [];
+    // Keep the coder's priority order, not the code table's order.
+    return codes
+      .map((code) => ICD10_CODES.find((c) => c.code === code))
+      .filter((c): c is ICD10Code => Boolean(c));
+  });
 
   // Per-CPT data: each CPT gets its own modifiers, linked ICDs, units, charges
-  const [cptDataMap, setCptDataMap] = useState<Record<string, CPTCodeData>>({});
-  // Base CPT list (the codes themselves)
-  const [selectedCPTs, setSelectedCPTs] = useState<CPTCode[]>(
-    state.cptCodes.length > 0
-      ? CPT_CODES.filter(c => state.cptCodes.includes(c.code))
-      : []
+  const [cptDataMap, setCptDataMap] = useState<Record<string, CPTCodeData>>(
+    () => (draft?.cptData as Record<string, CPTCodeData> | undefined) ?? {},
   );
+  // Base CPT list (the codes themselves)
+  const [selectedCPTs, setSelectedCPTs] = useState<CPTCode[]>(() => {
+    const codes = state.cptCodes.length > 0 ? state.cptCodes : draft?.cpt ?? [];
+    return codes
+      .map((code) => CPT_CODES.find((c) => c.code === code))
+      .filter((c): c is CPTCode => Boolean(c));
+  });
 
   // E/M calculator
-  const [emProblems, setEmProblems] = useState<number>(1);
-  const [emData, setEmData] = useState<number>(1);
-  const [emRisk, setEmRisk] = useState<string>("Low");
+  // An encounter that already carries an office E/M code (the Tutorial
+  // Patient's worked example, or codes submitted earlier) opens the calculator
+  // on that code's MDM level, so the worked example's 99214 is shown supported
+  // instead of the defaults recommending 99212 beside it.
+  const codedEm = E_M_LEVELS.find((l) => (state.cptCodes ?? []).includes(l.code));
+  const codedMdm = codedEm?.mdm ?? 1;
+  const [emProblems, setEmProblems] = useState<number>(codedMdm);
+  const [emData, setEmData] = useState<number>(codedMdm);
+  const [emRisk, setEmRisk] = useState<string>(
+    codedEm ? (["Minimal", "Low", "Moderate", "High"][codedMdm - 1] ?? "Low") : "Low",
+  );
   // Null until the student picks a patient type himself. The picker opens on
   // `defaultEmPatientType(...)` — a new-patient code on a first visit, the
   // established-patient default everywhere else — and a change here is the
   // student's own choice, kept for as long as this screen is open.
   const [emPatientTypeChoice, setEmPatientTypeChoice] = useState<EmPatientType | null>(null);
   const emPatientType: EmPatientType =
-    emPatientTypeChoice ?? defaultEmPatientType(firstVisit);
+    emPatientTypeChoice ?? (codedEm ? (codedEm.newPatient ? "new" : "established") : defaultEmPatientType(firstVisit));
 
   // Conventions panel
   const [showConventions, setShowConventions] = useState(false);
@@ -194,6 +227,19 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
 
   // Submission state
   const [submitted, setSubmitted] = useState(false);
+
+  // Save the draft whenever the picks change, until the codes are submitted.
+  useEffect(() => {
+    if (readOnly || submitted || state.cptCodes.length > 0) return;
+    writeCodingDraft(draftKey, {
+      icd: selectedICDs.map((c) => c.code),
+      cpt: selectedCPTs.map((c) => c.code),
+      cptData: cptDataMap,
+    });
+  }, [draftKey, selectedICDs, selectedCPTs, cptDataMap, submitted, readOnly, state.cptCodes.length]);
+  useEffect(() => {
+    if (submitted) clearCodingDraft(draftKey);
+  }, [submitted, draftKey]);
   const [codingScore, setCodingScore] = useState<number | null>(null);
   // PA auto-route interstitial
   const [showPAInterstitial, setShowPAInterstitial] = useState(false);
@@ -303,14 +349,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
   // A level is supported when at least two of the three MDM elements meet it;
   // the highest level that clears two elements is the one to report.
   const calcEMMLevel = () => {
-    const elements = [emProblems, emData, MDM_RISK_LEVEL[emRisk] ?? 1];
-    let mdm = 1;
-    for (let level = 4; level >= 1; level--) {
-      if (elements.filter((v) => v >= level).length >= 2) {
-        mdm = level;
-        break;
-      }
-    }
+    const mdm = mdmLevelFromElements(emProblems, emData, MDM_RISK_LEVEL[emRisk] ?? 1);
     const newPatient = emPatientType === "new";
     return E_M_LEVELS.find((l) => l.newPatient === newPatient && l.mdm === mdm) ?? E_M_LEVELS[0];
   };
@@ -323,7 +362,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
       // Box 24 of the CMS-1500 is filled from these per-line values: the date,
       // place of service, modifiers, diagnosis pointer, charge and units the
       // coder captured, so the biller never re-types what coding already did.
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDay();
       const claimLines: ClaimServiceLine[] = selectedCPTs.map((c) => {
         const d = cptDataMap[c.code] ?? initialCptData(c);
         const pointer = d.linkedICDs
@@ -366,12 +405,9 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
         paReasons.push(`CPT codes: ${paCpts.map(c => c.code).join(", ")}`);
       }
 
-      // 2. Check ICD codes for PA-triggering diagnoses
-      const icdNeedsPA = selectedICDs.some(icd => PA_ICD_CODES.some(pc => icd.code.startsWith(pc)));
-      if (icdNeedsPA) {
-        const paIcds = selectedICDs.filter(icd => PA_ICD_CODES.some(pc => icd.code.startsWith(pc)));
-        paReasons.push(`Diagnosis codes: ${paIcds.map(c => c.code).join(", ")}`);
-      }
+      // 2. A diagnosis on its own never needs authorisation: payers authorise
+      //    services and drugs. A diagnosis only matters
+      //    through the procedure it supports, which step 1 already checks.
 
       // 3. Check Scribe note for procedure keywords
       const note = noteFieldsOf(state);
@@ -379,7 +415,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-      const matchedKeywords = PA_KEYWORDS.filter(kw => scribeText.includes(kw));
+      const matchedKeywords = paKeywordsIn(scribeText);
       if (matchedKeywords.length > 0) {
         paReasons.push(`Note mentions: ${matchedKeywords.slice(0, 4).join(", ")}`);
       }
@@ -949,7 +985,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="h-5 w-5 text-amber-600" />
                           <span className="text-sm font-bold text-amber-700">
-                            {paAnswer === null ? "Prior Authorisation Check" : "Prior Authorization Required"}
+                            {paAnswer === null ? "Prior Authorization Check" : "Prior Authorization Required"}
                           </span>
                         </div>
                       </div>
@@ -960,7 +996,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                         {paAnswer === null ? (
                           <>
                             <p className="text-xs text-slate-600">
-                              Does anything in this encounter need prior authorisation?{" "}
+                              Does anything in this encounter need prior authorization?{" "}
                               <span className="text-slate-500">Check the plan's PA list — Yes / No</span>
                             </p>
                             <div className="flex gap-2">
@@ -983,8 +1019,8 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                             <p className="text-xs text-slate-600">
                               {paAnswer === "yes"
                                 ? "One or more items require "
-                                : "You answered No. The payer's PA list still flags this encounter — a claim sent without the authorisation is at risk of "}
-                              <strong>{paAnswer === "yes" ? "Prior Authorization" : "CO-197 (prior authorisation)"}</strong>
+                                : "You answered No. The payer's PA list still flags this encounter — a claim sent without the authorization is at risk of "}
+                              <strong>{paAnswer === "yes" ? "Prior Authorization" : "CO-197 (prior authorization)"}</strong>
                               {paAnswer === "yes" ? " before billing." : "."}
                             </p>
                             {paTriggerReasons.length > 0 && (

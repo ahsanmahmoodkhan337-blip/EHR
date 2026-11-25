@@ -53,6 +53,7 @@ import { compileNoteText, normalizeNoteFields, type NoteFields } from "./noteSta
 import { patientCard } from "./patientCard";
 import { signNote } from "./signNote";
 import { TUTORIAL_PATIENT_ID } from "./tutorialIdentity";
+import { localDay } from "../utils/localDay";
 
 /**
  * The version the clinical half stamps on the record: registration, the signed
@@ -297,7 +298,7 @@ function vitalsLine(patient: TutorialPatientSource): string {
     vital(v.oxygenSaturation, "% on room air"),
   ].filter(Boolean);
   if (parts.length === 0) return "";
-  const recorded = (v.recordedAt ?? "").slice(0, 10);
+  const recorded = v.recordedAt ? localDay(v.recordedAt) : "";
   return `Vitals: ${parts.join(", ")}${recorded ? ` (recorded ${recorded})` : ""}.`;
 }
 

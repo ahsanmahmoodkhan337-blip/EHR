@@ -25,7 +25,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HelpCircle, MessageCircle, X } from "lucide-react";
+import { ArrowLeft, BookOpen, HelpCircle, MessageCircle, X } from "lucide-react";
+import { HOW_TO_TUTORIALS, TUTORIAL_PATIENT_TIP } from "../../domain/howToTutorials";
 import { SHELL_SHORTCUTS } from "./stageReview";
 
 const OPEN_KEY = "hh_help_open";
@@ -45,6 +46,9 @@ export function HelpLauncher() {
   // Collapsed by default: a help panel that opens itself is a help panel in the
   // way. A student who opens it keeps it open on the next page.
   const [open, setOpen] = useState(readOpen);
+  // The how-to guide open inside the panel, if any (same guides as the landing page).
+  const [guideId, setGuideId] = useState<string | null>(null);
+  const guide = HOW_TO_TUTORIALS.find((t) => t.id === guideId) ?? null;
   const launcherRef = useRef<HTMLButtonElement>(null);
 
   const close = useCallback(() => {
@@ -79,7 +83,7 @@ export function HelpLauncher() {
         <div
           role="dialog"
           aria-label="Help and keyboard shortcuts"
-          className="absolute bottom-full right-0 z-50 mb-2 w-[min(92vw,20rem)] rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-800"
+          className="absolute bottom-full right-0 z-50 mb-2 max-h-[min(80vh,36rem)] w-[min(92vw,24rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-800"
         >
           <div className="flex items-center gap-2">
             <h2 className="text-xs font-bold text-slate-800 dark:text-slate-100">Help</h2>
@@ -94,7 +98,61 @@ export function HelpLauncher() {
             </button>
           </div>
 
-          <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {guide ? (
+            <div className="mt-1">
+              <button
+                type="button"
+                onClick={() => setGuideId(null)}
+                className="flex min-h-10 items-center gap-1 rounded-lg px-1 text-[11px] font-medium text-brand-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-brand-600"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                All guides
+              </button>
+              <h3 className="mt-1 text-[13px] font-bold text-slate-800">{guide.title}</h3>
+              <p className="text-[11px] text-slate-500">
+                {guide.where} · about {guide.minutes} min
+              </p>
+              <ol className="mt-2 space-y-2">
+                {guide.steps.map((step, i) => (
+                  <li key={step.title} className="flex gap-2">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-brand-50 text-[10px] font-bold text-brand-700">
+                      {i + 1}
+                    </span>
+                    <div>
+                      <p className="text-[12px] font-semibold text-slate-800">{step.title}</p>
+                      <p className="text-[11px] leading-relaxed text-slate-600">{step.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-2 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+                <span className="font-semibold text-slate-700">You'll finish with: </span>
+                {guide.outcome}
+              </p>
+            </div>
+          ) : (
+          <>
+          <p className="mt-1 text-[11px] font-semibold text-slate-700">How-to guides</p>
+          <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">{TUTORIAL_PATIENT_TIP}</p>
+          <ol className="mt-1.5 space-y-1">
+            {HOW_TO_TUTORIALS.map((t, i) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  onClick={() => setGuideId(t.id)}
+                  className="flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-[12px] text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-brand-600"
+                >
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">{t.title}</span>
+                  <BookOpen className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ol>
+
+          <p className="mt-3 text-[11px] font-semibold text-slate-700">
             Keyboard shortcuts
           </p>
           <dl className="mt-1 space-y-1">
@@ -123,6 +181,8 @@ export function HelpLauncher() {
             Simulated data — every patient, payer, NPI and fee in this app is fictional and for teaching
             only.
           </p>
+          </>
+          )}
         </div>
       )}
 

@@ -39,6 +39,7 @@ import {
   type ActivityEntry,
 } from "../store/ehrStore";
 import { RESET_GROUPS, buildResetExport, type ResetGroupId } from "../store/resetData";
+import { localDay } from "../utils/localDay";
 
 export const Route = createFileRoute("/settings")({
   // Same shell as every other page; the top bar's search needs the patient list.
@@ -101,7 +102,7 @@ function SettingsPage() {
 
   const handleExport = () => {
     const json = exportUserData();
-    download(json, `hh-practice-data-${phoneTag}-${new Date().toISOString().slice(0, 10)}.json`);
+    download(json, `hh-practice-data-${phoneTag}-${localDay()}.json`);
     setStatus({ tone: "ok", message: "Exported. Keep that file to move your work to another computer." });
   };
 
@@ -115,7 +116,7 @@ function SettingsPage() {
         RESET_GROUPS.map((group) => group.id),
         () => readChartFromIdb(phone ?? ""),
       );
-      download(json, `hh-data-before-reset-${phoneTag}-${new Date().toISOString().slice(0, 10)}.json`);
+      download(json, `hh-data-before-reset-${phoneTag}-${localDay()}.json`);
       setStatus({ tone: "ok", message: "Export saved. Check your downloads before you delete." });
     } finally {
       setExporting(false);

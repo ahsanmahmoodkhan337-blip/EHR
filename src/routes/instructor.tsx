@@ -23,6 +23,7 @@ import {
   Search,
 } from "lucide-react";
 import { supabase } from "../store/supabase";
+import { localDay } from "../utils/localDay";
 
 // ─── Mock Instructor Data ─────────────────────────────────────────
 
@@ -116,7 +117,7 @@ function InstructorDashboard() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ehr_student_report_${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `ehr_student_report_${localDay()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

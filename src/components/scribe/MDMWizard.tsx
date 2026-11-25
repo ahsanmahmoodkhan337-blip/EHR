@@ -1,72 +1,57 @@
 /**
  * MDMWizard — E/M Medical Decision Making Level Calculator
  *
- * Evaluates SOAP notes and auto-calculates CPT 99202-99215 coding
- * levels based on AMA MDM guidelines. Three elements:
- * 1. Number/Complexity of Problems
- * 2. Amount/Complexity of Data Reviewed
- * 3. Risk of Complications
+ * Recommends CPT 99202-99215 from the three AMA MDM elements:
+ * 1. Number and complexity of problems addressed
+ * 2. Amount and complexity of data reviewed and analysed
+ * 3. Risk of complications of patient management
+ *
+ * The level is the highest one that **two of the three** elements reach — the
+ * AMA 2021 office E/M rule — read from `domain/mdm.ts`, the same rule the Coding
+ * stage's calculator uses. Earlier versions added the boxes up as points, which
+ * is not how MDM is scored and could recommend 99215 for a minor problem with a
+ * lot of data reviewed.
  *
  * Wire as a toggle panel in the scribe workspace.
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { Calculator, ChevronDown, ChevronUp, CheckCircle2, Info, X } from "lucide-react";
+import { Calculator, ChevronDown, ChevronUp, CheckCircle2, Info, Minus, Plus, X } from "lucide-react";
+import {
+  MDM_LEVEL_NAMES,
+  mdmDataLevel,
+  mdmLevelFromElements,
+  officeEmCode,
+  type MdmLevel,
+} from "../../domain/mdm";
 
-// ─── MDM Data ───────────────────────────────────────────────────────
+// ─── MDM Data (AMA 2021 table) ──────────────────────────────────────
 
-
-const PROBLEM_LEVELS = [
-  { label: "1 self-limited or minor problem", points: 1 },
-  { label: "2+ self-limited problems", points: 1 },
-  { label: "1 stable chronic illness", points: 2 },
-  { label: "1 acute uncomplicated illness", points: 2 },
-  { label: "2+ stable chronic illnesses", points: 3 },
-  { label: "1+ chronic illness with exacerbation", points: 3 },
-  { label: "1+ chronic illness with severe exacerbation", points: 4 },
+/** Each box carries the MDM level it reaches; an element takes its highest box. */
+const PROBLEM_LEVELS: { label: string; level: MdmLevel }[] = [
+  { label: "1 self-limited or minor problem", level: 1 },
+  { label: "2+ self-limited or minor problems", level: 2 },
+  { label: "1 stable chronic illness", level: 2 },
+  { label: "1 acute, uncomplicated illness or injury", level: 2 },
+  { label: "1+ chronic illness with exacerbation, progression or side effects", level: 3 },
+  { label: "2+ stable chronic illnesses", level: 3 },
+  { label: "1 undiagnosed new problem with uncertain prognosis", level: 3 },
+  { label: "1 acute illness with systemic symptoms, or acute complicated injury", level: 3 },
+  { label: "1+ chronic illness with severe exacerbation", level: 4 },
+  { label: "Acute or chronic illness posing a threat to life or bodily function", level: 4 },
 ];
 
-const DATA_LEVELS = [
-  { label: "Review of external notes (1-2 docs)", points: 1 },
-  { label: "Review of lab tests (1-2 tests)", points: 1 },
-  { label: "Independent historian", points: 2 },
-  { label: "Review of 3+ lab/imaging tests", points: 2 },
-  { label: "Discussion with external provider", points: 2 },
-  { label: "Independent review of imaging/tracing", points: 3 },
-  { label: "Review of extensive external records", points: 3 },
+const RISK_LEVELS: { label: string; level: MdmLevel }[] = [
+  { label: "Minimal risk (rest, gargles, elastic bandages, superficial dressings)", level: 1 },
+  { label: "Low risk (over-the-counter drugs, minor surgery without risk factors, PT/OT)", level: 2 },
+  { label: "Moderate risk (prescription drug management)", level: 3 },
+  { label: "Moderate risk (minor surgery with risk factors, elective major surgery without risk factors, SDOH limiting care)", level: 3 },
+  { label: "High risk (drug therapy needing intensive monitoring for toxicity, elective major surgery with risk factors)", level: 4 },
+  { label: "High risk (decision about emergency major surgery or hospitalisation, DNR / de-escalation)", level: 4 },
 ];
 
-const RISK_LEVELS = [
-  { label: "Minimal risk (OTC meds, self-limited)", points: 1 },
-  { label: "Low risk (prescription management)", points: 1 },
-  { label: "Moderate risk (prescription drug mgmt)", points: 2 },
-  { label: "Moderate risk (minor surgery, IV fluids)", points: 2 },
-  { label: "High risk (major surgery, drug toxicity monitoring)", points: 3 },
-  { label: "High risk (life-threatening condition)", points: 4 },
-];
-
-// ─── Level Mapping ──────────────────────────────────────────────────
-
-interface EMLevel {
-  code: string;
-  label: string;
-  patientType: string;
-  minTotal: number;
-}
-
-const NEW_PATIENT_LEVELS: EMLevel[] = [
-  { code: "99202", label: "Level 2", patientType: "New", minTotal: 2 },
-  { code: "99203", label: "Level 3", patientType: "New", minTotal: 4 },
-  { code: "99204", label: "Level 4", patientType: "New", minTotal: 6 },
-  { code: "99205", label: "Level 5", patientType: "New", minTotal: 8 },
-];
-
-const ESTABLISHED_LEVELS: EMLevel[] = [
-  { code: "99212", label: "Level 2", patientType: "Established", minTotal: 2 },
-  { code: "99213", label: "Level 3", patientType: "Established", minTotal: 3 },
-  { code: "99214", label: "Level 4", patientType: "Established", minTotal: 5 },
-  { code: "99215", label: "Level 5", patientType: "Established", minTotal: 7 },
-];
+const highestChecked = (items: { level: MdmLevel; checked: boolean }[]): MdmLevel =>
+  items.reduce<MdmLevel>((max, i) => (i.checked && i.level > max ? i.level : max), 1);
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -74,63 +59,68 @@ export interface MDMWizardResult {
   code: string;
   label: string;
   patientType: string;
+  /** The MDM level reached: 1 straightforward, 2 low, 3 moderate, 4 high. */
   total: number;
 }
 
 interface MDMWizardProps {
   onLevelChange?: (result: MDMWizardResult) => void;
+  /**
+   * Open on "New Patient" — true when the chart holds no prior signed visit.
+   * The student can still switch it.
+   */
+  defaultNewPatient?: boolean;
 }
 
-export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
+export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizardProps = {}) {
   const [open, setOpen] = useState(false);
   const [problems, setProblems] = useState(PROBLEM_LEVELS.map((p) => ({ ...p, checked: false })));
-  const [data, setData] = useState(DATA_LEVELS.map((d) => ({ ...d, checked: false })));
   const [risk, setRisk] = useState(RISK_LEVELS.map((r) => ({ ...r, checked: false })));
-  const [isNewPatient, setIsNewPatient] = useState(false);
+  const [uniqueItems, setUniqueItems] = useState(0);
+  const [independentHistorian, setIndependentHistorian] = useState(false);
+  const [independentInterpretation, setIndependentInterpretation] = useState(false);
+  const [externalDiscussion, setExternalDiscussion] = useState(false);
+  const [patientTypeChoice, setPatientTypeChoice] = useState<boolean | null>(null);
+  const isNewPatient = patientTypeChoice ?? defaultNewPatient;
   const [showRationale, setShowRationale] = useState(false);
 
-  const toggleProblem = (idx: number) => {
-    const updated = [...problems];
-    updated[idx].checked = !updated[idx].checked;
-    setProblems(updated);
-  };
-  const toggleData = (idx: number) => {
-    const updated = [...data];
-    updated[idx].checked = !updated[idx].checked;
-    setData(updated);
-  };
-  const toggleRisk = (idx: number) => {
-    const updated = [...risk];
-    updated[idx].checked = !updated[idx].checked;
-    setRisk(updated);
-  };
+  // Escape closes the calculator, like every other dialog.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
-  const problemScore = problems.filter((p) => p.checked).reduce((s, p) => s + p.points, 0);
-  const dataScore = data.filter((d) => d.checked).reduce((s, d) => s + d.points, 0);
-  const riskScore = risk.filter((r) => r.checked).reduce((s, r) => s + r.points, 0);
-  const totalScore = problemScore + dataScore + riskScore;
+  const toggleProblem = (idx: number) =>
+    setProblems((prev) => prev.map((p, i) => (i === idx ? { ...p, checked: !p.checked } : p)));
+  const toggleRisk = (idx: number) =>
+    setRisk((prev) => prev.map((r, i) => (i === idx ? { ...r, checked: !r.checked } : r)));
 
-  const levels = isNewPatient ? NEW_PATIENT_LEVELS : ESTABLISHED_LEVELS;
-  const recommendedLevel = useMemo<EMLevel>(() => {
-    let rec = levels[0];
-    for (const l of levels) {
-      if (totalScore >= l.minTotal) rec = l;
-    }
-    return rec;
-  }, [levels, totalScore]);
+  const problemLevel = highestChecked(problems);
+  const riskLevel = highestChecked(risk);
+  const dataLevel = mdmDataLevel({ uniqueItems, independentHistorian, independentInterpretation, externalDiscussion });
+  const mdm = mdmLevelFromElements(problemLevel, dataLevel, riskLevel);
+
+  const recommended = useMemo(
+    () => ({
+      code: officeEmCode(mdm, isNewPatient),
+      label: `Level ${mdm + 1}`,
+      patientType: isNewPatient ? "New" : "Established",
+    }),
+    [mdm, isNewPatient],
+  );
 
   useEffect(() => {
-    onLevelChange?.({
-      code: recommendedLevel.code,
-      label: recommendedLevel.label,
-      patientType: recommendedLevel.patientType,
-      total: totalScore,
-    });
-  }, [recommendedLevel, totalScore, onLevelChange]);
+    onLevelChange?.({ ...recommended, total: mdm });
+  }, [recommended, mdm, onLevelChange]);
 
   const levelColors = ["bg-slate-100", "bg-brand-100", "bg-green-100", "bg-amber-100", "bg-red-100"];
-  const levelIdx = levels.indexOf(recommendedLevel);
-  const levelColor = levelColors[Math.min(levelIdx + 1, 4)];
+  const levelColor = levelColors[mdm];
+  const elementLine = (name: string, level: MdmLevel) => `${name}: ${MDM_LEVEL_NAMES[level]}`;
+  const meets = [problemLevel, dataLevel, riskLevel].filter((v) => v >= mdm).length;
 
   return (
     <div className="relative">
@@ -146,40 +136,55 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black/20" onClick={() => setOpen(false)}>
           <div
-            className="relative w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in"
+            role="dialog"
+            aria-modal="true"
+            aria-label="E/M MDM Level Calculator"
+            className="relative w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl animate-slide-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
+            {/* The header stays on screen while the boxes scroll, so Close is always in reach. */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 pb-3 pt-5">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">E/M MDM Level Calculator</h3>
-                <p className="text-[10px] text-slate-500">Check the boxes to determine coding level</p>
+                <p className="text-[10px] text-slate-500">Two of the three elements set the level (AMA 2021)</p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Close the calculator"
+                title="Close (Esc)"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
+            <div className="p-5 pt-3">
             {/* Patient Type Toggle */}
             <div className="mb-3 flex items-center gap-3">
               <span className="text-[10px] font-medium text-slate-500">Patient Type:</span>
               <button
-                onClick={() => setIsNewPatient(false)}
+                onClick={() => setPatientTypeChoice(false)}
                 className={`rounded-lg px-3 py-1 text-[10px] font-medium ${!isNewPatient ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}
               >
                 Established
               </button>
               <button
-                onClick={() => setIsNewPatient(true)}
+                onClick={() => setPatientTypeChoice(true)}
                 className={`rounded-lg px-3 py-1 text-[10px] font-medium ${isNewPatient ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}
               >
                 New Patient
               </button>
+              {patientTypeChoice === null && (
+                <span className="text-[9px] text-slate-400">
+                  {defaultNewPatient ? "No prior visit on the chart" : "Prior visit on the chart"}
+                </span>
+              )}
             </div>
 
             {/* Problem Complexity */}
             <div className="mb-3 rounded-lg border border-slate-200 p-3">
               <p className="mb-2 text-[10px] font-semibold text-slate-700">
-                1. Number/Complexity of Problems ({problemScore} pts)
+                1. Number/Complexity of Problems — {MDM_LEVEL_NAMES[problemLevel]}
               </p>
               <div className="space-y-1">
                 {problems.map((p, i) => (
@@ -194,22 +199,50 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
             {/* Data Reviewed */}
             <div className="mb-3 rounded-lg border border-slate-200 p-3">
               <p className="mb-2 text-[10px] font-semibold text-slate-700">
-                2. Data Reviewed ({dataScore} pts)
+                2. Data Reviewed and Analysed — {MDM_LEVEL_NAMES[dataLevel]}
               </p>
-              <div className="space-y-1">
-                {data.map((d, i) => (
-                  <label key={i} className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
-                    <input type="checkbox" checked={d.checked} onChange={() => toggleData(i)} className="h-3 w-3 accent-brand-600" />
-                    {d.label}
-                  </label>
-                ))}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2 text-[10px] text-slate-600">
+                  <span>Unique tests ordered or results reviewed, and external sources' notes reviewed (count each one)</span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="One fewer"
+                      onClick={() => setUniqueItems((n) => Math.max(0, n - 1))}
+                      className="flex h-6 w-6 items-center justify-center rounded border border-slate-200 hover:bg-slate-50"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="w-5 text-center font-semibold" aria-live="polite">{uniqueItems}</span>
+                    <button
+                      type="button"
+                      aria-label="One more"
+                      onClick={() => setUniqueItems((n) => Math.min(9, n + 1))}
+                      className="flex h-6 w-6 items-center justify-center rounded border border-slate-200 hover:bg-slate-50"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </span>
+                </div>
+                <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+                  <input type="checkbox" checked={independentHistorian} onChange={() => setIndependentHistorian((v) => !v)} className="h-3 w-3 accent-brand-600" />
+                  Assessment needing an independent historian
+                </label>
+                <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+                  <input type="checkbox" checked={independentInterpretation} onChange={() => setIndependentInterpretation((v) => !v)} className="h-3 w-3 accent-brand-600" />
+                  Independent interpretation of a test billed by another clinician (e.g. reading the ECG or X-ray)
+                </label>
+                <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+                  <input type="checkbox" checked={externalDiscussion} onChange={() => setExternalDiscussion((v) => !v)} className="h-3 w-3 accent-brand-600" />
+                  Discussion of management or a test with an external clinician
+                </label>
               </div>
             </div>
 
             {/* Risk */}
             <div className="mb-3 rounded-lg border border-slate-200 p-3">
               <p className="mb-2 text-[10px] font-semibold text-slate-700">
-                3. Risk of Complications ({riskScore} pts)
+                3. Risk of Patient Management — {MDM_LEVEL_NAMES[riskLevel]}
               </p>
               <div className="space-y-1">
                 {risk.map((r, i) => (
@@ -227,9 +260,11 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                 <div>
                   <p className="text-xs font-bold text-slate-800">
-                    Recommended: CPT {recommendedLevel.code} — {recommendedLevel.label} {recommendedLevel.patientType} Patient
+                    Recommended: CPT {recommended.code} — {recommended.label} {recommended.patientType} Patient
                   </p>
-                  <p className="text-[10px] text-slate-500">Total MDM Score: {totalScore} (P:{problemScore} D:{dataScore} R:{riskScore})</p>
+                  <p className="text-[10px] text-slate-500">
+                    MDM {MDM_LEVEL_NAMES[mdm]} · {elementLine("Problems", problemLevel)} · {elementLine("Data", dataLevel)} · {elementLine("Risk", riskLevel)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -244,10 +279,19 @@ export function MDMWizard({ onLevelChange }: MDMWizardProps = {}) {
             </button>
             {showRationale && (
               <div className="mt-2 rounded-lg bg-slate-50 p-3 text-[10px] text-slate-600 leading-relaxed">
-                <p>The coding level is determined by the <strong>highest 2 out of 3</strong> MDM elements. For {isNewPatient ? "new" : "established"} patients, CPT {recommendedLevel.code} requires a total of at least {recommendedLevel.minTotal} combined points. Your selection reached {totalScore} points, qualifying for Level {recommendedLevel.label}.</p>
-                <p className="mt-1">This aligns with CMS 2021 E/M guidelines — only MDM or Time (not both) is used to determine the level.</p>
+                <p>
+                  The MDM level is the highest level that <strong>at least two of the three</strong> elements reach — the
+                  elements are never added together. Here {meets} of 3 elements reach {MDM_LEVEL_NAMES[mdm]}, so the visit
+                  supports {MDM_LEVEL_NAMES[mdm].toLowerCase()} MDM: CPT {recommended.code} for {isNewPatient ? "a new" : "an established"} patient.
+                </p>
+                <p className="mt-1">
+                  Data is counted by category: 2 unique items (or an independent historian) is Low; 3 items, an independent
+                  interpretation, or an external discussion is Moderate; any two of those three is Extensive.
+                </p>
+                <p className="mt-1">AMA 2021 office E/M rules — the level is chosen by MDM or by total time on the date of the visit, not both.</p>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}

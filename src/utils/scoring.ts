@@ -25,6 +25,7 @@ import {
   writeStudentItem,
 } from "../store/studentScope";
 import type { RegistrationExpectations } from "../domain/patientCard";
+import { localDay } from "./localDay";
 
 export interface StageScores {
   registration: number;
@@ -111,7 +112,7 @@ export function loadChallengeState(phone: string | null = getScopePhone()): Reco
     const raw = readStudentItem(CHALLENGES_KEY, phone);
     if (!raw) return {};
     const data = JSON.parse(raw) as { date?: string; completed?: Record<string, boolean> };
-    if (data.date !== new Date().toISOString().split("T")[0]) return {};
+    if (data.date !== localDay()) return {};
     return data.completed ?? {};
   } catch {
     return {};
@@ -124,7 +125,7 @@ export function saveChallengeState(
 ): void {
   writeStudentItem(
     CHALLENGES_KEY,
-    JSON.stringify({ date: new Date().toISOString().split("T")[0], completed }),
+    JSON.stringify({ date: localDay(), completed }),
     phone,
   );
 }

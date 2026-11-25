@@ -16,6 +16,7 @@
 import { useState, useEffect } from "react";
 import { Activity, Heart, Thermometer, Wind, Droplets, Weight, Ruler, AlertCircle } from "lucide-react";
 import { usePatientStore } from "../../store/patientStore";
+import { checkVitals, formatVital, hasVital } from "../../utils/vitals";
 
 interface EditableVitals {
   bloodPressure: string;
@@ -105,7 +106,24 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
           });
         };
 
+  const check = checkVitals({
+    systolic: vitals.bloodPressureSystolic,
+    diastolic: vitals.bloodPressureDiastolic,
+    heartRate: vitals.heartRate,
+    temperatureF: vitals.temperature,
+    respiratoryRate: vitals.respiratoryRate,
+    oxygenSaturation: vitals.oxygenSaturation,
+  });
+  const [saveRefused, setSaveRefused] = useState(false);
+
   const handleSave = () => {
+    // A value that cannot be real is a typo or a swapped box: say which, and
+    // do not report the vitals as saved until it is fixed.
+    if (check.impossible.length > 0) {
+      setSaveRefused(true);
+      return;
+    }
+    setSaveRefused(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -130,6 +148,26 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
           {saved ? "Saved!" : "Save Vitals"}
         </button>
       </div>
+
+      {(check.impossible.length > 0 || check.abnormal.length > 0) && (
+        <div
+          role={saveRefused ? "alert" : "status"}
+          className={`rounded-lg border p-3 text-xs ${
+            check.impossible.length > 0 ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-800"
+          }`}
+        >
+          <p className="font-semibold">
+            {check.impossible.length > 0
+              ? "Check these values — they cannot be right (a typo, or a value in the wrong box):"
+              : "Abnormal values — confirm them and make sure the provider knows:"}
+          </p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {(check.impossible.length > 0 ? check.impossible : check.abnormal).map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Vitals grid */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -290,11 +328,11 @@ export function IntakeVitalsStage({ patientId, editableVitals, onVitalsChange }:
       </div>
 
       {/* Existing vitals reference */}
-      {patient && (
+      {patient && (hasVital(patient.vitals.heartRate) || hasVital(patient.vitals.bloodPressure)) && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <p className="text-xs font-medium text-slate-500">
-            Previously recorded: {patient.vitals.bloodPressure} | {patient.vitals.heartRate} bpm |{" "}
-            {patient.vitals.temperature}°F | SpO2 {patient.vitals.oxygenSaturation}%
+            Previously recorded: {formatVital(patient.vitals.bloodPressure)} | {formatVital(patient.vitals.heartRate, " bpm")} |{" "}
+            {formatVital(patient.vitals.temperature, "°F")} | SpO2 {formatVital(patient.vitals.oxygenSaturation, "%")}
             <span className="ml-2 text-[10px] text-slate-400">
               ({new Date(patient.vitals.recordedAt).toLocaleDateString()})
             </span>

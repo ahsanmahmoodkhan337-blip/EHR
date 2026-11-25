@@ -33,8 +33,9 @@ import {
 import { CLAIM_STATUS_LABELS, type ClaimStatus } from "./claimStatus";
 import { buildCodingQueue } from "./codingQueue";
 import { claimRowTitle, isOrphanClaim } from "./dataScoping";
-import { formatWhen, usd } from "./homeWorkQueues";
+import { usd } from "./homeWorkQueues";
 import type { PipelineEncounter, Role } from "../store/pipelineEncounter";
+import { localDay } from "../utils/localDay";
 
 // ─── The shape every page renders ──────────────────────────────────
 
@@ -145,7 +146,7 @@ function dateOfServiceFor(enc: PipelineEncounter): string {
   const line = enc.claimForm?.serviceLines.find((l) => (l.dateOfService ?? "").trim());
   if (line) return line.dateOfService;
   const posted = enc.statusEvents.find((e) => e.reasonCode === "SUBMITTED_837P");
-  return posted ? posted.at.slice(0, 10) : "";
+  return posted ? localDay(posted.at) : "";
 }
 
 /** The claim's own total charge (box 28), or the sum of its coded lines. */
@@ -247,7 +248,7 @@ export function buildDentalClaimRow(
   const activeCase = findCase(dental.caseId);
   const chargedCents = dental.lines.reduce((sum, line) => sum + Math.round(line.feeUsd * 100), 0);
   const submitted = dental.statusEvents.find((e) => e.reasonCode === "SUBMITTED_837P");
-  const dos = dental.lines[0]?.dateOfService ?? (submitted ? submitted.at.slice(0, 10) : "");
+  const dos = dental.lines[0]?.dateOfService ?? (submitted ? localDay(submitted.at) : "");
   const statusKey = dental.claimStatus;
   return {
     id: `claim-${dental.claimNumber}`,

@@ -68,7 +68,8 @@ migration chain and a localStorage fallback. Exports and imports as JSON from Se
 | Key | Written by | Holds |
 |---|---|---|
 | `hh_student_name` | login, scoring | display name |
-| `hh_dark_mode` | `DarkModeToggle` | boolean |
+| `hh_dark_mode` | `DarkModeToggle` (no longer rendered, 2026-11-25) | boolean — ignored; the app is light-only |
+| `hh_coding_draft_<phone>` | `CodingQueue/codingDraft.ts` | unsubmitted ICD-10/CPT picks + per-line data, keyed by patient id; cleared on submit and by Settings › Reset (Patient chart group) |
 | `hh_scores` | `utils/scoring.ts` | per-stage scores |
 | `hh_streak`, `hh_challenges` | `GamificationHeader` | gamification state |
 | `hh_custom_patients` | `ScenarioInjector` | injected scenario patients |
@@ -357,3 +358,40 @@ These are stripped for real patients by `stripFabricatedIds` and re-seeded per p
 3. A reload loses most scribe work except the note text; to a paying student this reads as data loss.
 4. Dental case count: seven in code, nine in the plan.
 5. The Coder's per-line data loss on revisit undercuts the per-line POS/modifier capture.
+
+---
+
+## 7. Changes 2026-11-25 (PR #197, student-flow QA)
+
+**New modules**
+- `domain/mdm.ts` — AMA 2021 two-of-three MDM rule, data categories, office E/M code. Read by both
+  `scribe/MDMWizard.tsx` and the Coding calculator.
+- `utils/localDay.ts` — local calendar date (replaces `toISOString().slice(0, 10)` everywhere).
+- `utils/actorLabel.ts` — shows "You" instead of the login phone on ledgers, timelines, note author.
+- `scribe/dotPhraseQuery.ts` — dot phrases open only for a dot that starts a word.
+- `CodingQueue/codingDraft.ts` — per-patient draft of unsubmitted codes.
+- `data/medical/payerDirectory.ts` — booking payer list with EDI payer IDs.
+- `domain/howToTutorials.ts` — six how-to guides, shown on the landing page and in Help.
+- `components/landing/*` — `PublicLandingPage` (moved out of `routes/index.tsx`), `ClaimLifecycle`,
+  `TutorialGuides`. Font: `@fontsource-variable/public-sans`.
+
+**Hand-offs changed**
+- Booking (`TabsEpic/DailySchedule.tsx`) now captures address and primary coverage
+  (`updatePatientInsurance`, `cardIssued: true`); Check In → `arrived` and opens Registration;
+  Start Visit → `in-progress`.
+- `PatientInsurance.cardIssued` (optional, no migration needed): `false` when the student typed
+  coverage at Registration with no card on file → `caseMismatch()` returns null.
+- 271 `nameCheck: "mismatch"` → adjudication denies every line CO-31 (`AdjudicationInput.subscriberNameMismatch`)
+  unless claim box 4 prints the payer's spelling.
+- Allowance: case key → teaching fee schedule (RVU × $33.40 × plan-type factor) → billed.
+  Tutorial 835 is now allowed $106.21 / CO-45 $118.79 / PR-1 $50 / PR-2 $11.24 / paid $44.97.
+- AR patient-balance actions: `patient_statement`, `patient_payment` (was `write_off` only).
+- Coding: Continue to Prior Auth is disabled until "Submit Coded Encounter to Billing".
+- ROS writes a plain-language `ROS:` line to the Subjective; Objective holds the exam only.
+- Sign & Lock checklist is computed from the note; required items gate signing.
+- Financial Ledger panel reads the encounter's claim, 835 and ledger (mock charts removed).
+- Dark mode: `@custom-variant dark` requires a `.dark` class that is never set; toggle removed.
+
+**Open (owner decision)**: Tutorial PA shows "approved" for 99214 + 93000 on Medicare Part B;
+British "authorisation" spelling across the UI (a grader matches on it).
+

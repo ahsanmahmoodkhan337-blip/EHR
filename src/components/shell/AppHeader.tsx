@@ -32,7 +32,6 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Building2, Home, LogOut, PanelRightClose, Timer, Users } from "lucide-react";
 import { logout } from "../../store/accessStore";
 import { headerNavForPath } from "../../domain/breadcrumb";
-import { DarkModeToggle } from "../DarkModeToggle";
 import { TrackSwitcher } from "../dental/TrackSwitcher";
 import { AutosaveIndicator } from "./AutosaveIndicator";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
@@ -215,7 +214,6 @@ export function AppHeader({
           </button>
         )}
 
-        <DarkModeToggle />
 
         <button
           type="button"

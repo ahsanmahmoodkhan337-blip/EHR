@@ -26,6 +26,8 @@ import type { ICD10Code } from "../CodingQueue/icd10Data";
 import { DotPhraseTextarea } from "../scribe/DotPhraseTextarea";
 import { NoteTemplatePicker } from "../scribe/NoteTemplatePicker";
 import { MDMWizard, type MDMWizardResult } from "../scribe/MDMWizard";
+import { usePipeline } from "../../store/pipelineStore";
+import { useEncounterPatientId, useIsFirstVisit } from "../../utils/encounterPatient";
 
 // ─── One-Click Macros ──────────────────────────────────────────────
 
@@ -106,6 +108,11 @@ export function AssessmentPlanStage({
   const [activeMacroCategory, setActiveMacroCategory] = useState(0);
   const [lastInserted, setLastInserted] = useState("");
   const [mdmLevel, setMdmLevel] = useState<MDMWizardResult | null>(null);
+  // A chart with no prior signed visit is a new patient: the E/M wizard opens
+  // on the new-patient codes (99202-99205), as the Coding stage does.
+  const { state: pipelineState } = usePipeline();
+  const encounterPatientId = useEncounterPatientId(pipelineState.patientId);
+  const firstVisit = useIsFirstVisit(encounterPatientId);
 
   // Use lifted note if provided, otherwise use local fallback state
   const [localFallback, setLocalFallback] = useState<SoapNoteData>({
@@ -156,7 +163,7 @@ export function AssessmentPlanStage({
               E/M: CPT {mdmLevel.code} · {mdmLevel.label} {mdmLevel.patientType}
             </span>
           )}
-          <MDMWizard onLevelChange={setMdmLevel} />
+          <MDMWizard onLevelChange={setMdmLevel} defaultNewPatient={firstVisit} />
           <button
             onClick={() => setShowMacros(!showMacros)}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${

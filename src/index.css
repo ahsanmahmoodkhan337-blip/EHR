@@ -1,1 +1,7 @@
 @import "tailwindcss";
+
+/* Dark mode follows the header toggle (the "dark" class on <html>), not the
+   device setting. Without this, Tailwind v4 applied the dark: styles from the
+   operating system's preference, so the toggle did nothing and students with a
+   dark phone got a half-dark page they had not asked for. */
+@custom-variant dark (&:where(.dark, .dark *));

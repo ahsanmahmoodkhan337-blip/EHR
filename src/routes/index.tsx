@@ -15,30 +15,12 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { motion, useReducedMotion } from "framer-motion";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import {
   Activity,
   AlertTriangle,
-  ArrowRight,
-  BadgeDollarSign,
-  BarChart3,
   CheckCircle2,
-  ClipboardList,
-  FileText,
-  Hash,
-  LayoutGrid,
-  ListChecks,
-  Mic,
   PanelRightClose,
-  Receipt,
-  RefreshCw,
-  Scale,
-  Search,
-  ShieldCheck,
-  Smile,
-  Sparkles,
-  Stethoscope,
 } from "lucide-react";
 
 import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
@@ -88,7 +70,6 @@ import {
 import {
   ENCOUNTER_FLOW_STAGES,
   currentFlowStage,
-  flowStageIndex,
   flowStageLabel,
   stageOpenTarget,
   lastFlowStageId,
@@ -128,10 +109,11 @@ import { FadeTransition } from "../components/FadeTransition";
 import { WorklistPanel } from "../components/WorklistPanel";
 import { hasVital, formatVital } from "../utils/vitals";
 import { FinancialLedger } from "../components/FinancialLedger";
-import { CPT_CODES } from "../components/CodingQueue/cptData";
 import { ToastProvider, useToast } from "../components/Toast";
 import { Skeleton } from "../components/Skeleton";
 import { CommandPalette } from "../components/CommandPalette";
+import { localDay } from "../utils/localDay";
+import { PublicLandingPage } from "../components/landing/PublicLandingPage";
 
 /** Pipeline roles the working context may restore (section 4). */
 const PIPELINE_ROLES: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-voice"];
@@ -156,7 +138,7 @@ const NOTE_SECTIONS = SCRIBE_STAGES.filter((stage) => stage.id !== "sign-lock");
  * The stage before each role's screen, for the one Back control (spec item 3).
  * A role stage always has a previous stage; the scribe's first stage has none.
  */
-const ROLE_BACK: Partial<Record<Role, { label: string; role: Role; stage?: string }>> = {
+export const ROLE_BACK: Partial<Record<Role, { label: string; role: Role; stage?: string }>> = {
   coder: { label: "Sign & Lock Note", role: "scribe", stage: "sign-lock" },
   "prior-auth": { label: "Coding", role: "coder" },
   biller: { label: "Prior Auth", role: "prior-auth" },
@@ -722,7 +704,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={immunInput} onChange={e => setImmunInput(e.target.value)} placeholder="+ Add vaccine..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (immunInput.trim()) { setImmunizations([...immunizations, { id: `imm-${Date.now()}`, vaccine: immunInput.trim(), dose: "—", date: new Date().toISOString().split("T")[0], status: "Given" }]); setImmunInput(""); } }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
+            <button onClick={() => { if (immunInput.trim()) { setImmunizations([...immunizations, { id: `imm-${Date.now()}`, vaccine: immunInput.trim(), dose: "—", date: localDay(), status: "Given" }]); setImmunInput(""); } }} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Add</button>
           </div>
         )}
       </div>
@@ -787,7 +769,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={orderInput} onChange={e => setOrderInput(e.target.value)} placeholder="+ Add order..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (orderInput.trim()) { setOrders([...orders, { id: `ord-${Date.now()}`, item: orderInput.trim(), status: "Ordered", provider: patient.primaryCareProvider, date: new Date().toISOString().split("T")[0] }]); setOrderInput(""); } }} className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700">Add</button>
+            <button onClick={() => { if (orderInput.trim()) { setOrders([...orders, { id: `ord-${Date.now()}`, item: orderInput.trim(), status: "Ordered", provider: patient.primaryCareProvider, date: localDay() }]); setOrderInput(""); } }} className="rounded bg-amber-600 px-2 py-1 text-xs text-white hover:bg-amber-700">Add</button>
           </div>
         )}
       </div>
@@ -812,7 +794,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={imagingInput} onChange={e => setImagingInput(e.target.value)} placeholder="+ Add imaging..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (imagingInput.trim()) { setImaging([...imaging, { id: `img-${Date.now()}`, study: imagingInput.trim(), status: "Ordered", date: new Date().toISOString().split("T")[0] }]); setImagingInput(""); } }} className="rounded bg-accent-600 px-2 py-1 text-xs text-white hover:bg-accent-700">Add</button>
+            <button onClick={() => { if (imagingInput.trim()) { setImaging([...imaging, { id: `img-${Date.now()}`, study: imagingInput.trim(), status: "Ordered", date: localDay() }]); setImagingInput(""); } }} className="rounded bg-accent-600 px-2 py-1 text-xs text-white hover:bg-accent-700">Add</button>
           </div>
         )}
       </div>
@@ -838,7 +820,7 @@ function SummaryTab({
         {isScribe && (
           <div className="mt-2 flex gap-1">
             <input type="text" value={referralInput} onChange={e => setReferralInput(e.target.value)} placeholder="+ Add referral..." className="flex-1 rounded border border-dashed border-slate-300 px-2 py-1 text-xs outline-none focus:border-brand-400" />
-            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, { id: `ref-${Date.now()}`, specialty: referralInput.trim(), reason: "—", status: "Sent", date: new Date().toISOString().split("T")[0] }]); setReferralInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
+            <button onClick={() => { if (referralInput.trim()) { setReferrals([...referrals, { id: `ref-${Date.now()}`, specialty: referralInput.trim(), reason: "—", status: "Sent", date: localDay() }]); setReferralInput(""); } }} className="rounded bg-brand-600 px-2 py-1 text-xs text-white hover:bg-brand-700">Add</button>
           </div>
         )}
       </div>
@@ -903,7 +885,7 @@ function MedicationsTab({ patientId }: { patientId: string }) {
       frequency: medFreq || "—",
       route: "Oral",
       status: "active" as const,
-      prescribedDate: new Date().toISOString().split("T")[0],
+      prescribedDate: localDay(),
       prescribedBy: patient.primaryCareProvider,
     }]);
     setMedName(""); setMedDosage(""); setMedFreq("");
@@ -1183,257 +1165,6 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
 
 // ─── Public Landing Page (when not logged in) ──────────────────────
 
-function PublicLandingPage() {
-  const reduceMotion = useReducedMotion();
-
-  // Shared reveal preset — collapses to no-op under prefers-reduced-motion.
-  const rise = (i = 0) => ({
-    initial: { opacity: 0, y: reduceMotion ? 0 : 20 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, amount: 0.15 },
-    transition: { duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : i * 0.06 },
-  });
-
-  const medicalStages = [
-    { icon: FileText, title: "Scribe — Clinical Charting", desc: "Structured SOAP notes, vitals, HPI, exam findings and assessment plans — with one-click macros straight into the coding queue.", tag: "Epic + DrChrono" },
-    { icon: Search, title: "Coder — ICD-10 & CPT", desc: "Extract diagnoses and procedures, search a built-in code repository, and assign the correct ICD-10-CM and CPT codes.", tag: "ICD-10 / CPT" },
-    { icon: ShieldCheck, title: "Prior Auth — Authorization Hub", desc: "Map clinical documentation to payer criteria and submit digital prior-authorization forms for high-cost procedures.", tag: "PA Portal" },
-    { icon: BadgeDollarSign, title: "Biller — Claim Scrubbing", desc: "Audit CMS-1500 claims, submit to the clearinghouse, and resolve real-world paid / denied outcomes.", tag: "CMS-1500" },
-    { icon: Mic, title: "AR Voice — Phone Follow-up", desc: "Dispute denied claims with an AI insurance rep that responds like a real US-based agent — accent practice included.", tag: "AI Voice" },
-    { icon: RefreshCw, title: "Denial Simulation Matrix", desc: "Resolve CO-16, CO-50 and CO-119 denials through correction, documentation, or voice negotiation.", tag: "Path A / Path B" },
-  ];
-
-  const dentalFeatures = [
-    { icon: Hash, title: "CDT Coding", desc: "Procedure selection with tooth, surface and quadrant notation.", tag: "CDT" },
-    { icon: LayoutGrid, title: "Odontogram + Perio Chart", desc: "Visual tooth charting with periodontal pocket and mobility tracking.", tag: "Visual" },
-    { icon: FileText, title: "ADA J430D Claim Form", desc: "Line-level paid / downgraded / denied explanations on an ADA-style claim.", tag: "ADA" },
-    { icon: Scale, title: "12-Step Adjudication", desc: "Annual maximums, frequency limits, waiting periods, missing-tooth clause and alternate-benefit downgrades.", tag: "Benefits" },
-    { icon: ClipboardList, title: "Treatment Planning", desc: "Planned treatments with per-item insurance estimates and an accept → completed flow.", tag: "Plans" },
-    { icon: ListChecks, title: "Claim Status Queue", desc: "Created → sent → pending → paid / denied / appealed, tracked end to end.", tag: "Queue" },
-    { icon: BarChart3, title: "Patient Ledger", desc: "Charges, payments, adjustments, running balance and 30/60/90+ aging.", tag: "AR" },
-    { icon: Receipt, title: "EOB / ERA + Appeal", desc: "Detailed EOB breakdown with a guided denial → appeal wizard.", tag: "Appeals" },
-  ];
-
-  return (
-    <div className="min-h-dvh overflow-x-hidden bg-slate-50 text-slate-800">
-      {/* Nav */}
-      <nav className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/70 bg-white/85 px-4 py-3 backdrop-blur-md">
-        <img
-          src="/healthcarehustlers-logo.png"
-          alt="Healthcare Hustlers"
-          className="h-7 w-auto"
-          style={{ maxWidth: "160px" }}
-        />
-        <div className="flex items-center gap-2 text-xs">
-          <Link to="/login" className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50">
-            Student Login
-          </Link>
-          <Link to="/admin" className="rounded-lg bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-700">
-            Admin Panel
-          </Link>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className="relative isolate overflow-hidden">
-        {/* Subtle animated background */}
-        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-          <motion.div
-            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-brand-300/30 blur-3xl"
-            animate={reduceMotion ? undefined : { x: [0, 48, 0], y: [0, 24, 0] }}
-            transition={{ duration: 15, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-accent-300/30 blur-3xl"
-            animate={reduceMotion ? undefined : { x: [0, -48, 0], y: [0, 32, 0] }}
-            transition={{ duration: 17, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-          />
-          <div className="absolute bottom-0 left-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-brand-200/20 blur-3xl" />
-        </div>
-
-        <div className="mx-auto max-w-5xl px-4 pb-14 pt-14 text-center md:pt-20">
-          <motion.p {...rise(0)} className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500">
-            <Sparkles className="h-3.5 w-3.5 text-brand-500" />
-            Medical + Dental revenue-cycle training in one login
-          </motion.p>
-
-          <motion.h1 {...rise(1)} className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 md:text-6xl">
-            Master the full patient encounter —{" "}
-            <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
-              chart to payment.
-            </span>
-          </motion.h1>
-
-          <motion.p {...rise(2)} className="mx-auto mt-5 max-w-2xl text-base text-slate-500 md:text-lg">
-            Practice as a Scribe, Coder, Biller, Prior Auth Specialist and AR Voice Agent — then switch to the
-            dental track for CDT coding, perio charting and claim appeals.
-          </motion.p>
-
-          <motion.div {...rise(3)} className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link
-              to="/access"
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-xl"
-            >
-              Enroll Now — 20$ / 5500 pkr
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Student Login
-            </Link>
-          </motion.div>
-          <motion.p {...rise(4)} className="mt-4 text-center text-xs text-slate-400">
-            One fee unlocks both the medical and dental RCM tracks
-          </motion.p>
-
-          {/* Two-track hero */}
-          <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
-            <motion.div {...rise(5)} className="relative overflow-hidden rounded-2xl border border-brand-200 bg-white p-6 text-left shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-600 to-brand-400" />
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                  <Stethoscope className="h-6 w-6" />
-                </span>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-brand-500">Medical track</p>
-                  <h3 className="text-lg font-bold text-slate-900">Medical RCM Pipeline</h3>
-                </div>
-              </div>
-              <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                {["Scribe → Coder → Prior Auth → Biller → AR Voice", "ICD-10 / CPT coding & CMS-1500 claims", "AI voice simulation for denial follow-up"].map((line) => (
-                  <li key={line} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-
-            <motion.div {...rise(6)} className="relative overflow-hidden rounded-2xl border border-accent-200 bg-white p-6 text-left shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent-600 to-green-400" />
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-50 text-accent-600">
-                  <Smile className="h-6 w-6" />
-                </span>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-accent-500">Dental track</p>
-                  <h3 className="text-lg font-bold text-slate-900">Dental Billing & RCM</h3>
-                </div>
-              </div>
-              <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                {["CDT coding with tooth / surface / quadrant", "Odontogram + perio chart & ADA claim form", "12-step adjudication, ledger & appeals"].map((line) => (
-                  <li key={line} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent-500" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Dental showcase */}
-      <section className="mx-auto max-w-6xl px-4 pb-16">
-        <motion.div {...rise(0)} className="mb-10 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-accent-600">Dental billing, front and center</p>
-          <h2 className="mt-2 text-3xl font-bold text-slate-900">The Dental RCM Track</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">
-            A full second revenue cycle built on Dentrix, Eaglesoft and Open Dental workflows — everything a dental
-            biller or coder gets hired for.
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {dentalFeatures.map((f, i) => {
-            const Icon = f.icon;
-            return (
-              <motion.div
-                key={f.title}
-                {...rise(i)}
-                className="group rounded-2xl border border-accent-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-accent-300 hover:shadow-lg"
-              >
-                <div className="flex items-start justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-50 text-accent-600 transition group-hover:scale-110">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="rounded-full bg-accent-50 px-2 py-0.5 text-[10px] font-semibold text-accent-700">{f.tag}</span>
-                </div>
-                <h3 className="mt-3 font-semibold text-slate-900">{f.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">{f.desc}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Medical pipeline */}
-      <section className="border-t border-slate-100 bg-white/60 py-16">
-        <div className="mx-auto max-w-6xl px-4">
-          <motion.div {...rise(0)} className="mb-10 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-brand-600">Medical track</p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-900">The Medical RCM Pipeline</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">Follow a patient encounter from exam room to final payment.</p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {medicalStages.map((f, i) => {
-              const Icon = f.icon;
-              return (
-                <motion.div
-                  key={f.title}
-                  {...rise(i)}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">{f.tag}</span>
-                  </div>
-                  <h3 className="mt-3 font-semibold text-slate-900">{f.title}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-500">{f.desc}</p>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-16">
-        <div className="mx-auto max-w-4xl px-4 text-center">
-          <motion.h2 {...rise(0)} className="text-3xl font-bold text-slate-900">Get Started in 4 Steps</motion.h2>
-          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-4">
-            {[
-              { n: "1", title: "Pay 20$ / 5500 pkr", desc: "via UBL, EasyPaisa, or PayPal" },
-              { n: "2", title: "Submit Request", desc: "Fill the form with your transaction ID" },
-              { n: "3", title: "Get Approved", desc: "Admin activates your account" },
-              { n: "4", title: "Practice!", desc: "Log in with your phone number and start" },
-            ].map((step, i) => (
-              <motion.div key={step.n} {...rise(i)} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-accent-500 text-base font-bold text-white">
-                  {step.n}
-                </div>
-                <h3 className="font-semibold text-slate-800">{step.title}</h3>
-                <p className="mt-1 text-xs text-slate-400">{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white/70 px-4 py-6 text-center text-xs text-slate-400">
-        www.healthcarehustlers.org — Healthcare Hustlers EHR Simulation Portal
-      </footer>
-    </div>
-  );
-}
-
-
 // ─── Main Layout ───────────────────────────────────────────────────
 
 export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
@@ -1487,12 +1218,28 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
 
   // ── Right-panel financial KPIs — derived from REAL pipeline data ──
   // (was hardcoded 12500/8700/2400/32 demo figures)
-  const billedTotal = (pipelineState.cptCodes || []).reduce((sum, code) => {
-    const cpt = CPT_CODES.find((c) => c.code === code);
-    return sum + (cpt?.medicareRate ?? 0);
-  }, 0);
-  const deniedTotal = deniedClaims.reduce((sum, c) => sum + (c.amount || 0), 0);
-  const hasFinancialActivity = billedTotal > 0 || deniedTotal > 0 || pipelineState.status !== "pending";
+  // Every figure comes from the open encounter's own claim, 835 and ledger.
+  // Billed used to be read from a Medicare rate table ($160 beside a $280
+  // claim) and collected was the whole charge once the status said paid.
+  const financeEnc = getEncounter(activePatientId);
+  const claimChargeTotal = (financeEnc?.claimForm?.serviceLines ?? []).reduce(
+    (sum, line) => sum + (Number(line.charge) || 0) * (Number(line.units) > 0 ? Number(line.units) : 1),
+    0,
+  );
+  const financeBalance = ledgerBalance(financeEnc?.ledger);
+  const postedRemit = (financeEnc?.remittances ?? []).find((r) => r.postedAt);
+  const billedTotal = financeBalance.chargesCents > 0 ? financeBalance.chargesCents / 100 : claimChargeTotal;
+  const collectedTotal = (financeBalance.insurancePaidCents + financeBalance.patientPaidCents) / 100;
+  const deniedLinesTotal = postedRemit
+    ? postedRemit.lines.filter((l) => l.denied).reduce((sum, l) => sum + l.billedCents, 0) / 100
+    : 0;
+  const deniedTotal = deniedLinesTotal || deniedClaims.reduce((sum, c) => sum + (c.amount || 0), 0);
+  const deniedByCarc = postedRemit
+    ? postedRemit.lines
+        .filter((l) => l.denied)
+        .flatMap((l) => l.adjustments.map((a) => a.carc))
+    : [];
+  const hasFinancialActivity = billedTotal > 0 || deniedTotal > 0;
   const { addToast } = useToast();
   /**
    * The chart step on screen. Every patient opens on step 1, Registration, and
@@ -1676,7 +1423,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // The date the Daily Schedule tab is showing. The Inbox list beside it reads
   // the same date, so the calendar and the visit list never disagree.
   const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDay();
     if (appointments.some((a) => a.date === today)) return today;
     const dates = [...new Set(appointments.map((a) => a.date))].sort();
     return dates[0] || today;
@@ -1750,7 +1497,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * Call this BEFORE switching to a different patient.
    */
   function saveCurrentSession() {
-    console.log("saveCurrentSession: saving to key:", selectedPatientId);
     if (!selectedPatientId) return;
     patientDataStore.current[selectedPatientId] = {
       _patientId: selectedPatientId,
@@ -1802,10 +1548,8 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     // chart below is painted from the record the seed wrote and from the
     // patient's own chart, the same way every other chart is.
     const showingTutorialExample = seedTutorialOnOpen(patientId);
-    console.log("loadPatientSession called for:", patientId, "saved:", !!patientDataStore.current[patientId]);
     const saved = patientDataStore.current[patientId];
     const p = patients.find(pp => pp.id === patientId);
-    console.log("  patient found:", p?.firstName, p?.lastName, "| saved data:", !!saved);
 
     if (saved && saved._patientId === patientId) {
       // The note always comes from the encounter's own record, so a signed note
@@ -1888,9 +1632,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   // the effect below retries the same load the moment the patient is resolvable.
   const chartOpenedFor = useRef<string | null>(null);
   function openPatientChart(patientId: string) {
-    console.log("useEffect[selectedPatientId] FIRED for:", patientId);
     const p = patients.find(pp => pp.id === patientId);
-    console.log("  patient found in useEffect:", p?.firstName, p?.lastName);
     if (!p) {
       // Handle case where patient not found (e.g. custom appointment mapped to placeholder)
       setSharedImmunizations([]);
@@ -2310,7 +2052,10 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
   const flowNext = nextFlowStage(flowStageId);
   const flowPrevious = previousFlowStage(flowStageId);
   const onLastFlowStage = flowStageId === lastFlowStageId();
-  const flowIndex = flowStageIndex(flowStageId);
+  const codingNotSubmitted =
+    flowStageId === "coding" &&
+    !tutorialChartOpen &&
+    (pipelineState.cptCodes?.length ?? 0) === 0;
 
   // The one step back and the one step forward for the stage on screen
   // (spec `tutorial-start-and-back.md` item 3). The first stage has no Back.
@@ -2320,7 +2065,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     scribeStageIndex >= 0 && scribeStageIndex < SCRIBE_STAGES.length - 1
       ? SCRIBE_STAGES[scribeStageIndex + 1]
       : undefined;
-  const roleBack = ROLE_BACK[currentRole];
 
   const stageHints: Record<string, string> = {};
   if (!registrationComplete) {
@@ -2342,7 +2086,6 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
     encounterEventId(activePatientId),
   );
 
-  console.log("render: selectedPatientId=", selectedPatientId, "selectedPatient=", selectedPatient?.firstName, selectedPatient?.lastName);
 
   // Safely load a patient — always clears loading state even on error
   const handlePatientSelect = (id: string) => {
@@ -2506,7 +2249,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
           {currentRole !== "scribe" && (
             <div className="border-t border-slate-100 p-3">
               {hasFinancialActivity ? (
-                <FinancialLedger totalBilled={billedTotal} totalCollected={pipelineState.status === "paid" ? billedTotal : 0} totalDenied={deniedTotal} daysInAR={0} />
+                <FinancialLedger totalBilled={billedTotal} totalCollected={collectedTotal} totalDenied={deniedTotal} daysInAR={0} deniedCarcs={deniedByCarc} />
               ) : (
                 <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center">
                   <p className="text-[10px] font-medium text-slate-400">No financial activity yet</p>
@@ -2648,7 +2391,17 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                       : undefined
                 }
                 forwardLabel={onLastFlowStage ? "End encounter" : undefined}
+                // Codes only reach the claim through "Submit Coded Encounter to
+                // Billing". Continuing past Coding without it left Prior Auth and
+                // the claim saying coding was not done, with no hint why.
+                nextDisabled={codingNotSubmitted}
+                nextDisabledReason="Press “Submit Coded Encounter to Billing” first — the codes reach Prior Auth and the claim only once they are submitted."
               />
+              {codingNotSubmitted && (
+                <p className="mt-1 text-right text-[11px] text-slate-500 dark:text-slate-400">
+                  Submit the coded encounter above to continue.
+                </p>
+              )}
             </div>
           )}
         </FadeTransition>
@@ -2791,6 +2544,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                         onSignAndLock={handleSignAndLock}
                         isSubmitting={isSubmittingNote}
                         readOnly={tutorialChartOpen}
+                        vitals={editableVitals}
                       />
                     )}
                     {activeStage === "sign-lock" && noteSigned && (
@@ -3054,7 +2808,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                   item: itemEl.value.trim(),
                                   status: (statusEl?.value || "Ordered") as OrderEntry["status"],
                                   provider: selectedPatient.primaryCareProvider,
-                                  date: dateEl?.value || new Date().toISOString().split("T")[0],
+                                  date: dateEl?.value || localDay(),
                                 }]);
                                 itemEl.value = "";
                               }
@@ -3139,7 +2893,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                   id: `img-${Date.now()}`,
                                   study: studyEl.value.trim(),
                                   status: (statusEl?.value || "Ordered") as ImagingEntry["status"],
-                                  date: dateEl?.value || new Date().toISOString().split("T")[0],
+                                  date: dateEl?.value || localDay(),
                                 }]);
                                 studyEl.value = "";
                               }
@@ -3189,7 +2943,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                   id: `imm-${Date.now()}`,
                                   vaccine: vaccineEl.value.trim(),
                                   dose: doseEl?.value.trim() || "—",
-                                  date: dateEl?.value || new Date().toISOString().split("T")[0],
+                                  date: dateEl?.value || localDay(),
                                   status: "Given",
                                 }]);
                                 vaccineEl.value = "";
@@ -3243,7 +2997,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
                                   specialty: specEl.value.trim(),
                                   reason: reasonEl?.value.trim() || "—",
                                   status: (statusEl?.value || "Sent") as ReferralEntry["status"],
-                                  date: new Date().toISOString().split("T")[0],
+                                  date: localDay(),
                                 }]);
                                 specEl.value = "";
                               }

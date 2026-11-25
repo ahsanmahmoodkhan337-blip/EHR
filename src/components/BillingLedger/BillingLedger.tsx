@@ -895,9 +895,15 @@ export function BillingLedger({ openTab, onOpenPayments }: BillingLedgerProps = 
               </p>
             )}
             {billingScore !== null && (
-              <div className="mt-3 flex items-center justify-center gap-1.5 text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5 text-xs">
-                <Star className="h-3.5 w-3.5" />
-                Biller Score: <strong>{billingScore}/15</strong>
+              <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <p className="flex items-center justify-center gap-1.5">
+                  <Star className="h-3.5 w-3.5" />
+                  Biller Score: <strong>{billingScore}/15</strong>
+                </p>
+                <p className="mt-1 text-center text-[11px] leading-relaxed text-amber-700">
+                  5 points for a clean claim submitted · +5 when you work a denial in Denials &amp; AR · +5 for an
+                  appeal letter. A claim that pays without a denial needs neither — 5/15 is a full score for it.
+                </p>
               </div>
             )}
             <div className="mt-6 flex flex-wrap justify-center gap-3">

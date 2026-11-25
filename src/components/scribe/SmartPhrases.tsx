@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { dotPhraseQuery } from "./dotPhraseQuery";
 
 // ─── Dot-Code Templates ────────────────────────────────────────────
 
@@ -114,9 +115,8 @@ export function useSmartPhrases(vitals?: { bp: string; hr: string; temp: string;
         const ta = e.currentTarget;
         const { selectionStart } = ta;
         const beforeCursor = ta.value.slice(0, selectionStart);
-        const dotMatch = beforeCursor.match(/\.\w*$/);
-        if (dotMatch) {
-          const prefix = dotMatch[0];
+        const prefix = dotPhraseQuery(beforeCursor);
+        if (prefix) {
           const suggestions = getSuggestions(prefix);
           if (suggestions.length > 0) {
             const code = suggestions[0];
@@ -124,7 +124,7 @@ export function useSmartPhrases(vitals?: { bp: string; hr: string; temp: string;
             if (dotCode) {
               const expanded = dotCode.template(vitals);
               const newText =
-                ta.value.slice(0, dotMatch.index!) +
+                ta.value.slice(0, beforeCursor.length - prefix.length) +
                 expanded +
                 ta.value.slice(selectionStart);
               const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
@@ -148,14 +148,14 @@ export function useSmartPhrases(vitals?: { bp: string; hr: string; temp: string;
       const ta = e.currentTarget;
       const { selectionStart } = ta;
       const beforeCursor = ta.value.slice(0, selectionStart);
-      const dotMatch = beforeCursor.match(/\.\w*$/);
+      const typed = dotPhraseQuery(beforeCursor);
 
-      if (dotMatch) {
+      if (typed) {
         const rect = ta.getBoundingClientRect();
         // Estimate cursor position
         setState({
           showDropdown: true,
-          query: dotMatch[0],
+          query: typed,
           cursorPos: {
             top: rect.top + 30,
             left: rect.left + 10,
@@ -174,13 +174,13 @@ export function useSmartPhrases(vitals?: { bp: string; hr: string; temp: string;
       if (!ta) return;
       const { selectionStart } = ta;
       const beforeCursor = ta.value.slice(0, selectionStart);
-      const dotMatch = beforeCursor.match(/\.\w*$/);
-      if (dotMatch) {
+      const typed = dotPhraseQuery(beforeCursor);
+      if (typed) {
         const dotCode = DOT_CODES[code.slice(1)];
         if (dotCode) {
           const expanded = dotCode.template(vitals);
           const newText =
-            ta.value.slice(0, dotMatch.index!) +
+            ta.value.slice(0, beforeCursor.length - typed.length) +
             expanded +
             ta.value.slice(selectionStart);
           setState({ showDropdown: false, query: "", cursorPos: null });

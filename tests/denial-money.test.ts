@@ -98,3 +98,23 @@ describe("the item-1 rule", () => {
     }
   });
 });
+
+describe("a subscriber-name mismatch the 271 flagged denies CO-31", () => {
+  test("every line is denied CO-31 and nothing is paid or billed to the patient", async () => {
+    const { adjudicateClaim } = await import("../src/domain/adjudication");
+    const { MEDICAL_PLANS } = await import("../src/data/medical/payerScenarios");
+    const r = adjudicateClaim({
+      claimNumber: "CLM-T31",
+      payerName: "Cascadia Health PPO",
+      plan: MEDICAL_PLANS[0],
+      lines: [{ cpt: "99203", chargeCents: 17500 }],
+      deductibleRemainingCents: 0,
+      priorAuthNumber: "",
+      subscriberNameMismatch: { payerHolds: "Sara Kahn", claimCarries: "KHAN, SARA" },
+    });
+    expect(r.lines[0].denied).toBe(true);
+    expect(r.lines[0].adjustments[0].carc).toBe("CO-31");
+    expect(r.totals.paidCents).toBe(0);
+    expect(r.totals.patientRespCents).toBe(0);
+  });
+});

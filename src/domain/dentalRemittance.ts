@@ -38,6 +38,7 @@ import type {
   EraRemittance,
 } from "../data/dental";
 import { ledgerBalance, type LedgerEntry } from "./ledger";
+import { localDay } from "../utils/localDay";
 
 /** Dollars to cents, and back — the data layer keeps dollars, the ledger cents. */
 function cents(usd: number): number {
@@ -260,7 +261,7 @@ export function postDentalRemittanceToLedger(
   remittance: EraRemittance,
   ctx: DentalPostContext,
 ): LedgerEntry[] {
-  const date = (ctx.at ?? remittance.remittanceDate).slice(0, 10);
+  const date = localDay(ctx.at ?? remittance.remittanceDate);
   const entries: LedgerEntry[] = [];
 
   for (const line of remittance.lines) {

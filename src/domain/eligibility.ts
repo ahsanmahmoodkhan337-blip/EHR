@@ -339,7 +339,9 @@ export function eligibility271(
   if (!plan) {
     return noPlanAnswer(
       `${payer} has no plan rule in this simulator's plan table, so the 271 returns no copay, ` +
-        `deductible or coinsurance rather than inventing them.`,
+        `deductible or coinsurance rather than inventing them. A claim to this payer is priced on ` +
+        `the simulator's standard commercial terms; pick a payer from the plan list at registration ` +
+        `to practise with real benefit figures.`,
     );
   }
 

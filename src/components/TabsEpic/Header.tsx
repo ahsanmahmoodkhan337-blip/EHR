@@ -18,7 +18,6 @@ import { useNavigate, Link } from "@tanstack/react-router";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
 import { logout } from "../../store/accessStore";
 import { RoleSwitcher } from "../RoleSwitcher";
-import { DarkModeToggle } from "../DarkModeToggle";
 import { TrackSwitcher } from "../dental/TrackSwitcher";
 
 interface HeaderProps {
@@ -188,8 +187,6 @@ export function Header({
           )}
         </button>
 
-        {/* Dark Mode Toggle */}
-        <DarkModeToggle />
 
         {/* Logout */}
         <button

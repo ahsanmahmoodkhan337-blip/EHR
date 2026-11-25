@@ -30,13 +30,20 @@
 
 import type { AdjustmentGroup, Remittance835 } from "./adjudication";
 import { ledgerBalance, ledgerEntriesForClaim, type LedgerEntry } from "./ledger";
+import { localDay } from "../utils/localDay";
 
 // ─── Vocabulary ────────────────────────────────────────────────────
 
 export type ArItemKind = "denial" | "balance";
 
 /** The four ways a biller clears an item. Each one moves money. */
-export type ArAction = "rebill" | "appeal" | "transfer_to_patient" | "write_off";
+export type ArAction =
+  | "rebill"
+  | "appeal"
+  | "transfer_to_patient"
+  | "write_off"
+  | "patient_statement"
+  | "patient_payment";
 
 export type ArItemStatus = "open" | "in-progress" | "escalated" | "resolved";
 
@@ -50,6 +57,8 @@ export const AR_ACTION_LABELS: Record<ArAction, string> = {
   appeal: "Appeal",
   transfer_to_patient: "Transfer to patient",
   write_off: "Contractual write-off",
+  patient_statement: "Send patient statement",
+  patient_payment: "Post patient payment",
 };
 
 /**
@@ -66,6 +75,10 @@ export const AR_ACTION_EFFECTS: Record<ArAction, string> = {
     "Adds the refused money to the patient's balance. The patient now owes it, and the practice has given up on the payer.",
   write_off:
     "Reduces the patient's balance by the amount written off, and never below zero. The practice stops trying to collect it.",
+  patient_statement:
+    "Bills the patient for their share (deductible, coinsurance or copay the 835 assigned with group code PR). No money moves yet; the balance now sits with patient billing until they pay.",
+  patient_payment:
+    "Records the patient's payment of their share. The patient balance falls by the amount paid and the claim closes when it reaches zero.",
 };
 
 /** The appeal window this simulation teaches, counted from the 835's date. */
@@ -154,12 +167,23 @@ export interface ArQueueSource {
 
 const DAY_MS = 86_400_000;
 
-/** Whole days from one date to another, never negative. */
+/** A calendar day as a UTC-midnight number, so day arithmetic has no clock in it. */
+function calendarDayMs(value: string): number {
+  const day = localDay(value);
+  const m = day.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : Number.NaN;
+}
+
+/**
+ * Whole calendar days from one date to another, never negative. Both ends are
+ * read as the student's own calendar dates, so a remittance posted after
+ * midnight is 0 days old, not -1 or 1.
+ */
 export function daysBetween(fromIso: string, nowIso: string): number {
-  const from = Date.parse(fromIso);
-  const now = Date.parse(nowIso);
+  const from = calendarDayMs(fromIso);
+  const now = calendarDayMs(nowIso);
   if (!Number.isFinite(from) || !Number.isFinite(now)) return 0;
-  return Math.max(0, Math.floor((now - from) / DAY_MS));
+  return Math.max(0, Math.round((now - from) / DAY_MS));
 }
 
 /** The bucket an age in days falls in. */
@@ -173,8 +197,9 @@ export function agingBucketFor(days: number): AgingBucket {
 
 /** The appeal deadline the simulation teaches: the 835 date plus the window. */
 export function appealDeadlineFor(datedAt: string): string {
-  const start = Date.parse(datedAt);
+  const start = calendarDayMs(datedAt);
   if (!Number.isFinite(start)) return datedAt;
+  // Calendar arithmetic in UTC, then printed as that same calendar date.
   return new Date(start + APPEAL_WINDOW_DAYS * DAY_MS).toISOString().slice(0, 10);
 }
 
@@ -199,7 +224,10 @@ function isDenialAdjustment(adj: { group: AdjustmentGroup; carc: string }): bool
 export function actionsFor(kind: ArItemKind): ArAction[] {
   return kind === "denial"
     ? ["rebill", "appeal", "transfer_to_patient", "write_off"]
-    : ["write_off"];
+    : // Patient responsibility (PR) is the patient's to pay: bill it or post
+      // their payment. A contractual write-off is the payer's CO money, and
+      // routinely writing off a patient's coinsurance is not allowed.
+      ["patient_statement", "patient_payment"];
 }
 
 /**
@@ -222,7 +250,7 @@ export function buildArWorkQueue(sources: ArQueueSource[], nowIso: string): ArWo
     const posted = source.remittances.filter((r) => r.postedAt && r.claimNumber === claimNumber);
 
     for (const remittance of posted) {
-      const datedAt = remittance.paymentDate || (remittance.postedAt ?? "").slice(0, 10);
+      const datedAt = remittance.paymentDate || (remittance.postedAt ? localDay(remittance.postedAt) : "");
       for (const line of remittance.lines) {
         const denials = line.adjustments.filter(isDenialAdjustment);
         if (denials.length === 0) continue;
@@ -357,7 +385,7 @@ export function successorClaimNumber(claimNumber: string, action: ArAction): str
  */
 export function arResolutionEntries(item: ArWorkItem, action: ArAction, ctx: ArResolutionContext): LedgerEntry[] {
   if (item.status === "resolved") return [];
-  const date = (ctx.at || new Date().toISOString()).slice(0, 10);
+  const date = localDay(ctx.at || undefined);
   const base = {
     patientId: ctx.patientId ?? item.patientId,
     claimNumber: item.claimNumber,
@@ -406,6 +434,23 @@ export function arResolutionEntries(item: ArWorkItem, action: ArAction, ctx: ArR
     ];
   }
 
+  if (action === "patient_statement") return [];
+
+  if (action === "patient_payment") {
+    const paidCents = Math.max(0, item.patientPortionCents || item.amountCents);
+    if (paidCents <= 0) return [];
+    return [
+      {
+        ...base,
+        id: `${idBase}-patient-payment`,
+        type: "patient_payment",
+        code: "PT-PMT",
+        description: `Patient payment — ${money(paidCents)} received against ${item.claimNumber}`,
+        amountCents: -paidCents,
+      },
+    ];
+  }
+
   // Contractual write-off: capped by the patient's own money on this item,
   // because a write-off can neither give the patient a credit nor write off
   // money a CO adjustment already removed from their balance.
@@ -426,8 +471,13 @@ export function arResolutionEntries(item: ArWorkItem, action: ArAction, ctx: ArR
 
 /** Where a claim stands after each action, and the reason code it records. */
 export interface ArResolutionOutcome {
-  to: "replaced" | "appeal_pending" | "patient_responsibility" | "written_off";
-  reasonCode: "CORRECTED_CLAIM_FILED" | "APPEAL_FILED" | "PATIENT_BALANCE_CREATED" | "WRITE_OFF_APPROVED";
+  to: "replaced" | "appeal_pending" | "patient_responsibility" | "written_off" | "closed";
+  reasonCode:
+    | "CORRECTED_CLAIM_FILED"
+    | "APPEAL_FILED"
+    | "PATIENT_BALANCE_CREATED"
+    | "WRITE_OFF_APPROVED"
+    | "PATIENT_PAID";
 }
 
 export function arResolutionOutcome(action: ArAction): ArResolutionOutcome {
@@ -440,6 +490,10 @@ export function arResolutionOutcome(action: ArAction): ArResolutionOutcome {
       return { to: "patient_responsibility", reasonCode: "PATIENT_BALANCE_CREATED" };
     case "write_off":
       return { to: "written_off", reasonCode: "WRITE_OFF_APPROVED" };
+    case "patient_statement":
+      return { to: "patient_responsibility", reasonCode: "PATIENT_BALANCE_CREATED" };
+    case "patient_payment":
+      return { to: "closed", reasonCode: "PATIENT_PAID" };
   }
 }
 
@@ -472,6 +526,13 @@ export function arResolutionReason(
   }
   if (action === "transfer_to_patient") {
     return `${money(moved)} refused under ${item.carc ?? "the payer's rule"} transferred to the patient's balance on ${item.claimNumber}.`;
+  }
+  if (action === "patient_statement") {
+    return `Statement sent: the patient owes ${money(item.patientPortionCents || item.amountCents)} on ${item.claimNumber} (patient responsibility from the 835).`;
+  }
+  if (action === "patient_payment") {
+    const paid = entries.filter((e) => e.type === "patient_payment").reduce((sum, e) => sum + Math.abs(e.amountCents), 0);
+    return `Patient payment of ${money(paid)} posted to ${item.claimNumber}; the patient balance fell by the same amount.`;
   }
   if (written <= 0) {
     return `Write-off recorded against ${item.claimNumber}: nothing further was written off — the 835's own ${

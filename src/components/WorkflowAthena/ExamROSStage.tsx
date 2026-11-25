@@ -109,14 +109,37 @@ const ROS_SYSTEMS: RosSystem[] = [
 /** The prefix this stage adds to the student's own exam text. */
 const ROS_PREFIX = /^(?:All systems reviewed and normal\.\s*|Abnormal ROS findings:[^.]*\.\s*)/;
 
-/** The ROS summary for the findings checked so far, with its trailing space. */
-function rosSummaryFor(state: Record<string, boolean | null>): string {
-  const abnormal = Object.entries(state)
-    .filter(([, value]) => value === false)
-    .map(([id]) => id);
-  return abnormal.length > 0
-    ? `Abnormal ROS findings: ${abnormal.join(", ")}. `
-    : "All systems reviewed and normal. ";
+const ROS_LABELS: Record<string, string> = Object.fromEntries(
+  ROS_SYSTEMS.flatMap((system) => system.systems.map((item) => [item.id, item.label.toLowerCase()])),
+);
+const ROS_ITEM_COUNT = Object.keys(ROS_LABELS).length;
+
+/**
+ * The ROS line for the findings checked so far, in plain words — or "" when
+ * nothing has been reviewed. The review of systems is what the patient reports,
+ * so it belongs to the Subjective, not the Objective (the exam). It used to be
+ * written into Objective with the checklist's internal ids ("gi-abd").
+ */
+export function rosLineFor(state: Record<string, boolean | null>): string {
+  const reviewed = Object.entries(state).filter(([, v]) => v === true || v === false);
+  if (reviewed.length === 0) return "";
+  const positives = reviewed.filter(([, v]) => v === false).map(([id]) => ROS_LABELS[id] ?? id);
+  const allReviewed = reviewed.length >= ROS_ITEM_COUNT;
+  const rest = allReviewed ? "All other systems reviewed and negative." : "Other systems reviewed are negative.";
+  if (positives.length === 0) {
+    return allReviewed ? "ROS: All systems reviewed and negative." : "ROS: Systems reviewed are negative.";
+  }
+  return `ROS: Positive for ${positives.join(", ")}. ${rest}`;
+}
+
+/** The ROS line this stage keeps at the end of the Subjective. */
+const ROS_LINE = /(?:\n+|^)ROS: [^\n]*$/;
+
+/** The Subjective with its ROS line replaced by `line` (removed when empty). */
+export function withRosLine(subjective: string, line: string): string {
+  const body = (subjective ?? "").replace(ROS_LINE, "").replace(/\s+$/, "");
+  if (!line) return body;
+  return body ? `${body}\n\n${line}` : line;
 }
 
 /** The student's own words, without a prefix this stage (or an old save) added. */
@@ -168,7 +191,8 @@ export function ExamROSStage({ patientName, note, onNoteChange, vitals }: ExamRO
   const commitExamText = (newVal: string) => {
     setExamNotes(newVal);
     if (onNoteChange && note) {
-      const objective = rosSummaryFor(rosState) + newVal;
+      // The Objective holds the exam only; the ROS line lives in the Subjective.
+      const objective = newVal;
       lastEmitted.current = objective;
       onNoteChange({ ...note, objective });
     }
@@ -179,12 +203,9 @@ export function ExamROSStage({ patientName, note, onNoteChange, vitals }: ExamRO
       const updated = { ...prev, [itemId]: status };
       // Push objective changes up to parent on every ROS change
       if (onNoteChange && note) {
-        const abnormalItems = Object.entries(updated)
-          .filter(([, v]) => v === false)
-          .map(([id]) => id);
-        const objective = rosSummaryFor(updated) + examNotes;
+        const objective = examNotes;
         lastEmitted.current = objective;
-        onNoteChange({ ...note, objective });
+        onNoteChange({ ...note, objective, subjective: withRosLine(note.subjective, rosLineFor(updated)) });
       }
       return updated;
     });
@@ -200,9 +221,9 @@ export function ExamROSStage({ patientName, note, onNoteChange, vitals }: ExamRO
     setRosState(allNormal);
     // Push to parent
     if (onNoteChange && note) {
-      const objective = "All systems reviewed and normal. " + examNotes;
+      const objective = examNotes;
       lastEmitted.current = objective;
-      onNoteChange({ ...note, objective });
+      onNoteChange({ ...note, objective, subjective: withRosLine(note.subjective, rosLineFor(allNormal)) });
     }
   };
 

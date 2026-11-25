@@ -49,6 +49,8 @@ import {
   findPlan,
   type MedicalPlan,
 } from "../data/medical";
+import { localDay } from "../utils/localDay";
+import { CPT_CODES } from "../components/CodingQueue/cptData";
 
 // ─── The 835 vocabulary ────────────────────────────────────────────
 
@@ -68,7 +70,7 @@ export interface RemittanceAdjustment {
 }
 
 /** Where a line's allowed amount came from — printed on the EOB. */
-export type AllowanceSource = "plan-rule" | "billed";
+export type AllowanceSource = "plan-rule" | "fee-schedule" | "billed";
 
 export interface RemittanceLine {
   /** 1-based, matching the claim line it prices (CMS-1500 box 24). */
@@ -173,6 +175,12 @@ export interface AdjudicationInput {
   benefitUsage?: { category: string; used: number; limit: number }[];
   /** One clock read for the whole remittance; the caller may pin it in tests. */
   at?: string;
+  /**
+   * The 271 found the subscriber name on the claim's coverage does not match
+   * the payer's member file. The payer cannot identify the patient, so every
+   * line denies CO-31 — the denial the registration lesson warns about.
+   */
+  subscriberNameMismatch?: { payerHolds: string; claimCarries: string } | null;
 }
 
 // ─── Contracted allowances ─────────────────────────────────────────
@@ -205,9 +213,40 @@ const PLAN_EXCLUSIONS: Record<string, string[]> = {
 };
 
 /**
- * The allowance for one line, and where it came from. A plan with no recorded
- * allowance for the code allows the charge itself and says so — the payer
- * invents no fee schedule it cannot show.
+ * The teaching fee schedule: a code's total RVU (from the CPT table students
+ * see in Coding) × a conversion factor × the plan type's factor. Real payers
+ * price this way — Medicare's fee schedule is RVU × conversion factor, and
+ * commercial and Medicaid contracts are commonly a percentage of it. Without
+ * it, any code the case keys did not list was "allowed" at whatever charge the
+ * student typed, so a payment never carried a contractual adjustment (CO-45)
+ * and the core posting lesson — billed is not allowed — disappeared.
+ */
+export const TEACHING_CONVERSION_FACTOR_USD = 33.4;
+
+export const PLAN_TYPE_FEE_FACTOR: Record<MedicalPlan["planType"], number> = {
+  "Medicare Part B (fee-for-service)": 1.0,
+  "Medicare Advantage HMO": 1.0,
+  "Medicaid MCO": 0.75,
+  "Commercial PPO": 1.3,
+};
+
+const RVU_BY_CPT: Record<string, number> = Object.fromEntries(
+  CPT_CODES.filter((c) => c.rvu > 0).map((c) => [c.code, c.rvu]),
+);
+
+/** The fee-schedule allowance for a code on a plan, in cents, or null. */
+export function feeScheduleAllowanceCents(cpt: string, plan: MedicalPlan | null): number | null {
+  const rvu = RVU_BY_CPT[cpt];
+  if (!plan || !rvu) return null;
+  const factor = PLAN_TYPE_FEE_FACTOR[plan.planType] ?? 1;
+  return Math.round(rvu * TEACHING_CONVERSION_FACTOR_USD * factor * 100);
+}
+
+/**
+ * The allowance for one line, and where it came from: the plan's contracted
+ * rate from the case key first, then the teaching fee schedule. Only a code
+ * with neither (no RVU on file) allows the charge itself, and says so. The
+ * allowance never exceeds the charge — a payer pays the lesser of the two.
  */
 export function contractedAllowanceCents(
   cpt: string,
@@ -217,6 +256,10 @@ export function contractedAllowanceCents(
   const planRule = plan ? CASE_ALLOWANCES[plan.id]?.[cpt] : undefined;
   if (planRule !== undefined) {
     return { allowedCents: Math.min(billedCents, Math.round(planRule * 100)), source: "plan-rule" };
+  }
+  const fee = feeScheduleAllowanceCents(cpt, plan);
+  if (fee !== null) {
+    return { allowedCents: Math.min(billedCents, fee), source: "fee-schedule" };
   }
   return { allowedCents: billedCents, source: "billed" };
 }
@@ -336,6 +379,7 @@ interface LineContext {
   /** Deductible left before this line. */
   deductibleRemainingCents: number;
   allCodes: string[];
+  subscriberNameMismatch?: AdjudicationInput["subscriberNameMismatch"];
 }
 
 interface PricedLine {
@@ -367,6 +411,24 @@ function priceLine(
     writeOffCents: 0,
     insuranceBalanceCents: 0,
   };
+
+  // (0) The payer cannot identify the patient: the subscriber name does not
+  //     match its member file. Nothing on the claim is priced.
+  if (ctx.subscriberNameMismatch) {
+    const { payerHolds, claimCarries } = ctx.subscriberNameMismatch;
+    return {
+      line: {
+        ...base,
+        allowedCents: 0,
+        adjustments: [adjustment("CO-31", billedCents)],
+        writeOffCents: billedCents,
+        denied: true,
+        allowanceSource: "billed",
+        explanation: `The payer's member file holds “${payerHolds}” and the claim carries “${claimCarries}”, so it cannot identify the patient as its insured: ${dollars(billedCents)} denied CO-31. Have the patient's insurer correct its record, then correct and resubmit.`,
+      },
+      deductibleLeftCents: ctx.deductibleRemainingCents,
+    };
+  }
 
   // (a) A required authorisation the payer has no number for.
   if (authRequiredFor(input.cpt, plan) && !ctx.priorAuthNumber.trim()) {
@@ -443,7 +505,9 @@ function priceLine(
   parts.push(
     source === "plan-rule"
       ? `Allowed ${dollars(allowedCents)} — the plan's contracted allowance for ${input.cpt}.`
-      : `Allowed ${dollars(allowedCents)} — no contracted allowance is on file for ${input.cpt}, so the billed charge is the allowed amount.`,
+      : source === "fee-schedule"
+        ? `Allowed ${dollars(allowedCents)} — the plan's fee schedule for ${input.cpt} (RVU ${RVU_BY_CPT[input.cpt]} × $${TEACHING_CONVERSION_FACTOR_USD.toFixed(2)} conversion factor × ${plan ? PLAN_TYPE_FEE_FACTOR[plan.planType] : 1} for a ${plan?.planType ?? "plan"}).`
+        : `Allowed ${dollars(allowedCents)} — no contracted allowance is on file for ${input.cpt}, so the billed charge is the allowed amount.`,
   );
   if (contractualCents > 0) {
     parts.push(`The ${dollars(contractualCents)} above the allowance is CO-45, a contractual write-off.`);
@@ -511,6 +575,7 @@ export function adjudicateClaim(input: AdjudicationInput): Remittance835 {
     priorAuthNumber: input.priorAuthNumber ?? "",
     deductibleRemainingCents: deductibleLeft,
     allCodes,
+    subscriberNameMismatch: input.subscriberNameMismatch ?? null,
   };
 
   const lines: RemittanceLine[] = input.lines.map((line, index) => {
@@ -557,7 +622,7 @@ export function adjudicateClaim(input: AdjudicationInput): Remittance835 {
     planName: input.plan?.name ?? null,
     planId: input.plan?.id ?? null,
     checkOrEftNumber: eftNumber(input.claimNumber),
-    paymentDate: at.slice(0, 10),
+    paymentDate: localDay(at),
     lines,
     totals,
     outcome: outcomeOf(totals),

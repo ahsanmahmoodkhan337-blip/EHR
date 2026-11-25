@@ -72,6 +72,7 @@ const { act } = await import("react");
 const { createRoot } = await import("react-dom/client");
 const { RouterProvider, createRouter, createMemoryHistory } = await import("@tanstack/react-router");
 const { routeTree } = await import("../src/routeTree.gen");
+const { clearTutorialRefusal } = await import("../src/domain/tutorialReadOnly");
 const { useEhrStore } = await import("../src/store/ehrStore");
 const { SEED_PATIENTS } = await import("../src/store/patientStore");
 
@@ -100,6 +101,9 @@ async function openStage(patientId: string, stageId: string) {
 }
 
 beforeEach(() => {
+  // The refusal line is module state: a refusal left by another test file in
+  // the same process must not read as this test's autosave being refused.
+  clearTutorialRefusal();
   win.localStorage.clear();
   win.localStorage.setItem("hh_logged_in_phone", PHONE);
   win.localStorage.setItem("hh_approved_phones", JSON.stringify([PHONE]));

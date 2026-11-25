@@ -21,6 +21,7 @@ import {
   type StatusTone,
 } from "../../domain/claimStatus";
 import type { Status, StatusEvent } from "../../domain/statusEvent";
+import { actorLabel } from "../../utils/actorLabel";
 
 const TONE_CLASSES: Record<StatusTone, string> = {
   neutral: "bg-slate-100 text-slate-600",
@@ -117,7 +118,7 @@ export function StatusTimeline({
                 <p className="mt-0.5 text-[10px] leading-snug text-slate-600">{event.reason}</p>
                 <p className="mt-0.5 text-[9px] text-slate-400">
                   {timeOf(event.at)} · {JOB_ROLE_LABELS[event.jobRole] ?? event.jobRole}
-                  {event.by && event.by !== "system" ? ` · ${event.by}` : " · system"}
+                  {` · ${actorLabel(event.by)}`}
                   {event.claimNumber ? ` · ${event.claimNumber}` : ""}
                 </p>
               </div>

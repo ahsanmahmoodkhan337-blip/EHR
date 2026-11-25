@@ -32,6 +32,8 @@ import {
 } from "../../domain/noteStatus";
 import { formatWhen } from "../../domain/homeWorkQueues";
 import { useEncounterDateOfService } from "../../utils/encounterPatient";
+import { localDay } from "../../utils/localDay";
+import { actorLabel } from "../../utils/actorLabel";
 
 export interface ActiveProgressNoteProps {
   /** The patient whose chart is open, or null when nobody is. */
@@ -47,7 +49,14 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
   const readOnly = noteReadOnly(encounter);
   const savedAt = encounter?.noteUpdatedAt ?? null;
   const signer = noteSignedBy(encounter);
-  const dateOfService = useEncounterDateOfService(patientId);
+  // The visit date: the chart's encounter, else the claim's line 1 date of
+  // service, else the day the note was signed. The Tutorial Patient's note read
+  // "Date: Not on file" beside a banner showing its service date.
+  const chartDateOfService = useEncounterDateOfService(patientId);
+  const claimDateOfService = encounter?.claimForm?.serviceLines?.find((l) => l.dateOfService)?.dateOfService;
+  const signedDay = (encounter?.statusEvents ?? []).find((e) => e.reasonCode === "NOTE_SIGNED")?.at;
+  const dateOfService =
+    chartDateOfService || claimDateOfService || (signedDay ? localDay(signedDay) : null);
   const signedEvents = (encounter?.statusEvents ?? []).filter(
     (event) => event.reasonCode === "NOTE_SIGNED",
   );
@@ -202,7 +211,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
                 <li key={event.id} className="text-[11px] text-slate-600">
                   <span className="font-medium">{formatWhen(event.at)}</span>
                   {" · signed by "}
-                  <span className="font-medium">{event.by || "the store"}</span>
+                  <span className="font-medium">{actorLabel(event.by)}</span>
                 </li>
               ))}
             </ul>
@@ -217,7 +226,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
           </div>
           <div>
             <span className="font-medium text-slate-600">Author:</span>{" "}
-            {signer ?? "Not signed yet"}
+            {signer ? actorLabel(signer) : "Not signed yet"}
           </div>
           <div>
             <span className="font-medium text-slate-600">Type:</span> Progress Note

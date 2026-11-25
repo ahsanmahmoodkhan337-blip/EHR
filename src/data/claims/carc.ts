@@ -167,6 +167,17 @@ export const CARC_CODES = [
     neededBy: ["Biller", "Poster", "AR"],
   },
   {
+    code: "CO-31",
+    group: "CO",
+    category: "CO",
+    description: "Patient cannot be identified as our insured",
+    meaning:
+      "The name on the claim does not match the member's record at the payer (often a misspelling on the card or in the payer's file), so the payer cannot match the claim to its member.",
+    howToFix:
+      "Confirm the spelling on the government ID, have the patient ask the insurer to correct its member record (or bill the name exactly as the payer holds it), then correct and resubmit the claim.",
+    neededBy: ["Biller", "AR"],
+  },
+  {
     code: "CO-26",
     group: "CO",
     category: "CO",

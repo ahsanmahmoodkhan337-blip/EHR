@@ -204,12 +204,15 @@ describe("the Tutorial Patient's money stages", () => {
     }
     // The money the payer priced, and the posting that put it on the ledger.
     expect(text).toContain("$280.00"); // billed — the claim's own box 28 total
-    expect(text).toContain("$225.00"); // allowed
-    expect(text).toContain("$140.00"); // paid
+    // Allowed comes from the Part B fee schedule, not the charge: the gap is
+    // the CO-45 contractual write-off every posting student must recognise.
+    expect(text).toContain("$106.21"); // allowed — RVU 3.18 × $33.40
+    expect(text).toContain("CO-45");
+    expect(text).toContain("$44.97"); // paid — 80% after the $50 deductible
     expect(text).toContain("Posted to the patient ledger");
     // The denied line's real group code + CARC, and the patient's balance.
     expect(text).toContain("CO-236");
-    expect(text).toContain("$85.00");
+    expect(text).toContain("$61.24"); // patient: $50 deductible + $11.24 coinsurance
 
     // The claim-transmitted panel — and its "nothing has been paid" copy — is not
     // what the posting stage shows once the payer has answered.

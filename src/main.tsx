@@ -15,6 +15,9 @@ import { bootstrapEhrStore } from "./store/ehrStore";
 import { removeStagePinState } from "./store/removeStagePinState";
 import "~/styles/app.css";
 
+// Light-only: clear a "dark" class an earlier build's toggle may have left set.
+if (typeof document !== "undefined") document.documentElement.classList.remove("dark");
+
 const router = getRouter();
 
 // Stage PINs are retired (specs/task-0b-remove-pin.md): drop the two keys the

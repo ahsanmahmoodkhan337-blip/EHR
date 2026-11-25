@@ -24,6 +24,7 @@ import {
   type LedgerEntry,
 } from "../../domain/ledger";
 import type { Remittance835 } from "../../domain/adjudication";
+import { actorLabel } from "../../utils/actorLabel";
 
 function money(cents: number): string {
   return `$${(Math.abs(cents) / 100).toFixed(2)}`;
@@ -117,7 +118,7 @@ export function PatientLedgerPanel({ entries, remittance, className = "" }: Pati
                     >
                       {entry.amountCents < 0 ? `−${money(entry.amountCents)}` : `+${money(entry.amountCents)}`}
                     </td>
-                    <td className="px-2 py-1 text-slate-500">{entry.userId}</td>
+                    <td className="px-2 py-1 text-slate-500">{actorLabel(entry.userId)}</td>
                   </tr>
                 ))}
               </tbody>
