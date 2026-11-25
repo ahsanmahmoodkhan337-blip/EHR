@@ -495,3 +495,7 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - `src/components/shell/HelpLauncher.tsx` — a 52 px round help head, fixed on screen, that the student can drag anywhere. It snaps to the nearer side edge and remembers where it was left (`hh_help_pos`, a UI preference, not student work). Tap opens the panel beside it (bottom sheet on phones); Escape closes.
 - Panel: **Ask a question** (answered offline), suggested questions, the six how-to guides, keyboard shortcuts, WhatsApp support, simulated-data line. Replaces the old `hh_help_open` docked button in the footer strip.
 - `src/domain/helpGuide.ts` — `askHelpGuide()` answers from the app's own content only: a how-to FAQ (on-screen button names), an RCM glossary (270/271, 837P, 277CA, 835, copay/deductible/coinsurance, allowed, PA, modifiers, POS, NPI, timely filing, E/M…), the CARC table (`co45`, `CO 45`, `CO-45` all match) and the how-to guides. No AI service; an unknown question says so.
+
+## 20. Rows opened from Claims / Payments / Denials land on the chart (2026-11-26)
+
+- `routes/index.tsx`: a patient handed over by a rail page ("Open this claim", money-cycle rows) now also switches the workspace to the chart, and an `/encounter/…` address starts on the chart. Before, the Tutorial claim opened from Claims showed the Daily Schedule with the CMS-1500 hidden.

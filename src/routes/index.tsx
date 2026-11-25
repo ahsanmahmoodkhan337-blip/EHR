@@ -1177,7 +1177,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * is the next tab of the same window, so the stepper, the patient banner and
    * Back / "Continue to…" stay inside the chart panel where they were.
    */
-  const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("schedule");
+  const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs(encounterIdFromRoute ? "chart" : "schedule");
   const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, seedTutorialOnOpen, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
   /**
    * The patient the chart opens on (owner's audit, 2026-11-20, item 4 — "patient
@@ -1327,6 +1327,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       // A money-cycle rail page hands over the stage its row was about, so the
       // chart opens on that screen instead of wherever the student left it.
       if (requested.role) setRole(requested.role);
+      // …and on the chart itself: a row's "Open this claim" used to land on the
+      // Daily Schedule with the claim hidden behind it (owner, 2026-11-26).
+      setActiveWorkspace("chart");
       return;
     }
     // An appointment booked for someone who is not in the patient database
