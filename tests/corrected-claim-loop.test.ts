@@ -189,3 +189,17 @@ describe("an appeal gets the payer's answer, and the visit can still close", () 
     expect(successorClaimNumber("CLM-000009-R1", "rebill")).toBe("CLM-000009-R2");
   });
 });
+
+describe("billing the patient for a CO denial is explained as the wrong move", () => {
+  test("the timeline says why and names the right fix", async () => {
+    const { arResolutionReason } = await import("../src/domain/arWorkQueue");
+    const denied = adjudicate("CLM-000011", true);
+    const ledger = appendLedgerEntries([], postRemittanceToLedger(denied, CTX));
+    const item = buildArWorkQueue(sources(ledger, [denied]), NOW).find((i) => i.kind === "denial")!;
+    const entries = arResolutionEntries(item, "transfer_to_patient", CTX);
+    const reason = arResolutionReason(item, "transfer_to_patient", entries);
+    expect(reason).toContain("wrong move");
+    expect(reason).toContain("may not be billed to the patient");
+    expect(reason).toContain("CO-31");
+  });
+});

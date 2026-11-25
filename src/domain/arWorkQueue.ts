@@ -30,6 +30,7 @@
 
 import type { AdjustmentGroup, Remittance835 } from "./adjudication";
 import { ledgerBalance, ledgerEntriesForClaim, type LedgerEntry } from "./ledger";
+import { CARC_BY_CODE } from "../data/claims/carc";
 import { localDay } from "../utils/localDay";
 
 // ─── Vocabulary ────────────────────────────────────────────────────
@@ -632,7 +633,15 @@ export function arResolutionReason(
     }: ${money(moved / 2)} moved onto the appeal record. The patient's balance is unchanged.`;
   }
   if (action === "transfer_to_patient") {
-    return `${money(moved)} refused under ${item.carc ?? "the payer's rule"} transferred to the patient's balance on ${item.claimNumber}.`;
+    const base = `${money(moved)} refused under ${item.carc ?? "the payer's rule"} transferred to the patient's balance on ${item.claimNumber}.`;
+    // The debrief: a CO denial is never the patient's to pay.
+    if (item.carc?.startsWith("CO-")) {
+      const fix = CARC_BY_CODE[item.carc]?.howToFix;
+      return `${base} This was the wrong move: a CO denial is the practice's contractual responsibility and may not be billed to the patient.${
+        fix ? ` The right fix for ${item.carc}: ${fix}` : ""
+      }`;
+    }
+    return base;
   }
   if (action === "patient_statement") {
     return `Statement sent: the patient owes ${money(item.patientPortionCents || item.amountCents)} on ${item.claimNumber} (patient responsibility from the 835).`;

@@ -283,6 +283,13 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                     <p className="mt-0.5 text-xs leading-relaxed text-brand-900">
                       {AR_ACTION_EFFECTS[pending.action]}
                     </p>
+                    {pending.action === "transfer_to_patient" && item.carc?.startsWith("CO-") ? (
+                      <p role="alert" className="mt-1 rounded bg-red-50 px-2 py-1 text-xs leading-relaxed text-red-800">
+                        <span className="font-semibold">Check before you confirm:</span> {item.carc} is a CO (contractual
+                        obligation) denial. The payer contract does not let the practice bill the patient for it — on the
+                        job this is a compliance error.
+                      </p>
+                    ) : null}
                     {pending.action === "write_off" ? (
                       <label className="mt-1.5 block text-xs font-medium text-brand-900">
                         Reason code for the write-off
