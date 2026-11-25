@@ -446,3 +446,7 @@ British "authorisation" spelling across the UI (a grader matches on it).
   the printed forms; "BREAK GLASS" and "GOOD FAITH ESTIMATE" stay as written.
 - Settings no longer prints the student's phone number in its title block.
 
+
+## 14. Toast messages appear (2026-11-25)
+
+- `src/routes/__root.tsx` mounts sonner's `<Toaster />` once (bottom-right). Before this, the 18 `toast()` calls in `routes/index.tsx`, `ClaimFormShell`, `BillingLedger`, `DentalBillingLedger`, `PriorAuthPortal` and `HotkeyEngine` went nowhere — e.g. Validate on the claim showed nothing, and "Cannot submit — N edit checks failed" was silent. Guarded by `tests/toaster-mounted.test.ts`.
