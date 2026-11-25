@@ -396,9 +396,11 @@ function remittanceReason(remittance: Remittance835): string {
   if (remittance.outcome === "patient_responsibility") {
     return `Nothing paid by the plan: the whole ${money(patientRespCents)} allowed is the patient's responsibility and is on the ledger. No write-off.`;
   }
-  return `Denied with no patient balance: ${money(deniedCents)} written off as contractual (${money(
-    writeOffCents,
-  )} in total adjustments). Nothing is owed by the patient.`;
+  // A denial is not a write-off: the money is still owed by the payer once the
+  // claim is fixed or appealed, so it goes to Denials & AR — never bill the
+  // patient for a CO denial (button audit, 2026-11-25: this used to say
+  // "written off as contractual").
+  return `Denied: the plan paid nothing and refused ${money(deniedCents)}. This is not a write-off — work it in Denials & AR (correct and resubmit, or appeal). The patient owes nothing for a CO denial.`;
 }
 
 /**
