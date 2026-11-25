@@ -15,22 +15,9 @@
 
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion, useReducedMotion } from "framer-motion";
-import {
-  Building2,
-  Smartphone,
-  CreditCard,
-  CheckCircle2,
-  ChevronRight,
-  MessageCircle,
-  AlertCircle,
-  Sparkles,
-  ArrowRight,
-  Stethoscope,
-  Smile,
-  Info,
-  TriangleAlert,
-} from "lucide-react";
+import { Building2, Check, CheckCircle2, Copy, CreditCard, MessageCircle, Smartphone, Smile, Stethoscope } from "lucide-react";
+import "@fontsource-variable/public-sans";
+import { AUTH_FONT } from "../components/auth/AuthShell";
 import { saveAccessRequest, type AccessRequest } from "../store/accessStore";
 import { WhatsAppFloat } from "../components/WhatsAppFloat";
 
@@ -84,27 +71,20 @@ const PAYMENT_METHODS = [
   },
 ];
 
-const ENROLLMENT_STEPS = [
-  { number: "1", title: "Choose Payment Method", desc: "Select UBL, EasyPaisa, or PayPal" },
-  { number: "2", title: "Make Payment", desc: "Send the enrollment fee using the account details" },
-  { number: "3", title: "Note Transaction ID", desc: "Save the transaction/reference ID from your payment" },
-  { number: "4", title: "Submit Request Form", desc: "Fill in your details below with the transaction ID" },
-  { number: "5", title: "Wait for Approval", desc: "Admin will verify and approve within 24 hours" },
-  { number: "6", title: "Start Learning!", desc: "Use your phone number to log in and access the EHR simulator" },
-];
 
 // ─── Component ────────────────────────────────────────────────────
 
 function AccessPage() {
-  const reduceMotion = useReducedMotion();
-
-  // Shared reveal preset — collapses to no-op under prefers-reduced-motion.
-  const rise = (i = 0) => ({
-    initial: { opacity: 0, y: reduceMotion ? 0 : 20 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, amount: 0.15 },
-    transition: { duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : i * 0.06 },
-  });
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = async (key: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(key);
+      window.setTimeout(() => setCopied((c) => (c === key ? null : c)), 1800);
+    } catch {
+      /* clipboard blocked — the value is on screen to copy by hand */
+    }
+  };
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -145,433 +125,280 @@ function AccessPage() {
     setSubmitted(true);
   };
 
+  const missing = [
+    !formData.fullName.trim() && "your full name",
+    !formData.phone.trim() && "your phone number",
+    !formData.transactionId.trim() && "the transaction ID",
+  ].filter(Boolean) as string[];
+  const selectedMethod = PAYMENT_METHODS.find((m) => m.id === formData.paymentMethod) ?? PAYMENT_METHODS[0];
+  const WHATSAPP = "https://api.whatsapp.com/send/?phone=923350340888&text&type=phone_number&app_absent=0";
+  const field =
+    "mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-[16px] text-slate-900 outline-none focus:border-[#2040c0] focus:ring-2 focus:ring-[#2040c0]/20";
+
   if (submitted) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center overflow-x-hidden bg-slate-50 p-4 text-slate-800">
-        <motion.div
-          initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.96, y: reduceMotion ? 0 : 16 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0 : 0.45 }}
-          className="w-full max-w-md rounded-2xl border border-green-200 bg-white p-8 text-center shadow-lg shadow-green-500/5"
-        >
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-50">
-            <CheckCircle2 className="h-9 w-9 text-green-500" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-900">Request Submitted!</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Your access request has been received. An admin will review your payment and approve your account within 24 hours.
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 p-5 text-slate-800" style={AUTH_FONT}>
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 ring-1 ring-slate-200">
+          <CheckCircle2 className="h-10 w-10 text-[#5f8f22]" aria-hidden="true" />
+          <h1 className="mt-4 text-2xl font-bold text-slate-900">Request sent</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
+            An admin will check your payment and approve your account, usually within 24 hours.
           </p>
-          <div className="mt-5 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            Your Login ID: <span className="font-bold text-slate-900">{formData.phone}</span>
-          </div>
-          <Link
-            to="/login"
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
-          >
-            Go to Login
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <p className="mt-3 text-xs text-slate-400">
-            After submitting, message your name and phone on WhatsApp at +92 335 0340888 so the admin can approve your access.
+          <p className="mt-5 rounded-xl bg-slate-50 px-4 py-3 text-[15px] text-slate-600">
+            Your login ID: <span className="font-bold text-slate-900">{formData.phone}</span>
           </p>
-        </motion.div>
+          <ol className="mt-5 space-y-2 text-[14px] text-slate-600">
+            <li>1. Message your name and phone number on WhatsApp at +92 335 0340888 so the admin can find your request.</li>
+            <li>2. Once approved, sign in with this phone number on any device.</li>
+          </ol>
+          <div className="mt-6 flex flex-col gap-2">
+            <a
+              href={WHATSAPP}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[15px] font-semibold text-white hover:bg-green-500"
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              Message the admin on WhatsApp
+            </a>
+            <Link
+              to="/login"
+              className="flex min-h-12 items-center justify-center rounded-xl px-4 text-[15px] font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+            >
+              Go to Student login
+            </Link>
+          </div>
+        </div>
         <WhatsAppFloat />
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh overflow-x-hidden bg-slate-50 text-slate-800">
-      {/* Nav */}
-      <nav className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/70 bg-white/85 px-4 py-3 backdrop-blur-md">
-        <img
-          src="/healthcarehustlers-logo.png"
-          alt="Healthcare Hustlers"
-          className="h-7 w-auto"
-          style={{ maxWidth: "160px" }}
+    <div className="min-h-dvh bg-slate-50 text-slate-800" style={AUTH_FONT}>
+      <header className="relative isolate overflow-hidden bg-[#192166] text-white">
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 opacity-[0.07]"
+          aria-hidden="true"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px)",
+            backgroundSize: "88px 44px",
+          }}
         />
-        <div className="flex items-center gap-2 text-xs">
-          <Link to="/login" className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50">
-            Student Login
+        <nav className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
+          <Link to="/" className="rounded-lg bg-white px-2.5 py-1.5">
+            <img src="/healthcarehustlers-logo.png" alt="Healthcare Hustlers — home" className="h-6 w-auto" style={{ maxWidth: "150px" }} />
           </Link>
-          <Link to="/" className="rounded-lg bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-700">
-            Home
+          <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-white hover:bg-white/10">
+            Student login
           </Link>
+        </nav>
+        <div className="mx-auto max-w-5xl px-5 pb-12 pt-6 md:pb-16 md:pt-10">
+          <h1 className="max-w-[18ch] text-[2.2rem] font-extrabold leading-[1.08] tracking-[-0.02em] md:text-[3rem]">
+            Enroll in the EHR simulation portal
+          </h1>
+          <p className="mt-4 max-w-[54ch] text-[16px] leading-relaxed text-white/75 md:text-[17px]">
+            One payment of <span className="font-semibold text-white">$20 / 5,500 PKR</span> unlocks the medical and the
+            dental track. Three steps, and an admin approves you within 24 hours.
+          </p>
         </div>
-      </nav>
+      </header>
 
-      {/* Hero */}
-      <section className="relative isolate overflow-hidden">
-        {/* Subtle animated background */}
-        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-          <motion.div
-            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-brand-300/30 blur-3xl"
-            animate={reduceMotion ? undefined : { x: [0, 48, 0], y: [0, 24, 0] }}
-            transition={{ duration: 15, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-accent-300/30 blur-3xl"
-            animate={reduceMotion ? undefined : { x: [0, -48, 0], y: [0, 32, 0] }}
-            transition={{ duration: 17, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-          />
-          <div className="absolute bottom-0 left-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-brand-200/20 blur-3xl" />
-        </div>
-
-        <div className="mx-auto max-w-5xl px-4 pb-14 pt-14 text-center md:pt-20">
-          <motion.p {...rise(0)} className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500">
-            <Sparkles className="h-3.5 w-3.5 text-brand-500" />
-            One enrollment — Medical + Dental revenue-cycle training
-          </motion.p>
-
-          <motion.h1 {...rise(1)} className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 md:text-6xl">
-            Enroll in the{" "}
-            <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
-              EHR Simulation Portal
-            </span>
-          </motion.h1>
-
-          <motion.p {...rise(2)} className="mx-auto mt-5 max-w-2xl text-base text-slate-500 md:text-lg">
-            Pay once and get hands-on practice across the full clinical-to-financial workflow — medical
-            billing and the dental RCM track, in one login.
-          </motion.p>
-
-          <motion.div {...rise(3)} className="mt-8 flex flex-wrap justify-center gap-3">
-            <a
-              href="#access-form"
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-xl"
-            >
-              Enroll Now — 20$ / 5500 PKR
-              <ArrowRight className="h-4 w-4" />
-            </a>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-7 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Student Login
-            </Link>
-          </motion.div>
-          <motion.p {...rise(4)} className="mt-4 text-center text-xs text-slate-400">
-            One fee unlocks both the medical and dental RCM tracks
-          </motion.p>
-
-          {/* Two-track hero — what's included */}
-          <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
-            <motion.div {...rise(5)} className="relative overflow-hidden rounded-2xl border border-brand-200 bg-white p-6 text-left shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-600 to-brand-400" />
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                  <Stethoscope className="h-6 w-6" />
-                </span>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-brand-500">Medical track</p>
-                  <h3 className="text-lg font-bold text-slate-900">Medical RCM Pipeline</h3>
-                </div>
-              </div>
-              <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                {["Scribe → Coder → Prior Auth → Biller → AR Voice", "ICD-10 / CPT coding & CMS-1500 claims", "AI voice simulation for denial follow-up"].map((line) => (
-                  <li key={line} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-
-            <motion.div {...rise(6)} className="relative overflow-hidden rounded-2xl border border-accent-200 bg-white p-6 text-left shadow-sm">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent-600 to-green-400" />
-              <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-50 text-accent-600">
-                  <Smile className="h-6 w-6" />
-                </span>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-accent-500">Dental track</p>
-                  <h3 className="text-lg font-bold text-slate-900">Dental Billing & RCM</h3>
-                </div>
-              </div>
-              <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                {["CDT coding with tooth / surface / quadrant", "Odontogram + perio chart & ADA claim form", "12-step adjudication, ledger & appeals"].map((line) => (
-                  <li key={line} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent-500" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Enrollment steps */}
-      <section className="mx-auto max-w-6xl px-4 pb-16">
-        <motion.div {...rise(0)} className="mb-10 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-brand-600">Enrollment guide</p>
-          <h2 className="mt-2 text-3xl font-bold text-slate-900">How to Enroll in 6 Steps</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">From payment to your first log-in — the whole process, start to finish.</p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {ENROLLMENT_STEPS.map((step, i) => (
-            <motion.div
-              key={step.number}
-              {...rise(i)}
-              className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-accent-500 text-base font-bold text-white shadow-sm transition group-hover:scale-105">
-                  {step.number}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-800">{step.title}</h3>
-                  <p className="mt-1 text-xs text-slate-400">{step.desc}</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Select payment method */}
-      <section className="border-t border-slate-100 bg-white/60 py-16">
-        <div className="mx-auto max-w-6xl px-4">
-          <motion.div {...rise(0)} className="mb-10 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-accent-600">Payment</p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-900">Select a Payment Method</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-500">Pick one, send the fee, then note your transaction ID for the form below.</p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {PAYMENT_METHODS.map((method, i) => {
-              const Icon = method.icon;
-              const selected = formData.paymentMethod === method.id;
-              return (
-                <motion.div
-                  key={method.id}
-                  {...rise(i)}
-                  className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg ${
-                    selected ? "border-brand-500" : "border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${method.tone} transition group-hover:scale-110`}>
-                      <Icon className="h-6 w-6" />
-                    </span>
-                    <span className="font-semibold text-slate-900">{method.name}</span>
-                  </div>
-
-                  <div className="mt-4 flex-1 space-y-2">
-                    {method.details.map((d) => (
-                      <div key={d.label} className="flex items-start justify-between gap-3 text-xs">
-                        <span className="shrink-0 text-slate-400">{d.label}</span>
-                        <span className="text-right font-medium text-slate-700">{d.value}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 p-2.5 text-[11px] font-medium leading-relaxed text-amber-700">
-                    <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    {method.warning}
-                  </p>
-
+      <div className="mx-auto grid max-w-5xl gap-10 px-5 py-10 md:py-14 lg:grid-cols-[minmax(0,1fr)_17rem]">
+        <ol className="space-y-12">
+          {/* Step 1 — pay */}
+          <li>
+            <StepHeading n={1} title="Pay the enrollment fee" />
+            <p className="mt-2 text-[15px] text-slate-600">Pick how you'll pay, then send the fee to the account shown.</p>
+            <div role="radiogroup" aria-label="Payment method" className="mt-5 grid grid-cols-3 gap-2">
+              {PAYMENT_METHODS.map((m) => {
+                const Icon = m.icon;
+                const selected = m.id === formData.paymentMethod;
+                return (
                   <button
-                    onClick={() => setFormData({ ...formData, paymentMethod: method.id as AccessRequest["paymentMethod"] })}
-                    className={`mt-4 w-full rounded-xl py-2 text-xs font-semibold transition-colors ${
-                      selected
-                        ? "bg-brand-600 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    key={m.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setFormData({ ...formData, paymentMethod: m.id as AccessRequest["paymentMethod"] })}
+                    className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[14px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2040c0] sm:flex-row sm:gap-2 ${
+                      selected ? "bg-[#192166] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-300"
                     }`}
                   >
-                    {selected ? "Selected" : "Select"}
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                    {m.name}
                   </button>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+                );
+              })}
+            </div>
+            <div className="mt-3 rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+              <dl className="divide-y divide-slate-100">
+                {selectedMethod.details.map((d) => {
+                  const key = `${selectedMethod.id}-${d.label}`;
+                  const copyable = /number|title|routing/i.test(d.label);
+                  return (
+                    <div key={key} className="flex flex-col gap-0.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                      <dt className="text-[13px] text-slate-500 sm:text-[14px]">{d.label}</dt>
+                      <dd className="flex min-w-0 items-center justify-between gap-2 sm:justify-end">
+                        <span className="whitespace-nowrap text-[15px] font-semibold text-slate-900 tabular-nums sm:text-right">{d.value}</span>
+                        {copyable && (
+                          <button
+                            type="button"
+                            onClick={() => copy(key, d.value)}
+                            aria-label={`Copy ${d.label}`}
+                            className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2 text-[13px] font-medium text-[#2040c0] hover:bg-slate-50"
+                          >
+                            {copied === key ? <Check className="h-4 w-4" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
+                            <span aria-live="polite">{copied === key ? "Copied" : "Copy"}</span>
+                          </button>
+                        )}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+              <p className="mt-3 rounded-xl bg-amber-50 px-3.5 py-2.5 text-[14px] leading-relaxed text-amber-800">{selectedMethod.warning}</p>
+            </div>
+          </li>
 
-      {/* Access request form */}
-      <section id="access-form" className="py-16">
-        <div className="mx-auto max-w-3xl px-4">
-          <motion.div {...rise(0)} className="mb-8 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-brand-600">Step 4</p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-900">Access Request Form</h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm text-slate-500">Submit your details and transaction ID to request access.</p>
-          </motion.div>
+          {/* Step 2 — receipt */}
+          <li>
+            <StepHeading n={2} title="Send the receipt on WhatsApp" />
+            <p className="mt-2 text-[15px] text-slate-600">
+              Send a screenshot of the receipt to +92 335 0340888 so the admin can match your payment.
+            </p>
+            <div className="mt-5 flex flex-col gap-3 rounded-2xl bg-white p-5 ring-1 ring-slate-200 sm:flex-row sm:items-center sm:justify-between">
+              <a
+                href={WHATSAPP}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[15px] font-semibold text-white hover:bg-green-500"
+              >
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                Send receipt on WhatsApp
+              </a>
+              <label className="flex min-h-12 cursor-pointer items-center gap-2.5 text-[15px] text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={hasConfirmedReceipt}
+                  onChange={(e) => setHasConfirmedReceipt(e.target.checked)}
+                  className="h-5 w-5 accent-[#192166]"
+                />
+                I've sent my receipt
+              </label>
+            </div>
+          </li>
 
-          <motion.div {...rise(1)} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Step 3 — form */}
+          <li id="access-form" className="scroll-mt-6">
+            <StepHeading n={3} title="Send your access request" />
+            <p className="mt-2 text-[15px] text-slate-600">Your phone number becomes your login ID.</p>
+            <form onSubmit={handleSubmit} noValidate className="mt-5 rounded-2xl bg-white p-5 ring-1 ring-slate-200 md:p-6">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-slate-600">Student Full Name *</label>
-                  <input
-                    type="text"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    placeholder="John Doe"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
-                  />
+                  <label htmlFor="acc-name" className="block text-[14px] font-medium text-slate-700">Full name</label>
+                  <input id="acc-name" type="text" autoComplete="name" value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className={field} />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-slate-600">Phone Number (Login ID) *</label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="03001234567"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
-                  />
+                  <label htmlFor="acc-phone" className="block text-[14px] font-medium text-slate-700">Phone number (login ID)</label>
+                  <input id="acc-phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="03001234567" value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className={field} />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-slate-600">Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="student@example.com"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
-                  />
+                  <label htmlFor="acc-email" className="block text-[14px] font-medium text-slate-700">
+                    Email <span className="font-normal text-slate-400">(optional)</span>
+                  </label>
+                  <input id="acc-email" type="email" autoComplete="email" value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })} className={field} />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-slate-600">Select Payment Method</label>
-                  <select
-                    value={formData.paymentMethod}
-                    onChange={(e) =>
-                      setFormData({ ...formData, paymentMethod: e.target.value as AccessRequest["paymentMethod"] })
-                    }
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
-                  >
+                  <label htmlFor="acc-method" className="block text-[14px] font-medium text-slate-700">Paid with</label>
+                  <select id="acc-method" value={formData.paymentMethod}
+                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as AccessRequest["paymentMethod"] })}
+                    className={field}>
                     <option value="easypaisa">EasyPaisa</option>
                     <option value="bank-islami">UBL</option>
                     <option value="paypal">PayPal</option>
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="mb-1.5 block text-xs font-medium text-slate-600">Unique Transaction ID *</label>
-                  <input
-                    type="text"
-                    value={formData.transactionId}
+                  <label htmlFor="acc-txn" className="block text-[14px] font-medium text-slate-700">Transaction ID</label>
+                  <input id="acc-txn" type="text" value={formData.transactionId}
                     onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
-                    placeholder="Enter the transaction/reference ID from your payment"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
-                  />
-                </div>
-              </div>
-
-              {/* Pricing Note */}
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-700">
-                <p className="font-medium">
-                  Note: $20 / 5,500 PKR gives you access to the whole revenue cycle — both the Medical
-                  and Dental tracks. No separate fee for dental.
-                </p>
-              </div>
-
-              {/* Cross-Device Access Note */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-600">
-                <p className="flex items-center gap-1.5 font-medium text-slate-700">
-                  <Info className="h-4 w-4" /> Cross-Device Access
-                </p>
-                <p className="mt-1">Your access is tied to your phone number, not a single device. Once an admin approves you, log in from any device with the same number.</p>
-              </div>
-
-              {/* WhatsApp Receipt Confirmation */}
-              <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-                <p className="mb-2 text-xs font-medium text-green-800">
-                  Send your payment receipt to our WhatsApp for verification:
-                </p>
-                <a
-                  href="https://api.whatsapp.com/send/?phone=923350340888&text&type=phone_number&app_absent=0"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-500"
-                >
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  Send Receipt on WhatsApp
-                </a>
-                <div className="mt-3">
-                  <p className="mb-2 text-xs font-medium text-slate-600">
-                    Have you sent the payment receipt to our WhatsApp number?
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <label className="flex cursor-pointer items-center gap-1.5">
-                      <input
-                        type="radio"
-                        name="receiptConfirmed"
-                        checked={hasConfirmedReceipt}
-                        onChange={() => setHasConfirmedReceipt(true)}
-                        className="h-4 w-4 accent-green-600"
-                      />
-                      <span className="text-xs text-slate-700">Yes</span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-1.5">
-                      <input
-                        type="radio"
-                        name="receiptConfirmed"
-                        checked={!hasConfirmedReceipt}
-                        onChange={() => setHasConfirmedReceipt(false)}
-                        className="h-4 w-4 accent-red-400"
-                      />
-                      <span className="text-xs text-slate-700">No</span>
-                    </label>
-                  </div>
+                    placeholder="The transaction or reference ID on your receipt" className={field} />
                 </div>
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  {error}
-                </div>
+                <p role="alert" className="mt-4 rounded-xl bg-red-50 px-3.5 py-2.5 text-[14px] text-red-700">{error}</p>
               )}
 
               <button
                 type="submit"
                 disabled={!hasConfirmedReceipt}
-                className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white transition-colors ${
-                  hasConfirmedReceipt
-                    ? "bg-brand-600 hover:bg-brand-700"
-                    : "cursor-not-allowed bg-slate-300"
-                }`}
+                aria-describedby="acc-submit-hint"
+                className="mt-5 min-h-12 w-full rounded-xl bg-[#192166] text-[15px] font-bold text-white hover:bg-[#1a2888] disabled:cursor-not-allowed disabled:bg-slate-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2040c0]"
               >
-                <ChevronRight className="h-4 w-4" />
-                Submit Access Request
+                Send access request
               </button>
-            </form>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* WhatsApp Support */}
-      <section className="border-t border-slate-100 bg-white/60 py-16">
-        <div className="mx-auto max-w-3xl px-4">
-          <motion.div {...rise(0)} className="flex flex-col items-start gap-4 rounded-2xl border border-green-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600">
-              <MessageCircle className="h-6 w-6" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-slate-900">Need Help? Contact Support</h3>
-              <p className="mt-1 text-sm text-slate-500">
-                Have questions about payment or enrollment? Chat with us on WhatsApp.
+              <p id="acc-submit-hint" className="mt-2 text-center text-[13px] text-slate-500">
+                {!hasConfirmedReceipt
+                  ? "Tick “I've sent my receipt” in step 2 to send the request."
+                  : missing.length > 0
+                    ? `Still needed: ${missing.join(", ")}.`
+                    : "Ready to send."}
               </p>
-            </div>
+            </form>
+          </li>
+        </ol>
+
+        {/* Summary */}
+        <aside className="lg:sticky lg:top-6 lg:self-start">
+          <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+            <p className="text-[15px] font-bold text-slate-900">What you get</p>
+            <ul className="mt-3 space-y-3 text-[14px] leading-relaxed text-slate-600">
+              <li className="flex gap-2.5">
+                <Stethoscope className="mt-0.5 h-4 w-4 shrink-0 text-[#2040c0]" aria-hidden="true" />
+                Medical track: chart, code, bill, post and work AR on a full encounter.
+              </li>
+              <li className="flex gap-2.5">
+                <Smile className="mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]" aria-hidden="true" />
+                Dental track: CDT coding, charting and ADA claims.
+              </li>
+            </ul>
+            <p className="mt-4 border-t border-slate-100 pt-4 text-[14px] text-slate-600">
+              One fee, no separate dental charge. Your access follows your phone number to any device.
+            </p>
             <a
-              href="https://api.whatsapp.com/send/?phone=923350340888&text&type=phone_number&app_absent=0"
+              href={WHATSAPP}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-500"
+              className="mt-4 inline-flex min-h-11 items-center gap-2 text-[14px] font-semibold text-green-700 hover:underline"
             >
-              <MessageCircle className="h-4 w-4" />
-              WhatsApp Support
+              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              Questions? Ask on WhatsApp
             </a>
-          </motion.div>
-        </div>
-      </section>
+          </div>
+        </aside>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white/70 px-4 py-6 text-center text-xs text-slate-400">
+      <footer className="border-t border-slate-200 bg-white px-5 py-6 text-center text-[13px] text-slate-500">
         www.healthcarehustlers.org — Healthcare Hustlers EHR Simulation Portal
       </footer>
-
       <WhatsAppFloat />
     </div>
+  );
+}
+
+function StepHeading({ n, title }: { n: number; title: string }) {
+  return (
+    <h2 className="flex items-center gap-3 text-2xl font-bold tracking-[-0.01em] text-slate-900">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#192166] text-[15px] font-bold text-white tabular-nums">
+        {n}
+      </span>
+      {title}
+    </h2>
   );
 }

@@ -18,9 +18,9 @@
 
 import { useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { motion, useReducedMotion } from "framer-motion";
-import { Phone, LogIn, AlertCircle, Sparkles, Stethoscope, Smile, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, Smile, Stethoscope, BookOpen } from "lucide-react";
 import { WhatsAppFloat } from "../components/WhatsAppFloat";
+import { AuthShell, AuthNavLink } from "../components/auth/AuthShell";
 import {
   isPhoneApproved,
   getAccessRequests,
@@ -41,16 +41,6 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const reduceMotion = useReducedMotion();
-
-  // Shared reveal preset — collapses to no-op under prefers-reduced-motion.
-  const rise = (i = 0) => ({
-    initial: { opacity: 0, y: reduceMotion ? 0 : 20 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, amount: 0.15 },
-    transition: { duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : i * 0.06 },
-  });
-
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [status, setStatus] = useState<"idle" | "pending" | "denied" | "device-limit">("idle");
@@ -59,8 +49,30 @@ function LoginPage() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [deviceSignal, setDeviceSignal] = useState<SharingSignal | null>(null);
   const [resettingDevices, setResettingDevices] = useState(false);
+  // The lookup goes to the server; say so, and refuse a second press meanwhile.
+  const [checking, setChecking] = useState(false);
+  // The login ID is masked by default; the student can show it to check typing.
+  const [showPhone, setShowPhone] = useState(false);
+
+  const tryAnotherNumber = () => {
+    setStatus("idle");
+    setRequestInfo(null);
+    setExpiryWarning(null);
+    setDeviceSignal(null);
+    setPhone("");
+  };
 
   const handleLogin = async () => {
+    if (checking) return;
+    setChecking(true);
+    try {
+      await runLogin();
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const runLogin = async () => {
     const cleaned = phone.trim();
     if (!cleaned) {
       setError("Please enter your phone number");
@@ -155,229 +167,220 @@ function LoginPage() {
     }
   };
 
+  const aside = (
+    <ul className="space-y-5">
+      <li className="flex gap-3">
+        <Stethoscope className="mt-0.5 h-5 w-5 shrink-0 text-[#8fba47]" aria-hidden="true" />
+        <p className="text-[15px] leading-relaxed text-white/80">
+          <span className="font-semibold text-white">Medical track.</span> Registration, charting, ICD-10 and CPT coding,
+          prior auth, CMS-1500, 835 posting and AR calls.
+        </p>
+      </li>
+      <li className="flex gap-3">
+        <Smile className="mt-0.5 h-5 w-5 shrink-0 text-[#8fba47]" aria-hidden="true" />
+        <p className="text-[15px] leading-relaxed text-white/80">
+          <span className="font-semibold text-white">Dental track.</span> CDT coding, tooth charting and the ADA claim form.
+        </p>
+      </li>
+      <li className="flex gap-3">
+        <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-[#8fba47]" aria-hidden="true" />
+        <p className="text-[15px] leading-relaxed text-white/80">
+          <span className="font-semibold text-white">New here?</span> Open the Tutorial Patient first — every stage is filled
+          in so you can see what finished work looks like.
+        </p>
+      </li>
+    </ul>
+  );
+
+  const nav = (
+    <>
+      <AuthNavLink to="/">Home</AuthNavLink>
+      <AuthNavLink to="/access">Enroll</AuthNavLink>
+    </>
+  );
+
   return (
-    <div className="min-h-dvh overflow-x-hidden bg-slate-50 text-slate-800">
-      {/* Nav */}
-      <nav className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/70 bg-white/85 px-4 py-3 backdrop-blur-md">
-        <img
-          src="/healthcarehustlers-logo.png"
-          alt="Healthcare Hustlers"
-          className="h-7 w-auto"
-          style={{ maxWidth: "160px" }}
-        />
-        <div className="flex items-center gap-2 text-xs">
-          <Link to="/" className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50">
-            Home
-          </Link>
-          <Link to="/access" className="rounded-lg bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-700">
-            Enroll Now
-          </Link>
-        </div>
-      </nav>
-
-      {/* Main */}
-      <section className="relative isolate overflow-hidden">
-        {/* Subtle animated background */}
-        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-          <motion.div
-            className="absolute -top-24 left-1/2 h-[420px] w-[420px] -translate-x-[130%] rounded-full bg-brand-300/30 blur-3xl"
-            animate={reduceMotion ? undefined : { x: [0, 48, 0], y: [0, 24, 0] }}
-            transition={{ duration: 15, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute -top-16 left-1/2 h-[380px] w-[380px] translate-x-[20%] rounded-full bg-accent-300/30 blur-3xl"
-            animate={reduceMotion ? undefined : { x: [0, -48, 0], y: [0, 32, 0] }}
-            transition={{ duration: 17, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-          />
-        </div>
-
-        <div className="mx-auto flex min-h-[calc(100dvh-57px)] w-full max-w-md flex-col justify-center px-4 py-12">
-          {/* Headline */}
-          <motion.div {...rise(0)} className="mb-6 text-center">
-            <motion.p className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500">
-              <Sparkles className="h-3.5 w-3.5 text-brand-500" />
-              Medical + Dental RCM training
-            </motion.p>
-            <motion.h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-              Student{" "}
-              <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
-                Login
-              </span>
-            </motion.h1>
-            <motion.p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">
-              Enter your registered phone number to pick up where you left off.
-            </motion.p>
-          </motion.div>
-
-          {/* Login Card */}
-          <motion.div {...rise(1)} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/50 md:p-8">
-            {/* ─── What's inside the sandbox ─── */}
-            <div className="mb-6 rounded-xl border border-slate-100 bg-slate-50 p-4">
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                Inside the sandbox
-              </p>
-              <div className="space-y-2.5">
-                <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
-                    <Stethoscope className="h-3.5 w-3.5" />
-                  </span>
-                  <p className="text-xs leading-relaxed text-slate-600">
-                    <span className="font-semibold text-brand-600">Medical</span> — Registration → Scribe → ICD-10 / CPT coding → CMS-1500 → Prior Auth → AR calling
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-50 text-accent-600">
-                    <Smile className="h-3.5 w-3.5" />
-                  </span>
-                  <p className="text-xs leading-relaxed text-slate-600">
-                    <span className="font-semibold text-accent-600">Dental</span> — CDT coding, tooth charting &amp; ADA claim form
-                  </p>
-                </div>
-              </div>
+    <>
+      <AuthShell
+        title="Student login"
+        subtitle="Enter the phone number you enrolled with to pick up where you left off — on any device."
+        aside={aside}
+        nav={nav}
+      >
+        {status === "device-limit" && deviceSignal ? (
+          <section aria-labelledby="device-limit-title" className="rounded-2xl bg-white p-6 ring-1 ring-amber-200">
+            <AlertCircle className="h-7 w-7 text-amber-500" aria-hidden="true" />
+            <h2 id="device-limit-title" className="mt-3 text-xl font-bold text-slate-900">Too many devices</h2>
+            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
+              This phone number is already signed in on {deviceSignal.distinctDeviceCount} devices — the limit is{" "}
+              {MAX_DEVICE_COUNT}. To keep your account secure, sign out your other devices before continuing.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleSignOutOtherDevices}
+                disabled={resettingDevices}
+                className="min-h-12 w-full rounded-xl bg-amber-600 px-4 text-[15px] font-semibold text-white hover:bg-amber-500 disabled:opacity-60"
+              >
+                {resettingDevices ? "Signing out other devices…" : "Sign out other devices and continue"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStatus("idle");
+                  setDeviceSignal(null);
+                }}
+                className="min-h-12 w-full rounded-xl px-4 text-[15px] font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+              >
+                Back
+              </button>
             </div>
-
-            {status === "device-limit" && deviceSignal ? (
-              <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-center">
-                <AlertCircle className="mx-auto mb-2 h-8 w-8 text-amber-500" />
-                <h3 className="font-semibold text-amber-800">Too many devices</h3>
-                <p className="mt-1 text-sm text-amber-700">
-                  This phone number is already signed in on {deviceSignal.distinctDeviceCount} devices —
-                  the limit is {MAX_DEVICE_COUNT}. To keep your account secure, sign out your other
-                  devices before continuing.
-                </p>
-                <div className="mt-4 flex flex-col gap-2">
-                  <button
-                    onClick={handleSignOutOtherDevices}
-                    disabled={resettingDevices}
-                    className="w-full rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:opacity-60"
-                  >
-                    {resettingDevices ? "Signing out other devices…" : "Sign out other devices & continue"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setStatus("idle");
-                      setDeviceSignal(null);
-                    }}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                  >
-                    Back
-                  </button>
-                </div>
-                <p className="mt-3 text-[10px] text-slate-400">
-                  Need help? Contact us on WhatsApp at +92 335 0340888.
-                </p>
-              </div>
-            ) : status === "pending" ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-                <AlertCircle className="mx-auto mb-2 h-8 w-8 text-amber-500" />
-                <h3 className="font-semibold text-amber-800">Access Pending Approval</h3>
-                <p className="mt-1 text-sm text-amber-600">
-                  Your request is under review. You'll receive access once an admin approves your account.
-                </p>
-                {requestInfo?.submittedAt && (
-                  <p className="mt-3 text-xs text-amber-500">
-                    Submitted: {new Date(requestInfo.submittedAt).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-            ) : status === "denied" ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center">
-                <AlertCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
-                <h3 className="font-semibold text-red-800">Access Denied</h3>
-                <p className="mt-1 text-sm text-red-600">
-                  {expiryWarning || "No account found for this phone number. Please submit an access request first."}
-                </p>
-                {syncError && (
-                  <p className="mt-2 text-xs font-medium text-red-500">Could not reach server: {syncError}</p>
-                )}
-                <p className="mt-2 text-[10px] text-slate-400">Note: Access works across devices. If you were just approved, refresh this page and try again — or contact us on WhatsApp.</p>
-                {!expiryWarning && (
-                  <Link
-                    to="/access"
-                    className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
-                  >
-                    Request Access
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                )}
-                {expiryWarning && (
-                  <a
-                    href="https://wa.me/923350340888"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 inline-block rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-500"
-                  >
-                    Renew via WhatsApp
-                  </a>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {expiryWarning && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center">
-                    <p className="text-xs font-medium text-amber-700">{expiryWarning}</p>
-                  </div>
-                )}
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                    Phone Number (Login ID)
-                  </label>
-                  <div className="relative">
-                    <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="password"
-                      inputMode="numeric"
-                      value={phone}
-                      onChange={(e) => {
-                        setPhone(e.target.value);
-                        setError("");
-                        setStatus("idle");
-                      }}
-                      placeholder="e.g. 03001234567"
-                      className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
-                    />
-                  </div>
-                  {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-                </div>
-
-                <button
-                  onClick={handleLogin}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-brand-600/20 transition hover:bg-brand-700"
+            <p className="mt-4 text-[13px] text-slate-500">Need help? WhatsApp +92 335 0340888.</p>
+          </section>
+        ) : status === "pending" ? (
+          <section aria-labelledby="pending-title" className="rounded-2xl bg-white p-6 ring-1 ring-slate-200">
+            <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[13px] font-semibold text-amber-700">
+              Waiting for approval
+            </span>
+            <h2 id="pending-title" className="mt-3 text-xl font-bold text-slate-900">Your request is being reviewed</h2>
+            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
+              An admin checks your payment and approves your number, usually within 24 hours. Then sign in here with the
+              same number.
+            </p>
+            {requestInfo?.submittedAt && (
+              <p className="mt-3 text-[13px] text-slate-500">
+                Submitted {new Date(requestInfo.submittedAt).toLocaleDateString()}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={tryAnotherNumber}
+              className="mt-5 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-[14px] font-medium text-[#2040c0] hover:bg-slate-50"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              Try another number
+            </button>
+          </section>
+        ) : status === "denied" ? (
+          <section aria-labelledby="denied-title" className="rounded-2xl bg-white p-6 ring-1 ring-red-200">
+            <AlertCircle className="h-7 w-7 text-red-500" aria-hidden="true" />
+            <h2 id="denied-title" className="mt-3 text-xl font-bold text-slate-900">
+              {expiryWarning ? "Your access has expired" : "No account for this number"}
+            </h2>
+            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
+              {expiryWarning || "We couldn't find an approved enrollment for this phone number. Check the number, or send an access request."}
+            </p>
+            {syncError && (
+              <p className="mt-2 text-[13px] font-medium text-red-600">Could not reach the server: {syncError}</p>
+            )}
+            <p className="mt-2 text-[13px] text-slate-500">
+              Access works on every device. If you were approved just now, reload this page and try again.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              {expiryWarning ? (
+                <a
+                  href="https://wa.me/923350340888"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-12 items-center justify-center rounded-xl bg-green-600 px-4 text-[15px] font-semibold text-white hover:bg-green-500"
                 >
-                  <LogIn className="h-4 w-4" />
-                  Sign In
-                </button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-200" />
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-white px-2 text-slate-400">New student?</span>
-                  </div>
-                </div>
-
+                  Renew on WhatsApp
+                </a>
+              ) : (
                 <Link
                   to="/access"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="flex min-h-12 items-center justify-center rounded-xl bg-[#192166] px-4 text-[15px] font-semibold text-white hover:bg-[#1a2888]"
                 >
-                  Request Access & Enroll
-                  <ArrowRight className="h-4 w-4" />
+                  Request access
                 </Link>
-              </div>
+              )}
+              <button
+                type="button"
+                onClick={tryAnotherNumber}
+                className="min-h-12 w-full rounded-xl px-4 text-[15px] font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+              >
+                Try another number
+              </button>
+            </div>
+          </section>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleLogin();
+            }}
+            noValidate
+            className="rounded-2xl bg-white p-6 shadow-[0_20px_60px_-30px_rgba(25,33,102,0.35)] ring-1 ring-slate-200 md:p-8"
+          >
+            <h2 className="text-xl font-bold text-slate-900">Sign in</h2>
+            {expiryWarning && (
+              <p role="status" className="mt-3 rounded-xl bg-amber-50 px-3 py-2.5 text-[14px] font-medium text-amber-800">
+                {expiryWarning}
+              </p>
             )}
 
-            <div className="mt-5 text-center text-xs text-slate-400">
-              <Link to="/" className="underline decoration-slate-300 underline-offset-2 hover:text-slate-600">Back to home</Link>
+            <label htmlFor="login-phone" className="mt-5 block text-[14px] font-medium text-slate-700">
+              Phone number (your login ID)
+            </label>
+            <div className="relative mt-1.5">
+              <input
+                id="login-phone"
+                type={showPhone ? "tel" : "password"}
+                inputMode="numeric"
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setError("");
+                  setStatus("idle");
+                }}
+                placeholder="03001234567"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "login-phone-error" : "login-phone-hint"}
+                className={`min-h-12 w-full rounded-xl border bg-white pl-3.5 pr-20 text-[16px] tracking-wide text-slate-900 outline-none transition focus:border-[#2040c0] focus:ring-2 focus:ring-[#2040c0]/20 ${
+                  error ? "border-red-400" : "border-slate-300"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPhone((v) => !v)}
+                aria-pressed={showPhone}
+                aria-controls="login-phone"
+                className="absolute right-1.5 top-1/2 inline-flex min-h-9 -translate-y-1/2 items-center gap-1 rounded-lg px-2.5 text-[13px] font-medium text-slate-500 hover:bg-slate-100"
+              >
+                {showPhone ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                {showPhone ? "Hide" : "Show"}
+              </button>
             </div>
-            <div className="mt-2 text-center text-[10px] text-slate-300">
-              Build v4 · connection diagnostics
-            </div>
-          </motion.div>
-        </div>
-      </section>
+            {error ? (
+              <p id="login-phone-error" className="mt-1.5 text-[13px] text-red-600">{error}</p>
+            ) : (
+              <p id="login-phone-hint" className="mt-1.5 text-[13px] text-slate-500">
+                The same number you wrote on your enrollment form.
+              </p>
+            )}
 
+            <button
+              type="submit"
+              disabled={checking}
+              className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#192166] px-4 text-[15px] font-bold text-white transition hover:bg-[#1a2888] disabled:cursor-wait disabled:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2040c0]"
+            >
+              {checking && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              {checking ? "Checking your number…" : "Sign in"}
+            </button>
+
+            <p className="mt-6 border-t border-slate-100 pt-5 text-center text-[14px] text-slate-600">
+              New student?{" "}
+              <Link to="/access" className="font-semibold text-[#2040c0] underline-offset-2 hover:underline">
+                Request access and enroll
+              </Link>
+            </p>
+          </form>
+        )}
+
+        <p className="mt-6 text-center text-[12px] text-slate-400">Build v4 · connection diagnostics</p>
+      </AuthShell>
       <WhatsAppFloat />
-    </div>
+    </>
   );
 }
