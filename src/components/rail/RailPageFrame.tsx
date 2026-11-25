@@ -174,7 +174,7 @@ export function RailRowList({
           <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-3 lg:grid-cols-4">
             {row.fields.map((field) => (
               <div key={field.label} className="min-w-0">
-                <dt className="clinical-label text-[10px] text-slate-400 dark:text-slate-500">
+                <dt className="clinical-label text-xs text-slate-400 dark:text-slate-500">
                   {field.label}
                 </dt>
                 <dd className="clinical-value break-words text-slate-700 dark:text-slate-300">{field.value}</dd>
@@ -200,13 +200,13 @@ export function RailFigure({
 }) {
   return (
     <div className="clinical-card p-3">
-      <p className="clinical-label text-[10px] text-slate-400 dark:text-slate-500">
+      <p className="clinical-label text-xs text-slate-400 dark:text-slate-500">
         {label}
       </p>
       <p className="mt-0.5 break-words text-base font-bold tabular-nums text-slate-800 dark:text-slate-100">
         {value}
       </p>
-      <p className="mt-0.5 text-[10px] leading-snug text-slate-500 dark:text-slate-400">{source}</p>
+      <p className="mt-0.5 text-xs leading-snug text-slate-500 dark:text-slate-400">{source}</p>
     </div>
   );
 }

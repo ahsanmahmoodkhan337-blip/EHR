@@ -84,7 +84,7 @@ function day(iso: string | null | undefined): string {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-wrap gap-x-2 border-b border-slate-100 py-1 last:border-0">
-      <span className="w-40 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+      <span className="w-40 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </span>
       <span className="text-[11px] text-slate-800">{value || "—"}</span>
@@ -152,7 +152,7 @@ export function DemographicsSection({ patient }: { patient: Patient }) {
 
   const field = (key: keyof typeof form, label: string, type = "text") => (
     <div>
-      <label htmlFor={`hub-demo-${key}`} className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+      <label htmlFor={`hub-demo-${key}`} className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </label>
       <input
@@ -187,7 +187,7 @@ export function DemographicsSection({ patient }: { patient: Patient }) {
           </div>
           <div className="mt-2">{field("address", "Address")}</div>
 
-          <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
             Emergency contact
           </p>
           <div className="mt-1 grid gap-2 sm:grid-cols-3">
@@ -265,7 +265,7 @@ export function EncountersSection({ patient }: { patient: Patient }) {
             <span className="text-xs font-semibold text-slate-800">
               {patient.firstName} {patient.lastName}
             </span>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-600">
               {PIPELINE_STAGE_LABEL[encounter.stage]}
             </span>
             <span className="text-[11px] text-slate-500">{encounter.status}</span>
@@ -331,7 +331,7 @@ export function LedgerSection({ patient }: { patient: Patient }) {
         </Empty>
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white">
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="data-table min-w-[640px]">
               <thead>
                 <tr>
@@ -468,10 +468,10 @@ export function DocumentsSection({ patient }: { patient: Patient }) {
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <FileText className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
                 <span className="text-xs font-semibold text-slate-800">{document.name}</span>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-600">
                   {DOCUMENT_CATEGORY_LABELS[document.category]}
                 </span>
-                <span className="text-[10px] uppercase tracking-wide text-slate-400">
+                <span className="text-xs uppercase tracking-wide text-slate-400">
                   {document.source === "generated" ? "Generated" : "Added"}
                 </span>
                 <span className="ml-auto text-[11px] tabular-nums text-slate-500">
@@ -489,7 +489,7 @@ export function DocumentsSection({ patient }: { patient: Patient }) {
       <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
         <div className="grid gap-2 sm:grid-cols-3">
           <div>
-            <label htmlFor="hub-doc-name" className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <label htmlFor="hub-doc-name" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Document name
             </label>
             <input
@@ -502,7 +502,7 @@ export function DocumentsSection({ patient }: { patient: Patient }) {
             />
           </div>
           <div>
-            <label htmlFor="hub-doc-category" className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <label htmlFor="hub-doc-category" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Category
             </label>
             <select
@@ -519,7 +519,7 @@ export function DocumentsSection({ patient }: { patient: Patient }) {
             </select>
           </div>
           <div>
-            <label htmlFor="hub-doc-description" className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <label htmlFor="hub-doc-description" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Description
             </label>
             <input
@@ -544,7 +544,7 @@ export function DocumentsSection({ patient }: { patient: Patient }) {
             {message}
           </span>
         </div>
-        <p className="mt-2 text-[10px] text-slate-400">{DOCUMENTS_UPLOAD_NOTE}</p>
+        <p className="mt-2 text-xs text-slate-400">{DOCUMENTS_UPLOAD_NOTE}</p>
       </div>
     </section>
   );

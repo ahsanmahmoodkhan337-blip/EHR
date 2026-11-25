@@ -138,7 +138,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
         <h3 id={headingId} className="text-xs font-bold text-slate-800">
           AR work queue
         </h3>
-        <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+        <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-600">
           {visible.length} shown
         </span>
       </header>
@@ -147,7 +147,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
           With no posted 835 there is no money to total, and "0 · $0.00" is a
           figure with nothing behind it — the not-yet sentence below says why. */}
       {arWorkItems.length > 0 && (
-        <dl className="grid grid-cols-1 gap-2 border-b border-slate-100 px-3 py-2 text-[10px] sm:grid-cols-2">
+        <dl className="grid grid-cols-1 gap-2 border-b border-slate-100 px-3 py-2 text-xs sm:grid-cols-2">
           <div className="flex items-baseline gap-1.5">
             <dt className="text-slate-400">Denied lines</dt>
             <dd className="font-semibold tabular-nums text-slate-700">
@@ -170,7 +170,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
             type="button"
             onClick={() => setFilter(f.key)}
             aria-pressed={filter === f.key}
-            className={`inline-flex min-h-[40px] items-center rounded-lg px-2.5 text-[10px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 ${
+            className={`inline-flex min-h-[40px] items-center rounded-lg px-2.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 ${
               filter === f.key ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
@@ -185,7 +185,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
              its first row instead of printing an empty table of zeroes. */
           <MoneyNotYet stage="denials-ar" claimSubmitted={claimSubmitted} variant="inline" />
         ) : (
-          <p className="px-3 py-4 text-[10px] leading-relaxed text-slate-500">
+          <p className="px-3 py-4 text-xs leading-relaxed text-slate-500">
             Nothing in this filter. The queue holds {arWorkItems.length} item
             {arWorkItems.length === 1 ? "" : "s"} — switch the filter above to see them.
           </p>
@@ -203,7 +203,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
               <li key={item.id} className="px-3 py-2.5">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className="font-mono text-[11px] font-bold text-slate-800">{item.claimNumber}</span>
-                  <span className="text-[10px] text-slate-500">
+                  <span className="text-xs text-slate-500">
                     {item.patientName || chartNameFor(item.patientId) || (item.patientId ? "Patient" : "No patient attached")}
                     {item.payerName ? ` · ${item.payerName}` : ""}
                   </span>
@@ -212,7 +212,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                   </span>
                 </div>
 
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-600">
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600">
                   <span
                     className={`rounded px-1.5 py-0.5 font-semibold ${
                       item.kind === "denial" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
@@ -238,14 +238,14 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                 </div>
 
                 {item.kind === "denial" && item.carc && CARC_BY_CODE[item.carc] ? (
-                  <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
                     {CARC_BY_CODE[item.carc].description}
                   </p>
                 ) : null}
 
                 {item.status === "resolved" ? (
                   <div className="mt-1.5 rounded-lg bg-green-50 px-2 py-1.5">
-                    <p className="flex items-center gap-1 text-[10px] font-semibold text-green-800">
+                    <p className="flex items-center gap-1 text-xs font-semibold text-green-800">
                       <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                       Cleared — {item.action ? AR_ACTION_LABELS[item.action] : "resolved"}
                       {item.reasonCode ? ` (${item.reasonCode})` : ""}
@@ -253,31 +253,31 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                     {written.length > 0 ? (
                       <ul className="mt-1 space-y-0.5">
                         {written.map((e) => (
-                          <li key={e.id} className="text-[10px] text-green-900">
+                          <li key={e.id} className="text-xs text-green-900">
                             {e.type.replace("_", " ")} · {e.code} · {e.amountCents < 0 ? "−" : "+"}
                             {money(e.amountCents)} — {e.description}
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <p className="mt-1 text-[10px] text-green-900">
+                      <p className="mt-1 text-xs text-green-900">
                         No ledger entry was written: the 835 had already settled this money.
                       </p>
                     )}
-                    <p className="mt-1 text-[10px] text-green-900">
+                    <p className="mt-1 text-xs text-green-900">
                       Patient balance on this claim now {money(item.patientBalanceCents)}.
                     </p>
                   </div>
                 ) : isPending ? (
                   <div className="mt-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2 py-1.5">
-                    <p className="text-[10px] font-semibold text-brand-800">
+                    <p className="text-xs font-semibold text-brand-800">
                       {AR_ACTION_LABELS[pending.action]} on {item.claimNumber}
                     </p>
-                    <p className="mt-0.5 text-[10px] leading-relaxed text-brand-900">
+                    <p className="mt-0.5 text-xs leading-relaxed text-brand-900">
                       {AR_ACTION_EFFECTS[pending.action]}
                     </p>
                     {pending.action === "write_off" ? (
-                      <label className="mt-1.5 block text-[10px] font-medium text-brand-900">
+                      <label className="mt-1.5 block text-xs font-medium text-brand-900">
                         Reason code for the write-off
                         <select
                           value={reasonCode}
@@ -292,7 +292,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                         </select>
                       </label>
                     ) : null}
-                    <label className="mt-1.5 block text-[10px] font-medium text-brand-900">
+                    <label className="mt-1.5 block text-xs font-medium text-brand-900">
                       Note (optional)
                       <input
                         type="text"
@@ -307,7 +307,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                         type="button"
                         onClick={() => commit(item)}
                         aria-label={`Confirm ${AR_ACTION_LABELS[pending.action].toLowerCase()} for ${item.claimNumber}`}
-                        className="inline-flex min-h-[40px] items-center rounded-lg bg-brand-900 px-3 text-[10px] font-semibold text-white hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="inline-flex min-h-[40px] items-center rounded-lg bg-brand-900 px-3 text-xs font-semibold text-white hover:bg-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                         {...readOnlyAttrs(readOnly, reasonId)}
                       >
                         Confirm and post
@@ -316,7 +316,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                         type="button"
                         onClick={() => setPending(null)}
                         aria-label={`Cancel working ${item.claimNumber}`}
-                        className="inline-flex min-h-[40px] items-center rounded-lg bg-white px-3 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+                        className="inline-flex min-h-[40px] items-center rounded-lg bg-white px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
                       >
                         Cancel
                       </button>
@@ -331,7 +331,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                           type="button"
                           onClick={() => startAction(item, action)}
                           aria-label={`${AR_ACTION_LABELS[action]} on ${item.claimNumber}`}
-                          className="inline-flex min-h-[40px] items-center rounded-lg bg-slate-100 px-2.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="inline-flex min-h-[40px] items-center rounded-lg bg-slate-100 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
                           {...readOnlyAttrs(readOnly, reasonId)}
                         >
                           {AR_ACTION_LABELS[action]}
@@ -349,7 +349,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                           updateArItemWork({ itemId: item.id, status: "in-progress" });
                         }}
                         aria-label={`Mark ${item.claimNumber} in progress`}
-                        className="inline-flex min-h-[40px] items-center rounded-lg px-2 text-[10px] font-medium text-slate-500 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex min-h-[40px] items-center rounded-lg px-2 text-xs font-medium text-slate-500 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
                         {...readOnlyAttrs(readOnly, reasonId)}
                       >
                         {item.status === "in-progress" ? "In progress" : "Mark in progress"}
@@ -364,7 +364,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
                           updateArItemWork({ itemId: item.id, status: "escalated" });
                         }}
                         aria-label={`Escalate ${item.claimNumber}`}
-                        className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-2 text-[10px] font-medium text-slate-500 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-2 text-xs font-medium text-slate-500 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
                         {...readOnlyAttrs(readOnly, reasonId)}
                       >
                         <AlertTriangle className="h-3 w-3" aria-hidden="true" />
@@ -380,7 +380,7 @@ export function ArWorkQueuePanel({ readOnly = false, claimSubmitted = false, cla
         </ul>
       )}
 
-      <footer className="flex flex-wrap items-center gap-1.5 border-t border-slate-100 px-3 py-2 text-[10px] text-slate-400">
+      <footer className="flex flex-wrap items-center gap-1.5 border-t border-slate-100 px-3 py-2 text-xs text-slate-400">
         <DollarSign className="h-3 w-3" aria-hidden="true" />
         Every amount here comes from a posted 835 or from the patient ledger. Buckets:{" "}
         {AGING_BUCKETS.join(" · ")} days.

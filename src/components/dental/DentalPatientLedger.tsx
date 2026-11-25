@@ -22,7 +22,7 @@ import { LEDGER_ENTRY_LABELS, ledgerBalance, type LedgerEntry } from "../../doma
 
 const style = {
   card: "clinical-card",
-  label: "text-[10px] font-semibold uppercase tracking-wider text-slate-500",
+  label: "text-xs font-semibold uppercase tracking-wider text-slate-500",
   input:
     "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500",
 };
@@ -116,11 +116,11 @@ export function DentalPatientLedger({ embedded = false }: { embedded?: boolean }
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Patient Ledger</h3>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             {activeCase ? `${activeCase.patient.firstName} ${activeCase.patient.lastName} · ${activeCase.patient.memberId}` : "No case loaded"}
           </p>
         </div>
-        <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
+        <span className="rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-teal-700">
           Dentrix-style account
         </span>
       </div>
@@ -138,7 +138,7 @@ export function DentalPatientLedger({ embedded = false }: { embedded?: boolean }
       {ledger.length === 0 && (
         <div className="mt-3 flex items-start gap-1.5 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2">
           <Landmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />
-          <p className="text-[10px] leading-snug text-teal-800">
+          <p className="text-xs leading-snug text-teal-800">
             No money has moved yet. Post the claim's 835 from the claim status queue — that writes the charge, the
             insurance payment and every contractual adjustment here. Nothing on this screen is estimated.
           </p>
@@ -156,7 +156,7 @@ export function DentalPatientLedger({ embedded = false }: { embedded?: boolean }
           <Bucket label="61–90" value={buckets.d61} />
           <Bucket label="90+" value={buckets.d90} highlight />
         </div>
-        <p className="mt-2 text-[9px] text-slate-400">
+        <p className="mt-2 text-[11px] text-slate-400">
           Charges are aged by the date of service on the posted entry; payments and adjustments are applied to the
           oldest balance first (FIFO).
         </p>
@@ -177,11 +177,11 @@ export function DentalPatientLedger({ embedded = false }: { embedded?: boolean }
                 <div key={entry.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2 py-1.5">
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-slate-800">{entry.code} {c ? `· ${c.shortName}` : ""}</p>
-                    <p className="text-[9px] text-slate-500">
+                    <p className="text-[11px] text-slate-500">
                       {entry.serviceDate ? `DOS ${entry.serviceDate} · ` : ""}line {entry.lineNumber ?? "—"} · {fmtDollar(entry.amountCents / 100)}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600">
+                  <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
                     charge
                   </span>
                 </div>
@@ -290,7 +290,7 @@ export function DentalPatientLedger({ embedded = false }: { embedded?: boolean }
                     <span className="font-semibold">{LEDGER_ENTRY_LABELS[entry.type]}</span>
                     {entry.code && entry.code !== "PAYER-PMT" ? ` · ${entry.code}` : ""} — {entry.description}
                   </p>
-                  <p className="text-[9px] text-slate-400">
+                  <p className="text-[11px] text-slate-400">
                     {entry.date || "date not recorded"}
                     {entry.lineNumber ? ` · line ${entry.lineNumber}` : ""}
                     {entry.eraId ? ` · from 835 ${entry.eraId}` : " · posted by hand"}
@@ -316,7 +316,7 @@ export function DentalPatientLedger({ embedded = false }: { embedded?: boolean }
             ))}
           </div>
         )}
-        <p className="mt-2 flex items-center gap-1 text-[9px] text-slate-400">
+        <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
           <Info className="h-3 w-3 shrink-0" />
           Every figure above is the sum of these entries. Entries posted from an 835 cannot be deleted — they are
           the payer's own record. {postedFromEra ? "This account has 835-posted money." : "Nothing has come from an 835 yet."}
@@ -341,7 +341,7 @@ function Stat({ label, value, tone, count }: { label: string; value: number; ton
     tone === "emerald" ? "text-emerald-600" : tone === "red" ? "text-red-600" : tone === "amber" ? "text-amber-600" : tone === "sky" ? "text-brand-600" : "text-slate-700";
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
       <p className={`text-sm font-bold ${toneCls}`}>{count ? value : fmtDollar(value)}</p>
     </div>
   );
@@ -350,7 +350,7 @@ function Stat({ label, value, tone, count }: { label: string; value: number; ton
 function Bucket({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   return (
     <div className={`rounded-lg border px-2 py-1.5 ${highlight && value > 0 ? "border-red-200 bg-red-50" : "border-slate-200 bg-slate-50"}`}>
-      <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
       <p className={`text-sm font-bold ${highlight && value > 0 ? "text-red-600" : "text-slate-700"}`}>{fmtDollar(value)}</p>
     </div>
   );

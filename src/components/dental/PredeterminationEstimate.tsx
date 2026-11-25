@@ -43,8 +43,8 @@ export function PredeterminationEstimate({ scenario }: { scenario: Predeterminat
       <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold text-slate-800">{scenario.id}</span>
-          <span className="text-[10px] text-slate-500">{scenario.planId} (fictional payer)</span>
-          <span className="ml-auto rounded-full bg-slate-200/70 px-2 py-0.5 text-[9px] font-semibold uppercase text-slate-600">
+          <span className="text-xs text-slate-500">{scenario.planId} (fictional payer)</span>
+          <span className="ml-auto rounded-full bg-slate-200/70 px-2 py-0.5 text-[11px] font-semibold uppercase text-slate-600">
             {scenario.difficulty}
           </span>
         </div>
@@ -52,7 +52,7 @@ export function PredeterminationEstimate({ scenario }: { scenario: Predeterminat
       </div>
 
       {/* line-by-line estimate */}
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
@@ -75,15 +75,15 @@ export function PredeterminationEstimate({ scenario }: { scenario: Predeterminat
                     {l.code}
                     {l.tooth ? <span className="text-slate-400"> · #{l.tooth}</span> : ""}
                   </div>
-                  <div className="text-[10px] text-slate-500">{l.description}</div>
+                  <div className="text-xs text-slate-500">{l.description}</div>
                 </td>
                 <td>
                   <span className={VERDICT_TONE[l.verdict]}>{VERDICT_LABEL[l.verdict]}</span>
                   {l.verdict === "downgraded" && l.paidAtAllowedUsd !== undefined && (
-                    <div className="mt-0.5 text-[9px] text-amber-600">paid at ${l.paidAtAllowedUsd}</div>
+                    <div className="mt-0.5 text-[11px] text-amber-600">paid at ${l.paidAtAllowedUsd}</div>
                   )}
                   {l.denialId && (
-                    <div className="mt-0.5 text-[9px] font-medium text-slate-400">{l.denialId}</div>
+                    <div className="mt-0.5 text-[11px] font-medium text-slate-400">{l.denialId}</div>
                   )}
                 </td>
                 <td className="num">{fmtUsd(l.chargedUsd)}</td>
@@ -110,7 +110,7 @@ export function PredeterminationEstimate({ scenario }: { scenario: Predeterminat
       {/* per-line notes */}
       <div className="space-y-1 border-t border-slate-100 px-3 py-2">
         {scenario.estimate.map((l) => (
-          <p key={l.line} className="text-[10px] leading-snug text-slate-600">
+          <p key={l.line} className="text-xs leading-snug text-slate-600">
             <span className="font-semibold text-slate-500">Line {l.line}: </span>
             {l.note}
           </p>
@@ -120,11 +120,11 @@ export function PredeterminationEstimate({ scenario }: { scenario: Predeterminat
       {/* downgrade ≠ denial teaching callout */}
       {hasDowngrade && (
         <div className="border-t border-amber-100 bg-amber-50 px-3 py-2">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-800">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-800">
             <BadgeCheck className="h-3.5 w-3.5 shrink-0" />
             A downgrade is an adjustment — not a denial
           </p>
-          <p className="mt-0.5 text-[10px] leading-snug text-amber-700">
+          <p className="mt-0.5 text-xs leading-snug text-amber-700">
             The code was correct; the plan simply pays a lower allowance for it. The difference is a documented
             patient upgrade, handled as a patient balance — not a rejected line you bill differently.
           </p>
@@ -134,11 +134,11 @@ export function PredeterminationEstimate({ scenario }: { scenario: Predeterminat
       {/* excluded teaching callout */}
       {hasDenial && !hasDowngrade && (
         <div className="border-t border-red-100 bg-red-50 px-3 py-2">
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold text-red-800">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-red-800">
             <Info className="h-3.5 w-3.5 shrink-0" />
             This estimate removes the benefit entirely
           </p>
-          <p className="mt-0.5 text-[10px] leading-snug text-red-700">
+          <p className="mt-0.5 text-xs leading-snug text-red-700">
             Unlike a downgrade, a non-covered service leaves nothing for the plan to pay. Confirm the exclusion in
             writing before the patient is seated.
           </p>

@@ -38,17 +38,17 @@ export function ADTStream() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1.5 text-[10px] font-medium text-green-600 hover:bg-green-100"><Bell className="h-3.5 w-3.5" /> ADT Stream</button>
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1.5 text-xs font-medium text-green-600 hover:bg-green-100"><Bell className="h-3.5 w-3.5" /> ADT Stream</button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3"><div><h3 className="text-sm font-bold text-slate-800">ADT Event Stream</h3><p className="text-[9px] text-slate-400">HL7 v2 ADT feed</p></div><div className="flex gap-1"><button onClick={() => setPaused(!paused)} className="rounded-lg border px-2 py-1 text-[10px]">{paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}</button><button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button></div></div>
+            <div className="flex items-center justify-between mb-3"><div><h3 className="text-sm font-bold text-slate-800">ADT Event Stream</h3><p className="text-[11px] text-slate-400">HL7 v2 ADT feed</p></div><div className="flex gap-1"><button onClick={() => setPaused(!paused)} className="rounded-lg border px-2 py-1 text-xs">{paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}</button><button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button></div></div>
             <div className="space-y-1">
               {visible.map((e, i) => (
                 <div key={`${e.mrn}-${i}`} className="rounded-lg border border-slate-200 p-2.5 animate-slide-in">
-                  <div className="flex items-center justify-between mb-0.5"><span className={`rounded px-1.5 py-0.5 text-[8px] font-bold ${typeColor(e.type)}`}>{e.type} — {e.label}</span><span className="text-[9px] text-slate-400">{e.time}</span></div>
-                  <p className="text-[10px] font-semibold text-slate-700">{e.patient}</p>
-                  <p className="text-[9px] text-slate-500">{e.mrn} | {e.location}</p>
+                  <div className="flex items-center justify-between mb-0.5"><span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${typeColor(e.type)}`}>{e.type} — {e.label}</span><span className="text-[11px] text-slate-400">{e.time}</span></div>
+                  <p className="text-xs font-semibold text-slate-700">{e.patient}</p>
+                  <p className="text-[11px] text-slate-500">{e.mrn} | {e.location}</p>
                 </div>
               ))}
             </div>

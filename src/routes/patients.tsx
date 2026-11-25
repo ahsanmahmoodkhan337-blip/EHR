@@ -113,7 +113,7 @@ function PatientsPage() {
           </p>
         </div>
 
-        <label htmlFor="patient-directory-search" className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        <label htmlFor="patient-directory-search" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
           Find a patient
         </label>
         <div className="relative mb-3 max-w-md">
@@ -151,7 +151,7 @@ function PatientsPage() {
             </p>
           )
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="relative overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="data-table min-w-[640px]">
               <thead>
                 <tr>
@@ -175,7 +175,7 @@ function PatientsPage() {
                         {patient.firstName} {patient.lastName}
                         {tutorial && (
                           <span
-                            className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-800"
+                            className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800"
                             title="The standard worked-example chart"
                           >
                             Tutorial

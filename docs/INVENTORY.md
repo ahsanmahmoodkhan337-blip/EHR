@@ -427,3 +427,12 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - Primary buttons are navy `brand-900` (hover `brand-800`), including `.btn-primary`; selected states
   (tabs, chips, toggles) stay royal `brand-600`.
 
+## 11. Interface consistency, part 3 — readable text (2026-11-25)
+
+- Minimum text size outside the claim paper is 11 px: `text-[8px]`/`text-[9px]` → `text-[11px]`,
+  `text-[10px]` → `text-xs` (12 px) — 1,531 uses in 118 files. Exempt (they mimic the printed forms):
+  `claims/ClaimPaper.tsx`, `claims/ClaimFormShell.tsx`, `BillingLedger/CMS1500Form.tsx`,
+  `BillingLedger/Ub04Form.tsx`, `dental/ADAForm.tsx`, `medical/CaseClaimPaper.tsx`, `dental/Odontogram.tsx`.
+- Table scroll wrappers are `relative overflow-x-auto` so absolutely positioned children (sr-only
+  labels) stay inside them; `/patients` no longer scrolls sideways at 390 px.
+

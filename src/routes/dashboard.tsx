@@ -232,7 +232,7 @@ function DashboardPage() {
                 const active = i === medicalIdx;
                 return (
                   <div key={s.id} className="flex items-center gap-2">
-                    <div className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                    <div className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
                       done ? "bg-green-500 text-white" : active ? "bg-brand-600 text-white" : "bg-slate-200 text-slate-500"
                     }`}>
                       {done ? "✓" : i + 1}
@@ -276,7 +276,7 @@ function DashboardPage() {
             <div className="mt-4 flex-1 rounded-xl border border-slate-100 bg-slate-50 p-3">
               {dentalStarted ? (
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Current case</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Current case</p>
                   <p className="mt-0.5 text-sm font-semibold text-slate-700">{dental?.caseId ?? "—"}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     Stage: <span className="font-semibold text-accent-700">{dentalStage ? DENTAL_STAGE_LABELS[dentalStage] : "—"}</span>
@@ -330,7 +330,7 @@ function DashboardPage() {
                           <span className="flex items-baseline justify-between gap-2">
                             <span className="text-xs font-medium text-slate-700">{tile.label}</span>
                             {count && (
-                              <span className="shrink-0 whitespace-nowrap text-[10px] font-semibold tabular-nums text-slate-400">
+                              <span className="shrink-0 whitespace-nowrap text-xs font-semibold tabular-nums text-slate-400">
                                 {count.label}
                               </span>
                             )}

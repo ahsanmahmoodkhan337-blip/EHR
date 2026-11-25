@@ -271,7 +271,7 @@ export function DentalAR() {
           <h3 className="text-sm font-bold text-slate-800">
             Dental AR Follow-up{isPractice ? " — practice" : ""}
           </h3>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             {practiceScenario
               ? `${practiceScenario.claimNumber} · ${practiceScenario.payerName} · DOS ${practiceScenario.dos}`
               : activeCase
@@ -310,7 +310,7 @@ export function DentalAR() {
         <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
           <CheckCircle2 className="mx-auto mb-2 h-7 w-7 text-emerald-500" />
           <p className="text-xs font-medium text-emerald-800">No denied lines on this claim.</p>
-          <p className="mt-1 text-[10px] text-emerald-600">
+          <p className="mt-1 text-xs text-emerald-600">
             The claim paid, or every line was covered. {activeCase ? "Still call to confirm payment posted." : ""}
           </p>
         </div>
@@ -340,10 +340,10 @@ export function DentalAR() {
             <div key={lineId} className="clinical-card">
               {/* denial summary row — the facts on the remittance, no answer */}
               <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2">
-                <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">{code}</code>
+                <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-700">{code}</code>
                 <span className="text-[11px] font-medium text-slate-700">{codeInfo?.shortName ?? "Unknown"}</span>
                 <span
-                  className={`rounded px-1.5 py-0.5 text-[10px] font-bold ring-1 ${
+                  className={`rounded px-1.5 py-0.5 text-xs font-bold ring-1 ${
                     row.committed && money.patientBalance
                       ? "bg-red-50 text-red-700 ring-red-100"
                       : "bg-slate-100 text-slate-700 ring-slate-200"
@@ -352,7 +352,7 @@ export function DentalAR() {
                 >
                   {denial.carc}
                 </span>
-                <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[9px] font-medium text-slate-400 ring-1 ring-slate-100">
+                <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium text-slate-400 ring-1 ring-slate-100">
                   {denial.id}
                 </span>
                 {/*
@@ -374,12 +374,12 @@ export function DentalAR() {
               <div className="space-y-1.5 px-3 py-2">
                 <p className="text-[11px] font-semibold text-red-800">
                   {denial.title}
-                  <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
+                  <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-500">
                     {denial.carc} · group {denial.groupCode}
                   </span>
                 </p>
-                <p className="text-[10px] text-slate-600">{denial.plainLanguage}</p>
-                <p className="rounded border border-slate-100 bg-slate-50 px-2 py-1 font-mono text-[9px] italic text-slate-500">
+                <p className="text-xs text-slate-600">{denial.plainLanguage}</p>
+                <p className="rounded border border-slate-100 bg-slate-50 px-2 py-1 font-mono text-[11px] italic text-slate-500">
                   “{denial.payerRemark}”
                 </p>
                 <div className="flex flex-wrap gap-1">
@@ -390,7 +390,7 @@ export function DentalAR() {
                   />
                 </div>
                 {isPractice && (
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 rounded border border-slate-100 bg-slate-50 px-2 py-1 text-[10px] text-slate-600">
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 rounded border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
                     <span>Charged <b className="tabular-nums">{fmtUsd(row.chargedUsd)}</b></span>
                     <span>Allowed <b className="tabular-nums">{fmtUsd(row.allowedUsd)}</b></span>
                     <span>
@@ -447,7 +447,7 @@ export function DentalAR() {
 
                   {appealDraft?.lineId === lineId && denial.appealEvidence && (
                     <div className="mt-2 rounded-lg border border-red-200 bg-white p-2">
-                      <p className="mb-1 text-[10px] font-bold text-red-800">Appeal — {denial.title}</p>
+                      <p className="mb-1 text-xs font-bold text-red-800">Appeal — {denial.title}</p>
                       <AppealDocumentationChecklist
                         idPrefix={`ar-appeal-${lineId}`}
                         denial={denial}
@@ -496,14 +496,14 @@ export function DentalAR() {
 
                   {isTarget && callState === "connected" && (
                     <div className="mt-2 rounded-lg border border-brand-100 bg-brand-50 p-2">
-                      <p className="text-[10px] font-semibold text-brand-800">Call objective — what this call must accomplish</p>
-                      <p className="text-[10px] text-brand-700">{objective.guidance}</p>
+                      <p className="text-xs font-semibold text-brand-800">Call objective — what this call must accomplish</p>
+                      <p className="text-xs text-brand-700">{objective.guidance}</p>
                       {objective.caseSpecific.length > 0 && (
                         <div className="mt-1">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-brand-400">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-400">
                             {isPractice ? "Scenario call script" : "Case call script"}
                           </p>
-                          <ol className="ml-4 list-decimal text-[10px] text-brand-700">
+                          <ol className="ml-4 list-decimal text-xs text-brand-700">
                             {objective.caseSpecific.map((o, i) => (
                               <li key={i}>{o}</li>
                             ))}
@@ -533,7 +533,7 @@ export function DentalAR() {
                   )}
 
                   {showAppealWarning === denial.id && (
-                    <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] text-amber-800">
+                    <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
                       <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                       <span>
                         This denial is <b>not appealable</b> — {denial.plainLanguage}
@@ -555,7 +555,7 @@ export function DentalAR() {
                         The verdict never calls this path a wrong action.
                       */}
                       {unfinishedAppeal(row) ? (
-                        <div className="rounded-lg bg-amber-50 px-2 py-1.5 text-[10px] text-amber-900 ring-1 ring-amber-100">
+                        <div className="rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-900 ring-1 ring-amber-100">
                           <p>
                             <b>Appeal denied.</b> The payer refused it on its own criterion for {denial.carc}. The
                             line is not finished — post the contractual write-off, group {denial.groupCode}, and the
@@ -585,22 +585,22 @@ export function DentalAR() {
                                 : `${score.correct ? "Correct" : "Not the action the payer was asking for"} — you chose ${RESOLUTION_LABELS[row.committedResolution ?? "not-handled"]}.`}
                             </span>
                             {!score.appealWriteOff && (
-                              <span className="w-full text-[10px] font-medium sm:w-auto">
+                              <span className="w-full text-xs font-medium sm:w-auto">
                                 Correct action: {RESOLUTION_LABELS[score.expected]}.
                               </span>
                             )}
                           </div>
                           {score.noteRequired && (
-                            <p className={`text-[10px] ${score.noteSatisfied ? "text-emerald-700" : "text-amber-800"}`}>
+                            <p className={`text-xs ${score.noteSatisfied ? "text-emerald-700" : "text-amber-800"}`}>
                               {score.noteSatisfied
                                 ? "Your call note covers what the payer needed."
                                 : `The payer would not decide this without a call note. ${score.noteHint}`}
                             </p>
                           )}
-                          <p className="text-[10px] text-slate-700">{score.why}</p>
-                          <p className="rounded bg-brand-50 px-2 py-1 text-[10px] italic text-brand-800">{score.lesson}</p>
+                          <p className="text-xs text-slate-700">{score.why}</p>
+                          <p className="rounded bg-brand-50 px-2 py-1 text-xs italic text-brand-800">{score.lesson}</p>
                           {typeof score.disputedUsd === "number" && score.disputedUsd > 0 && (
-                            <p className="text-[10px] font-semibold text-amber-800">
+                            <p className="text-xs font-semibold text-amber-800">
                               {fmtUsd(score.disputedUsd)} is held in dispute while the appeal is open — it is not a
                               write-off and it is not the patient's balance.
                             </p>
@@ -630,7 +630,7 @@ export function DentalAR() {
                       */}
                       {denial.appealResolvesTo === "pay-or-write-off" && row.appealOutcome && (
                         <div
-                          className={`rounded-lg px-2 py-1.5 text-[10px] ring-1 ${
+                          className={`rounded-lg px-2 py-1.5 text-xs ring-1 ${
                             row.appealOutcome === "upheld"
                               ? "bg-emerald-50 text-emerald-800 ring-emerald-100"
                               : "bg-amber-50 text-amber-900 ring-amber-100"
@@ -672,13 +672,13 @@ export function DentalAR() {
                         </div>
                       )}
                       {/* Rule 6: the teaching text arrives after the decision, never before it. */}
-                      <p className="text-[10px] text-slate-600">
+                      <p className="text-xs text-slate-600">
                         <span className="font-semibold text-slate-700">Prevention: </span>
                         {denial.prevention}
                       </p>
-                      <p className="rounded bg-brand-50 px-2 py-1 text-[10px] italic text-brand-700">Debrief: {denial.teachingPoint}</p>
+                      <p className="rounded bg-brand-50 px-2 py-1 text-xs italic text-brand-700">Debrief: {denial.teachingPoint}</p>
                       {showAppealWarning === denial.id && (
-                        <div className="flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] text-amber-800">
+                        <div className="flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
                           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                           <span>
                             This denial was <b>not appealable</b> — {denial.plainLanguage}
@@ -696,7 +696,7 @@ export function DentalAR() {
       </div>
 
       {deniedLines.length > 0 && (
-        <p className="mt-3 text-[9px] text-slate-400">
+        <p className="mt-3 text-[11px] text-slate-400">
           Fictional payer data — all patients, payers and fees are simulated. All figures illustrative.
         </p>
       )}
@@ -723,7 +723,7 @@ function Badge({ k, v, tone }: { k: string; v: string; tone?: "red" | "green" | 
     slate: "bg-slate-100 text-slate-600 ring-slate-200",
   };
   return (
-    <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ring-1 ${map[tone ?? "slate"]}`}>
+    <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ring-1 ${map[tone ?? "slate"]}`}>
       {k}: <b>{v}</b>
     </span>
   );

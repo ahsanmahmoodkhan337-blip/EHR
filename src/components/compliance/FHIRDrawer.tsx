@@ -159,28 +159,28 @@ export function FHIRDrawer({ patient, icdCodes, cptCodes }: FHIRDrawerProps) {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-100">
         <Database className="h-3.5 w-3.5" /> FHIR R4
       </button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-end pt-0 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-md h-full max-h-full overflow-y-auto border-l border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <div><h3 className="text-sm font-bold text-slate-800">FHIR R4 Resources</h3><p className="text-[9px] text-slate-400">JSON View</p></div>
+              <div><h3 className="text-sm font-bold text-slate-800">FHIR R4 Resources</h3><p className="text-[11px] text-slate-400">JSON View</p></div>
               <button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button>
             </div>
             <div className="flex gap-1 mb-3 overflow-x-auto">
               {tabs.map(t => (
-                <button key={t.key} onClick={() => setActiveTab(t.key)} className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[10px] font-medium ${activeTab === t.key ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}>{t.label}</button>
+                <button key={t.key} onClick={() => setActiveTab(t.key)} className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ${activeTab === t.key ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}>{t.label}</button>
               ))}
             </div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] text-slate-400 font-mono">Resource/{activeTab}</span>
-              <button onClick={copyToClipboard} className="flex items-center gap-1 rounded bg-brand-100 px-2 py-1 text-[9px] text-brand-700">
+              <span className="text-[11px] text-slate-400 font-mono">Resource/{activeTab}</span>
+              <button onClick={copyToClipboard} className="flex items-center gap-1 rounded bg-brand-100 px-2 py-1 text-[11px] text-brand-700">
                 {copied ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}{copied ? "Copied!" : "Copy"}
               </button>
             </div>
-            <pre className="rounded-lg bg-slate-900 p-3 text-[10px] text-green-400 overflow-x-auto whitespace-pre font-mono leading-relaxed max-h-[60vh]">{getContent()}</pre>
+            <pre className="rounded-lg bg-slate-900 p-3 text-xs text-green-400 overflow-x-auto whitespace-pre font-mono leading-relaxed max-h-[60vh]">{getContent()}</pre>
           </div>
         </div>
       )}

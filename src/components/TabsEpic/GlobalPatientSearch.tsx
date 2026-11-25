@@ -180,7 +180,7 @@ export function GlobalPatientSearch({
                         <span className="font-semibold text-slate-800">
                           {p.lastName}, {p.firstName}
                         </span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-xs text-slate-400">
                           MRN: {p.mrn}
                         </span>
                       </div>
@@ -190,7 +190,7 @@ export function GlobalPatientSearch({
                     </div>
 
                     {/* Quick vitals indicator */}
-                    <div className="hidden shrink-0 text-right text-[10px] text-slate-400 sm:block">
+                    <div className="hidden shrink-0 text-right text-xs text-slate-400 sm:block">
                       <div>{p.vitals.bloodPressure}</div>
                       <div>{p.vitals.heartRate} bpm</div>
                     </div>

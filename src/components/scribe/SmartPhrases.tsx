@@ -245,7 +245,7 @@ export function SmartPhrasesDropdown({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="px-3 py-2 border-b border-slate-100">
-        <p className="text-[10px] font-semibold text-slate-500">SmartPhrases</p>
+        <p className="text-xs font-semibold text-slate-500">SmartPhrases</p>
       </div>
       {suggestions.map((d) => (
         <button
@@ -256,14 +256,14 @@ export function SmartPhrasesDropdown({
           }}
           className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-brand-50 transition-colors"
         >
-          <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-mono font-bold text-brand-600">
+          <span className="rounded bg-brand-100 px-1.5 py-0.5 text-xs font-mono font-bold text-brand-600">
             {d.code}
           </span>
           <span className="text-xs text-slate-600 truncate">{d.label}</span>
         </button>
       ))}
       <div className="border-t border-slate-100 px-3 py-1.5">
-        <p className="text-[9px] text-slate-400">
+        <p className="text-[11px] text-slate-400">
           Press <kbd className="rounded bg-slate-100 px-1">Tab</kbd> to expand
         </p>
       </div>

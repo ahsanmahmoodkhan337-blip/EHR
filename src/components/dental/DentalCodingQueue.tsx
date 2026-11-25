@@ -38,7 +38,7 @@ import { DentalClaimScrub } from "./DentalClaimScrub";
 
 const style = {
   card: "clinical-card",
-  label: "text-[10px] font-semibold uppercase tracking-wider text-slate-500",
+  label: "text-xs font-semibold uppercase tracking-wider text-slate-500",
   input:
     "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500",
 };
@@ -235,7 +235,7 @@ export function DentalCodingQueue() {
                   <button
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                       activeCategory === cat ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
@@ -247,7 +247,7 @@ export function DentalCodingQueue() {
           </div>
           <div className="flex-1 overflow-y-auto p-2">
             {!query.trim() && (
-              <p className="px-1 pb-1 text-[10px] text-slate-400">CDT teaching subset — type to search; fees are illustrative.</p>
+              <p className="px-1 pb-1 text-xs text-slate-400">CDT teaching subset — type to search; fees are illustrative.</p>
             )}
             {query.trim() && results.length === 0 && (
               <p className="px-2 py-4 text-center text-xs text-slate-400">No CDT codes match “{query}”.</p>
@@ -263,7 +263,7 @@ export function DentalCodingQueue() {
               />
             ))}
           </div>
-          <div className="border-t border-slate-100 p-2 text-center text-[9px] text-amber-600">
+          <div className="border-t border-slate-100 p-2 text-center text-[11px] text-amber-600">
             Fees are ILLUSTRATIVE teaching figures — not a fee schedule. Payer names are fictional.
           </div>
         </div>
@@ -276,7 +276,7 @@ export function DentalCodingQueue() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => setMode("coding")}
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                 mode === "coding" ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -284,7 +284,7 @@ export function DentalCodingQueue() {
             </button>
             <button
               onClick={() => setMode("perio")}
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                 mode === "perio" ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -292,11 +292,11 @@ export function DentalCodingQueue() {
             </button>
             <button
               onClick={() => goTo("predetermination")}
-              className="flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700 hover:bg-teal-100"
+              className="flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 hover:bg-teal-100"
             >
               <ClipboardCheck className="h-3 w-3" /> Predetermination
             </button>
-            <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700">
+            <span className="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
               {state.lines.length} line{state.lines.length === 1 ? "" : "s"} on claim
             </span>
           </div>
@@ -316,7 +316,7 @@ export function DentalCodingQueue() {
               Select a CDT code on the left to build a claim line. Each line carries its own tooth / surface / area data and
               its own date of service — a single claim can legitimately span two benefit years.
             </p>
-            {activeCase && <p className="mt-2 text-[10px] text-slate-400">Case: {activeCase.title}</p>}
+            {activeCase && <p className="mt-2 text-xs text-slate-400">Case: {activeCase.title}</p>}
           </div>
         )}
 
@@ -326,11 +326,11 @@ export function DentalCodingQueue() {
               <div className="min-w-0">
                 <span className="text-base font-bold text-slate-900">{currentCode.code}</span>
                 <span className="ml-2 text-xs font-medium text-slate-600">{currentCode.shortName}</span>
-                <span className="ml-2 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
+                <span className="ml-2 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">
                   {currentCode.category} · {currentCode.typicalBenefitClass}
                 </span>
               </div>
-              <span className="shrink-0 rounded bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+              <span className="shrink-0 rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
                 {fmtDollar(currentCode.illustrativeFeeUsd)} illustrative
               </span>
             </div>
@@ -341,7 +341,7 @@ export function DentalCodingQueue() {
                 {warnings.map((w, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] text-amber-800"
+                    className="flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800"
                   >
                     <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                     {w}
@@ -432,7 +432,7 @@ export function DentalCodingQueue() {
                 </Field>
               )}
               {needs("none") && (
-                <div className="col-span-2 flex items-center rounded-lg bg-slate-50 px-2 py-1 text-[10px] text-slate-500 sm:col-span-1">
+                <div className="col-span-2 flex items-center rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-500 sm:col-span-1">
                   No tooth / area data required for this line.
                 </div>
               )}
@@ -444,31 +444,31 @@ export function DentalCodingQueue() {
                     onChange={(e) => setDraft({ ...draft, predeterminationOnFile: e.target.checked })}
                     className="h-3.5 w-3.5"
                   />
-                  <span className="text-[10px] text-slate-600">Yes, have the notice</span>
+                  <span className="text-xs text-slate-600">Yes, have the notice</span>
                 </label>
               </Field>
             </div>
 
             {surfaceCheck && !surfaceCheck.valid && (
-              <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] text-red-700">{surfaceCheck.reason}</p>
+              <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">{surfaceCheck.reason}</p>
             )}
             {surfaceCountCheck && !surfaceCountCheck.valid && (
-              <p className="mt-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] text-red-700">
+              <p className="mt-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">
                 {surfaceCountCheck.reason}
               </p>
             )}
             {dentitionCheck && (
-              <p className="mt-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] text-red-700">{dentitionCheck}</p>
+              <p className="mt-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">{dentitionCheck}</p>
             )}
 
             {riskDenials.length > 0 && (
               <div className="mt-2 rounded-lg border border-brand-100 bg-brand-50 p-2">
-                <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-brand-700">
+                <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-brand-700">
                   <Info className="h-3 w-3" /> What usually goes wrong with this code
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {riskDenials.map((d) => (
-                    <span key={d.id} className="rounded-full bg-white px-1.5 py-0.5 text-[9px] text-brand-700 ring-1 ring-brand-100">
+                    <span key={d.id} className="rounded-full bg-white px-1.5 py-0.5 text-[11px] text-brand-700 ring-1 ring-brand-100">
                       <b>{d.carc}</b> {d.title}
                     </span>
                   ))}
@@ -483,12 +483,12 @@ export function DentalCodingQueue() {
               >
                 <Plus className="h-3.5 w-3.5" /> Add line to claim
               </button>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-xs text-slate-400">
                 Hard errors block the line; warnings let it through so you can feel the payer's response.
               </span>
             </div>
             {error && (
-              <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] text-red-700">
+              <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">
                 <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                 {error}
               </div>
@@ -498,7 +498,7 @@ export function DentalCodingQueue() {
 
         {/* claim-scrubbing edit checks (warnings, pre-submit) */}
         <div className={style.card + " p-3"}>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Claim scrub</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Claim scrub</p>
           <DentalClaimScrub />
         </div>
 
@@ -527,7 +527,7 @@ export function DentalCodingQueue() {
                     <p className="text-xs font-medium text-slate-800">
                       {line.code} {c ? `· ${c.shortName}` : ""}
                     </p>
-                    <p className="truncate text-[10px] text-slate-500">
+                    <p className="truncate text-xs text-slate-500">
                       DOS {line.dateOfService}
                       {line.tooth ? ` · Tooth #${line.tooth}` : ""}
                       {line.surfaces ? ` · ${line.surfaces}` : ""}
@@ -562,7 +562,7 @@ export function DentalCodingQueue() {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</span>
       {children}
     </label>
   );
@@ -591,7 +591,7 @@ function SurfacePicker({
           key={s}
           type="button"
           onClick={() => toggle(s)}
-          className={`h-6 w-6 rounded-md text-[10px] font-bold ${
+          className={`h-6 w-6 rounded-md text-xs font-bold ${
             selected.includes(s) ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
           }`}
           title={SURFACE_NAMES[s] ?? s}
@@ -599,7 +599,7 @@ function SurfacePicker({
           {s}
         </button>
       ))}
-      {!valid.length && <span className="text-[10px] text-slate-400">No tooth selected</span>}
+      {!valid.length && <span className="text-xs text-slate-400">No tooth selected</span>}
     </div>
   );
 }
@@ -634,18 +634,18 @@ function CodeRow({
       }`}
     >
       <div className="flex items-center gap-2">
-        <code className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">{code.code}</code>
+        <code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">{code.code}</code>
         <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-700">{code.shortName}</span>
-        <span className="shrink-0 text-[9px] text-amber-600">${code.illustrativeFeeUsd}</span>
-        <button onClick={onSelect} className="shrink-0 rounded bg-teal-600 px-2 py-0.5 text-[10px] font-medium text-white hover:bg-teal-500">
+        <span className="shrink-0 text-[11px] text-amber-600">${code.illustrativeFeeUsd}</span>
+        <button onClick={onSelect} className="shrink-0 rounded bg-teal-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-teal-500">
           {selected ? "Editing" : "Use"}
         </button>
       </div>
-      <button onClick={onToggle} className="mt-0.5 text-left text-[9px] text-slate-400 hover:text-brand-600">
+      <button onClick={onToggle} className="mt-0.5 text-left text-[11px] text-slate-400 hover:text-brand-600">
         {expanded ? "hide details ▲" : "details ▼"}
       </button>
       {expanded && (
-        <p className="mt-1 border-t border-slate-100 pt-1 text-[10px] leading-relaxed text-slate-500">{code.teachingDescription}</p>
+        <p className="mt-1 border-t border-slate-100 pt-1 text-xs leading-relaxed text-slate-500">{code.teachingDescription}</p>
       )}
     </div>
   );

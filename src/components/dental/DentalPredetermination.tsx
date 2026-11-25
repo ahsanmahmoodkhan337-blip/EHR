@@ -151,13 +151,13 @@ export function DentalPredetermination() {
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
             <ClipboardCheck className="h-4 w-4 text-teal-600" /> Predetermination &amp; attachments
           </h3>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             Gather the payer's required attachments and put the estimate in writing before treatment.
           </p>
         </div>
         <button
           onClick={() => goTo(state.lines.length > 0 ? "coding" : "planning")}
-          className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[10px] text-slate-600 hover:bg-slate-50"
+          className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
         >
           <ArrowLeft className="h-3 w-3" /> Back
         </button>
@@ -165,7 +165,7 @@ export function DentalPredetermination() {
 
       {/* ── 0. Predetermination of benefits for your plan ───────────── */}
       <div className="mb-3">
-        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
           Predetermination for your plan
         </p>
         {estimateLines.length === 0 ? (
@@ -181,7 +181,7 @@ export function DentalPredetermination() {
               <p className="text-[11px] font-semibold text-teal-800">
                 {estimateLines.length} planned service{estimateLines.length === 1 ? "" : "s"}
               </p>
-              <p className="mt-0.5 text-[10px] leading-snug text-teal-700">
+              <p className="mt-0.5 text-xs leading-snug text-teal-700">
                 Send a predetermination of benefits so the patient's out-of-pocket number is in writing before
                 treatment. A downgrade shows as a reduced allowance, never a denial.
               </p>
@@ -200,7 +200,7 @@ export function DentalPredetermination() {
 
       {/* ── 1. Required attachments per line ─────────────────────────── */}
       <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
           Required attachments {services.length > 0 ? `(${services.length} service${services.length === 1 ? "" : "s"})` : ""}
         </p>
         {services.length === 0 && (
@@ -224,14 +224,14 @@ export function DentalPredetermination() {
                   <span className="text-xs font-semibold text-slate-800">
                     {svc.code} {cdt ? `· ${cdt.shortName}` : ""}
                   </span>
-                  {svc.tooth && <span className="text-[10px] text-slate-500">#{svc.tooth}</span>}
+                  {svc.tooth && <span className="text-xs text-slate-500">#{svc.tooth}</span>}
                   {missing.length > 0 ? (
-                    <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-semibold text-red-700">
+                    <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
                       {missing.length} missing
                     </span>
                   ) : (
                     reqs.length > 0 && (
-                      <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">
+                      <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
                         Complete
                       </span>
                     )
@@ -240,15 +240,15 @@ export function DentalPredetermination() {
 
                 {candidate && driver && (
                   <div className="mt-1.5 rounded-md bg-teal-50 px-2 py-1.5 ring-1 ring-teal-100">
-                    <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-teal-700">
+                    <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase text-teal-700">
                       Predetermination candidate · {DRIVER_LABEL[driver]}
                     </span>
-                    <p className="mt-1 text-[10px] leading-snug text-teal-800">{candidate.guidance}</p>
+                    <p className="mt-1 text-xs leading-snug text-teal-800">{candidate.guidance}</p>
                   </div>
                 )}
 
                 {reqs.length === 0 && (
-                  <p className="mt-1 text-[10px] text-slate-400">No payer-required attachments for this code.</p>
+                  <p className="mt-1 text-xs text-slate-400">No payer-required attachments for this code.</p>
                 )}
 
                 <div className="mt-1.5 space-y-1">
@@ -265,14 +265,14 @@ export function DentalPredetermination() {
                           onChange={() => toggleAttachment(svc, r.type)}
                           className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-brand-600"
                         />
-                        <span className="min-w-0 text-[10px] leading-snug text-slate-600">
+                        <span className="min-w-0 text-xs leading-snug text-slate-600">
                           <span className="font-medium text-slate-700">{r.label}</span>
                           {r.when === "conditional" && (
-                            <span className="ml-1 rounded bg-slate-100 px-1 py-0.5 text-[9px] text-slate-500">
+                            <span className="ml-1 rounded bg-slate-100 px-1 py-0.5 text-[11px] text-slate-500">
                               conditional{r.condition ? `: ${r.condition}` : ""}
                             </span>
                           )}
-                          <span className="block text-[9px] text-slate-400">{r.whyRequired}</span>
+                          <span className="block text-[11px] text-slate-400">{r.whyRequired}</span>
                         </span>
                       </label>
                     );
@@ -282,7 +282,7 @@ export function DentalPredetermination() {
             );
           })}
         </div>
-        <p className="mt-2 flex items-center gap-1 text-[9px] text-slate-400">
+        <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
           <Info className="h-3 w-3 shrink-0" />
           A skipped attachment is the single most common "missing documentation" denial (DEN-DOC-MISSING). Gather it
           before submission.
@@ -291,7 +291,7 @@ export function DentalPredetermination() {
 
       {/* ── 2. Predetermination scenarios ────────────────────────────── */}
       <div className="mt-3">
-        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
           Predetermination scenarios
         </p>
         <div className="grid gap-2 md:grid-cols-3">
@@ -317,8 +317,8 @@ export function DentalPredetermination() {
         <div className="mt-3 space-y-3">
           <div className="rounded-xl border border-teal-100 bg-teal-50 p-3">
             <p className="text-[11px] font-semibold text-teal-800">{selectedScenario.title}</p>
-            <p className="mt-0.5 text-[10px] leading-snug text-teal-700">{selectedScenario.plannedTreatment}</p>
-            <p className="mt-1.5 text-[10px] leading-snug text-teal-700">
+            <p className="mt-0.5 text-xs leading-snug text-teal-700">{selectedScenario.plannedTreatment}</p>
+            <p className="mt-1.5 text-xs leading-snug text-teal-700">
               <span className="font-semibold">Why predetermine: </span>
               {selectedScenario.predeterminationRationale}
             </p>
@@ -336,7 +336,7 @@ export function DentalPredetermination() {
                 const picked = predictions[key];
                 return (
                   <fieldset key={line.line} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                    <legend className="px-1 text-[10px] font-semibold text-slate-700">
+                    <legend className="px-1 text-xs font-semibold text-slate-700">
                       Line {line.line} · {line.code}
                       {line.tooth ? ` · #${line.tooth}` : ""} — {line.description}
                     </legend>
@@ -344,7 +344,7 @@ export function DentalPredetermination() {
                       {PREDICTION_OPTIONS.map((opt) => (
                         <label
                           key={opt.value}
-                          className={`flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium ${
+                          className={`flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
                             picked === opt.value
                               ? "border-teal-500 bg-teal-50 text-teal-800"
                               : "border-slate-200 bg-white text-slate-600 hover:border-teal-200"
@@ -368,7 +368,7 @@ export function DentalPredetermination() {
                     </div>
                     {committed && picked && (
                       <p
-                        className={`mt-1 text-[9px] font-medium ${
+                        className={`mt-1 text-[11px] font-medium ${
                           picked === line.verdict ? "text-emerald-700" : "text-amber-700"
                         }`}
                       >
@@ -388,7 +388,7 @@ export function DentalPredetermination() {
               <ClipboardCheck className="h-3.5 w-3.5" /> {committed ? "Prediction committed" : "Commit my prediction"}
             </button>
             {!allPredicted && (
-              <p className="mt-1 text-[9px] text-slate-400">Answer every line before committing.</p>
+              <p className="mt-1 text-[11px] text-slate-400">Answer every line before committing.</p>
             )}
           </div>
 
@@ -397,22 +397,22 @@ export function DentalPredetermination() {
               <PredeterminationEstimate scenario={selectedScenario} />
 
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
                   Trap: {selectedScenario.trap.title}
                 </p>
-                <p className="mt-1 text-[10px] leading-snug text-amber-800">
+                <p className="mt-1 text-xs leading-snug text-amber-800">
                   <span className="font-semibold">Mistake: </span>
                   {selectedScenario.trap.mistake}
                 </p>
-                <p className="mt-1 text-[10px] leading-snug text-amber-800">
+                <p className="mt-1 text-xs leading-snug text-amber-800">
                   <span className="font-semibold">Consequence: </span>
                   {selectedScenario.trap.consequence}
                 </p>
-                <p className="mt-1 text-[10px] leading-snug text-emerald-800">
+                <p className="mt-1 text-xs leading-snug text-emerald-800">
                   <span className="font-semibold">Correct action: </span>
                   {selectedScenario.trap.correctAction}
                 </p>
-                <p className="mt-1.5 border-t border-amber-100 pt-1.5 text-[10px] leading-snug text-slate-700">
+                <p className="mt-1.5 border-t border-amber-100 pt-1.5 text-xs leading-snug text-slate-700">
                   <span className="font-semibold">Teaching point: </span>
                   {selectedScenario.teachingPoint}
                 </p>
@@ -447,7 +447,7 @@ function ScenarioCard({
       <div className="flex items-center gap-1.5">
         <span className="text-[11px] font-bold text-slate-800">{scenario.id}</span>
         <span
-          className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${
+          className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold uppercase ${
             scenario.difficulty === "beginner"
               ? "bg-emerald-50 text-emerald-700"
               : scenario.difficulty === "intermediate"
@@ -458,14 +458,14 @@ function ScenarioCard({
           {scenario.difficulty}
         </span>
         {matchesPlan && (
-          <span className="ml-auto rounded-full bg-teal-100 px-1.5 py-0.5 text-[9px] font-semibold text-teal-700">
+          <span className="ml-auto rounded-full bg-teal-100 px-1.5 py-0.5 text-[11px] font-semibold text-teal-700">
             matches your plan
           </span>
         )}
       </div>
       <p className="mt-1.5 flex-1 text-[11px] font-medium leading-snug text-slate-700">{scenario.title}</p>
       {/* Rule 6 — the card names the subject matter, not the payer's verdicts. */}
-      <p className="mt-1 text-[9px] text-slate-400">
+      <p className="mt-1 text-[11px] text-slate-400">
         {scenario.estimate.length} line{scenario.estimate.length === 1 ? "" : "s"} · Codes: {codes.join(", ")}
       </p>
       <button

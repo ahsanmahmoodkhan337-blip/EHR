@@ -102,7 +102,7 @@ export function EligibilityStage({
         <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
           <Shield className="h-5 w-5 text-slate-600" />
           <span className="text-sm font-bold text-slate-700">Payer portal</span>
-          <span className="ml-auto rounded bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">
+          <span className="ml-auto rounded bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">
             {coverage?.payerName || "No payer on file"}
           </span>
         </div>
@@ -208,7 +208,7 @@ export function EligibilityStage({
                   </dd>
                 </div>
               </dl>
-              <p className="mt-1 text-[10px] text-slate-500">
+              <p className="mt-1 text-xs text-slate-500">
                 {benefits.planName ? `Plan: ${benefits.planName}. ` : ""}
                 {benefits.source}
               </p>

@@ -32,7 +32,7 @@ const EMPTY_ENTRY: PerioToothEntry = {
   recession: null,
 };
 
-const cell = "w-9 rounded border border-slate-200 px-0.5 py-1 text-center text-[10px] text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500";
+const cell = "w-9 rounded border border-slate-200 px-0.5 py-1 text-center text-xs text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500";
 
 export function PerioChart() {
   const { state, setPerioTooth, activeCase } = useDentalTrack();
@@ -55,7 +55,7 @@ export function PerioChart() {
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 p-3">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Periodontal Chart</h3>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             {activeCase ? `Case: ${activeCase.title} · ` : ""}
             Probing depths (mm) per site, plus mobility, furcation, bleeding and recession. Readings are saved per phone.
           </p>
@@ -66,7 +66,7 @@ export function PerioChart() {
               key={d}
               type="button"
               onClick={() => setDentition(d)}
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                 dentition === d ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -78,7 +78,7 @@ export function PerioChart() {
 
       {/* ── grid ─────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse text-[10px]">
+        <table className="w-full border-collapse text-xs">
           <thead className="sticky top-0 z-10 bg-slate-50">
             <tr>
               <th className="sticky left-0 z-20 bg-slate-50 px-2 py-1.5 text-left font-semibold text-slate-500">
@@ -202,7 +202,7 @@ export function PerioChart() {
       </div>
 
       {/* ── footer legend ────────────────────────────────────────────────── */}
-      <div className="border-t border-slate-200 p-2 text-[9px] leading-relaxed text-slate-400">
+      <div className="border-t border-slate-200 p-2 text-[11px] leading-relaxed text-slate-400">
         <span className="font-semibold text-slate-500">Legend:</span> MB mesiobuccal · B buccal/facial · DB distobuccal · ML
         mesiolingual · L lingual · DL distolingual · Mob mobility (0–3) · Furc furcation (0–3, multi-rooted teeth) · BOP bleeding
         on probing · Recess recession (mm). A 4 mm+ pocket with BOP is the classic documentation that supports scaling &amp; root

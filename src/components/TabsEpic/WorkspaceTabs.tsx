@@ -136,7 +136,7 @@ export function WorkspaceTabs({
                 {badge !== undefined && badge > 0 && (
                   <span
                     aria-label={`${badge} items waiting`}
-                    className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold leading-none text-white"
+                    className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-xs font-bold leading-none text-white"
                   >
                     {badge}
                   </span>

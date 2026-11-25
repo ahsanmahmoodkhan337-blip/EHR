@@ -152,7 +152,7 @@ export function DentalClaimScrub({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
       <span
-        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
           findings.length > 0 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
         }`}
       >
@@ -195,7 +195,7 @@ export function DentalClaimScrub({ compact = false }: { compact?: boolean }) {
           </tbody>
         </table>
       </div>
-      <p className="mt-1.5 text-[9px] text-slate-400">
+      <p className="mt-1.5 text-[11px] text-slate-400">
         These are warnings, not blocks — this is a teaching sim. Send the claim anyway and the payer's response
         (claim status / ERA) will show you whether each flag actually bit.
       </p>

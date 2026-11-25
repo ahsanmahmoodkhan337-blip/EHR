@@ -342,7 +342,7 @@ function SettingsPage() {
             </ul>
           )}
           {activity.length > 50 && (
-            <p className="mt-2 text-[10px] text-slate-400">
+            <p className="mt-2 text-xs text-slate-400">
               Showing the 50 most recent of {activity.length} entries.
             </p>
           )}
@@ -400,7 +400,7 @@ function SettingsPage() {
           </button>
         </section>
 
-        <p className="pb-4 text-center text-[10px] text-slate-400">
+        <p className="pb-4 text-center text-xs text-slate-400">
           Simulated data, not for clinical use. All patients are fictional.
         </p>
         </div>
@@ -506,7 +506,7 @@ function SettingsPage() {
                 Cancel
               </button>
             </div>
-            <p id="reset-blocked" className="mt-2 text-[10px] text-slate-500" aria-live="polite">
+            <p id="reset-blocked" className="mt-2 text-xs text-slate-500" aria-live="polite">
               {blockedReason ?? `Deletes: ${chosenLabels.join(", ")}.`}
             </p>
           </div>
@@ -519,7 +519,7 @@ function SettingsPage() {
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-      <dt className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</dt>
+      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</dt>
       <dd className="mt-0.5 text-sm font-bold text-slate-800">{value}</dd>
     </div>
   );
@@ -564,8 +564,8 @@ function ActivityRow({ entry, patientName }: { entry: ActivityEntry; patientName
   return (
     <li className="py-2" title={`Recorded by ${entry.user}`}>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px]">
-        <span className="font-mono text-[10px] text-slate-400">{time}</span>
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600">
+        <span className="font-mono text-xs text-slate-400">{time}</span>
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
           {entry.role}
         </span>
         <span className="font-medium text-slate-700">
@@ -575,7 +575,7 @@ function ActivityRow({ entry, patientName }: { entry: ActivityEntry; patientName
         <span className="text-slate-400">· {patientName}</span>
       </div>
       {(entry.before !== undefined || entry.after !== undefined) && (
-        <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
+        <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
           {entry.before !== undefined && (
             <span className="text-slate-400 line-through decoration-slate-300">{before}</span>
           )}

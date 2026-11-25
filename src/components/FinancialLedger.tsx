@@ -57,7 +57,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
       {/* Clean Claim Rate — Pie Chart */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Clean Claim Rate</span>
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Clean Claim Rate</span>
           <span className={`text-sm font-bold ${rateColor}`}>{cleanClaimRate}%</span>
         </div>
         <div className="flex items-center gap-3">
@@ -80,7 +80,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex-1 text-[10px] text-slate-500 dark:text-slate-400">
+          <div className="flex-1 text-xs text-slate-500 dark:text-slate-400">
             <div className="flex items-center justify-between">
               <span>Clean</span>
               <span className="font-medium text-green-600 dark:text-green-400">${(totalBilled - totalDenied).toLocaleString()}</span>
@@ -96,28 +96,28 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
       {/* KPI Grid */}
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 shadow-sm">
-          <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
+          <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
             <DollarSign className="h-3 w-3" />
             Total Billed
           </div>
           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">${totalBilled.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 shadow-sm">
-          <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
+          <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
             <TrendingUp className="h-3 w-3" />
             Collected
           </div>
           <p className="text-sm font-bold text-green-600 dark:text-green-400">${totalCollected.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 shadow-sm">
-          <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
+          <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
             <TrendingDown className="h-3 w-3" />
             Denied
           </div>
           <p className="text-sm font-bold text-red-600 dark:text-red-400">${totalDenied.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 shadow-sm">
-          <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
+          <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
             <Activity className="h-3 w-3" />
             Days in A/R
           </div>
@@ -130,7 +130,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
       {/* Net Collection Rate */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Net Collection Rate</span>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Net Collection Rate</span>
           <span className={`text-xs font-bold ${netCollectionRate >= 90 ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>
             {netCollectionRate}%
           </span>
@@ -139,7 +139,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
           <div className={`h-1.5 rounded-full ${netCollectionRate >= 90 ? "bg-green-500" : "bg-amber-500"}`} style={{ width: `${Math.min(netCollectionRate, 100)}%` }} />
         </div>
         {netCollectionRate < 90 && (
-          <p className="mt-1 flex items-center gap-1 text-[9px] text-amber-600 dark:text-amber-400">
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
             <AlertTriangle className="h-2.5 w-2.5" />
             Below 90% target
           </p>
@@ -149,7 +149,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
       {/* Denial Breakdown — Bar Chart */}
       {denialBreakdown.length > 0 ? (
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
-        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-2 block">Denial by Reason Code</span>
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 block">Denial by Reason Code</span>
         <div className="h-24">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={denialBreakdown} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
@@ -166,7 +166,7 @@ export function FinancialLedger({ totalBilled, totalCollected, totalDenied, days
         </div>
       </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white p-3 text-[10px] text-slate-500 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500 shadow-sm">
           <span className="mb-1 block font-semibold text-slate-500">Denial by Reason Code</span>
           No denied lines on this claim{totalBilled > 0 ? "" : " yet"}.
         </div>

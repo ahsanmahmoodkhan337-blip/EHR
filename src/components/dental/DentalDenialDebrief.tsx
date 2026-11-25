@@ -50,7 +50,7 @@ export function DentalDenialDebrief({
               ? "Denial debrief — what your claim actually earned"
               : "Denial debrief — situations to learn from"}
           </h3>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             {revealed
               ? "The lines the payer would return, and the ordered corrective action."
               : "Read the situation first. Work every denied line in the AR stage, then reveal what the payer returned."}
@@ -67,7 +67,7 @@ export function DentalDenialDebrief({
           <Eye className="h-3.5 w-3.5" /> {revealed ? "Debrief revealed" : "Reveal debrief"}
         </button>
         {!canReveal && (
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Resolve every denied line in the AR stage first — the debrief opens once your claim is worked.
           </p>
         )}
@@ -81,7 +81,7 @@ export function DentalDenialDebrief({
               <DenialTag denialId={s.denialId} />
               <span className="ml-auto flex flex-wrap gap-1">
                 {s.procedureCodes.map((c) => (
-                  <span key={c} className="rounded bg-teal-50 px-1.5 py-0.5 text-[9px] font-semibold text-teal-700">
+                  <span key={c} className="rounded bg-teal-50 px-1.5 py-0.5 text-[11px] font-semibold text-teal-700">
                     {c}
                   </span>
                 ))}
@@ -95,7 +95,7 @@ export function DentalDenialDebrief({
               </p>
 
               {!revealed && (
-                <p className="rounded-md bg-slate-50 px-2.5 py-2 text-[10px] text-slate-500">
+                <p className="rounded-md bg-slate-50 px-2.5 py-2 text-xs text-slate-500">
                   {s.expectedLines.length} expected line{s.expectedLines.length === 1 ? "" : "s"} and the corrective
                   action stay hidden until you reveal the debrief.
                 </p>
@@ -125,17 +125,17 @@ export function DentalDenialDebrief({
               {revealed && (
                 <>
                   <div>
-                    <p className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                    <p className="mb-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
                       <ListChecks className="h-3 w-3" /> Correct action
                     </p>
-                    <ol className="list-decimal space-y-0.5 pl-4 text-[10px] leading-snug text-slate-600">
+                    <ol className="list-decimal space-y-0.5 pl-4 text-xs leading-snug text-slate-600">
                       {s.correctAction.map((a, i) => (
                         <li key={i}>{a}</li>
                       ))}
                     </ol>
                   </div>
 
-                  <p className="flex items-start gap-1.5 rounded-md bg-brand-50 px-2.5 py-2 text-[10px] leading-snug text-brand-800">
+                  <p className="flex items-start gap-1.5 rounded-md bg-brand-50 px-2.5 py-2 text-xs leading-snug text-brand-800">
                     <AlertOctagon className="mt-0.5 h-3 w-3 shrink-0" />
                     {s.teachingPoint}
                   </p>
@@ -154,7 +154,7 @@ function DenialTag({ denialId }: { denialId: string }) {
   const pr = d?.groupCode === "PR";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
+      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
         pr ? "bg-brand-50 text-brand-700" : "bg-red-50 text-red-700"
       }`}
     >

@@ -61,7 +61,7 @@ export function ClaimLifecycle() {
               />
             </div>
             <p
-              className={`mt-1.5 text-[10px] leading-tight transition-colors ${
+              className={`mt-1.5 text-xs leading-tight transition-colors ${
                 i === stage ? "font-semibold text-[#192166]" : i < stage ? "text-slate-500" : "text-slate-300"
               }`}
             >
@@ -100,7 +100,7 @@ export function ClaimLifecycle() {
         {/* Service lines */}
         <table className="mt-4 w-full text-[12px] tabular-nums">
           <thead>
-            <tr className="text-left text-[10px] text-slate-400">
+            <tr className="text-left text-xs text-slate-400">
               <th className="pb-1 font-medium">CPT</th>
               <th className="pb-1 font-medium">Diagnosis</th>
               <th className="pb-1 text-right font-medium">Charge</th>

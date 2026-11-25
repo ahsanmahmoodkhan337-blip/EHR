@@ -126,7 +126,7 @@ export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizar
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-[10px] font-medium text-brand-600 hover:bg-brand-100 transition-colors"
+        className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-100 transition-colors"
       >
         <Calculator className="h-3.5 w-3.5" />
         E/M MDM Wizard
@@ -146,7 +146,7 @@ export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizar
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 pb-3 pt-5">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">E/M MDM Level Calculator</h3>
-                <p className="text-[10px] text-slate-500">Two of the three elements set the level (AMA 2021)</p>
+                <p className="text-xs text-slate-500">Two of the three elements set the level (AMA 2021)</p>
               </div>
               <button
                 onClick={() => setOpen(false)}
@@ -161,21 +161,21 @@ export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizar
             <div className="p-5 pt-3">
             {/* Patient Type Toggle */}
             <div className="mb-3 flex items-center gap-3">
-              <span className="text-[10px] font-medium text-slate-500">Patient Type:</span>
+              <span className="text-xs font-medium text-slate-500">Patient Type:</span>
               <button
                 onClick={() => setPatientTypeChoice(false)}
-                className={`rounded-lg px-3 py-1 text-[10px] font-medium ${!isNewPatient ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}
+                className={`rounded-lg px-3 py-1 text-xs font-medium ${!isNewPatient ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}
               >
                 Established
               </button>
               <button
                 onClick={() => setPatientTypeChoice(true)}
-                className={`rounded-lg px-3 py-1 text-[10px] font-medium ${isNewPatient ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}
+                className={`rounded-lg px-3 py-1 text-xs font-medium ${isNewPatient ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"}`}
               >
                 New Patient
               </button>
               {patientTypeChoice === null && (
-                <span className="text-[9px] text-slate-400">
+                <span className="text-[11px] text-slate-400">
                   {defaultNewPatient ? "No prior visit on the chart" : "Prior visit on the chart"}
                 </span>
               )}
@@ -183,12 +183,12 @@ export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizar
 
             {/* Problem Complexity */}
             <div className="mb-3 rounded-lg border border-slate-200 p-3">
-              <p className="mb-2 text-[10px] font-semibold text-slate-700">
+              <p className="mb-2 text-xs font-semibold text-slate-700">
                 1. Number/Complexity of Problems — {MDM_LEVEL_NAMES[problemLevel]}
               </p>
               <div className="space-y-1">
                 {problems.map((p, i) => (
-                  <label key={i} className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+                  <label key={i} className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                     <input type="checkbox" checked={p.checked} onChange={() => toggleProblem(i)} className="h-3 w-3 accent-brand-600" />
                     {p.label}
                   </label>
@@ -198,11 +198,11 @@ export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizar
 
             {/* Data Reviewed */}
             <div className="mb-3 rounded-lg border border-slate-200 p-3">
-              <p className="mb-2 text-[10px] font-semibold text-slate-700">
+              <p className="mb-2 text-xs font-semibold text-slate-700">
                 2. Data Reviewed and Analysed — {MDM_LEVEL_NAMES[dataLevel]}
               </p>
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-2 text-[10px] text-slate-600">
+                <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
                   <span>Unique tests ordered or results reviewed, and external sources' notes reviewed (count each one)</span>
                   <span className="flex shrink-0 items-center gap-1">
                     <button
@@ -224,15 +224,15 @@ export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizar
                     </button>
                   </span>
                 </div>
-                <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                   <input type="checkbox" checked={independentHistorian} onChange={() => setIndependentHistorian((v) => !v)} className="h-3 w-3 accent-brand-600" />
                   Assessment needing an independent historian
                 </label>
-                <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                   <input type="checkbox" checked={independentInterpretation} onChange={() => setIndependentInterpretation((v) => !v)} className="h-3 w-3 accent-brand-600" />
                   Independent interpretation of a test billed by another clinician (e.g. reading the ECG or X-ray)
                 </label>
-                <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                   <input type="checkbox" checked={externalDiscussion} onChange={() => setExternalDiscussion((v) => !v)} className="h-3 w-3 accent-brand-600" />
                   Discussion of management or a test with an external clinician
                 </label>
@@ -241,12 +241,12 @@ export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizar
 
             {/* Risk */}
             <div className="mb-3 rounded-lg border border-slate-200 p-3">
-              <p className="mb-2 text-[10px] font-semibold text-slate-700">
+              <p className="mb-2 text-xs font-semibold text-slate-700">
                 3. Risk of Patient Management — {MDM_LEVEL_NAMES[riskLevel]}
               </p>
               <div className="space-y-1">
                 {risk.map((r, i) => (
-                  <label key={i} className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+                  <label key={i} className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                     <input type="checkbox" checked={r.checked} onChange={() => toggleRisk(i)} className="h-3 w-3 accent-brand-600" />
                     {r.label}
                   </label>
@@ -262,7 +262,7 @@ export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizar
                   <p className="text-xs font-bold text-slate-800">
                     Recommended: CPT {recommended.code} — {recommended.label} {recommended.patientType} Patient
                   </p>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-xs text-slate-500">
                     MDM {MDM_LEVEL_NAMES[mdm]} · {elementLine("Problems", problemLevel)} · {elementLine("Data", dataLevel)} · {elementLine("Risk", riskLevel)}
                   </p>
                 </div>
@@ -272,13 +272,13 @@ export function MDMWizard({ onLevelChange, defaultNewPatient = false }: MDMWizar
             {/* Rationale */}
             <button
               onClick={() => setShowRationale(!showRationale)}
-              className="mt-3 flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800"
+              className="mt-3 flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800"
             >
               <Info className="h-3 w-3" />
               {showRationale ? "Hide" : "Why this level?"}
             </button>
             {showRationale && (
-              <div className="mt-2 rounded-lg bg-slate-50 p-3 text-[10px] text-slate-600 leading-relaxed">
+              <div className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600 leading-relaxed">
                 <p>
                   The MDM level is the highest level that <strong>at least two of the three</strong> elements reach — the
                   elements are never added together. Here {meets} of 3 elements reach {MDM_LEVEL_NAMES[mdm]}, so the visit

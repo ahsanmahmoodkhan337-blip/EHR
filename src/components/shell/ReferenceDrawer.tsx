@@ -202,7 +202,7 @@ export function ReferenceDrawer({ tabs, accent = "blue", label = "Reference" }: 
           className="hidden w-80 shrink-0 flex-col border-l border-slate-200 bg-white outline-none lg:flex xl:w-96 dark:border-slate-800 dark:bg-slate-900"
         >
           <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-1.5 dark:border-slate-800">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               {label}
             </span>
             <button
@@ -284,7 +284,7 @@ export function ReferenceDrawer({ tabs, accent = "blue", label = "Reference" }: 
               className="flex h-full w-[min(92vw,22rem)] flex-col border-l border-slate-200 bg-white outline-none dark:border-slate-800 dark:bg-slate-900"
             >
               <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-1.5 dark:border-slate-800">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   {label}
                 </span>
                 <button

@@ -495,7 +495,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
         <div className="flex items-center gap-2">
           <Code className="h-5 w-5 text-brand-600" />
           <h2 className="text-sm font-bold text-slate-800">Medical Coding — Enhanced Coding Queue</h2>
-          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-700">Stage 3</span>
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">Stage 3</span>
         </div>
       </div>
 
@@ -582,7 +582,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                     setIcdQuery(tab === "icd" ? icdQuery : "");
                     setCptQuery(tab === "cpt" ? cptQuery : "");
                   }}
-                  className={`px-3 py-1.5 text-[10px] font-medium rounded-t-lg transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${
                     (tab === "icd" && !showConventions) || (tab === "conventions" && showConventions)
                       ? "bg-brand-50 text-brand-700 border-b-2 border-brand-600"
                       : "text-slate-400 hover:text-slate-600"
@@ -600,7 +600,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                 <div className="mt-4">
                   <p className="text-xs font-semibold text-brand-700 mb-2 flex items-center gap-1">
                     ICD-10-CM Diagnosis Codes
-                    <span className="text-[9px] font-normal text-brand-500 ml-1">(drag or use arrows to set priority — 1st, 2nd, 3rd)</span>
+                    <span className="text-[11px] font-normal text-brand-500 ml-1">(drag or use arrows to set priority — 1st, 2nd, 3rd)</span>
                   </p>
                   <div className="relative mb-2">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -625,7 +625,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                             <span className="ml-2 text-slate-600">{code.description}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-slate-400">{code.chapter}</span>
+                            <span className="text-xs text-slate-400">{code.chapter}</span>
                             <span
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -646,7 +646,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                   {/* Selected ICD-10 codes with priority indicators + reorder arrows */}
                   <div className="space-y-1.5">
                     {selectedICDs.map((c, idx) => (
-                      <div key={c.code} className="flex items-center gap-2 rounded-lg border border-brand-100 bg-brand-50/50 px-2 py-0 text-[10px]">
+                      <div key={c.code} className="flex items-center gap-2 rounded-lg border border-brand-100 bg-brand-50/50 px-2 py-0 text-xs">
                         {/* The two reorder arrows sit side by side, each a 40 px
                             target, so neither target overlaps the other and the
                             dense row is no taller than before (spec
@@ -676,7 +676,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                             <ArrowDown className="h-3 w-3" aria-hidden="true" />
                           </button>
                         </div>
-                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold text-white ${
+                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-bold text-white ${
                           idx === 0 ? "bg-red-400" : idx === 1 ? "bg-amber-400" : "bg-brand-500"
                         }`}>
                           {ordinal(idx + 1)}
@@ -687,7 +687,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                       </div>
                     ))}
                     {selectedICDs.length === 0 && (
-                      <p className="text-[10px] text-slate-400 italic">No ICD-10 codes selected. Search and add above.</p>
+                      <p className="text-xs text-slate-400 italic">No ICD-10 codes selected. Search and add above.</p>
                     )}
                   </div>
                 </div>
@@ -718,7 +718,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                             <span className="ml-2 text-slate-600">{code.description}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-slate-400">RVU: {code.rvu}</span>
+                            <span className="text-xs text-slate-400">RVU: {code.rvu}</span>
                             <span
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -746,15 +746,15 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                             {/* CPT header row */}
                             <div className="flex items-center gap-2 mb-2">
                               <span className="font-mono font-semibold text-brand-700 text-xs">{cpt.code}</span>
-                              <span className="flex-1 text-[10px] text-slate-600 truncate">{cpt.description}</span>
-                              <button onClick={() => removeCPT(cpt.code)} className="text-red-400 hover:text-red-600 text-[10px]">✕</button>
+                              <span className="flex-1 text-xs text-slate-600 truncate">{cpt.description}</span>
+                              <button onClick={() => removeCPT(cpt.code)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
                             </div>
 
                             {/* ICD-10 linking dropdown */}
                             <div className="mb-1.5">
                               <div className="flex items-center gap-1 mb-1">
                                 <Link2 className="h-2.5 w-2.5 text-brand-600" />
-                                <span className="text-[9px] font-medium text-slate-500">Link to ICD-10 Codes</span>
+                                <span className="text-[11px] font-medium text-slate-500">Link to ICD-10 Codes</span>
                               </div>
                               <div className="flex flex-wrap gap-1">
                                 {selectedICDs.map(icd => {
@@ -768,7 +768,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                                           ? d.linkedICDs.filter(c => c !== icd.code)
                                           : [...d.linkedICDs, icd.code],
                                       }))}
-                                      className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
+                                      className={`rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors ${
                                         isLinked
                                           ? "bg-brand-100 text-brand-700 border border-brand-200"
                                           : "bg-slate-50 text-slate-500 border border-slate-200 hover:border-brand-200"
@@ -779,7 +779,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                                   );
                                 })}
                                 {selectedICDs.length === 0 && (
-                                  <span className="text-[9px] text-slate-400 italic">Add ICD-10 codes first</span>
+                                  <span className="text-[11px] text-slate-400 italic">Add ICD-10 codes first</span>
                                 )}
                               </div>
                             </div>
@@ -788,8 +788,8 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                             <div className="mb-1.5 grid grid-cols-3 gap-2">
                               <div className="col-span-2">
                                 <div className="flex items-center gap-1 mb-1">
-                                  <label htmlFor={`mods-${cpt.code}`} className="text-[9px] font-medium text-slate-500">Modifiers</label>
-                                  <span className="text-[8px] text-slate-400">(comma-separated)</span>
+                                  <label htmlFor={`mods-${cpt.code}`} className="text-[11px] font-medium text-slate-500">Modifiers</label>
+                                  <span className="text-[11px] text-slate-400">(comma-separated)</span>
                                 </div>
                                 <input
                                   id={`mods-${cpt.code}`}
@@ -802,13 +802,13 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                                     updateCptData(cpt.code, d => ({ ...d, modifiers: parsed }));
                                   }}
                                   placeholder="None"
-                                  className="w-full rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-brand-400"
+                                  className="w-full rounded border border-slate-200 px-1.5 py-0.5 font-mono text-xs outline-none focus:border-brand-400"
                                 />
                               </div>
                               <div>
                                 <div className="flex items-center gap-1 mb-1">
-                                  <label htmlFor={`pos-${cpt.code}`} className="text-[9px] font-medium text-slate-500">POS</label>
-                                  <span className="text-[8px] text-slate-400">(place of service)</span>
+                                  <label htmlFor={`pos-${cpt.code}`} className="text-[11px] font-medium text-slate-500">POS</label>
+                                  <span className="text-[11px] text-slate-400">(place of service)</span>
                                 </div>
                                 {/* A picker, not a text box: the places of service the
                                     simulator teaches are the ones a student can bill
@@ -831,7 +831,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                                   }}
                                   aria-label={`Place of service for CPT ${cpt.code}`}
                                   title={POS_REFERENCE.find(p => p.code === data.pos)?.teachingNote}
-                                  className="w-full rounded border border-slate-200 px-1 py-0.5 font-mono text-[10px] outline-none focus:border-brand-400"
+                                  className="w-full rounded border border-slate-200 px-1 py-0.5 font-mono text-xs outline-none focus:border-brand-400"
                                 >
                                   {POS_REFERENCE.map(p => (
                                     <option key={p.code} value={p.code}>
@@ -852,7 +852,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                             <div className="flex items-center gap-3 mt-2">
                               <div className="flex items-center gap-1">
                                 <Hash className="h-2.5 w-2.5 text-slate-400" />
-                                <label className="text-[9px] text-slate-500">Units:</label>
+                                <label className="text-[11px] text-slate-500">Units:</label>
                                 <input
                                   type="number"
                                   min="1"
@@ -860,12 +860,12 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                                   value={data.units}
                                   aria-label={`Units for ${cpt.code}`}
                                   onChange={e => updateCptData(cpt.code, d => ({ ...d, units: Math.max(1, parseInt(e.target.value) || 1) }))}
-                                  className="w-12 rounded border border-slate-200 px-1.5 py-0.5 text-[9px] outline-none focus:border-brand-500"
+                                  className="w-12 rounded border border-slate-200 px-1.5 py-0.5 text-[11px] outline-none focus:border-brand-500"
                                 />
                               </div>
                               <div className="flex items-center gap-1">
                                 <DollarSign className="h-2.5 w-2.5 text-slate-400" />
-                                <label className="text-[9px] text-slate-500">Charge:</label>
+                                <label className="text-[11px] text-slate-500">Charge:</label>
                                 <input
                                   type="number"
                                   min="0"
@@ -874,11 +874,11 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                                   aria-label={`Charge in dollars for ${cpt.code}`}
                                   onChange={e => updateCptData(cpt.code, d => ({ ...d, charges: parseFloat(e.target.value) || 0 }))}
                                   placeholder="0.00"
-                                  className="w-20 rounded border border-slate-200 px-1.5 py-0.5 text-[9px] outline-none focus:border-brand-500"
+                                  className="w-20 rounded border border-slate-200 px-1.5 py-0.5 text-[11px] outline-none focus:border-brand-500"
                                 />
                               </div>
                               {data.charges > 0 && (
-                                <span className="text-[9px] text-brand-600 font-medium">
+                                <span className="text-[11px] text-brand-600 font-medium">
                                   = ${(data.charges * data.units).toFixed(2)}
                                 </span>
                               )}
@@ -889,7 +889,7 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                     </div>
                   )}
                   {selectedCPTs.length === 0 && (
-                    <p className="text-[10px] text-slate-400 italic">No CPT codes selected. Search and add above.</p>
+                    <p className="text-xs text-slate-400 italic">No CPT codes selected. Search and add above.</p>
                   )}
 
                   {/* ─── Collapsible Modifier & POS Reference ─── */}
@@ -904,33 +904,33 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                         <ChevronRight className="h-3 w-3 text-slate-400" />
                       )}
                       <BookOpen className="h-3 w-3 text-slate-500" />
-                      <span className="text-[10px] font-semibold text-slate-600">Modifier &amp; POS Reference</span>
-                      <span className="ml-1 text-[9px] text-slate-400">
+                      <span className="text-xs font-semibold text-slate-600">Modifier &amp; POS Reference</span>
+                      <span className="ml-1 text-[11px] text-slate-400">
                         {MODIFIER_REFERENCE.length} modifiers · {POS_REFERENCE.length} places of service
                       </span>
                     </button>
                     {showModifierRef && (
                       <div className="grid gap-3 border-t border-slate-200 p-2.5 md:grid-cols-2">
                         <div>
-                          <p className="mb-1 text-[10px] font-semibold text-brand-700">Modifiers</p>
+                          <p className="mb-1 text-xs font-semibold text-brand-700">Modifiers</p>
                           <div className="space-y-1">
                             {MODIFIER_REFERENCE.map(m => (
                               <div key={m.code} className="rounded border border-slate-200 bg-white px-2 py-1">
-                                <p className="text-[10px] font-mono font-semibold text-slate-700">{m.code}</p>
-                                <p className="text-[9px] text-slate-600">{m.description}</p>
-                                <p className="text-[9px] italic text-slate-400">{m.teachingNote}</p>
+                                <p className="text-xs font-mono font-semibold text-slate-700">{m.code}</p>
+                                <p className="text-[11px] text-slate-600">{m.description}</p>
+                                <p className="text-[11px] italic text-slate-400">{m.teachingNote}</p>
                               </div>
                             ))}
                           </div>
                         </div>
                         <div>
-                          <p className="mb-1 text-[10px] font-semibold text-green-700">Place of Service (POS)</p>
+                          <p className="mb-1 text-xs font-semibold text-green-700">Place of Service (POS)</p>
                           <div className="space-y-1">
                             {POS_REFERENCE.map(p => (
                               <div key={p.code} className="rounded border border-slate-200 bg-white px-2 py-1">
-                                <p className="text-[10px] font-mono font-semibold text-slate-700">{p.code}</p>
-                                <p className="text-[9px] text-slate-600">{p.description}</p>
-                                <p className="text-[9px] italic text-slate-400">{p.teachingNote}</p>
+                                <p className="text-xs font-mono font-semibold text-slate-700">{p.code}</p>
+                                <p className="text-[11px] text-slate-600">{p.description}</p>
+                                <p className="text-[11px] italic text-slate-400">{p.teachingNote}</p>
                               </div>
                             ))}
                           </div>
@@ -952,14 +952,14 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
 
                 {/* Coding Quiz */}
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                  <p className="text-[10px] font-semibold text-amber-700 mb-2"> Coding Quiz: Does the diagnosis support the procedure?</p>
-                  <p className="text-[10px] text-amber-600 mb-2">E11.9 (Diabetes) + 99214 (Established visit) — Are these codes compatible?</p>
+                  <p className="text-xs font-semibold text-amber-700 mb-2"> Coding Quiz: Does the diagnosis support the procedure?</p>
+                  <p className="text-xs text-amber-600 mb-2">E11.9 (Diabetes) + 99214 (Established visit) — Are these codes compatible?</p>
                   <div className="flex gap-2">
                     {["yes", "no"].map((ans) => (
                       <button
                         key={ans}
                         onClick={() => setQuizAnswer(ans)}
-                        className={`px-3 py-1 rounded text-[10px] font-medium ${
+                        className={`px-3 py-1 rounded text-xs font-medium ${
                           quizAnswer === ans ? "bg-amber-600 text-white" : "bg-white text-amber-700 border border-amber-300"
                         }`}
                       >
@@ -967,13 +967,13 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                       </button>
                     ))}
                     {quizAnswer && !quizFeedback && (
-                      <button onClick={handleQuizSubmit} className="px-3 py-1 rounded text-[10px] font-medium bg-amber-600 text-white">
+                      <button onClick={handleQuizSubmit} className="px-3 py-1 rounded text-xs font-medium bg-amber-600 text-white">
                         Check
                       </button>
                     )}
                   </div>
                   {quizFeedback && (
-                    <p className="mt-2 text-[10px] font-medium">{quizFeedback}</p>
+                    <p className="mt-2 text-xs font-medium">{quizFeedback}</p>
                   )}
                 </div>
 
@@ -1025,16 +1025,16 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                             </p>
                             {paTriggerReasons.length > 0 && (
                               <div className="space-y-1">
-                                <p className="text-[10px] font-medium text-slate-500">Triggered by:</p>
+                                <p className="text-xs font-medium text-slate-500">Triggered by:</p>
                                 {paTriggerReasons.map((reason, i) => (
-                                  <div key={i} className="flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1.5 text-[10px] text-amber-700">
+                                  <div key={i} className="flex items-start gap-1.5 rounded bg-amber-50 px-2 py-1.5 text-xs text-amber-700">
                                     <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
                                     <span>{reason}</span>
                                   </div>
                                 ))}
                               </div>
                             )}
-                            <p className="text-[10px] text-slate-500">
+                            <p className="text-xs text-slate-500">
                               Would you like to proceed to Prior Authorization or skip to Billing?
                             </p>
                             <div className="flex gap-2">
@@ -1086,14 +1086,14 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                         </div>
                         {/* Category & Chapter */}
                         <div className="flex gap-2">
-                          <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">
+                          <span className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
                             {"chapter" in selectedCodeDetails && selectedCodeDetails.chapter}
                           </span>
-                          <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">
+                          <span className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
                             {selectedCodeDetails.category}
                           </span>
                           {"rvu" in selectedCodeDetails && (
-                            <span className="rounded bg-brand-100 px-2 py-1 text-[10px] font-medium text-brand-700">
+                            <span className="rounded bg-brand-100 px-2 py-1 text-xs font-medium text-brand-700">
                               RVU: {selectedCodeDetails.rvu}
                             </span>
                           )}
@@ -1102,11 +1102,11 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                         {"medicareRate" in selectedCodeDetails && selectedCodeDetails.medicareRate !== undefined && (
                           <div className="grid grid-cols-2 gap-2">
                             <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
-                              <p className="text-[9px] font-medium text-brand-500">Medicare Rate</p>
+                              <p className="text-[11px] font-medium text-brand-500">Medicare Rate</p>
                               <p className="text-sm font-bold text-brand-700">${selectedCodeDetails.medicareRate.toFixed(2)}</p>
                             </div>
                             <div className="rounded-lg border border-green-100 bg-green-50 p-2">
-                              <p className="text-[9px] font-medium text-green-500">Commercial Rate (est.)</p>
+                              <p className="text-[11px] font-medium text-green-500">Commercial Rate (est.)</p>
                               <p className="text-sm font-bold text-green-700">${("commercialRate" in selectedCodeDetails && selectedCodeDetails.commercialRate ? selectedCodeDetails.commercialRate : 0).toFixed(2)}</p>
                             </div>
                           </div>
@@ -1114,15 +1114,15 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                         {/* Notes */}
                         {"notes" in selectedCodeDetails && selectedCodeDetails.notes && (
                           <div className="rounded-lg border border-amber-100 bg-amber-50 p-2">
-                            <p className="text-[9px] font-semibold text-amber-600 mb-0.5">📝 Coding Tips</p>
-                            <p className="text-[10px] text-amber-700">{selectedCodeDetails.notes}</p>
+                            <p className="text-[11px] font-semibold text-amber-600 mb-0.5">📝 Coding Tips</p>
+                            <p className="text-xs text-amber-700">{selectedCodeDetails.notes}</p>
                           </div>
                         )}
                         {/* Guidelines */}
                         {"guidelines" in selectedCodeDetails && selectedCodeDetails.guidelines && selectedCodeDetails.guidelines.length > 0 && (
                           <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
-                            <p className="text-[9px] font-semibold text-brand-600 mb-1">📋 Official Guidelines</p>
-                            <ul className="list-disc pl-4 text-[10px] text-brand-700 space-y-0.5">
+                            <p className="text-[11px] font-semibold text-brand-600 mb-1">📋 Official Guidelines</p>
+                            <ul className="list-disc pl-4 text-xs text-brand-700 space-y-0.5">
                               {selectedCodeDetails.guidelines.map((g, i) => <li key={i}>{g}</li>)}
                             </ul>
                           </div>
@@ -1130,42 +1130,42 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                         {/* Excludes / Code First */}
                         {"excludes1" in selectedCodeDetails && selectedCodeDetails.excludes1 && selectedCodeDetails.excludes1.length > 0 && (
                           <div className="rounded-lg border border-red-100 bg-red-50 p-2">
-                            <p className="text-[9px] font-semibold text-red-600 mb-1">⛔ Excludes1 (mutually exclusive)</p>
-                            <p className="text-[10px] text-red-700">{selectedCodeDetails.excludes1.join(", ")}</p>
+                            <p className="text-[11px] font-semibold text-red-600 mb-1">⛔ Excludes1 (mutually exclusive)</p>
+                            <p className="text-xs text-red-700">{selectedCodeDetails.excludes1.join(", ")}</p>
                           </div>
                         )}
                         {"excludes2" in selectedCodeDetails && selectedCodeDetails.excludes2 && selectedCodeDetails.excludes2.length > 0 && (
                           <div className="rounded-lg border border-amber-100 bg-amber-50 p-2">
-                            <p className="text-[9px] font-semibold text-amber-600 mb-1">⚠️ Excludes2 (can code both)</p>
-                            <p className="text-[10px] text-amber-700">{selectedCodeDetails.excludes2.join(", ")}</p>
+                            <p className="text-[11px] font-semibold text-amber-600 mb-1">⚠️ Excludes2 (can code both)</p>
+                            <p className="text-xs text-amber-700">{selectedCodeDetails.excludes2.join(", ")}</p>
                           </div>
                         )}
                         {"codeFirst" in selectedCodeDetails && selectedCodeDetails.codeFirst && (
                           <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
-                            <p className="text-[9px] font-semibold text-brand-600 mb-1">🔝 Code First</p>
-                            <p className="text-[10px] text-brand-700">{selectedCodeDetails.codeFirst}</p>
+                            <p className="text-[11px] font-semibold text-brand-600 mb-1">🔝 Code First</p>
+                            <p className="text-xs text-brand-700">{selectedCodeDetails.codeFirst}</p>
                           </div>
                         )}
                         {"useAdditional" in selectedCodeDetails && selectedCodeDetails.useAdditional && selectedCodeDetails.useAdditional.length > 0 && (
                           <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
-                            <p className="text-[9px] font-semibold text-brand-600 mb-1">➕ Use Additional Code</p>
-                            <p className="text-[10px] text-brand-700">{selectedCodeDetails.useAdditional.join(", ")}</p>
+                            <p className="text-[11px] font-semibold text-brand-600 mb-1">➕ Use Additional Code</p>
+                            <p className="text-xs text-brand-700">{selectedCodeDetails.useAdditional.join(", ")}</p>
                           </div>
                         )}
                         {"laterality" in selectedCodeDetails && selectedCodeDetails.laterality && selectedCodeDetails.laterality !== "none" && (
                           <div className="rounded-lg border border-brand-100 bg-brand-50 p-2">
-                            <p className="text-[9px] font-semibold text-brand-600 mb-1">🔵 Laterality: {selectedCodeDetails.laterality}</p>
+                            <p className="text-[11px] font-semibold text-brand-600 mb-1">🔵 Laterality: {selectedCodeDetails.laterality}</p>
                           </div>
                         )}
                         {"globalDays" in selectedCodeDetails && selectedCodeDetails.globalDays !== undefined && (
                           <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-                            <p className="text-[9px] font-semibold text-slate-600">Global Surgery Period: {selectedCodeDetails.globalDays} days</p>
+                            <p className="text-[11px] font-semibold text-slate-600">Global Surgery Period: {selectedCodeDetails.globalDays} days</p>
                           </div>
                         )}
                       </div>
                       {/* Footer */}
                       <div className="border-t border-slate-100 p-3 text-center">
-                        <p className="text-[9px] text-slate-400">Reference: {"chapter" in selectedCodeDetails ? "ICD-10-CM Official Guidelines" : "AMA CPT Professional Edition"}</p>
+                        <p className="text-[11px] text-slate-400">Reference: {"chapter" in selectedCodeDetails ? "ICD-10-CM Official Guidelines" : "AMA CPT Professional Edition"}</p>
                       </div>
                     </div>
                   </div>
@@ -1186,8 +1186,8 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                   </div>
                 ))}
                 <div className="mt-3 rounded-lg bg-brand-50 border border-brand-200 p-3">
-                  <p className="text-[10px] font-semibold text-brand-700 mb-1"> Coding Tip</p>
-                  <p className="text-[10px] text-brand-600">Always code the definitive diagnosis over symptoms. When a definitive diagnosis is established, do not code the symptom that led to it — unless the symptom is a separate condition.</p>
+                  <p className="text-xs font-semibold text-brand-700 mb-1"> Coding Tip</p>
+                  <p className="text-xs text-brand-600">Always code the definitive diagnosis over symptoms. When a definitive diagnosis is established, do not code the symptom that led to it — unless the symptom is a separate condition.</p>
                 </div>
               </div>
             )}
@@ -1210,16 +1210,16 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                 )}
                 <div className="mt-3 flex flex-wrap gap-3 justify-center">
                   <div className="rounded-lg bg-green-50 border border-green-200 p-2">
-                    <p className="text-[10px] font-medium text-green-700">ICD-10 Codes ({selectedICDs.length})</p>
+                    <p className="text-xs font-medium text-green-700">ICD-10 Codes ({selectedICDs.length})</p>
                     <p className="text-xs text-green-600">{selectedICDs.map(c => c.code).join(", ")}</p>
                   </div>
                   <div className="rounded-lg bg-brand-50 border border-brand-200 p-2">
-                    <p className="text-[10px] font-medium text-brand-700">CPT Codes ({selectedCPTs.length})</p>
+                    <p className="text-xs font-medium text-brand-700">CPT Codes ({selectedCPTs.length})</p>
                     <p className="text-xs text-brand-600">{selectedCPTs.map(c => c.code).join(", ")}</p>
                   </div>
                   {totalCharges > 0 && (
                     <div className="rounded-lg bg-brand-50 border border-brand-200 p-2">
-                      <p className="text-[10px] font-medium text-brand-700">Total Charges</p>
+                      <p className="text-xs font-medium text-brand-700">Total Charges</p>
                       <p className="text-xs text-brand-600">${totalCharges.toFixed(2)}</p>
                     </div>
                   )}
@@ -1254,29 +1254,29 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
           <div className="hidden w-64 border-l border-slate-200 bg-slate-50 p-4 lg:block overflow-y-auto">
             <div className="flex items-center gap-1.5 mb-3">
               <Info className="h-3.5 w-3.5 text-brand-500" />
-              <span className="text-[10px] font-semibold text-slate-500">E/M Level Calculator</span>
+              <span className="text-xs font-semibold text-slate-500">E/M Level Calculator</span>
             </div>
             <div className="space-y-3">
               <div>
-                <label htmlFor="em-patient-type" className="text-[10px] text-slate-500">Patient Type</label>
+                <label htmlFor="em-patient-type" className="text-xs text-slate-500">Patient Type</label>
                 <select
                   id="em-patient-type"
                   value={emPatientType}
                   onChange={(e) => setEmPatientTypeChoice(e.target.value === "new" ? "new" : "established")}
                   aria-describedby="em-patient-type-provenance"
-                  className="min-h-[40px] w-full rounded border border-slate-200 px-2 py-1 text-[10px]"
+                  className="min-h-[40px] w-full rounded border border-slate-200 px-2 py-1 text-xs"
                 >
                   <option value="established">Established patient</option>
                   <option value="new">New patient</option>
                 </select>
                 {/* Why the picker opened where it did — the chart's own record of
                     an earlier signed visit, or the student's own change. */}
-                <p id="em-patient-type-provenance" className="mt-1 text-[9px] text-slate-400">
+                <p id="em-patient-type-provenance" className="mt-1 text-[11px] text-slate-400">
                   {emPatientTypeProvenance(emPatientType, emPatientTypeChoice !== null)}
                 </p>
               </div>
               <div>
-                <label htmlFor="em-problems" className="text-[10px] text-slate-500">Problems Addressed</label>
+                <label htmlFor="em-problems" className="text-xs text-slate-500">Problems Addressed</label>
                 <input
                   id="em-problems"
                   type="range"
@@ -1287,10 +1287,10 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                   aria-label="Problems addressed — 1 minimal, 2 low, 3 moderate, 4 high"
                   className="w-full accent-brand-500"
                 />
-                <span className="text-[10px] text-slate-400">{emProblems}</span>
+                <span className="text-xs text-slate-400">{emProblems}</span>
               </div>
               <div>
-                <label htmlFor="em-data" className="text-[10px] text-slate-500">Data Reviewed</label>
+                <label htmlFor="em-data" className="text-xs text-slate-500">Data Reviewed</label>
                 <input
                   id="em-data"
                   type="range"
@@ -1301,15 +1301,15 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                   aria-label="Data reviewed — 1 minimal, 2 limited, 3 moderate, 4 extensive"
                   className="w-full accent-brand-500"
                 />
-                <span className="text-[10px] text-slate-400">{emData}</span>
+                <span className="text-xs text-slate-400">{emData}</span>
               </div>
               <div>
-                <label htmlFor="em-risk" className="text-[10px] text-slate-500">Risk Level</label>
+                <label htmlFor="em-risk" className="text-xs text-slate-500">Risk Level</label>
                 <select
                   id="em-risk"
                   value={emRisk}
                   onChange={(e) => setEmRisk(e.target.value)}
-                  className="min-h-[40px] w-full rounded border border-slate-200 px-2 py-1 text-[10px]"
+                  className="min-h-[40px] w-full rounded border border-slate-200 px-2 py-1 text-xs"
                 >
                   <option>Minimal</option>
                   <option>Low</option>
@@ -1318,10 +1318,10 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
                 </select>
               </div>
               <div className="rounded-lg bg-white p-3 text-center shadow-sm">
-                <p className="text-[10px] text-slate-400">Recommended Code</p>
+                <p className="text-xs text-slate-400">Recommended Code</p>
                 <p className="text-xl font-bold text-brand-600">{emLevel.code}</p>
-                <p className="text-[10px] text-slate-500">{emLevel.name}</p>
-                <p className="mt-1 text-[9px] text-slate-400">Two of three MDM elements met</p>
+                <p className="text-xs text-slate-500">{emLevel.name}</p>
+                <p className="mt-1 text-[11px] text-slate-400">Two of three MDM elements met</p>
               </div>
             </div>
           </div>

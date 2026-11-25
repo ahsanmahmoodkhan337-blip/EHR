@@ -95,11 +95,11 @@ export function Certificate({ studentName: propName, completedModules, score, da
                   </p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {completedModules.length > 0 ? completedModules.map((mod) => (
-                      <span key={mod} className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-1 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                      <span key={mod} className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
                         {MODULE_ICONS[mod] || "✓"} {mod}
                       </span>
                     )) : (
-                      <span className="text-[10px] text-slate-400">All 5 stages completed</span>
+                      <span className="text-xs text-slate-400">All 5 stages completed</span>
                     )}
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export function Certificate({ studentName: propName, completedModules, score, da
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
+                <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
                   <div className="text-center">
                     <p className="font-semibold text-slate-500 dark:text-slate-400">Date</p>
                     <p>{displayDate}</p>

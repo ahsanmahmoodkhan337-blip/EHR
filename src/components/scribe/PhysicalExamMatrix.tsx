@@ -111,7 +111,7 @@ export function PhysicalExamMatrix({ onInsert }: PhysicalExamMatrixProps = {}) {
     <div className="relative">
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[10px] font-medium text-emerald-600 hover:bg-emerald-100 transition-colors"
+        className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-100 transition-colors"
       >
         <CheckCircle2 className="h-3.5 w-3.5" />
         Physical Exam ({normalCount}✓ {abnormalCount > 0 ? `${abnormalCount}⚠` : ""})
@@ -126,7 +126,7 @@ export function PhysicalExamMatrix({ onInsert }: PhysicalExamMatrixProps = {}) {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Physical Exam Matrix</h3>
-                <p className="text-[10px] text-slate-500">Click to cycle: Not Examined → Normal → Abnormal</p>
+                <p className="text-xs text-slate-500">Click to cycle: Not Examined → Normal → Abnormal</p>
               </div>
               <button onClick={() => setShowPanel(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-4 w-4" />
@@ -137,13 +137,13 @@ export function PhysicalExamMatrix({ onInsert }: PhysicalExamMatrixProps = {}) {
             <div className="flex gap-2 mb-3">
               <button
                 onClick={markAllNormal}
-                className="flex-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-emerald-500"
+                className="flex-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
               >
                 Mark All Normal
               </button>
               <button
                 onClick={resetAll}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
               >
                 Reset
               </button>
@@ -165,7 +165,7 @@ export function PhysicalExamMatrix({ onInsert }: PhysicalExamMatrixProps = {}) {
                   >
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm">{s.icon}</span>
-                      <span className="text-[10px] font-medium text-slate-700">{s.name}</span>
+                      <span className="text-xs font-medium text-slate-700">{s.name}</span>
                       <span className="ml-auto">
                         {s.status === "not-examined" && <Circle className="h-3 w-3 text-slate-300" />}
                         {s.status === "normal" && <CheckCircle2 className="h-3 w-3 text-green-500" />}
@@ -183,7 +183,7 @@ export function PhysicalExamMatrix({ onInsert }: PhysicalExamMatrixProps = {}) {
                         setSystems(updated);
                       }}
                       placeholder="Enter abnormal findings..."
-                      className="mt-1 w-full rounded border border-amber-200 px-2 py-1 text-[9px] text-amber-700 outline-none focus:border-amber-400 placeholder:text-amber-400"
+                      className="mt-1 w-full rounded border border-amber-200 px-2 py-1 text-[11px] text-amber-700 outline-none focus:border-amber-400 placeholder:text-amber-400"
                     />
                   )}
                 </div>
@@ -193,12 +193,12 @@ export function PhysicalExamMatrix({ onInsert }: PhysicalExamMatrixProps = {}) {
             {/* Generated Text Preview */}
             {normalCount + abnormalCount > 0 && (
               <div className="mt-4 rounded-lg bg-slate-50 p-3">
-                <p className="mb-1 text-[10px] font-semibold text-slate-600">Generated Exam Text</p>
-                <pre className="whitespace-pre-wrap text-[9px] text-slate-500 leading-relaxed font-sans max-h-24 overflow-y-auto">{generatedText}</pre>
+                <p className="mb-1 text-xs font-semibold text-slate-600">Generated Exam Text</p>
+                <pre className="whitespace-pre-wrap text-[11px] text-slate-500 leading-relaxed font-sans max-h-24 overflow-y-auto">{generatedText}</pre>
                 {onInsert && (
                   <button
                     onClick={() => onInsert(generatedText)}
-                    className="mt-2 w-full rounded-lg bg-emerald-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-emerald-500"
+                    className="mt-2 w-full rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
                   >
                     Insert into Exam Findings
                   </button>

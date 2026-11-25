@@ -103,7 +103,7 @@ export function ScenarioInjector({ onSelectScenario }: ScenarioInjectorProps) {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
+        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
           loaded
             ? "border-green-300 bg-green-50 text-green-700"
             : "border-brand-200 bg-brand-50 text-brand-600 hover:bg-brand-100"
@@ -121,9 +121,9 @@ export function ScenarioInjector({ onSelectScenario }: ScenarioInjectorProps) {
             <div className="border-b border-slate-100 px-3 py-2">
               <div className="flex items-center gap-1.5">
                 <Zap className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-[10px] font-bold text-slate-700">Load Demo Scenario</span>
+                <span className="text-xs font-bold text-slate-700">Load Demo Scenario</span>
               </div>
-              <p className="mt-0.5 text-[9px] text-slate-400">
+              <p className="mt-0.5 text-[11px] text-slate-400">
                 Seeds pipeline state for quick testing
               </p>
             </div>
@@ -137,8 +137,8 @@ export function ScenarioInjector({ onSelectScenario }: ScenarioInjectorProps) {
                 >
                   <div className="mt-0.5 shrink-0">{s.icon}</div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold text-slate-700">{s.label}</p>
-                    <p className="text-[9px] text-slate-400 leading-snug">{s.description}</p>
+                    <p className="text-xs font-semibold text-slate-700">{s.label}</p>
+                    <p className="text-[11px] text-slate-400 leading-snug">{s.description}</p>
                   </div>
                 </button>
               ))}
@@ -147,7 +147,7 @@ export function ScenarioInjector({ onSelectScenario }: ScenarioInjectorProps) {
             <div className="border-t border-slate-100 px-3 py-2">
               <button
                 onClick={handleReset}
-                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset Sandbox

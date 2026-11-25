@@ -33,7 +33,7 @@ export function HotkeyEngine({ onRoleSwitch, onSaveSOAP, onScrubClaims }: Hotkey
 
   return (
     <div className="fixed bottom-2 right-4 z-30">
-      <span className="rounded-lg bg-slate-800/90 px-2 py-1 text-[9px] text-slate-300">
+      <span className="rounded-lg bg-slate-800/90 px-2 py-1 text-[11px] text-slate-300">
         ⌨️ Alt+1-4 roles · Alt+S save · Alt+C scrub
       </span>
     </div>

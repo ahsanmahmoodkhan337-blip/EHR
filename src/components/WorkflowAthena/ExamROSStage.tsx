@@ -277,12 +277,12 @@ export function ExamROSStage({ patientName, note, onNoteChange, vitals }: ExamRO
                   {system.label}
                 </span>
                 {abnormalCount > 0 && (
-                  <span className="ml-auto rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
+                  <span className="ml-auto rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
                     {abnormalCount} abnormal
                   </span>
                 )}
                 {allNormal && (
-                  <span className="ml-auto rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                  <span className="ml-auto rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">
                     Normal
                   </span>
                 )}

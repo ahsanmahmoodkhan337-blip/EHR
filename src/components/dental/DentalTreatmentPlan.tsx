@@ -33,7 +33,7 @@ import { adjudicateDentalClaim } from "./adjudication";
 
 const style = {
   card: "rounded-xl border border-slate-200 bg-white shadow-sm",
-  label: "text-[10px] font-semibold uppercase tracking-wider text-slate-500",
+  label: "text-xs font-semibold uppercase tracking-wider text-slate-500",
   input:
     "w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500",
 };
@@ -150,7 +150,7 @@ export function DentalTreatmentPlan() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                     activeCategory === cat ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
@@ -162,7 +162,7 @@ export function DentalTreatmentPlan() {
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {!query.trim() && (
-            <p className="px-1 pb-1 text-[10px] text-slate-400">CDT teaching subset — fees are illustrative, not a fee schedule.</p>
+            <p className="px-1 pb-1 text-xs text-slate-400">CDT teaching subset — fees are illustrative, not a fee schedule.</p>
           )}
           {(query.trim() ? results : cdtByCategory(activeCategory as Parameters<typeof cdtByCategory>[0])).map((code) => (
             <div
@@ -173,9 +173,9 @@ export function DentalTreatmentPlan() {
               }`}
             >
               <div className="flex items-center gap-2">
-                <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">{code.code}</code>
+                <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-700">{code.code}</code>
                 <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-700">{code.shortName}</span>
-                <span className="shrink-0 text-[9px] text-amber-600">${code.illustrativeFeeUsd}</span>
+                <span className="shrink-0 text-[11px] text-amber-600">${code.illustrativeFeeUsd}</span>
               </div>
             </div>
           ))}
@@ -187,7 +187,7 @@ export function DentalTreatmentPlan() {
         <div className="flex items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-bold text-slate-800">Treatment Planning</h3>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-xs text-slate-400">
               Build the plan, see the insurance estimate, then accept treatment to send it to coding.
             </p>
           </div>
@@ -213,7 +213,7 @@ export function DentalTreatmentPlan() {
         {/* case hint */}
         {activeCase && (
           <div className="rounded-xl border border-teal-100 bg-teal-50 p-3">
-            <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-teal-700">
+            <p className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-teal-700">
               <Stethoscope className="h-3 w-3" /> Case treatment performed
             </p>
             <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px] text-teal-800">
@@ -232,7 +232,7 @@ export function DentalTreatmentPlan() {
                 <span className="text-sm font-bold text-slate-900">{currentCode.code}</span>
                 <span className="ml-2 text-xs font-medium text-slate-600">{currentCode.shortName}</span>
               </div>
-              <span className="shrink-0 rounded bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+              <span className="shrink-0 rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
                 ${currentCode.illustrativeFeeUsd} illustrative
               </span>
             </div>
@@ -240,7 +240,7 @@ export function DentalTreatmentPlan() {
 
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               <label className="block">
-                <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Date of service</span>
+                <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Date of service</span>
                 <input
                   type="date"
                   value={draft.dateOfService}
@@ -249,7 +249,7 @@ export function DentalTreatmentPlan() {
                 />
               </label>
               <label className="block">
-                <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Fee (USD, illustrative)</span>
+                <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Fee (USD, illustrative)</span>
                 <input
                   type="number"
                   min={0}
@@ -262,7 +262,7 @@ export function DentalTreatmentPlan() {
               </label>
               {needs("tooth") && (
                 <label className="block">
-                  <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Tooth (Universal)</span>
+                  <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Tooth (Universal)</span>
                   <select
                     value={draft.tooth ?? ""}
                     onChange={(e) => setDraft({ ...draft, tooth: e.target.value || undefined, surfaces: undefined })}
@@ -279,7 +279,7 @@ export function DentalTreatmentPlan() {
               )}
               {(needs("quadrant") || needs("arch") || needs("oral-cavity-area")) && (
                 <label className="block">
-                  <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                     {needs("quadrant") ? "Quadrant" : needs("arch") ? "Arch" : "Area"}
                   </span>
                   <select
@@ -298,14 +298,14 @@ export function DentalTreatmentPlan() {
               )}
               {needs("surface") && draft.tooth && (
                 <div className="col-span-2 sm:col-span-3">
-                  <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Surfaces</span>
+                  <span className="mb-0.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">Surfaces</span>
                   <div className="flex flex-wrap gap-1">
                     {(findTooth(draft.tooth)?.validSurfaces ?? []).map((s) => (
                       <button
                         key={s}
                         type="button"
                         onClick={() => toggleSurface(s)}
-                        className={`h-6 w-6 rounded-md text-[10px] font-bold ${
+                        className={`h-6 w-6 rounded-md text-xs font-bold ${
                           (draft.surfaces ?? "").includes(s) ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                         }`}
                       >
@@ -316,7 +316,7 @@ export function DentalTreatmentPlan() {
                 </div>
               )}
               {needs("none") && (
-                <div className="col-span-2 rounded-lg bg-slate-50 px-2 py-1 text-[10px] text-slate-500 sm:col-span-1">
+                <div className="col-span-2 rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-500 sm:col-span-1">
                   No tooth / area data required.
                 </div>
               )}
@@ -334,7 +334,7 @@ export function DentalTreatmentPlan() {
         )}
 
         {error && (
-          <div className="flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] text-red-700">
+          <div className="flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">
             <Info className="mt-0.5 h-3 w-3 shrink-0" />
             {error}
           </div>
@@ -344,7 +344,7 @@ export function DentalTreatmentPlan() {
         <div className={style.card + " p-3"}>
           <div className="mb-2 flex items-center justify-between">
             <p className={style.label}>Treatment plan {planned.length > 0 ? `(${planned.length} planned)` : ""}</p>
-            {acceptedCount > 0 && <span className="text-[10px] text-slate-400">{acceptedCount} accepted → coding</span>}
+            {acceptedCount > 0 && <span className="text-xs text-slate-400">{acceptedCount} accepted → coding</span>}
           </div>
           {planned.length === 0 && (
             <p className="py-4 text-center text-[11px] text-slate-400">
@@ -366,7 +366,7 @@ export function DentalTreatmentPlan() {
                       <p className="text-xs font-medium text-slate-800">
                         {p.code} {c ? `· ${c.shortName}` : ""}
                       </p>
-                      <p className="truncate text-[10px] text-slate-500">
+                      <p className="truncate text-xs text-slate-500">
                         DOS {p.dateOfService}
                         {p.tooth ? ` · #${p.tooth}` : ""}
                         {p.surfaces ? ` · ${p.surfaces}` : ""}
@@ -374,7 +374,7 @@ export function DentalTreatmentPlan() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className="text-right text-[10px] leading-tight">
+                      <span className="text-right text-xs leading-tight">
                         <span className="block text-slate-500">fee {fmtDollar(p.feeUsd)}</span>
                         {est ? (
                           <span className="block">
@@ -399,7 +399,7 @@ export function DentalTreatmentPlan() {
                     <div className="mt-1 flex flex-wrap items-center gap-2 border-t border-slate-200/70 pt-1">
                       {reqs.length > 0 && (
                         <span
-                          className={`flex items-center gap-1 text-[9px] font-medium ${
+                          className={`flex items-center gap-1 text-[11px] font-medium ${
                             missing > 0 ? "text-red-600" : "text-emerald-600"
                           }`}
                         >
@@ -413,7 +413,7 @@ export function DentalTreatmentPlan() {
                             requestPredeterminationForPlan();
                             goTo("predetermination");
                           }}
-                          className="ml-auto flex items-center gap-1 rounded-full bg-teal-100 px-2 py-0.5 text-[9px] font-semibold text-teal-700 hover:bg-teal-200"
+                          className="ml-auto flex items-center gap-1 rounded-full bg-teal-100 px-2 py-0.5 text-[11px] font-semibold text-teal-700 hover:bg-teal-200"
                         >
                           <Receipt className="h-3 w-3" /> Predetermine
                         </button>
@@ -424,7 +424,7 @@ export function DentalTreatmentPlan() {
               );
             })}
           </div>
-          <p className="mt-2 flex items-center gap-1 text-[9px] text-slate-400">
+          <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
             <Info className="h-3 w-3 shrink-0" />
             Estimates use the plan's benefit rules (fictional payer). A downgrade is shown as a reduced allowance, never as a denial.
           </p>

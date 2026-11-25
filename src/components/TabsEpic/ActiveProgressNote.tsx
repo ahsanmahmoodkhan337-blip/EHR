@@ -143,7 +143,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
     <div className="rounded-lg border border-slate-200 p-2">
       <label
         htmlFor={`active-note-${key}`}
-        className={`mb-1 block text-[10px] font-semibold uppercase tracking-wider ${tone}`}
+        className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${tone}`}
       >
         {label}
       </label>
@@ -234,7 +234,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
           <div>
             <span className="font-medium text-slate-600">Status:</span>{" "}
             <span
-              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+              className={`rounded px-1.5 py-0.5 text-xs font-semibold uppercase ${
                 status === "signed"
                   ? "bg-green-100 text-green-700"
                   : status === "draft"
@@ -245,7 +245,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
               {NOTE_STATUS_LABEL[status]}
             </span>
           </div>
-          <span role="status" aria-live="polite" className="ml-auto text-[10px] text-slate-500">
+          <span role="status" aria-live="polite" className="ml-auto text-xs text-slate-500">
             {readOnly && savedAt
               ? `Signed ${formatWhen(savedAt)}`
               : saveState === "saving"
@@ -277,7 +277,7 @@ export function ActiveProgressNote({ patient }: ActiveProgressNoteProps) {
               {field("assessment", "Assessment (A)", "Diagnoses, differentials, clinical impression…", "text-amber-600")}
               {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-brand-600")}
             </div>
-            <p className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-400">
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
               {readOnly ? (
                 <>
                   <CheckCircle2 className="h-3 w-3" aria-hidden="true" />

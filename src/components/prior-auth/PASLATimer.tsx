@@ -79,7 +79,7 @@ export function PASLATimer() {
     <div className="relative">
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-[10px] font-medium text-orange-600 hover:bg-orange-100 transition-colors"
+        className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-xs font-medium text-orange-600 hover:bg-orange-100 transition-colors"
       >
         <Timer className="h-3.5 w-3.5" />
         PA SLA Timer
@@ -91,7 +91,7 @@ export function PASLATimer() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Prior Auth SLA Timer</h3>
-                <p className="text-[9px] text-slate-400">CMS-0057-F: 72h urgent / 7d standard</p>
+                <p className="text-[11px] text-slate-400">CMS-0057-F: 72h urgent / 7d standard</p>
               </div>
               <button onClick={() => setShowPanel(false)} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
             </div>
@@ -115,14 +115,14 @@ export function PASLATimer() {
                           <Clock className="h-4 w-4 text-slate-500" />
                         )}
                         <div>
-                          <p className="text-[10px] font-semibold text-slate-700">{item.label}</p>
-                          <p className="text-[9px] text-slate-500">
+                          <p className="text-xs font-semibold text-slate-700">{item.label}</p>
+                          <p className="text-[11px] text-slate-500">
                             {item.isUrgent ? "🔴 Urgent (72h)" : "🔵 Standard (7d)"}
                           </p>
                         </div>
                       </div>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
                           status.isBreached
                             ? "bg-red-600 text-white"
                             : status.hoursRemaining < 24
@@ -139,8 +139,8 @@ export function PASLATimer() {
             </div>
 
             <div className="mt-4 rounded-lg bg-slate-50 p-3">
-              <p className="text-[9px] font-medium text-slate-600">SLA Compliance Summary</p>
-              <div className="mt-1 flex gap-3 text-[9px]">
+              <p className="text-[11px] font-medium text-slate-600">SLA Compliance Summary</p>
+              <div className="mt-1 flex gap-3 text-[11px]">
                 <span className="text-green-600">✅ {items.filter(i => !getSLAStatus(i.createdAt.toISOString(), i.isUrgent).isBreached && getSLAStatus(i.createdAt.toISOString(), i.isUrgent).hoursRemaining >= 24).length} On Track</span>
                 <span className="text-amber-600">⚠ {items.filter(i => !getSLAStatus(i.createdAt.toISOString(), i.isUrgent).isBreached && getSLAStatus(i.createdAt.toISOString(), i.isUrgent).hoursRemaining < 24).length} Due Soon</span>
                 <span className="text-red-600">🚫 {items.filter(i => getSLAStatus(i.createdAt.toISOString(), i.isUrgent).isBreached).length} Breached</span>

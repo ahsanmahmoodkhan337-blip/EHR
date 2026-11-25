@@ -181,7 +181,7 @@ export function DotPhraseTextarea({
       {query && suggestions.length > 0 && (
         <div className="absolute inset-x-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
           <div className="border-b border-slate-100 bg-slate-50 px-3 py-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Dot phrases
             </p>
           </div>
@@ -196,22 +196,22 @@ export function DotPhraseTextarea({
                 i === activeIndex ? "bg-brand-50" : "hover:bg-slate-50"
               }`}
             >
-              <span className="mt-0.5 shrink-0 rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-700">
+              <span className="mt-0.5 shrink-0 rounded bg-brand-100 px-1.5 py-0.5 font-mono text-xs font-bold text-brand-700">
                 {p.shortcode}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-medium text-slate-700">{p.label}</span>
                 {p.teachingNote && (
-                  <span className="block truncate text-[10px] text-slate-400">{p.teachingNote}</span>
+                  <span className="block truncate text-xs text-slate-400">{p.teachingNote}</span>
                 )}
               </span>
-              <span className="mt-0.5 shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-500">
+              <span className="mt-0.5 shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">
                 {p.section}
               </span>
             </button>
           ))}
           <div className="border-t border-slate-100 px-3 py-1.5">
-            <p className="text-[9px] text-slate-400">{hint}</p>
+            <p className="text-[11px] text-slate-400">{hint}</p>
           </div>
         </div>
       )}

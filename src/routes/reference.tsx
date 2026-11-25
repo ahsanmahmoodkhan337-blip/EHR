@@ -112,7 +112,7 @@ function ReferencePage() {
 
           <dl className="mt-2 grid gap-1 sm:grid-cols-2">
             {GROUPS.map((g) => (
-              <div key={g} className="rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] text-slate-600">
+              <div key={g} className="rounded-lg bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
                 <dt className="inline font-bold">{g}</dt>{" "}
                 <dd className="inline">{CARC_GROUP_MEANINGS[g]}</dd>
               </div>

@@ -58,23 +58,23 @@ export function AppealDocumentationChecklist({
           className="h-4 w-4 shrink-0 accent-red-600"
           aria-describedby={`${idPrefix}-film-note`}
         />
-        <span className="text-[10px] font-medium text-slate-700">
+        <span className="text-xs font-medium text-slate-700">
           <FileImage className="mr-1 inline h-3 w-3 text-slate-400" aria-hidden />
           Attach: {doc.film}
         </span>
       </label>
-      <p id={`${idPrefix}-film-note`} className="text-[9px] text-slate-400">
+      <p id={`${idPrefix}-film-note`} className="text-[11px] text-slate-400">
         The payer's criterion names this film. An appeal without it is not reviewed.
       </p>
 
       <fieldset className="rounded-lg border border-slate-200 bg-white px-2 py-1.5">
-        <legend className="px-1 text-[10px] font-semibold text-slate-700">What the record shows</legend>
+        <legend className="px-1 text-xs font-semibold text-slate-700">What the record shows</legend>
         <div className="space-y-0.5">
           {doc.reasons.map((reason) => (
             <label
               key={reason.id}
               htmlFor={`${idPrefix}-reason-${reason.id}`}
-              className="flex min-h-[40px] cursor-pointer items-center gap-2 text-[10px] text-slate-700"
+              className="flex min-h-[40px] cursor-pointer items-center gap-2 text-xs text-slate-700"
             >
               <input
                 id={`${idPrefix}-reason-${reason.id}`}
@@ -91,7 +91,7 @@ export function AppealDocumentationChecklist({
       </fieldset>
 
       <label htmlFor={`${idPrefix}-narrative`} className="block">
-        <span className="text-[10px] font-medium text-slate-600">Narrative (your own words):</span>
+        <span className="text-xs font-medium text-slate-600">Narrative (your own words):</span>
         <textarea
           id={`${idPrefix}-narrative`}
           value={narrative}
@@ -104,9 +104,9 @@ export function AppealDocumentationChecklist({
 
       {refusal && (
         <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5">
-          <p className="text-[10px] font-semibold text-amber-900">Appeal not lodged.</p>
-          <p className="text-[10px] text-amber-900">{refusal.rule}</p>
-          <p className="text-[10px] text-amber-900">{refusal.consequence}</p>
+          <p className="text-xs font-semibold text-amber-900">Appeal not lodged.</p>
+          <p className="text-xs text-amber-900">{refusal.rule}</p>
+          <p className="text-xs text-amber-900">{refusal.consequence}</p>
         </div>
       )}
     </div>

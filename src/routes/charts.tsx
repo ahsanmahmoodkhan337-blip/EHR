@@ -187,7 +187,7 @@ function PatientChart({ patient }: { patient: Patient }) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-wrap gap-x-2 border-b border-slate-100 py-1 last:border-0">
-      <span className="w-40 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+      <span className="w-40 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </span>
       <span className="text-[11px] text-slate-800">{value || "—"}</span>
@@ -216,7 +216,7 @@ function SummaryPanel({ patient }: { patient: Patient }) {
       <Row label="Group (box 11)" value={primary?.groupNumber ?? ""} />
       <Row label="Other coverage" value={secondary ? `${secondary.payerName} · ${secondary.subscriberId}` : "None on file"} />
       <div className="mt-2">
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Allergies</p>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Allergies</p>
         {(patient.allergies ?? []).length === 0 ? (
           <Empty>No allergy recorded on this chart.</Empty>
         ) : (
@@ -224,7 +224,7 @@ function SummaryPanel({ patient }: { patient: Patient }) {
             {patient.allergies.map((a) => (
               <li
                 key={a.id}
-                className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700"
+                className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"
               >
                 {a.allergen} · {a.severity}
               </li>
@@ -248,7 +248,7 @@ function VitalsPanel({ patient }: { patient: Patient }) {
       <Row label="Respiratory rate" value={recorded(v?.respiratoryRate, " /min")} />
       <Row label="Oxygen saturation" value={recorded(v?.oxygenSaturation, " %")} />
       <Row label="Recorded" value={v?.recordedAt ? new Date(v.recordedAt).toLocaleString() : ""} />
-      <p className="mt-2 text-[10px] text-slate-400">
+      <p className="mt-2 text-xs text-slate-400">
         A measurement that was never taken shows “—” rather than a made-up number.
       </p>
     </div>
@@ -259,7 +259,7 @@ function MedicationsPanel({ patient }: { patient: Patient }) {
   const meds = patient.medications ?? [];
   if (meds.length === 0) return <Empty>No medication recorded on this chart.</Empty>;
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="data-table min-w-[520px]">
         <thead>
           <tr>
@@ -302,7 +302,7 @@ function LabsPanel({ patient }: { patient: Patient }) {
   const labs = patient.labResults ?? [];
   if (labs.length === 0) return <Empty>No lab result on this chart.</Empty>;
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="data-table min-w-[560px]">
         <thead>
           <tr>
@@ -343,11 +343,11 @@ function NotesPanel({ patient }: { patient: Patient }) {
         <li key={e.id} className="rounded-lg border border-slate-100 bg-white p-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-semibold text-slate-800">{e.type || "Encounter"}</span>
-            <span className="text-[10px] text-slate-500">{e.date}</span>
-            <span className="text-[10px] text-slate-500">{e.provider}</span>
-            <span className="ml-auto text-[10px] text-slate-400">{e.department}</span>
+            <span className="text-xs text-slate-500">{e.date}</span>
+            <span className="text-xs text-slate-500">{e.provider}</span>
+            <span className="ml-auto text-xs text-slate-400">{e.department}</span>
           </div>
-          <p className="mt-1 text-[10px] text-slate-600">{e.diagnosis || "—"}</p>
+          <p className="mt-1 text-xs text-slate-600">{e.diagnosis || "—"}</p>
           <p className="mt-1 whitespace-pre-wrap text-[11px] text-slate-700">{e.notes || "—"}</p>
         </li>
       ))}
@@ -432,7 +432,7 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
 
   const field = (key: keyof typeof fields, label: string, placeholder: string, tone: string) => (
     <div className="rounded-lg border border-slate-200 p-2">
-      <label htmlFor={`note-${key}`} className={`mb-1 block text-[10px] font-semibold uppercase tracking-wider ${tone}`}>
+      <label htmlFor={`note-${key}`} className={`mb-1 block text-xs font-semibold uppercase tracking-wider ${tone}`}>
         {label}
       </label>
       <textarea
@@ -455,7 +455,7 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
           Active Progress Note
         </h2>
         <span
-          className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase ${
+          className={`rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase ${
             status === "signed"
               ? "bg-green-100 text-green-700"
               : status === "draft"
@@ -465,10 +465,10 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
         >
           {NOTE_STATUS_LABEL[status]}
         </span>
-        <span className="text-[10px] text-slate-500">
+        <span className="text-xs text-slate-500">
           {patient.firstName} {patient.lastName}
         </span>
-        <span role="status" aria-live="polite" className="ml-auto text-[10px] text-slate-500">
+        <span role="status" aria-live="polite" className="ml-auto text-xs text-slate-500">
           {readOnly && savedAt && `Signed ${new Date(savedAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`}
           {!readOnly && saveState === "saving" && "Saving…"}
           {!readOnly && saveState !== "saving" && savedAt && `Saved ${new Date(savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
@@ -481,7 +481,7 @@ function ActiveProgressNoteDraft({ patient }: { patient: Patient }) {
         {field("assessment", "Assessment (A)", "Diagnoses, differentials, clinical impression…", "text-amber-600")}
         {field("plan", "Plan (P)", "Medication changes, orders, referrals, follow-up…", "text-brand-600")}
       </div>
-      <p className="mt-2 text-[10px] text-slate-400">
+      <p className="mt-2 text-xs text-slate-400">
         {readOnly
           ? "This note is signed and locked. It is the record the coder, the biller and the payer read, so it is read-only here."
           : "This is the patient's progress note — the same record the encounter autosaves. It saves as you type; signing it stays in the encounter's Sign & Lock step."}

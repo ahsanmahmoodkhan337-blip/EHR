@@ -65,40 +65,40 @@ export function AuditTrail() {
 
   return (
     <div className="relative">
-      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[10px] font-medium text-slate-600 hover:bg-slate-100">
+      <button onClick={() => setShowPanel(!showPanel)} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">
         <Shield className="h-3.5 w-3.5" /> Audit Trail
       </button>
       {showPanel && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 bg-black/20" onClick={() => setShowPanel(false)}>
           <div className="relative w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-5 animate-slide-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <div><h3 className="text-sm font-bold text-slate-800">HIPAA Audit Trail</h3><p className="text-[9px] text-slate-400">{events.length} events</p></div>
+              <div><h3 className="text-sm font-bold text-slate-800">HIPAA Audit Trail</h3><p className="text-[11px] text-slate-400">{events.length} events</p></div>
               <div className="flex items-center gap-2">
-                <button className="rounded-lg border px-2 py-1 text-[9px] text-slate-500"><Download className="h-3 w-3 inline mr-1" />Export</button>
+                <button className="rounded-lg border px-2 py-1 text-[11px] text-slate-500"><Download className="h-3 w-3 inline mr-1" />Export</button>
                 <button onClick={() => setShowPanel(false)} className="text-slate-400"><X className="h-4 w-4" /></button>
               </div>
             </div>
             <div className="flex gap-2 mb-3">
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user or MRN..." className="w-full rounded-lg border border-slate-200 pl-7 pr-2 py-1.5 text-[10px] outline-none" />
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search user or MRN..." className="w-full rounded-lg border border-slate-200 pl-7 pr-2 py-1.5 text-xs outline-none" />
               </div>
-              <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-[10px] outline-none">
+              <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs outline-none">
                 <option value="all">All Actions</option>
                 {["Login","Logout","View","Edit","Delete","Export"].map(a => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[10px]">
+            <div className="relative overflow-x-auto">
+              <table className="w-full text-xs">
                 <thead><tr className="border-b border-slate-200 text-left text-slate-500"><th className="pb-2 pr-3">Time</th><th className="pb-2 pr-3">User</th><th className="pb-2 pr-3">Action</th><th className="pb-2 pr-3">Patient</th><th className="pb-2 pr-3">IP</th><th className="pb-2 pr-3">Details</th></tr></thead>
                 <tbody>
                   {filtered.map((e, i) => (
                     <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">{new Date(e.timestamp).toLocaleString()}</td>
                       <td className="py-1.5 pr-3 font-medium text-slate-700">{e.userId}</td>
-                      <td className="py-1.5 pr-3"><span className={`rounded px-1.5 py-0.5 text-[9px] ${actionColor(e.action)}`}>{e.action}</span></td>
+                      <td className="py-1.5 pr-3"><span className={`rounded px-1.5 py-0.5 text-[11px] ${actionColor(e.action)}`}>{e.action}</span></td>
                       <td className="py-1.5 pr-3 text-slate-500">{e.patientMRN}</td>
-                      <td className="py-1.5 pr-3 text-slate-400 font-mono text-[9px]">{e.ipAddress}</td>
+                      <td className="py-1.5 pr-3 text-slate-400 font-mono text-[11px]">{e.ipAddress}</td>
                       <td className="py-1.5 text-slate-500">{e.details}</td>
                     </tr>
                   ))}

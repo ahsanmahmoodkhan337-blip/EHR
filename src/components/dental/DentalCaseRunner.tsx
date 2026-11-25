@@ -123,7 +123,7 @@ function ClaimStage() {
     <section key="form" aria-labelledby="dental-claim-form">
       <h3
         id="dental-claim-form"
-        className="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
+        className="sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"
       >
         The claim — ADA 2019 (J430)
       </h3>
@@ -135,7 +135,7 @@ function ClaimStage() {
     <section key="status" aria-labelledby="dental-claim-status" className="border-t-4 border-slate-100">
       <h3
         id="dental-claim-status"
-        className="border-b border-slate-200 bg-white px-4 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
+        className="border-b border-slate-200 bg-white px-4 pt-3 pb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"
       >
         Submission status and the 277CA
       </h3>
@@ -287,7 +287,7 @@ export function DentalCaseRunner() {
         label="Dental case stages"
         meta={
           activeCase ? (
-            <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+            <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
               {activeCase.id} · {activeCase.difficulty}
             </span>
           ) : undefined
@@ -329,19 +329,19 @@ function CaseSelect() {
       <div className="mb-3 flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 ring-1 ring-teal-100">
         <Smile className="h-4 w-4 shrink-0 text-teal-600" />
         <span className="text-xs font-bold uppercase tracking-wide text-teal-700">Dental RCM Track</span>
-        <span className="ml-auto text-[10px] font-medium text-teal-600">CDT · ADA J430D</span>
+        <span className="ml-auto text-xs font-medium text-teal-600">CDT · ADA J430D</span>
       </div>
 
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Dental RCM Cases</h3>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             Pick a graded case. Each carries deliberate traps — make the mistake, feel the denial, then read why.
           </p>
         </div>
         <button
           onClick={resetTrack}
-          className="flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-[10px] text-slate-500 hover:bg-slate-50"
+          className="flex min-h-[40px] items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:bg-slate-50"
         >
           <RotateCcw className="h-3 w-3" aria-hidden="true" /> Reset
         </button>
@@ -350,14 +350,14 @@ function CaseSelect() {
       {/* Two equally weighted ways in: a graded case, or the AR bench. */}
       <div className="mb-3 grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-teal-700">Graded cases</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Graded cases</p>
           <p className="mt-1 text-[11px] text-slate-600">
             Work a patient from treatment plan to claim and AR. Scored against the case rubric.
           </p>
-          <p className="mt-1 text-[10px] text-slate-500">{DENTAL_CASE_SCENARIOS.length} cases below.</p>
+          <p className="mt-1 text-xs text-slate-500">{DENTAL_CASE_SCENARIOS.length} cases below.</p>
         </div>
         <div className="rounded-xl border border-teal-200 bg-white p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-teal-700">Practice AR</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Practice AR</p>
           <p className="mt-1 text-[11px] text-slate-600">
             Premade denials, already adjudicated. Jump straight into the AR workspace and work them — no case to
             start, no coding first, and nothing a graded case can see.
@@ -387,12 +387,12 @@ function CaseCard({ c, onBegin }: { c: DentalCaseScenario; onBegin: () => void }
   return (
     <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase ${difficultyColor}`}>{c.difficulty}</span>
-        <span className="text-[10px] text-slate-400">~{c.estimatedMinutes} min</span>
+        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${difficultyColor}`}>{c.difficulty}</span>
+        <span className="text-xs text-slate-400">~{c.estimatedMinutes} min</span>
       </div>
       <h4 className="mt-2 text-sm font-bold text-slate-800">{c.title}</h4>
       <p className="mt-1 flex-1 text-[11px] leading-relaxed text-slate-500">{c.briefing}</p>
-      <div className="mt-2 text-[10px] text-slate-400">
+      <div className="mt-2 text-xs text-slate-400">
         {plan && (
           <span>
             {plan.payerName} · {plan.planName}
@@ -420,7 +420,7 @@ function Briefing() {
     <div className="h-full overflow-y-auto p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-bold text-slate-800">{activeCase.title}</h3>
-        <span className="text-[10px] text-slate-400">
+        <span className="text-xs text-slate-400">
           {plan?.payerName} · {plan?.planName} (fictional payer)
         </span>
       </div>
@@ -432,16 +432,16 @@ function Briefing() {
           <p className="text-[11px] text-slate-700">
             {patient.firstName} {patient.lastName} · {patient.ageAtServiceDate} at service · {patient.gender}
           </p>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Subscriber: {patient.subscriberName} ({patient.relationshipToSubscriber}) · ID {patient.memberId}
           </p>
-          <p className="text-[10px] text-slate-500">Coverage effective {patient.coverageEffectiveDate} · {patient.monthsCoveredAtServiceDate} months covered</p>
+          <p className="text-xs text-slate-500">Coverage effective {patient.coverageEffectiveDate} · {patient.monthsCoveredAtServiceDate} months covered</p>
           {patient.secondaryCoverage && (
-            <p className="text-[10px] text-slate-500">
+            <p className="text-xs text-slate-500">
               Secondary: {patient.secondaryCoverage.subscriberName} ({patient.secondaryCoverage.memberId})
             </p>
           )}
-          <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+          <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {registrationNotes.map((n, i) => (
               <li key={i}>{n}</li>
             ))}
@@ -450,12 +450,12 @@ function Briefing() {
 
         <Section title="Eligibility">
           <p className="text-[11px] font-medium text-slate-700">{eligibilitySnapshot.status}</p>
-          <p className="text-[10px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Remaining annual max: {eligibilitySnapshot.remainingAnnualMaximumUsd === null ? "uncapped" : `$${eligibilitySnapshot.remainingAnnualMaximumUsd}`} ·
             Deductible met: ${eligibilitySnapshot.deductibleMetUsd}
           </p>
-          <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-slate-400">Paid history (may include another practice)</p>
-          <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Paid history (may include another practice)</p>
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {eligibilitySnapshot.paidHistory.map((h, i) => (
               <li key={i}>
                 {h.code} {h.tooth ? `#${h.tooth} ` : ""}
@@ -465,8 +465,8 @@ function Briefing() {
             ))}
             {eligibilitySnapshot.paidHistory.length === 0 && <li className="text-slate-400">No prior paid services on file.</li>}
           </ul>
-          <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-slate-400">Rep notes</p>
-          <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Rep notes</p>
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {eligibilitySnapshot.representativeNotes.map((n, i) => (
               <li key={i}>{n}</li>
             ))}
@@ -475,14 +475,14 @@ function Briefing() {
 
         <Section title="Clinical note">
           <p className="text-[11px] font-semibold text-slate-700">{clinicalNote.chiefComplaint}</p>
-          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {clinicalNote.findings.map((f, i) => (
               <li key={i}>{f}</li>
             ))}
           </ul>
-          <p className="mt-1 text-[10px] text-slate-600">{clinicalNote.diagnosisNarrative}</p>
-          <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-slate-400">Treatment performed</p>
-          <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+          <p className="mt-1 text-xs text-slate-600">{clinicalNote.diagnosisNarrative}</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Treatment performed</p>
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {clinicalNote.treatmentPerformed.map((t, i) => (
               <li key={i}>{t}</li>
             ))}
@@ -490,7 +490,7 @@ function Briefing() {
         </Section>
 
         <Section title="Plan rules to watch">
-          <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-slate-600">
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-600">
             {plan && <li>{plan.teachingSummary}</li>}
             <li className="text-amber-700">Read the paid history — the frequency clock follows the patient, not this practice.</li>
           </ul>
@@ -542,7 +542,7 @@ function Debrief() {
             Auto-scored {scoreTally.autoEarned} of {scoreTally.autoMaxPoints} points · passing is{" "}
             {scoreTally.autoPassingPoints} · {scoreTally.pendingReviewPoints} points pending instructor review.
           </p>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-xs text-slate-400">
             Rubric total {scoreTally.maxPoints} points ({scoreTally.earned} earned so far), of which{" "}
             {scoreTally.pendingReviewPoints} sit on criteria only an instructor can mark.
           </p>
@@ -571,7 +571,7 @@ function Debrief() {
               <span className="text-[11px] text-slate-700">
                 {c.criterion}
                 {!c.autoScored && (
-                  <span className="ml-1.5 rounded bg-amber-50 px-1 py-0.5 text-[9px] font-semibold text-amber-700">
+                  <span className="ml-1.5 rounded bg-amber-50 px-1 py-0.5 text-[11px] font-semibold text-amber-700">
                     instructor review
                   </span>
                 )}
@@ -586,7 +586,7 @@ function Debrief() {
             </div>
           ))}
         </div>
-        <p className="mt-1 text-[9px] text-slate-400">
+        <p className="mt-1 text-[11px] text-slate-400">
           Rows marked "instructor review" are steps this screen gives you no scored action for yet. They are not
           counted against the pass mark; the score above is what the app can actually check.
         </p>
@@ -595,7 +595,7 @@ function Debrief() {
       {/* expected vs actual */}
       <Section title="Claim — expected vs your result">
         <div className="overflow-x-auto rounded-lg border border-slate-100">
-          <table className="w-full text-left text-[10px]">
+          <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-400">
               <tr>
                 <th className="px-2 py-1">Line</th>
@@ -629,7 +629,7 @@ function Debrief() {
             </tbody>
           </table>
         </div>
-        <p className="mt-1 text-[9px] text-slate-400">
+        <p className="mt-1 text-[11px] text-slate-400">
           Expected totals: charged ${activeCase.expectedTotals.chargedUsd} · allowed ${activeCase.expectedTotals.allowedUsd} · plan pays $
           {activeCase.expectedTotals.planPaysUsd} · patient owes ${activeCase.expectedTotals.patientOwesUsd}.
         </p>
@@ -648,20 +648,20 @@ function Debrief() {
                 <div className="flex items-center gap-2">
                   {hit ? <CheckCircle2 className="h-4 w-4 shrink-0 text-red-500" /> : <ClipboardList className="h-4 w-4 shrink-0 text-slate-300" />}
                   <p className="text-[11px] font-semibold text-slate-800">{t.title}</p>
-                  <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
+                  <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">
                     {t.pointsAtStake} pts at stake
                   </span>
                 </div>
                 <div className="mt-1.5 space-y-1 pl-6">
-                  <p className="text-[10px] text-slate-600">
+                  <p className="text-xs text-slate-600">
                     <span className="font-semibold text-red-600">Common mistake: </span>
                     {t.commonMistake}
                   </p>
-                  <p className="text-[10px] text-slate-600">
+                  <p className="text-xs text-slate-600">
                     <span className="font-semibold">Why it's wrong: </span>
                     {t.whyItIsWrong}
                   </p>
-                  <p className="text-[10px] text-slate-600">
+                  <p className="text-xs text-slate-600">
                     <span className="font-semibold text-emerald-600">Correct: </span>
                     {t.correctAction}
                   </p>
@@ -678,8 +678,8 @@ function Debrief() {
           <div className="space-y-1">
             {state.arCallLog.map((e) => (
               <div key={e.id} className="rounded-lg border border-slate-100 bg-white px-2 py-1.5">
-                <p className="text-[10px] font-medium text-slate-700">{e.objective}</p>
-                <p className="text-[9px] text-slate-500">{e.note}</p>
+                <p className="text-xs font-medium text-slate-700">{e.objective}</p>
+                <p className="text-[11px] text-slate-500">{e.note}</p>
               </div>
             ))}
           </div>
@@ -694,7 +694,7 @@ function Debrief() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mt-3">
-      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
       {children}
     </div>
   );

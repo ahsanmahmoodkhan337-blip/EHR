@@ -36,7 +36,7 @@ import type { ReferenceTab } from "./ReferenceDrawer";
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-3 first:mt-0">
-      <h4 className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {title}
       </h4>
       {children}
@@ -105,7 +105,7 @@ export function CodeLookup({ scope }: { scope: "medical" | "dental" }) {
 
   return (
     <div>
-      <label htmlFor="reference-code-search" className="block text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <label htmlFor="reference-code-search" className="block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         Look up a code
       </label>
       <div className="relative mt-1">
@@ -137,10 +137,10 @@ export function CodeLookup({ scope }: { scope: "medical" | "dental" }) {
             <li key={`${hit.set}-${hit.code}`} className="rounded-lg border border-slate-200 px-2 py-1.5 dark:border-slate-700">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-100">{hit.code}</span>
-                <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-slate-400">{hit.set}</span>
+                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{hit.set}</span>
               </div>
               <p className="text-slate-700 dark:text-slate-200">{hit.label}</p>
-              {hit.note && <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{hit.note}</p>}
+              {hit.note && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{hit.note}</p>}
             </li>
           ))}
         </ul>
@@ -205,7 +205,7 @@ export function medicalReferenceTabs(
             <Field label="Plan type" value={plan?.planType} />
             <Field label="Network" value={plan?.network} />
           </dl>
-          <p className="mt-2 text-[9px] text-slate-400">
+          <p className="mt-2 text-[11px] text-slate-400">
             Simulated card. Every payer, member ID and patient here is fictional.
           </p>
         </div>
@@ -334,7 +334,7 @@ export function dentalReferenceTabs(scenario: DentalCaseScenario, plan?: DentalP
             <Field label="Coverage effective" value={patient.coverageEffectiveDate} />
             <Field label="Claims address" value={plan?.claimsAddress} />
           </dl>
-          <p className="mt-2 text-[9px] text-slate-400">
+          <p className="mt-2 text-[11px] text-slate-400">
             Simulated card. Every payer, group number and patient here is fictional.
           </p>
         </div>

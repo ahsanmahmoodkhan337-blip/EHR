@@ -84,7 +84,7 @@ function CoverageCard({
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</span>
         <span className="text-xs font-semibold text-slate-800">{coverage.payerName || "—"}</span>
         {coverage.planName && <span className="text-[11px] text-slate-500">{coverage.planName}</span>}
       </div>
@@ -182,7 +182,7 @@ function AppointmentRow({ patient, appointmentId }: { patient: Patient; appointm
           {appointment.time} · {appointment.type}
           {appointment.provider ? ` · ${appointment.provider}` : ""}
         </span>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-600">
           {checkedIn ? "Arrived" : appointment.status}
         </span>
         {checkedIn && (
