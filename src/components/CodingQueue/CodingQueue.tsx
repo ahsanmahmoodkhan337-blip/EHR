@@ -572,25 +572,31 @@ export function CodingQueue({ medications, readOnly = false }: CodingQueueProps)
 
           {/* ─── Right: Coding Workspace ─── */}
           <div className="flex flex-1 flex-col overflow-y-auto p-4">
-            {/* Tabs: ICD / CPT / Conventions / E/M */}
-            <div className="flex gap-1 border-b border-slate-200 pb-2">
-              {["icd", "cpt", "conventions", "em"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => {
-                    setShowConventions(tab === "conventions");
-                    setIcdQuery(tab === "icd" ? icdQuery : "");
-                    setCptQuery(tab === "cpt" ? cptQuery : "");
-                  }}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${
-                    (tab === "icd" && !showConventions) || (tab === "conventions" && showConventions)
-                      ? "bg-brand-50 text-brand-700 border-b-2 border-brand-600"
-                      : "text-slate-400 hover:text-slate-600"
-                  }`}
-                >
-                  {tab === "icd" ? "ICD-10 Codes" : tab === "cpt" ? "CPT Codes" : tab === "conventions" ? "Conventions" : "E/M Level"}
-                </button>
-              ))}
+            {/* Tabs. ICD-10 and CPT are coded side by side on one tab, as on a
+                real coding screen; the E/M calculator sits beside them. The old
+                separate CPT and E/M tabs did nothing (owner,
+                2026-11-26), so they are gone. */}
+            <div role="tablist" aria-label="Coding workspace" className="flex gap-1 border-b border-slate-200 pb-2">
+              {([
+                { id: "codes", label: "Codes (ICD-10 & CPT)" },
+                { id: "conventions", label: "Conventions" },
+              ] as const).map((tab) => {
+                const selected = tab.id === "conventions" ? showConventions : !showConventions;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setShowConventions(tab.id === "conventions")}
+                    className={`min-h-10 rounded-t-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                      selected ? "border-b-2 border-brand-600 bg-brand-50 text-brand-700" : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* ICD-10 + CPT Workspace */}
