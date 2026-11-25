@@ -20,7 +20,6 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
-  PanelRightClose,
 } from "lucide-react";
 
 import { PatientProvider, usePatientStore, type Allergy } from "../store/patientStore";
@@ -114,6 +113,7 @@ import { Skeleton } from "../components/Skeleton";
 import { CommandPalette } from "../components/CommandPalette";
 import { localDay } from "../utils/localDay";
 import { PublicLandingPage } from "../components/landing/PublicLandingPage";
+import { SummaryPaneToggle } from "../components/shell/AppHeader";
 
 /** Pipeline roles the working context may restore (section 4). */
 const PIPELINE_ROLES: Role[] = ["scribe", "coder", "biller", "prior-auth", "ar-voice"];
@@ -2184,23 +2184,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       examMode={examMode}
       examTimeRemaining={examTimeRemaining}
       onToggleExamMode={toggleExamMode}
-      topBarExtras={
-        <button
-          type="button"
-          onClick={() => setShowRightPanel(!showRightPanel)}
-          aria-label={showRightPanel ? "Hide patient summary panel" : "Show patient summary panel"}
-          title={showRightPanel ? "Hide patient summary panel" : "Show patient summary panel"}
-          aria-pressed={showRightPanel}
-          className={`flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 ${
-            showRightPanel
-              ? "bg-brand-600 text-white hover:bg-brand-500"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
-          }`}
-        >
-          <PanelRightClose className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden xl:inline">Summary</span>
-        </button>
-      }
+      topBarExtras={<SummaryPaneToggle open={showRightPanel} onToggle={() => setShowRightPanel(!showRightPanel)} />}
       banner={
         <PatientBanner
           patient={selectedPatient ?? null}

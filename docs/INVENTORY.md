@@ -407,3 +407,13 @@ British "authorisation" spelling across the UI (a grader matches on it).
   Nothing on the page waits for a scroll-reveal animation any more.
 - `/admin` sign-in: labels above fields, `<form>` submit; Supabase Auth call unchanged.
 
+## 9. Interface consistency, part 1 — one header (2026-11-25)
+
+- `shell/AppHeader.tsx` is the only header. Row 1 is identical on every signed-in screen (logo, Home,
+  track switch, four links, patient search, save status, log out); the links never wrap. Row 2 is a
+  slim toolbar drawn only when a page passes `roleLabel`, `extras` or `onToggleExamMode` (the
+  encounter): role, clinic, Summary toggle, Exam. Phones hide row 2 (the summary pane is desktop-only)
+  and show the exam timer as an icon in row 1.
+- The encounter uses the shared `SummaryPaneToggle` instead of its own button.
+- Deleted `TabsEpic/Header.tsx` (unused since the 19 Nov shell).
+
