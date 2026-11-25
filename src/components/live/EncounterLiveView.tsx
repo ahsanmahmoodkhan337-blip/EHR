@@ -13,6 +13,7 @@ import { useAllAppointments } from "../../store/ehrStore";
 import type { Patient } from "../../store/patientStore";
 import { noteSignedAt } from "../../domain/noteStatus";
 import { liveMilestones, liveMoney } from "../../domain/liveTracker";
+import { TUTORIAL_PATIENT_ID } from "../../domain/tutorialIdentity";
 import { LiveTracker } from "./LiveTracker";
 import { LiveEventCard } from "./LiveEventCard";
 import { ActivityDrawer } from "./ActivityDrawer";
@@ -44,7 +45,9 @@ export function EncounterLiveView({ patient }: { patient: Patient }) {
   ).length;
 
   const milestones = liveMilestones({
-    appointmentStatus: appointment?.status ?? null,
+    // The Tutorial Patient is a finished reference visit: they arrived long ago,
+    // so the tracker does not send the student to the Schedule to check them in.
+    appointmentStatus: appointment?.status ?? (patient.id === TUTORIAL_PATIENT_ID ? "completed" : null),
     eligibility: patient.insuranceRecord?.primary?.eligibility ?? null,
     signedAt: noteSignedAt(state),
     cptCodes: state.cptCodes ?? [],
