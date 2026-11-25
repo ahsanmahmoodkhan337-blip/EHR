@@ -160,6 +160,13 @@ export interface DentalCaseScenario {
     providerNarrativeForPayer?: string;
   };
   procedures: CaseProcedure[];
+  /**
+   * True where the claim is drawn from the case's own record instead of typed
+   * on the sheet: the Claim stage prints the ADA 2019 (J430D) paper read-only,
+   * built by `domain/dentalCaseClaimPaper.ts`, exactly as a facility medical
+   * case prints the UB-04 from its own record.
+   */
+  claimPaperFromRecord?: boolean;
   predetermination?: {
     required: boolean;
     reason: string;
@@ -2001,6 +2008,259 @@ const CASE_NOT_ELIGIBLE_GAP: DentalCaseScenario = {
   ],
 };
 
+/* =================================================================== */
+/* CASE 10 — the ADA paper case                                        */
+/* =================================================================== */
+
+/**
+ * DCASE-010 — the case that prints the ADA form.
+ *
+ * Every other dental case asks the student to fill the claim sheet themselves.
+ * This one carries `claimPaperFromRecord`, so its Claim stage prints the ADA
+ * Dental Claim Form 2019 (J430D) read-only, built from the case's own record:
+ * box 31 shows the tooth, the surface letters and the quadrant exactly as they
+ * were charted, with the case's own fee on each line. It is the dental
+ * counterpart of the medical institutional case (MCASE-010), which prints the
+ * UB-04 the same way.
+ */
+const CASE_ADA_PAPER_FILLING_SRP: DentalCaseScenario = {
+  id: "DCASE-010",
+  title: "A two-surface filling, one quadrant of deep cleaning and a set of bitewings on one ADA claim",
+  difficulty: "beginner",
+  estimatedMinutes: 15,
+  planId: "PLAN-CASCADIA-PPO",
+  patient: {
+    id: "DPT-1010",
+    firstName: "Rabia",
+    lastName: "Anwar",
+    dateOfBirth: "1988-04-17",
+    ageAtServiceDate: 38,
+    gender: "Female",
+    phone: "(555) 0173-2210",
+    address: "48 Marigold Lane, Riverbend, ST 00000",
+    subscriberName: "Anwar, Rabia",
+    relationshipToSubscriber: "self",
+    memberId: "CDG880417201",
+    coverageEffectiveDate: "2026-09-01",
+    monthsCoveredAtServiceDate: 6,
+  },
+  briefing:
+    "Ms Anwar comes in with sensitivity on the lower left and gums that bleed when she brushes. One visit, three services: a set of bitewings, a quadrant of deep cleaning in the upper right, and a new filling on the lower left first molar. Chart each one where the payer reads it — the tooth, the surface letters, the quadrant — and let the claim print on the form a dental office actually sends.",
+  registrationNotes: [
+    "The card on file matches the eligibility record; the patient is the subscriber.",
+    "Patient is new to the practice and has no paid history with this plan.",
+    "No copay was collected at the desk; confirm the basic-services coinsurance and the deductible during eligibility.",
+  ],
+  eligibilitySnapshot: {
+    status: "Active since 1 September 2026. Six months of continuous coverage on the date of service.",
+    remainingAnnualMaximumUsd: 1500,
+    deductibleMetUsd: 0,
+    paidHistory: [],
+    representativeNotes: [
+      "Preventive services pay at 100 percent with no deductible.",
+      "Basic services pay at 80 percent of the contracted allowance after a 50 dollar deductible.",
+      "Major services are not payable until twelve months of continuous coverage; nothing in this visit is a major service.",
+      "Bitewing images are limited to one set every twelve months.",
+      "Scaling and root planing is paid per quadrant and needs the periodontal chart with the pocket depths for that quadrant.",
+    ],
+  },
+  clinicalNote: {
+    chiefComplaint: "Sensitivity to cold on the lower left side, and gums that bleed when brushing.",
+    findings: [
+      "Lower left first molar: a failing composite on the mesial and occlusal surfaces with a marginal gap and recurrent decay. The tooth is restorable and the nerve is not involved.",
+      "Upper right quadrant: pocket depths of 5 to 6 mm with bleeding on probing at five teeth, so the quadrant meets the four-or-more-tooth test for the deep cleaning code.",
+      "No mobility and no furcation involvement. Every other sextant probes at 3 mm or less.",
+    ],
+    periodontalSummary:
+      "Upper right: five teeth with 5 to 6 mm pockets and bleeding on probing. All other sextants 3 mm or less.",
+    radiographicFindings: [
+      "Four bitewing images taken today.",
+      "Recurrent decay under the composite on the lower left first molar, clear of the nerve.",
+      "No bone loss outside the upper right quadrant.",
+    ],
+    diagnosisNarrative:
+      "Recurrent decay under a failing two-surface composite on the lower left first molar, and periodontitis confined to the upper right quadrant.",
+    treatmentPerformed: [
+      "Four bitewing images taken before treatment.",
+      "Upper right quadrant scaled and root planed under local anaesthesia, five teeth.",
+      "The old composite on the lower left first molar was removed and a new two-surface composite placed on the mesial and occlusal surfaces.",
+    ],
+    providerNarrativeForPayer:
+      "Pocket depths of 5 to 6 mm with bleeding on probing at five teeth in the upper right quadrant are attached to this claim. The restoration on the lower left first molar replaces a failed composite with recurrent decay on the mesial and occlusal surfaces.",
+  },
+  procedures: [
+    {
+      line: 1,
+      code: "D0274",
+      dateOfService: "2027-03-16",
+      feeUsd: 78,
+      expectedNote:
+        "Four bitewing images. No tooth and no quadrant: the set covers both sides of the mouth, so box 31 carries the code and the fee only.",
+    },
+    {
+      line: 2,
+      code: "D2392",
+      tooth: "19",
+      surfaces: "MO",
+      dateOfService: "2027-03-16",
+      feeUsd: 248,
+      expectedNote:
+        "Two-surface composite on the lower left first molar. The tooth number and the surface letters both go in box 31 — a restoration without its surfaces is an incomplete line.",
+    },
+    {
+      line: 3,
+      code: "D4341",
+      quadrant: "10",
+      dateOfService: "2027-03-16",
+      feeUsd: 312,
+      expectedNote:
+        "Deep cleaning of the upper right quadrant, five diseased teeth. The quadrant is the locator, not a tooth number, and the periodontal chart has to support it.",
+    },
+  ],
+  predetermination: {
+    required: false,
+    reason:
+      "Preventive and basic services below the plan's review threshold; no predetermination is needed for this visit.",
+    attachmentsExpected: [],
+    expectedTurnaroundDays: 0,
+  },
+  traps: [
+    {
+      id: "TRAP-10A",
+      stage: "coding",
+      title: "The deep cleaning coded on a quadrant that does not meet the tooth count",
+      commonMistake:
+        "The student bills the four-or-more-tooth code for every quadrant that needs deep cleaning, whatever the chart says.",
+      whyItIsWrong:
+        "The higher code is only payable where four or more teeth in that quadrant actually show disease in the chart. Billing it on three teeth is the single most common dental audit finding and the claim comes back denied.",
+      correctAction:
+        "Count the diseased teeth in the quadrant first. Four or more is the higher code; three or fewer belongs on the limited code.",
+      producesDenialId: "DEN-SRP-TOOTH-COUNT",
+      pointsAtStake: 20,
+    },
+    {
+      id: "TRAP-10B",
+      stage: "coding",
+      title: "The two-surface filling billed as a one-surface",
+      commonMistake:
+        "The student picks the one-surface composite because the box does not make them choose, and it is the cheaper code.",
+      whyItIsWrong:
+        "The chart records the mesial and the occlusal surface. Billing one surface understates the work and the payer compares the claim against the surface count it expects for the code.",
+      correctAction: "Bill the code that matches the surfaces actually restored, and put both letters in box 31.",
+      producesDenialId: "DEN-SURFACE-MISMATCH",
+      pointsAtStake: 15,
+    },
+    {
+      id: "TRAP-10C",
+      stage: "claim",
+      title: "A restoration line with no surface letters",
+      commonMistake: "The student sends the claim with the tooth number filled in and box 31's surface column blank.",
+      whyItIsWrong:
+        "The surface is part of what makes the code the code. A line with a tooth and no surface is an incomplete claim and is rejected before anyone reads the chart.",
+      correctAction: "Check every restorative line for its surface letters before transmitting, not after the rejection.",
+      producesDenialId: "DEN-SURFACE-MISMATCH",
+      pointsAtStake: 15,
+    },
+    {
+      id: "TRAP-10D",
+      stage: "claim",
+      title: "The deep cleaning sent with no periodontal chart",
+      commonMistake:
+        "The student transmits the quadrant of deep cleaning with nothing attached, assuming the chart is in the system.",
+      whyItIsWrong:
+        "The payer cannot see the practice's chart. Without the pocket depths for that quadrant there is nothing to support the code and the line is denied for missing documentation.",
+      correctAction: "Attach the periodontal chart with the pocket depths for the quadrant billed on the first submission.",
+      producesDenialId: "DEN-DOC-MISSING",
+      pointsAtStake: 20,
+    },
+    {
+      id: "TRAP-10E",
+      stage: "ar-follow-up",
+      title: "Reading the composite's reduced payment as a denial",
+      commonMistake:
+        "The remittance pays the composite at the amalgam allowance and the student files an appeal or writes the difference off.",
+      whyItIsWrong:
+        "On a back tooth this plan treats a metal filling as adequate and pays that allowance. The service was covered, just at a lower allowance, so it is an alternate benefit and not a denial — and the difference is the patient's upgrade, not a write-off.",
+      correctAction:
+        "Post the plan's payment, bill the difference to the patient as the upgrade, and explain it before the next appointment.",
+      pointsAtStake: 15,
+    },
+  ],
+  expectedOutcome: [
+    {
+      line: 1,
+      code: "D0274",
+      chargedUsd: 78,
+      allowedUsd: 62,
+      contractualWriteOffUsd: 16,
+      planPaysUsd: 62,
+      patientOwesUsd: 0,
+      explanation:
+        "Preventive, so it pays at 100 percent of the 62 dollar allowance with no deductible, and the 16 dollar difference is the in-network write-off.",
+    },
+    {
+      line: 2,
+      code: "D2392",
+      chargedUsd: 248,
+      allowedUsd: 196,
+      alternateBenefitAllowedUsd: 158,
+      contractualWriteOffUsd: 52,
+      planPaysUsd: 86.4,
+      patientOwesUsd: 109.6,
+      denialId: "DEN-ALT-BENEFIT",
+      explanation:
+        "Covered, but on a back tooth the plan pays the two-surface amalgam allowance of 158. The 50 dollar deductible is taken from this line first, leaving 108, paid at 80 percent, which is 86.40. The patient owes the deductible plus the upgrade from amalgam to composite, on top of their 20 percent.",
+    },
+    {
+      line: 3,
+      code: "D4341",
+      chargedUsd: 312,
+      allowedUsd: 268,
+      contractualWriteOffUsd: 44,
+      planPaysUsd: 214.4,
+      patientOwesUsd: 53.6,
+      explanation:
+        "Basic service paid at 80 percent of the 268 dollar allowance. The deductible was already taken on the filling, so nothing is withheld here.",
+    },
+  ],
+  expectedTotals: {
+    chargedUsd: 638,
+    allowedUsd: 526,
+    planPaysUsd: 362.8,
+    patientOwesUsd: 163.2,
+    writeOffUsd: 112,
+  },
+  arFollowUp: {
+    scenario:
+      "The remittance pays the composite at the amalgam allowance for the same two surfaces. A student who expected the full composite allowance treats the difference as an underpayment.",
+    outcome: "bill-patient",
+    callObjectives: [
+      "Recognise the reduced allowance as an alternate benefit, not a denial.",
+      "Confirm the bitewings were paid at the preventive rate and the deductible was taken once.",
+      "Post the patient's upgrade as a patient balance, not a contractual write-off.",
+      "Quote the remaining annual maximum before planning the next quadrant.",
+    ],
+  },
+  gradingRubric: {
+    maxPoints: 100,
+    passingPoints: 70,
+    criteria: [
+      { stage: "registration", criterion: "Recorded the patient as the subscriber with the member ID from the card", points: 10 },
+      { stage: "eligibility", criterion: "Read the basic-services coinsurance and the unmet deductible before quoting the patient", points: 20 },
+      { stage: "coding", criterion: "Chose the deep cleaning code that matches the four-or-more-tooth test", points: 20 },
+      { stage: "coding", criterion: "Coded the filling with its tooth and both surface letters", points: 20 },
+      { stage: "claim", criterion: "Printed the ADA form with each line's own tooth, surface or quadrant", points: 20 },
+      { stage: "ar-follow-up", criterion: "Read the alternate benefit as a covered line and billed the upgrade to the patient", points: 10 },
+    ],
+  },
+  instructorKey: [
+    "The whole case is one habit: box 31 is where a dental claim is won or lost — tooth, surface and quadrant are part of the code, not decoration.",
+    "Have students point at the five diseased teeth in the upper right before they pick the deep cleaning code, then ask what the claim would say if only three teeth were charted.",
+    "The composite comes back reduced, not denied. Ask what the patient owes and why, before anyone reaches for the appeal form.",
+  ],
+  claimPaperFromRecord: true,
+};
+
 export const DENTAL_CASE_SCENARIOS: DentalCaseScenario[] = [
   CASE_HYGIENE_RECALL,
   CASE_CROWN_DOWNGRADE,
@@ -2011,6 +2271,7 @@ export const DENTAL_CASE_SCENARIOS: DentalCaseScenario[] = [
   CASE_DHMO_IMPACTION,
   CASE_WAITING_PERIOD_CROWN,
   CASE_NOT_ELIGIBLE_GAP,
+  CASE_ADA_PAPER_FILLING_SRP,
 ];
 
 export const DENTAL_CASE_INDEX: Record<string, DentalCaseScenario> = Object.fromEntries(
