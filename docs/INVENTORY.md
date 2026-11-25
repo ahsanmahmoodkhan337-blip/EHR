@@ -486,3 +486,7 @@ British "authorisation" spelling across the UI (a grader matches on it).
 - After **Appeal**, the payer's answer arrives as a new AR item kind **`appeal`** ("Appeal decision") on the appeal record `…-A1` (`buildArWorkQueue`). `appealDecisionFor(carc)` explains why it is upheld: every denial this simulation produces (CO-31 name mismatch, CO-197 no auth in Box 23, CO-236 same-day edit) is an error on the claim, fixed by a corrected claim or written off — not won on appeal. Actions: **Correct and resubmit** (opens `…-R1` on Billing / Claim, Box 22 original ref = the original claim) or **Contractual write-off**. Either lets the visit close.
 - `successorClaimNumber` counts from the original claim: A1 → R1, R1 → R2 (never `…-A1-R1`). Upheld appeals count with the denied lines in the queue totals.
 - Guarded by `tests/corrected-claim-loop.test.ts`.
+
+## 14. Toast messages appear (2026-11-25)
+
+- `src/routes/__root.tsx` mounts sonner's `<Toaster />` once (bottom-right). Before this, the 18 `toast()` calls in `routes/index.tsx`, `ClaimFormShell`, `BillingLedger`, `DentalBillingLedger`, `PriorAuthPortal` and `HotkeyEngine` went nowhere — e.g. Validate on the claim showed nothing, and "Cannot submit — N edit checks failed" was silent. Guarded by `tests/toaster-mounted.test.ts`.
