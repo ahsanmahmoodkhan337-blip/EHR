@@ -164,11 +164,9 @@ export function AppShell({
           {reference}
         </div>
 
-        {/* The footer strip: the page's simulated-data line and the one help
-            button side by side, both in the layout. The launcher used to float
-            over the bottom-right corner and was measured covering the last
-            row's "Open patient" button on Patients (slice H), so it is docked
-            here where it cannot be drawn over anything. */}
+        {/* The footer strip: the page's simulated-data line. The help head
+            renders here but floats (fixed position) and can be dragged anywhere
+            by the student (owner, 2026-11-25). */}
         <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white pr-2 dark:border-slate-800 dark:bg-slate-900">
           <div className="min-w-0 flex-1 [&_footer]:border-t-0">{footer}</div>
           <HelpLauncher />
