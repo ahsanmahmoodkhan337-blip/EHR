@@ -14,6 +14,8 @@
  * healthcare students practice navigating real-world EHR workflows.
  */
 
+import { VitalsSaveBar } from "../components/vitals/VitalsSaveBar";
+import { editableFromVitals, latestVitals } from "../domain/vitalsRecord";
 import { useState, useEffect, useRef } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import {
@@ -494,7 +496,7 @@ function SummaryTab({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <div className="clinical-card">
           <p className="clinical-label">BP</p>
           {isScribe ? (
@@ -502,10 +504,12 @@ function SummaryTab({
               type="text"
               value={vitals.bloodPressure}
               onChange={(e) => updateVital("bloodPressure", e.target.value)}
+              aria-label="Blood pressure"
+              placeholder="120/80"
               className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
             />
           ) : (
-            <p className="clinical-value">{formatVital(patient.vitals.bloodPressure)}</p>
+            <p className="clinical-value">{formatVital(vitals.bloodPressure)}</p>
           )}
           {(() => {
             const parts = vitals.bloodPressure.split("/").map(s => parseFloat(s.trim()));
@@ -521,8 +525,8 @@ function SummaryTab({
         <div className="clinical-card">
           <p className="clinical-label">HR</p>
           {isScribe ? (
-            <input type="text" value={vitals.heartRate} onChange={e => updateVital("heartRate", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
-          ) : <p className="clinical-value">{formatVital(patient.vitals.heartRate, " bpm")}</p>}
+            <input type="text" value={vitals.heartRate} onChange={e => updateVital("heartRate", e.target.value)} aria-label="Heart rate" className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
+          ) : <p className="clinical-value">{formatVital(vitals.heartRate, " bpm")}</p>}
           {(() => {
             const val = parseFloat(vitals.heartRate);
             if (isNaN(val)) return null;
@@ -534,8 +538,8 @@ function SummaryTab({
         <div className="clinical-card">
           <p className="clinical-label">Temp</p>
           {isScribe ? (
-            <input type="text" value={vitals.temperature} onChange={e => updateVital("temperature", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
-          ) : <p className="clinical-value">{formatVital(patient.vitals.temperature, "°F")}</p>}
+            <input type="text" value={vitals.temperature} onChange={e => updateVital("temperature", e.target.value)} aria-label="Temperature" className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
+          ) : <p className="clinical-value">{formatVital(vitals.temperature, "°F")}</p>}
           {(() => {
             const val = parseFloat(vitals.temperature);
             if (isNaN(val)) return null;
@@ -547,8 +551,8 @@ function SummaryTab({
         <div className="clinical-card">
           <p className="clinical-label">SpO2</p>
           {isScribe ? (
-            <input type="text" value={vitals.oxygenSaturation} onChange={e => updateVital("oxygenSaturation", e.target.value)} className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
-          ) : <p className="clinical-value">{formatVital(patient.vitals.oxygenSaturation, "%")}</p>}
+            <input type="text" value={vitals.oxygenSaturation} onChange={e => updateVital("oxygenSaturation", e.target.value)} aria-label="Oxygen saturation" className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
+          ) : <p className="clinical-value">{formatVital(vitals.oxygenSaturation, "%")}</p>}
           {(() => {
             const val = parseFloat(vitals.oxygenSaturation);
             if (isNaN(val)) return null;
@@ -557,7 +561,14 @@ function SummaryTab({
             return <p className="mt-1 text-xs font-medium text-green-600">✓ Normal</p>;
           })()}
         </div>
+        <div className="clinical-card">
+          <p className="clinical-label">RR</p>
+          {isScribe ? (
+            <input type="text" value={vitals.respiratoryRate} onChange={e => updateVital("respiratoryRate", e.target.value)} aria-label="Respiratory rate" className="clinical-value w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400" />
+          ) : <p className="clinical-value">{formatVital(vitals.respiratoryRate, "/min")}</p>}
+        </div>
       </div>
+      {isScribe && <VitalsSaveBar patientId={patientId} vitals={vitals} onVitalsChange={setVitals} />}
 
       {/* Active Problems */}
       <div className="clinical-card">
@@ -1045,11 +1056,11 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
     }
   };
 
-  const bpBadge = getBadge("bp", isScribe ? vitals.bloodPressure : patient.vitals.bloodPressure);
-  const hrBadge = getBadge("hr", isScribe ? vitals.heartRate : patient.vitals.heartRate.toString());
-  const tempBadge = getBadge("temp", isScribe ? vitals.temperature : patient.vitals.temperature.toString());
-  const rrBadge = getBadge("rr", isScribe ? vitals.respiratoryRate : patient.vitals.respiratoryRate.toString());
-  const o2Badge = getBadge("o2", isScribe ? vitals.oxygenSaturation : patient.vitals.oxygenSaturation.toString());
+  const bpBadge = getBadge("bp", vitals.bloodPressure);
+  const hrBadge = getBadge("hr", vitals.heartRate);
+  const tempBadge = getBadge("temp", vitals.temperature);
+  const rrBadge = getBadge("rr", vitals.respiratoryRate);
+  const o2Badge = getBadge("o2", vitals.oxygenSaturation);
 
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -1076,7 +1087,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{formatVital(patient.vitals.bloodPressure, " mmHg")}</>
+                    <>{formatVital(vitals.bloodPressure, " mmHg")}</>
                   )}
                 </td>
                 <td><span className={bpBadge.className}>{bpBadge.label}</span></td>
@@ -1092,7 +1103,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{formatVital(patient.vitals.heartRate, " bpm")}</>
+                    <>{formatVital(vitals.heartRate, " bpm")}</>
                   )}
                 </td>
                 <td><span className={hrBadge.className}>{hrBadge.label}</span></td>
@@ -1108,7 +1119,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{formatVital(patient.vitals.temperature, " °F")}</>
+                    <>{formatVital(vitals.temperature, " °F")}</>
                   )}
                 </td>
                 <td><span className={tempBadge.className}>{tempBadge.label}</span></td>
@@ -1124,7 +1135,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{formatVital(patient.vitals.respiratoryRate)} /min</>
+                    <>{formatVital(vitals.respiratoryRate)} /min</>
                   )}
                 </td>
                 <td><span className={rrBadge.className}>{rrBadge.label}</span></td>
@@ -1140,7 +1151,7 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
                       className="w-28 rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-brand-400"
                     />
                   ) : (
-                    <>{formatVital(patient.vitals.oxygenSaturation, "%")}</>
+                    <>{formatVital(vitals.oxygenSaturation, "%")}</>
                   )}
                 </td>
                 <td><span className={o2Badge.className}>{o2Badge.label}</span></td>
@@ -1152,11 +1163,15 @@ function VitalsTab({ patientId, editableVitals: extVitals, onVitalsChange }: {
       <div className="clinical-card">
         <p className="clinical-label mb-2">Recorded</p>
         <p className="text-sm text-slate-600">
-          {new Date(patient.vitals.recordedAt).toLocaleString()}
+          {(() => {
+            const last = latestVitals(pipeline.getEncounter(patientId)?.vitals);
+            if (last) return new Date(last.recordedAt).toLocaleString();
+            return patient.vitals.recordedAt && (hasVital(patient.vitals.bloodPressure) || hasVital(patient.vitals.heartRate))
+              ? new Date(patient.vitals.recordedAt).toLocaleString()
+              : "Not recorded yet";
+          })()}
         </p>
-        {isScribe && (
-          <p className="mt-2 text-xs italic text-brand-500">Click to edit values above</p>
-        )}
+        {isScribe && <VitalsSaveBar patientId={patientId} vitals={vitals} onVitalsChange={setVitals} />}
       </div>
     </div>
   );
@@ -1177,7 +1192,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
    * is the next tab of the same window, so the stepper, the patient banner and
    * Back / "Continue to…" stay inside the chart panel where they were.
    */
-  const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs("schedule");
+  const { activeWorkspace, setActiveWorkspace } = useWorkspaceTabs(encounterIdFromRoute ? "chart" : "schedule");
   const { currentRole, submitToCoding, writeNoteFor, setRole, rememberChartStage, paRecords, deniedClaims, resetEncounter, setPatientDisplayName, seedTutorialOnOpen, selectPatient, getEncounter, activePatientId, getRoleLabel, completePipeline, state: pipelineState } = usePipeline();
   /**
    * The patient the chart opens on (owner's audit, 2026-11-20, item 4 — "patient
@@ -1327,6 +1342,9 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       // A money-cycle rail page hands over the stage its row was about, so the
       // chart opens on that screen instead of wherever the student left it.
       if (requested.role) setRole(requested.role);
+      // …and on the chart itself: a row's "Open this claim" used to land on the
+      // Daily Schedule with the claim hidden behind it (owner, 2026-11-26).
+      setActiveWorkspace("chart");
       return;
     }
     // An appointment booked for someone who is not in the patient database
@@ -1583,13 +1601,20 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       // A measurement that was never taken stays empty so every screen shows
       // "—": filling in 72 bpm / 98.6°F made an untaken vitals look recorded.
       const recorded = (v: string | number | undefined) => (hasVital(v) ? String(v) : "");
-      setEditableVitals({
-        bloodPressure: recorded(p.vitals.bloodPressure),
-        heartRate: recorded(p.vitals.heartRate),
-        temperature: recorded(p.vitals.temperature),
-        respiratoryRate: recorded(p.vitals.respiratoryRate),
-        oxygenSaturation: recorded(p.vitals.oxygenSaturation),
-      });
+      // Vitals saved on this visit are part of the chart and win; a seeded
+      // chart's measured vitals come next; otherwise "—".
+      const savedVitals = latestVitals(getEncounter(patientId)?.vitals);
+      setEditableVitals(
+        savedVitals
+          ? editableFromVitals(savedVitals)
+          : {
+              bloodPressure: recorded(p.vitals.bloodPressure),
+              heartRate: recorded(p.vitals.heartRate),
+              temperature: recorded(p.vitals.temperature),
+              respiratoryRate: recorded(p.vitals.respiratoryRate),
+              oxygenSaturation: recorded(p.vitals.oxygenSaturation),
+            },
+      );
       // Demo clinical items appear on seeded demo patients only (owner decision
       // 2026-11-20). A patient the student registered starts with empty lists.
       const seeded = p.isSeed === true || p.id === TUTORIAL_PATIENT_ID;
@@ -2234,7 +2259,7 @@ export function Home({ encounterIdFromRoute, stageFromRoute }: HomeProps = {}) {
       rightPanel={
         <div className="flex h-full flex-col">
           <div className="flex-1 overflow-y-auto">
-            <RightPaneleCW patient={selectedPatient ?? null} displayName={displayName} editableVitals={editableVitals} editablePatientData={editablePatientData} sharedImmunizations={sharedImmunizations} sharedLabs={sharedLabs} sharedReferrals={sharedReferrals} sharedOrders={sharedOrders} sharedImaging={sharedImaging} soapNote={soapNote} paRecords={paRecords} />
+            <RightPaneleCW patient={selectedPatient ?? null} displayName={displayName} editableVitals={editableVitals} savedVitals={(() => { const v = latestVitals(getEncounter(selectedPatientId)?.vitals); return v ? { at: v.recordedAt, values: editableFromVitals(v) } : null; })()} editablePatientData={editablePatientData} sharedImmunizations={sharedImmunizations} sharedLabs={sharedLabs} sharedReferrals={sharedReferrals} sharedOrders={sharedOrders} sharedImaging={sharedImaging} soapNote={soapNote} paRecords={paRecords} />
           </div>
           {currentRole !== "scribe" && (
             <div className="border-t border-slate-100 p-3">
